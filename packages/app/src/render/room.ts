@@ -39,9 +39,11 @@ export type PlaneStyle = 'classic' | 'modern';
  * Classic is the SGI's 50% polygon stipple (0xAAAA / 0x5555 rows) as a
  * screen-space checkerboard, so whatever lies behind the plane shows
  * through every other pixel and reads as "behind"; anything in front is
- * untouched. Modern is the same colour alpha-blended. Like draw_cutplane,
- * the fill sits 2 units behind the plane (so the section, exactly at the
- * plane, is never under it) and the black border 5 units in front.
+ * untouched. Modern is the same colour alpha-blended. draw_cutplane pushed
+ * the fill 2 units back and the border 5 forward so the SGI's z-buffer kept
+ * them apart, which in perspective leaves the fill visibly off its border;
+ * here both sit exactly in the plane, and draw order (the fill writes no
+ * depth, the section lines come after it) keeps the section on top.
  */
 export class Cutplane {
   readonly object = new THREE.Group();
@@ -82,11 +84,11 @@ export class Cutplane {
         depthWrite: false,
       }),
     );
-    this.fill.position.set((X0 + X1) / 2, (Y0 + Y1) / 2, -2);
+    this.fill.position.set((X0 + X1) / 2, (Y0 + Y1) / 2, 0);
     this.fill.renderOrder = 10;
     this.border = new Lines(
       { color: CLASSIC.black, width: 2, renderOrder: 11 },
-      closedPolyline([X0, Y0, 5, X1, Y0, 5, X1, Y1, 5, X0, Y1, 5]),
+      closedPolyline([X0, Y0, 0, X1, Y0, 0, X1, Y1, 0, X0, Y1, 0]),
     );
     this.object.add(this.fill, this.border.object);
   }

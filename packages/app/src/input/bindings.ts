@@ -82,6 +82,7 @@ export function commandFor(code: string, h: Held): Command | undefined {
     case 'Digit0':
     case 'Home':
       return 'resetView';
+    case 'KeyF':
     case 'Enter':
       return 'workMode';
     default:

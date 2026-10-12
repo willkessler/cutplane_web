@@ -235,6 +235,7 @@ window.addEventListener('keydown', (e) => {
   e.preventDefault();
   if (c === 'workMode') {
     if (work.state === 'off') void work.enter();
+    else if (e.code === 'KeyF') work.exit(); // F toggles, like a video player's full screen
   } else control.command(c);
 });
 window.addEventListener('keyup', syncHeld);

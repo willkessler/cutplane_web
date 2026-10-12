@@ -28,6 +28,28 @@ describe('camera', () => {
   });
 });
 
+describe('orbitCamera', () => {
+  /** The camera's right axis in room space. */
+  const right = (yaw: number, pitch: number) => {
+    const c = createCamera(16 / 10);
+    orbitCamera(c, yaw, pitch);
+    c.updateMatrixWorld();
+    const e = c.matrixWorld.elements;
+    return [e[0]!, e[1]!, e[2]!];
+  };
+
+  it('keeps the turn when the room is tipped straight down', () => {
+    for (const yaw of [-60, -20, 30, 90]) {
+      const a = right(yaw, 89);
+      const b = right(yaw, 90);
+      expect(a[0]! * b[0]! + a[1]! * b[1]! + a[2]! * b[2]!).toBeGreaterThan(0.999);
+      const t = (yaw * Math.PI) / 180;
+      expect(b[0]).toBeCloseTo(Math.cos(t));
+      expect(b[2]).toBeCloseTo(-Math.sin(t));
+    }
+  });
+});
+
 describe('deeperOnScreen', () => {
   const at = (yaw: number, pitch: number) => {
     const c = createCamera(16 / 10);

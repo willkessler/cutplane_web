@@ -49,6 +49,8 @@ describe('binding profiles', () => {
   it('maps keys to commands and leaves ⌘ combinations to the browser', () => {
     expect(commandFor('Space', held())).toBe('planeJump');
     expect(commandFor('ArrowLeft', held())).toBe('rotateLeft');
+    expect(commandFor('KeyF', held())).toBe('workMode');
+    expect(commandFor('KeyF', held({ meta: true }))).toBeUndefined();
     expect(commandFor('KeyW', held({ meta: true }))).toBeUndefined();
     expect(commandFor('Space', held({ meta: true }))).toBeUndefined();
   });

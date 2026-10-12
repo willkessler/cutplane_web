@@ -52,7 +52,7 @@ lasts only while you hold the key or button.
 | Space   | Plane jump: to the back wall, and back again              |
 | ← → ↑ ↓ | Rotate the room 10° (±90° side to side, 0–90° from above) |
 | 0       | Reset the view                                            |
-| Enter   | Start working (full screen, pointer captured)             |
+| F       | Start or stop working (full screen, pointer captured)     |
 
 Dragging the plane follows the plane on screen: you push it the way it visibly travels as it goes
 deeper. Facing the room, that is up the screen; with the room turned 90°, it is sideways. Scrolling
@@ -60,12 +60,12 @@ away always sends it deeper.
 
 ### Work mode
 
-**Start working** (or Enter) goes full screen and captures the pointer, like the SGI: the cursor
+**Start working** (or F) goes full screen and captures the pointer, like the SGI: the cursor
 can't leave the window, and the plane and room can be pushed as far as you like without hitting a
 screen edge. Input is raw relative motion, unaccelerated where the browser allows. Nothing flat
 covers the room while you work: the toolbar and the status bar disappear.
 
-- **Leaving:** tap Esc.
+- **Leaving:** tap Esc (or F).
 - **Pausing:** if the pointer is released (Esc, ⌘-Tab, a notification), everything stays where
   it was, and a click resumes.
 - **Without work mode** the app runs windowed: the crosshair sits exactly under the hidden

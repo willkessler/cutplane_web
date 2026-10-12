@@ -44,8 +44,13 @@ export function orbitCamera(
     CAMERA_EYE_Z * Math.sin(pitch),
     CAMERA_EYE_Z * Math.cos(yaw) * Math.cos(pitch),
   );
-  // Straight down, "up" would be degenerate; keep the room's back wall at the top.
-  camera.up.set(0, pitch > 1.5 ? 0 : 1, pitch > 1.5 ? -1 : 0);
+  // The camera's own up axis, so tipping the room over keeps its turn: straight down,
+  // the back wall stays at the top of the screen, still rotated by the yaw.
+  camera.up.set(
+    -Math.sin(yaw) * Math.sin(pitch),
+    Math.cos(pitch),
+    -Math.cos(yaw) * Math.sin(pitch),
+  );
   camera.lookAt(0, 0, 0);
 }
 
