@@ -18,6 +18,8 @@ export function isDrawn(o: CutObject): boolean {
 export interface Model {
   object: CutObject;
   world: WorldGeometry;
+  mesh?: THREE.Mesh | undefined;
+  shadow?: THREE.Mesh | undefined;
 }
 
 /**
@@ -100,41 +102,63 @@ export class ModelView {
   });
 
   load(doc: CutDocument): void {
-    for (const c of [...this.object.children]) {
-      this.object.remove(c);
-      if (c instanceof THREE.Mesh) c.geometry.dispose();
-    }
+    for (const m of this.models) this.drop(m);
     this.models = [...preorder(doc.roots)]
       .filter(isDrawn)
       .map((object) => ({ object, world: new WorldGeometry(object.brep, object.xform) }));
+    for (const m of this.models) this.build(m);
+  }
 
+  /** Rebuilds what's drawn for objects whose geometry or placement changed. */
+  rebuild(objects: Iterable<CutObject>): void {
+    const set = new Set(objects);
+    for (const m of this.models) {
+      if (!set.has(m.object)) continue;
+      this.drop(m);
+      m.world = new WorldGeometry(m.object.brep, m.object.xform);
+      this.build(m);
+    }
+  }
+
+  private drop(m: Model): void {
+    for (const mesh of [m.mesh, m.shadow]) {
+      if (!mesh) continue;
+      this.object.remove(mesh);
+      mesh.geometry.dispose();
+    }
+    m.mesh = m.shadow = undefined;
+  }
+
+  private build(m: Model): void {
+    const b = m.object.brep;
     const pos: number[] = [];
     const col: number[] = [];
-    const spos: number[] = [];
-    const scol: number[] = [];
-    for (const m of this.models) {
-      const b = m.object.brep;
+    triangulate(
+      m,
+      () => true,
+      (f) => shadeFace(m.world.faceNormal(f), b.faceColors.get(f) ?? m.object.color),
+      pos,
+      col,
+    );
+    m.mesh = new THREE.Mesh(geometry(pos, col), this.material);
+    m.mesh.frustumCulled = false;
+    this.object.add(m.mesh);
+    if (!m.object.attrs.props.includes('Noshadow')) {
+      const spos: number[] = [];
+      const scol: number[] = [];
       triangulate(
         m,
-        () => true,
-        (f) => shadeFace(m.world.faceNormal(f), b.faceColors.get(f) ?? m.object.color),
-        pos,
-        col,
+        (f) => m.world.faceNormal(f)[1] > 0,
+        () => [0, 0, 0],
+        spos,
+        scol,
+        ROOM.min[1] + 0.5,
       );
-      if (!m.object.attrs.props.includes('Noshadow'))
-        triangulate(
-          m,
-          (f) => m.world.faceNormal(f)[1] > 0,
-          () => [0, 0, 0],
-          spos,
-          scol,
-          ROOM.min[1] + 0.5,
-        );
+      m.shadow = new THREE.Mesh(geometry(spos, scol), this.shadowMaterial);
+      m.shadow.frustumCulled = false;
+      m.shadow.renderOrder = -1;
+      this.object.add(m.shadow);
     }
-    const mesh = new THREE.Mesh(geometry(pos, col), this.material);
-    const shadows = new THREE.Mesh(geometry(spos, scol), this.shadowMaterial);
-    mesh.frustumCulled = shadows.frustumCulled = false;
-    this.object.add(shadows, mesh);
   }
 
   /** Every vertex depth in the world, for plane snapping. */

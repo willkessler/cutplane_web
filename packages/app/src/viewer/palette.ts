@@ -18,6 +18,10 @@ export const CLASSIC = {
   /** The section seen through whatever is in front of it. */
   darkYellow: [100, 100, 0],
   orange: [255, 110, 10],
+  /** Picked features (globals.c red). */
+  red: [255, 0, 0],
+  /** Picked objects' contour (cpcolors.rsc "Picked Contour Color"). */
+  pickedContour: [255, 50, 50],
 } as const;
 
 export type Rgb8 = readonly [number, number, number];

@@ -28,3 +28,7 @@ export type { CutObject, PrimitiveInfo } from './model/object.ts';
 export { computeSection, loopArea, WorldGeometry, ON_PLANE } from './section/section.ts';
 export type { ObjectSection, SectionLoop, SectionSegment } from './section/section.ts';
 export { PlaneSnapper, DEPTH_MERGE, MIN_SNAP_MOVE } from './section/planesnap.ts';
+
+export { planarizeFace, planarizeForMotion, recombineSurfaces } from './ops/planarize.ts';
+export { pickAt, betterPick, PICK_SIZE, ON_PLANE_PICK, PICK_PRIORITY } from './select/pick.ts';
+export type { Pick, PickKind } from './select/pick.ts';

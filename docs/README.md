@@ -10,7 +10,7 @@ The user guide and architecture notes will grow here as each milestone lands. Sc
 | **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI              |
 | **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation |
 | **M2** ✅ | Room, plane, section and full-screen work mode                      |
-| M3        | Direct manipulation: selection hierarchy, drag, constrain, carry    |
+| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo    |
 | M4        | Rotate tool and editing, undo                                       |
 | M5        | CPL VM and environment: code stored in objects, live editing        |
 | M6        | Modeling operations: slice, booleans, drill, push/pull              |
@@ -33,7 +33,8 @@ for edges lying exactly in the plane. Whatever is behind the plane shows through
 As the plane moves slowly it **clicks onto vertex depths**: a small move that would carry it past
 a vertex lands exactly on it, and the next move carries on. Fast moves fly straight through, so a
 dense model never slows you down (the original's `snap_plane_to_nearestpt`). That is how faces and
-edges come to lie in the plane, ready to grab. Hold **Ctrl** to move slowly with no snapping.
+edges come to lie in the plane, ready to grab. Holding **Ctrl** moves the plane slowly with no
+snapping.
 
 ### Controls
 
@@ -45,7 +46,10 @@ lasts only while you hold the key or button.
 | Move crosshair  | move                  | move               | move                 |
 | Plane depth     | hold ⌥ + move, scroll | middle-drag, wheel | hold ⌥ + move, wheel |
 | Rotate the room | hold ⌘ + move         | right-drag         | right-drag           |
-| Fine, no snaps  | hold Ctrl             | hold Ctrl          | hold Ctrl            |
+| Pick, drag      | click, press and drag | left               | left                 |
+| Carry in depth  | drag, then hold ⌥     | left + middle      | drag, then hold ⌥    |
+| Add or remove   | shift-click           | shift-click        | shift-click          |
+| One axis        | hold Ctrl             | hold Ctrl          | hold Ctrl            |
 
 | Key     | Command                                                   |
 | ------- | --------------------------------------------------------- |
@@ -53,10 +57,46 @@ lasts only while you hold the key or button.
 | ← → ↑ ↓ | Rotate the room 10° (±90° side to side, 0–90° from above) |
 | 0       | Reset the view                                            |
 | F       | Start or stop working (full screen, pointer captured)     |
+| ⌘Z, ⇧⌘Z | Undo, redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y elsewhere)     |
 
 Dragging the plane follows the plane on screen: you push it the way it visibly travels as it goes
 deeper. Facing the room, that is up the screen; with the room turned 90°, it is sideways. Scrolling
 away always sends it deeper.
+
+### Editing
+
+![A new cube with one corner pulled out and carried forward](images/edit-cube.png)
+
+Everything is picked and moved through the section, at the crosshair. What the crosshair would
+pick is outlined in white, with a yellow pick box at the point it would take hold of; what is
+picked is red. In order of priority, within a 10-unit box around the crosshair:
+
+1. a **vertex** lying in the plane;
+2. an **edge**: one lying in the plane (anywhere along it), or one piercing it (at the
+   piercing point, a corner of the section);
+3. a **face**, through its section line;
+4. a **face lying in the plane**, from anywhere inside it;
+5. the whole **object**, from inside its section. Objects marked `Lockedgeometry` are always
+   picked whole, and an object is always picked with the group it belongs to.
+
+**Press and drag** to move what is picked: a 5-unit dead zone first, so a click never nudges
+anything, then it follows the crosshair exactly. Everything moves rigidly, in the plane. **Moving
+the plane while still holding** carries it in depth too, and so does the plane jump (Space).
+Faces the motion would bend are split first, so every face stays flat: a convex face loses just
+the triangle at the moving corner, anything else is triangulated. The pieces still act as one
+face (they highlight and drag together), and **on release, pieces that are flat again merge
+back**. Pull a corner out and push it back, and the cube is a cube again.
+
+- **Shift-click** adds to what is picked, or takes a picked feature or object away. Pressing on
+  something already picked keeps the rest, so several things can be dragged together.
+- **Press on empty space** and drag out a **marquee**: a box in the plane, or a 3D box if you move
+  the plane while dragging. It picks the objects inside it (shift adds to the picks). A plain
+  click on empty space drops all picks.
+- **Ctrl** locks the crosshair, and so the drag, to one axis: it holds still for the first 5
+  units and then follows only the axis you pushed along most.
+- **Undo and redo** (⌘Z / ⇧⌘Z) go back and forth one drag at a time. A drag that would leave a
+  solid broken (an edge squashed to nothing, a face folded flat) is put back on release.
+- **New cube** in the model menu starts from a plain cube, to shape from scratch.
 
 ### Work mode
 
@@ -72,6 +112,31 @@ covers the room while you work: the toolbar and the status bar disappear.
   pointer, and all the bindings above still work.
 
 ![The flying hand (rsc/hand6.rsc) cut through the palm](images/section-hand6.png)
+
+## Direct manipulation (M3)
+
+The behaviour comes from the original's CPL scripts (`cpl/rom.cpl`, `cpl/cursor.cpl`) and the C
+they ran on (`select.c`, `translate.c`, `split.c`, `update.c`), not from the 1988 paper or the
+2017 JS port. Both of those moved faces along their normals; 3Form translates them in the plane.
+
+- **Picking** (`packages/kernel/src/select/pick.ts`) uses the original's square pick box
+  (`Pkboxsize`, 10 units) and priority order. Two changes: any vertex on the plane counts as a
+  vertex (the original only counted one with an edge lying in the plane, through a pointer
+  comparison in `cursor_near_pt`), and only the single best pick across all objects is taken,
+  where the original picked one per object under the crosshair.
+- **Planarize** (`packages/kernel/src/ops/planarize.ts`) runs before every step of a drag, as
+  `planarize_affected_fves` did. Pieces of a face share a surface (`mothersurf`). On release they
+  merge back if they are as flat as the face they came from, so slightly bent float32-era faces
+  in old files merge back too. Faces that were separate to begin with never merge.
+- **Not ported, because the original never ran them:** `do_sticking`, the z-pause while
+  constraining (only `do_cursor_notifications` sent it, and nothing calls that), and
+  `recombine_affected_coplanar_fves`. The original's Ctrl axis detection counted mouse events;
+  browsers deliver many more, smaller events, so it decides by distance instead (the same 5
+  units).
+- **New:** undo and redo (the original's U key did nothing), rollback of drags that would break a
+  solid, and pressing on a picked feature keeping the other picks for a group drag.
+- **Tests.** A property test drags random vertices, edges and faces of a cube and a cube with a
+  hole and checks that the solid stays closed, consistent and flat, before and after recombining.
 
 ## Sections (M2)
 

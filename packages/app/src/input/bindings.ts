@@ -47,7 +47,8 @@ export function motionFor(profile: Profile, h: Held): Motion {
     case 'three-button':
       // The SGI bindings: middle drags the plane, right rotates the room.
       if (h.buttons & RIGHT) return 'rotate';
-      if (h.buttons & MIDDLE && !(h.buttons & LEFT)) return 'plane';
+      // Middle with left held is the carry chord: the plane moves and takes the drag with it.
+      if (h.buttons & MIDDLE) return 'plane';
       if (h.alt) return 'plane';
       return 'point';
     case 'two-button':
@@ -64,10 +65,21 @@ export function defaultProfile(platform: string): Profile {
 
 /** The keyboard commands live in M2 (controls.c's, restored), plus the work-mode toggle. */
 export type Command =
-  'planeJump' | 'rotateLeft' | 'rotateRight' | 'rotateUp' | 'rotateDown' | 'resetView' | 'workMode';
+  | 'planeJump'
+  | 'rotateLeft'
+  | 'rotateRight'
+  | 'rotateUp'
+  | 'rotateDown'
+  | 'resetView'
+  | 'workMode'
+  | 'undo'
+  | 'redo';
 
 export function commandFor(code: string, h: Held): Command | undefined {
-  if (h.meta || h.ctrl) return undefined; // leave ⌘/Ctrl combinations to the browser
+  // Undo and redo are new (the original's U key did nothing): ⌘Z / ⇧⌘Z, or Ctrl on other systems.
+  if ((h.meta || h.ctrl) && code === 'KeyZ') return h.shift ? 'redo' : 'undo';
+  if (h.ctrl && code === 'KeyY') return 'redo';
+  if (h.meta || h.ctrl) return undefined; // leave the other ⌘/Ctrl combinations to the browser
   switch (code) {
     case 'Space':
       return 'planeJump';
@@ -93,10 +105,15 @@ export function commandFor(code: string, h: Held): Command | undefined {
 /** Human-readable bindings for the help line. */
 export function bindingHints(profile: Profile): string[] {
   const common = [
+    'Click: pick',
+    'Drag: move what is picked',
+    'Shift-click: add or remove',
+    'Ctrl: one axis',
     'Scroll: plane depth',
     'Space: plane jump',
     '← → ↑ ↓: rotate 10°',
     '0: reset view',
+    '⌘Z / ⇧⌘Z: undo / redo',
   ];
   switch (profile) {
     case 'trackpad':

@@ -32,8 +32,8 @@ describe('binding profiles', () => {
   it('three-button: the SGI layout', () => {
     expect(motionFor('three-button', held({ buttons: MIDDLE }))).toBe('plane');
     expect(motionFor('three-button', held({ buttons: RIGHT }))).toBe('rotate');
-    // Left + middle is the carry chord (M3), not a plane move.
-    expect(motionFor('three-button', held({ buttons: LEFT | MIDDLE }))).toBe('point');
+    // Left + middle is the carry chord: the plane moves, taking the drag with it.
+    expect(motionFor('three-button', held({ buttons: LEFT | MIDDLE }))).toBe('plane');
   });
 
   it('two-button: right-drag rotates, ⌥ pushes the plane', () => {
@@ -53,6 +53,11 @@ describe('binding profiles', () => {
     expect(commandFor('KeyF', held({ meta: true }))).toBeUndefined();
     expect(commandFor('KeyW', held({ meta: true }))).toBeUndefined();
     expect(commandFor('Space', held({ meta: true }))).toBeUndefined();
+    expect(commandFor('KeyZ', held({ meta: true }))).toBe('undo');
+    expect(commandFor('KeyZ', held({ meta: true, shift: true }))).toBe('redo');
+    expect(commandFor('KeyZ', held({ ctrl: true }))).toBe('undo');
+    expect(commandFor('KeyY', held({ ctrl: true }))).toBe('redo');
+    expect(commandFor('KeyZ', held())).toBeUndefined();
   });
 });
 
@@ -95,6 +100,32 @@ describe('Controller', () => {
     h.ctrl = true;
     c.move(0, -40, 1); // slowed to a quarter, and free
     expect(c.z).toBeCloseTo(496 - 10 * PLANE_GAIN);
+  });
+
+  it('Ctrl locks the crosshair to the axis it is pushed along', () => {
+    const h = held({ ctrl: true });
+    const c = new Controller('trackpad', h);
+    c.move(3, 2, 1); // inside the deciding distance: holds still
+    expect([c.x, c.y]).toEqual([0, 0]);
+    c.move(4, 1, 1); // now 7 right, 3 down: x wins
+    expect([c.x, c.y]).toEqual([7, 0]);
+    c.move(5, -40, 1); // the y motion is ignored
+    expect([c.x, c.y]).toEqual([12, 0]);
+    h.ctrl = false;
+    c.move(0, -10, 1); // released: free again, from where it was
+    expect([c.x, c.y]).toEqual([12, 10]);
+  });
+
+  it('Ctrl locks windowed (absolute) pointing too', () => {
+    const c = new Controller('two-button', held({ ctrl: true }));
+    c.pointTo(1, 30);
+    expect([c.x, c.y]).toEqual([0, 30]);
+    c.pointTo(50, 60);
+    expect([c.x, c.y]).toEqual([0, 60]);
+    c.resetConstrain();
+    c.pointTo(50, 61);
+    c.pointTo(70, 62);
+    expect([c.x, c.y]).toEqual([70, 60]);
   });
 
   it('rotates the room with ⌘ + move inside the original limits', () => {

@@ -107,6 +107,31 @@ export class Brep {
   readonly edgeAttrs = new Map<number, FeatureAttrs>();
   readonly faceAttrs = new Map<number, FeatureAttrs>();
   readonly faceColors = new Map<number, Rgb>();
+  /**
+   * The original's surfaces (mothersurf): faces split from one face by
+   * planarizing stay one logical face, highlighted and dragged together and
+   * merged back on release where they are still coplanar. Face → surface id.
+   */
+  readonly faceSurface = new Map<number, number>();
+  /**
+   * Per surface, how far from flat its original face was (legacy files carry float32-era
+   * faces that are slightly bent): its pieces may merge back while no worse than that.
+   */
+  readonly surfaceSlack = new Map<number, number>();
+  private nextSurface = 1;
+
+  newSurface(): number {
+    return this.nextSurface++;
+  }
+
+  /** Faces of the surface `face` belongs to, or just [face]. */
+  surfaceFaces(face: number): number[] {
+    const s = this.faceSurface.get(face);
+    if (s === undefined) return [face];
+    const out: number[] = [];
+    for (const [f, t] of this.faceSurface) if (t === s) out.push(f);
+    return out;
+  }
 
   clone(): Brep {
     const b = new Brep();
@@ -123,6 +148,9 @@ export class Brep {
     copyAttrs(this.edgeAttrs, b.edgeAttrs);
     copyAttrs(this.faceAttrs, b.faceAttrs);
     for (const [k, c] of this.faceColors) b.faceColors.set(k, [...c]);
+    for (const [k, t] of this.faceSurface) b.faceSurface.set(k, t);
+    for (const [k, t] of this.surfaceSlack) b.surfaceSlack.set(k, t);
+    b.nextSurface = this.nextSurface;
     return b;
   }
 
@@ -436,6 +464,7 @@ export class Brep {
     this.f.free(f);
     this.faceAttrs.delete(f);
     this.faceColors.delete(f);
+    this.faceSurface.delete(f);
   }
   freeShell(s: number): void {
     this.s.free(s);

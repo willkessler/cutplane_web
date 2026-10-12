@@ -29,7 +29,10 @@ export interface SectionStats {
  */
 export class SectionLines {
   readonly object: THREE.Group;
-  sections: ObjectSection[] = [];
+  /** Each model's section at the current depth (models with no section are absent). */
+  sections = new Map<Model, ObjectSection>();
+  /** Bumped on every update. */
+  version = 0;
   stats: SectionStats = {
     objects: 0,
     loops: 0,
@@ -91,11 +94,12 @@ export class SectionLines {
       inPlaneFaces: 0,
       inPlaneEdges: 0,
     };
-    this.sections = [];
+    this.sections = new Map();
+    this.version++;
     for (const m of models) {
       if (m.object.attrs.props.includes('Sectioninvisible')) continue;
       const s = computeSection(m.world, z);
-      this.sections.push(s);
+      this.sections.set(m, s);
       if (s.loops.length === 0 && s.inPlaneEdges.length === 0) continue;
       stats.objects++;
       stats.inPlaneFaces += s.inPlaneFaces.length;

@@ -18,4 +18,28 @@ describe('README demo script', () => {
       expect(b.pitch).toBe(a.pitch); // side to side only
     }
   });
+
+  it('pulls a face out, puts it back exactly, then clicks on nothing', () => {
+    const dt = 1 / 30;
+    type At = { x: number; y: number; depth: number };
+    const holds: { from: At; to: At; reach: number }[] = [];
+    for (let t = 0, was = false; t < DEMO_SECONDS; t += dt) {
+      const p = demoPose(t);
+      const at = { x: p.x, y: p.y, depth: p.depth };
+      if (p.pressed && !was) holds.push({ from: at, to: at, reach: 0 });
+      const h = holds.at(-1);
+      // The release happens on the first frame the button is up, wherever the crosshair is then.
+      if (!p.pressed && was && h) h.to = at;
+      if (p.pressed && h) {
+        expect(p.depth).toBe(h.from.depth); // only the crosshair moves while held
+        h.reach = Math.max(h.reach, Math.hypot(p.x - h.from.x, p.y - h.from.y));
+      }
+      was = p.pressed;
+    }
+    expect(holds).toHaveLength(2);
+    expect(holds[0]!.reach).toBeGreaterThan(100);
+    expect(holds[0]!.to).toEqual(holds[0]!.from);
+    expect(holds[1]!.reach).toBe(0);
+    expect(demoPose(0).pressed).toBe(false);
+  });
 });

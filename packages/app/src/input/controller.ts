@@ -19,8 +19,14 @@ export const PLANE_UP_BIAS = 0.3;
 export const PLANE_PER_WHEEL = 0.5;
 /** Arrow keys rotate the room in 10° steps. */
 export const KEY_STEP = 10;
-/** Ctrl (Constrain) slows everything down for fine work and turns plane stops off. */
+/** Ctrl (Constrain) slows the plane and the room down for fine work and turns plane stops off. */
 export const CONSTRAIN_SLOW = 0.25;
+/**
+ * Ctrl also locks the crosshair to one axis (update.c's constrain_movecrosshair): it holds
+ * still until it has been pushed this far (Pkboxsize / 2), then follows only along the
+ * axis it was pushed along most.
+ */
+export const CONSTRAIN_DECIDE = 5;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -46,6 +52,10 @@ export class Controller {
   planeAxis: readonly [number, number] = [0, 0];
   /** Where the plane was before a plane jump, so the next jump returns it. */
   private jumpedFrom: number | undefined;
+  /** Where the crosshair would be without Ctrl's axis lock. */
+  private free: [number, number] | undefined;
+  private anchor: [number, number] | undefined;
+  private axis: 'x' | 'y' | undefined;
 
   constructor(profile: Profile, held: Held) {
     this.profile = profile;
@@ -64,9 +74,12 @@ export class Controller {
   move(dx: number, dy: number, unitsPerPx: number): void {
     const slow = this.held.ctrl ? CONSTRAIN_SLOW : 1;
     switch (this.motion) {
-      case 'point':
-        this.setCursor(this.x + dx * unitsPerPx * slow, this.y - dy * unitsPerPx * slow);
+      case 'point': {
+        // Released Ctrl continues from where the crosshair is, not from where it would have been.
+        const [fx, fy] = (this.held.ctrl && this.free) || [this.x, this.y];
+        this.pointTo(fx + dx * unitsPerPx, fy - dy * unitsPerPx);
         break;
+      }
       case 'plane': {
         // Drag the plane the way it visibly travels: along its on-screen depth direction.
         const ax = this.planeAxis[0];
@@ -91,6 +104,31 @@ export class Controller {
   pushPlane(dz: number): void {
     this.plane.move(dz, this.held.ctrl);
     this.jumpedFrom = undefined;
+  }
+
+  /**
+   * Moves the crosshair toward (x, y), as far as Ctrl's axis lock allows. Windowed mode
+   * calls this with the point under the pointer; pointer-locked motion adds up deltas.
+   */
+  pointTo(x: number, y: number): void {
+    if (!this.held.ctrl) {
+      this.free = this.anchor = this.axis = undefined;
+      this.setCursor(x, y);
+      return;
+    }
+    this.free = [x, y];
+    this.anchor ??= [this.x, this.y];
+    const dx = x - this.anchor[0];
+    const dy = y - this.anchor[1];
+    if (!this.axis && Math.max(Math.abs(dx), Math.abs(dy)) > CONSTRAIN_DECIDE)
+      this.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    if (this.axis === 'x') this.setCursor(x, this.anchor[1]);
+    else if (this.axis === 'y') this.setCursor(this.anchor[0], y);
+  }
+
+  /** Starts Ctrl's axis detection afresh from here (each press of the Pick button does). */
+  resetConstrain(): void {
+    this.free = this.anchor = this.axis = undefined;
   }
 
   setCursor(x: number, y: number): void {
@@ -133,6 +171,8 @@ export class Controller {
         this.pitch = 0;
         break;
       case 'workMode':
+      case 'undo':
+      case 'redo':
         break; // handled by the app
     }
   }

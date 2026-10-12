@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { readCut } from '@cutplane/formats';
-import { ROOM } from '@cutplane/kernel';
+import { ROOM, createCube, createObject, mat4 } from '@cutplane/kernel';
+import type { CutDocument } from '@cutplane/formats';
 import { DEMO_SECONDS, demoPose } from './demo.ts';
 import {
   NOTHING_HELD,
@@ -11,9 +12,11 @@ import {
   type Held,
   type Profile,
 } from './input/bindings.ts';
+import { Editor, type V3 } from './edit/editor.ts';
 import { Controller } from './input/controller.ts';
 import { WorkMode } from './input/workmode.ts';
 import { Crosshair } from './render/crosshair.ts';
+import { Highlights } from './render/highlights.ts';
 import { setLineResolution } from './render/lines.ts';
 import { ModelView } from './render/models.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
@@ -46,7 +49,15 @@ const models = new ModelView();
 const plane = new Cutplane();
 const section = new SectionLines();
 const crosshair = new Crosshair();
-scene.add(createRoom(), models.object, plane.object, section.object, crosshair.object);
+const highlights = new Highlights();
+scene.add(
+  createRoom(),
+  models.object,
+  plane.object,
+  section.object,
+  highlights.object,
+  crosshair.object,
+);
 
 // ---- settings (remembered per browser) ----
 const stored = (k: string) => {
@@ -74,6 +85,20 @@ plane.style = styleSelect.value as PlaneStyle;
 const held: Held = { ...NOTHING_HELD };
 const control = new Controller(profileSelect.value as Profile, held);
 const work = new WorkMode(app, canvas);
+const editor = new Editor({
+  get models() {
+    return models.models;
+  },
+  section: (m) => section.sections.get(m),
+  changed(objects) {
+    models.rebuild(objects);
+    dirty = true;
+  },
+  committed() {
+    control.plane.setDepths(models.depths());
+  },
+});
+const cursor = (): V3 => [control.x, control.y, control.z];
 
 profileSelect.addEventListener('change', () => {
   control.profile = profileSelect.value as Profile;
@@ -93,13 +118,28 @@ interface Entry {
   title: string;
 }
 const modelSelect = $<HTMLSelectElement>('model');
+const NEW_CUBE = 'new:cube';
 const EXTRA: Entry[] = [{ file: 'original/rsc/hand6.rsc', title: 'Flying hand (rsc/hand6.rsc)' }];
 const base = import.meta.env.BASE_URL;
 
+/** A fresh cube in the middle of the room, to shape from scratch. */
+function newCube(): CutDocument {
+  const object = createObject(createCube(200, 200, 200), {
+    name: 'cube',
+    color: [120, 160, 210],
+    xform: mat4.translation(-100, -100, -100),
+  });
+  return { title: 'New cube', contains: 'World', name: null, roots: [object] };
+}
+
 async function loadModel(src: string): Promise<void> {
-  const res = await fetch(`${base}${src}`);
-  if (!res.ok) throw new Error(`${src}: ${res.status}`);
-  models.load(readCut(await res.text()).doc);
+  editor.reset();
+  if (src === NEW_CUBE) models.load(newCube());
+  else {
+    const res = await fetch(`${base}${src}`);
+    if (!res.ok) throw new Error(`${src}: ${res.status}`);
+    models.load(readCut(await res.text()).doc);
+  }
   control.plane.setDepths(models.depths());
   control.plane.set(ROOM.max[2]);
   dirty = true;
@@ -114,6 +154,8 @@ modelSelect.addEventListener('change', () => {
 // ---- view ----
 let dirty = true;
 let lastKey = '';
+let lastHighlights = '';
+let lastHover = '';
 
 function resize(): void {
   const { clientWidth: w, clientHeight: h } = canvas;
@@ -145,6 +187,8 @@ function applyDemo(t: number): void {
   control.plane.set(front + (back - front) * p.depth);
   control.yaw = p.yaw;
   control.pitch = p.pitch;
+  if (p.pressed && !editor.pressed) editor.press(cursor(), false);
+  else if (!p.pressed && editor.pressed) editor.release(cursor());
 }
 
 const readout = $<HTMLDivElement>('readout');
@@ -153,6 +197,7 @@ function render(): void {
   control.planeAxis = deeperOnScreen(camera);
   plane.z = control.z;
   crosshair.place(control.x, control.y, control.z);
+  editor.move(cursor());
   const key = `${control.z}|${control.yaw}|${control.pitch}`;
   if (dirty || key !== lastKey) {
     section.update(models.models, control.z, camera.position);
@@ -163,6 +208,16 @@ function render(): void {
       `plane <b>${control.z.toFixed(1)}</b>${control.plane.isSnapped ? ' (on a vertex depth)' : ''} · ` +
       `room <b>${control.yaw.toFixed(0)}°</b> / <b>${control.pitch.toFixed(0)}°</b> · ` +
       `section <b>${s.loops}</b> loop${s.loops === 1 ? '' : 's'} in <b>${s.objects}</b> object${s.objects === 1 ? '' : 's'}`;
+  }
+  const hoverKey = `${control.x}|${control.y}|${control.z}|${section.version}`;
+  if (hoverKey !== lastHover) {
+    editor.updateHover(cursor());
+    lastHover = hoverKey;
+  }
+  const hkey = `${editor.version}|${section.version}|${key}`;
+  if (hkey !== lastHighlights) {
+    highlights.update(editor, models.models, camera.position);
+    lastHighlights = hkey;
   }
   renderer.render(scene, camera);
 }
@@ -198,7 +253,7 @@ function pointAt(e: PointerEvent): void {
     new THREE.Plane(new THREE.Vector3(0, 0, 1), -control.z),
     planeHit,
   );
-  if (hit) control.setCursor(hit.x, hit.y);
+  if (hit) control.pointTo(hit.x, hit.y);
 }
 
 canvas.addEventListener('pointermove', (e) => {
@@ -213,9 +268,19 @@ canvas.addEventListener('pointermove', (e) => {
 canvas.addEventListener('pointerdown', (e) => {
   syncHeld(e);
   if (e.button === 1) e.preventDefault(); // no middle-click autoscroll
-  if (work.state === 'paused') void work.resume();
+  if (work.state === 'paused') {
+    void work.resume();
+    return;
+  }
+  if (demo || e.button !== 0) return;
+  if (work.state === 'off') canvas.setPointerCapture(e.pointerId); // keep dragging past the edge
+  control.resetConstrain();
+  editor.press(cursor(), e.shiftKey);
 });
-canvas.addEventListener('pointerup', syncHeld);
+canvas.addEventListener('pointerup', (e) => {
+  syncHeld(e);
+  if (e.button === 0) editor.release(cursor());
+});
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 canvas.addEventListener(
   'wheel',
@@ -236,7 +301,9 @@ window.addEventListener('keydown', (e) => {
   if (c === 'workMode') {
     if (work.state === 'off') void work.enter();
     else if (e.code === 'KeyF') work.exit(); // F toggles, like a video player's full screen
-  } else control.command(c);
+  } else if (c === 'undo') editor.undo();
+  else if (c === 'redo') editor.redo();
+  else control.command(c);
 });
 window.addEventListener('keyup', syncHeld);
 // Modifier releases are lost while the window is unfocused; never leave a quasimode stuck.
@@ -247,6 +314,8 @@ $<HTMLButtonElement>('resume').addEventListener('click', () => void work.resume(
 $<HTMLButtonElement>('leave').addEventListener('click', () => work.exit());
 if (work.unsupported) $<HTMLButtonElement>('work').disabled = true;
 work.onChange((s) => {
+  // Losing the pointer mid-drag finishes the drag where it is, never half-applied.
+  if (s !== 'on') editor.release(cursor());
   app.classList.toggle('working', s !== 'off');
   $<HTMLDivElement>('pause').classList.toggle('shown', s === 'paused');
   Object.assign(held, NOTHING_HELD);
@@ -262,6 +331,17 @@ declare global {
       state(): { x: number; y: number; z: number; yaw: number; pitch: number; motion: string };
       set(s: Partial<{ x: number; y: number; z: number; yaw: number; pitch: number }>): void;
       stats(): typeof section.stats;
+      press(shift?: boolean): void;
+      release(): void;
+      undo(): void;
+      redo(): void;
+      edit(): {
+        hover: string | null;
+        picked: string[];
+        faces: number;
+        vertices: number;
+        marquee: boolean;
+      };
       demoSeconds: number;
     };
   }
@@ -275,12 +355,20 @@ async function start(): Promise<void> {
   const index: Entry[] = await fetch(`${base}samples/index.json`)
     .then((r) => (r.ok ? (r.json() as Promise<Entry[]>) : []))
     .catch(() => []);
-  const entries = [...index.map((e) => ({ file: `samples/${e.file}`, title: e.title })), ...EXTRA];
+  const entries = [
+    { file: NEW_CUBE, title: 'New cube (shape it from scratch)' },
+    ...index.map((e) => ({ file: `samples/${e.file}`, title: e.title })),
+    ...EXTRA,
+  ];
   for (const e of entries) modelSelect.add(new Option(e.title, e.file));
   const sample = params.get('sample');
   const src =
     params.get('src') ??
-    (sample ? `samples/${sample}.cut` : (stored('model') ?? 'samples/discovery.cut'));
+    (sample === 'cube'
+      ? NEW_CUBE
+      : sample
+        ? `samples/${sample}.cut`
+        : (stored('model') ?? 'samples/discovery.cut'));
   if (!entries.some((e) => e.file === src)) modelSelect.add(new Option(src, src));
   modelSelect.value = src;
   try {
@@ -329,6 +417,40 @@ async function start(): Promise<void> {
       render();
     },
     stats: () => section.stats,
+    press(shift = false) {
+      render();
+      control.resetConstrain();
+      editor.press(cursor(), shift);
+      render();
+    },
+    release() {
+      editor.release(cursor());
+      render();
+    },
+    undo() {
+      editor.undo();
+      render();
+    },
+    redo() {
+      editor.redo();
+      render();
+    },
+    edit() {
+      const h = editor.hover;
+      let faces = 0;
+      let vertices = 0;
+      for (const m of models.models) {
+        faces += m.object.brep.numFaces;
+        vertices += m.object.brep.numVertices;
+      }
+      return {
+        hover: h ? `${h.pick.kind}` : null,
+        picked: editor.picked.map((p) => p.kind),
+        faces,
+        vertices,
+        marquee: editor.marquee !== undefined,
+      };
+    },
     demoSeconds: DEMO_SECONDS,
   };
   const t0 = performance.now();
