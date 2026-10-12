@@ -108,16 +108,35 @@ describe('the magnifier (zoom.cpl, do_zoom)', () => {
   });
 });
 
-describe('the magnet (magnetic.cpl)', () => {
-  it("a face grabbed with the magnet snaps onto the face it's let go on", () => {
+describe('the magnet (magnetic.cpl, snap_features_together)', () => {
+  it("a face grabbed with the magnet turns and lies flush on the face it's let go on", () => {
     const w = setup();
-    const other = w.add('Other', 250, -50, -50, 100);
+    // A cube turned 30° about z, its left face through (300, 0).
+    const other = w.add('Other', 300, -50);
+    other.xform = mat4.multiply(other.xform, mat4.rotationAbout([300, 0, 0], [0, 0, 1], Math.PI / 6)); // prettier-ignore
+    other.invXform = mat4.invert(other.xform)!;
+    w.rt.changed(other);
+    w.frame();
     w.take(3);
-    // Grab the cube's right face (x = 100) and let go on the other's left face (x = 250).
-    w.drag([100, 0], [150, 0]);
-    // The cube moves so its face lies on the other's.
-    expect(w.rt.bbox(w.cube)![1][0]).toBeCloseTo(250, 3);
-    void other;
+    // Grab the cube's right face (x = 100) and let go on the other's left face.
+    w.drag([100, 0], [200, 0]);
+    // The cube's right face now faces the other's left face, in its plane.
+    const n = [-Math.cos(Math.PI / 6), -Math.sin(Math.PI / 6), 0]; // the other's left face
+    const g = w.rt.world(w.cube);
+    const verts = w.cube.brep.vertices().map((v) => [g.x(v), g.y(v)] as const);
+    const along = verts.map((p) => (p[0] - 300) * n[0]! + p[1] * n[1]!);
+    // Every vertex is on the far side of the face, and the nearest are on it.
+    expect(Math.max(...along)).toBeCloseTo(200, 3);
+    expect(Math.min(...along)).toBeCloseTo(0, 3);
+    expect(w.rt.bbox(w.cube)![1][2] - w.rt.bbox(w.cube)![0][2]).toBeCloseTo(200, 3);
+  });
+
+  it('grabbing an object (not a face or an edge) does nothing', () => {
+    const w = setup();
+    w.take(3);
+    const before = Float64Array.from(w.cube.xform);
+    w.drag([0, 0], [50, 0]);
+    expect([...w.cube.xform]).toEqual([...before]);
   });
 });
 

@@ -101,6 +101,27 @@ describe('the saw (slice.cpl, slice_object)', () => {
     expect(volume(w.solids()[0]!.brep)).toBeCloseTo(200 ** 3, 3);
   });
 
+  it('a part of a group is cut too, its halves parting while the group stays put', () => {
+    const w = setup();
+    const body = createObject(createCube(50, 50, 50), { name: 'Body', xform: mat4.translation(-450, -25, -25) }); // prettier-ignore
+    const part = createObject(createCube(100, 100, 100), { name: 'Part', xform: mat4.translation(250, -50, -50) }); // prettier-ignore
+    body.attrs.props = ['Visible'];
+    part.attrs.props = ['Visible'];
+    part.linked = false;
+    part.parent = body;
+    body.children = [part];
+    w.rt.importObjects(w.rt.primary, [body]);
+    w.rt.commit();
+    w.frame();
+    w.take(1);
+    w.click([300, 0]);
+    expect(body.children).toHaveLength(2);
+    const [back, front] = [...body.children].sort((a, b) => w.rt.bbox(a)![0][2] - w.rt.bbox(b)![0][2]); // prettier-ignore
+    expect(w.rt.bbox(back!)![1][2]).toBeCloseTo(-10, 6);
+    expect(w.rt.bbox(front!)![0][2]).toBeCloseTo(10, 6);
+    expect(w.rt.bbox(body)![0]).toEqual([-450, -25, -25]);
+  });
+
   it('clicking on nothing with the saw cuts nothing', () => {
     const w = setup();
     w.take(1);
@@ -189,19 +210,48 @@ describe('the pencil (pencil.cpl, start_draw, extend_draw, end_draw)', () => {
     expect(w.solids()).toEqual([w.cube]);
   });
 
-  it('a stroke that crosses itself is thrown away', () => {
+  it('an open stroke is closed with a straight line, then made solid', () => {
     const w = setup();
     w.take(0);
-    draw(
-      w,
-      [-400, -200],
-      [
-        [100, 100],
-        [100, 0],
-        [0, 100],
-        [0, 0],
-      ],
-    ); // prettier-ignore (a bow tie)
+    // An arc, its ends left 150 apart.
+    const arc: [number, number][] = [];
+    for (let i = 1; i <= 24; i++) {
+      const a = (Math.PI * i) / 24;
+      arc.push([75 - 75 * Math.cos(a), 75 * Math.sin(a)]);
+    }
+    draw(w, [-400, -200], arc);
+    const made = w.solids().filter((o) => o !== w.cube);
+    expect(made).toHaveLength(1);
+    expect(sound(made[0]!)).toBe(true);
+    expect(volume(made[0]!.brep) / ((Math.PI * 75 * 75) / 2) / 50).toBeGreaterThan(0.9); // a 24-gon
+  });
+
+  it('a stroke that crosses itself keeps the largest region it encloses', () => {
+    const w = setup();
+    w.take(0);
+    // A bow tie of two triangles, the right one the bigger, crossing at (100, 50).
+    draw(w, [-400, -200], [[200, 100], [200, 0], [0, 100], [0, 0]]); // prettier-ignore
+    const made = w.solids().filter((o) => o !== w.cube);
+    expect(made).toHaveLength(1);
+    expect(sound(made[0]!)).toBe(true);
+    expect(volume(made[0]!.brep) / (0.5 * 100 * 100 * 50)).toBeCloseTo(1, 2); // the big triangle
+  });
+
+  it('a stroke that overshoots its start is closed where it crosses', () => {
+    const w = setup();
+    w.take(0);
+    // A square drawn from the middle of its bottom edge, ending 30 past the start.
+    draw(w, [-400, -200], [[50, 0], [50, 100], [-50, 100], [-50, 0], [30, 0], [30, -20]]); // prettier-ignore
+    const made = w.solids().filter((o) => o !== w.cube);
+    expect(made).toHaveLength(1);
+    expect(sound(made[0]!)).toBe(true);
+    expect(volume(made[0]!.brep) / (100 * 100 * 50)).toBeCloseTo(1, 1);
+  });
+
+  it('a stroke too small to be a face is thrown away', () => {
+    const w = setup();
+    w.take(0);
+    draw(w, [-400, -200], [[100, 0], [100, 1]]); // prettier-ignore
     expect(w.solids()).toEqual([w.cube]);
     expect(w.rt.primary.root.children.filter((o) => o !== w.cube)).toEqual([]);
   });

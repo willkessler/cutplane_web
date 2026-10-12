@@ -807,7 +807,7 @@ export class Runtime implements Host {
   }
 
   /** translate_obj_engine: an object and its whole branch, by a world offset. */
-  private moveBranch(root: CutObject, d: V3): void {
+  moveBranch(root: CutObject, d: V3): void {
     const m = mat4.translation(...d);
     for (const o of subtree(root)) {
       if (this.worldOf(o) === this.primary) this.journal.touch(o);
@@ -912,8 +912,101 @@ export class Runtime implements Host {
     ]);
   }
 
-  snapFeatures(): void {
-    // The magnet (M6).
+  /**
+   * snap_features_together (the magnet): `source`'s object turns and moves to meet
+   * `target`. Face to face: the faces end up flush, facing each other. An edge to an
+   * edge or a face: the edges line up, the grabbed edge's first end on the other's.
+   */
+  snapFeatures(source: Feature, target: Feature): void {
+    if (!isSub(source) || !isSub(target)) return;
+    const o = groupRoot(source.object);
+    if (o === groupRoot(target.object)) return;
+    const turn = (axis: V3, angle: number, about: V3) => {
+      const len = Math.hypot(...axis);
+      if (len < 1e-9 || Math.abs(angle) < 1e-9) return;
+      const m = mat4.rotationAbout(about, [axis[0] / len, axis[1] / len, axis[2] / len], angle);
+      for (const x of subtree(o)) if (this.worldOf(x) === this.primary) this.journal.touch(x);
+      transformTree(o, m);
+      for (const x of subtree(o)) this.changed(x);
+    };
+    if (source.type === T.Fve && target.type === T.Fve) {
+      const t = this.worldFace(target.object, target.id);
+      const s0 = this.worldFace(source.object, source.id);
+      if (!t || !s0) return;
+      const want: V3 = [-t.normal[0], -t.normal[1], -t.normal[2]];
+      const { axis, angle } = between(s0.normal, want);
+      turn(axis, angle, s0.center);
+      const s = this.worldFace(source.object, source.id)!;
+      // Along the target's normal until the planes meet.
+      const gap = dot(sub3(t.center, s.center), t.normal);
+      this.moveBranch(o, [t.normal[0] * gap, t.normal[1] * gap, t.normal[2] * gap]);
+      return;
+    }
+    if (source.type !== T.Evf || (target.type !== T.Evf && target.type !== T.Fve)) return;
+    const s0 = this.worldEdge(source.object, source.id);
+    // An edge onto a face: onto the face's section line, as the original did.
+    const t = target.type === T.Evf ? this.worldEdge(target.object, target.id) : this.faceSectionLine(target.object, target.id); // prettier-ignore
+    if (!s0 || !t) return;
+    const { axis, angle } = between(sub3(s0[1], s0[0]), sub3(t[1], t[0]));
+    turn(axis, angle, s0[0]);
+    const s = this.worldEdge(source.object, source.id)!;
+    this.moveBranch(o, sub3(t[0], s[0]));
+  }
+
+  /** A face's world normal and centre. */
+  private worldFace(o: CutObject, f: number): { normal: V3; center: V3 } | null {
+    const b = o.brep;
+    if (!b.faces().includes(f)) return null;
+    const g = this.world(o);
+    const pts: V3[] = [];
+    for (const h of b.loopHalfEdges(b.faceLoops(f)[0]!)) {
+      const v = b.heVertex(h);
+      pts.push([g.x(v), g.y(v), g.z(v)]);
+    }
+    const n: V3 = [0, 0, 0];
+    const c: V3 = [0, 0, 0];
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i]!;
+      const q = pts[(i + 1) % pts.length]!;
+      n[0] += (p[1] - q[1]) * (p[2] + q[2]);
+      n[1] += (p[2] - q[2]) * (p[0] + q[0]);
+      n[2] += (p[0] - q[0]) * (p[1] + q[1]);
+      for (let k = 0; k < 3; k++) c[k]! += p[k]! / pts.length;
+    }
+    const len = Math.hypot(...n);
+    if (len < 1e-12) return null;
+    return { normal: [n[0] / len, n[1] / len, n[2] / len], center: c };
+  }
+
+  private worldEdge(o: CutObject, e: number): [V3, V3] | null {
+    const g = this.world(o);
+    try {
+      const [a, b] = o.brep.edgeVertices(e);
+      return [
+        [g.x(a), g.y(a), g.z(a)],
+        [g.x(b), g.y(b), g.z(b)],
+      ];
+    } catch {
+      return null;
+    }
+  }
+
+  /** Where the plane cuts a face: the line along the face at the plane's depth. */
+  private faceSectionLine(o: CutObject, f: number): [V3, V3] | null {
+    const face = this.worldFace(o, f);
+    if (!face) return null;
+    const n = face.normal;
+    // The line's direction lies in the face and in the plane (z constant).
+    const d: V3 = [-n[1], n[0], 0];
+    const len = Math.hypot(d[0], d[1]);
+    if (len < 1e-9) return null;
+    const z = this.stage.z;
+    // A point on the face at depth z, nearest the face's centre.
+    const c = face.center;
+    const k = n[0] * n[0] + n[1] * n[1];
+    const t = (-(z - c[2]) * n[2]) / k;
+    const p: V3 = [c[0] + n[0] * t, c[1] + n[1] * t, z];
+    return [p, [p[0] + d[0] / len, p[1] + d[1] / len, z]];
   }
 
   /** execute_WITHIN: obj2's section lies in obj1's box (z ±1), or all of obj2 does. */
@@ -1577,4 +1670,32 @@ interface Pick3 {
   selectTechnique: string;
   drawTechnique: string;
   screenBBoxTechnique: string;
+}
+
+const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const sub3 = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+
+/** The turn taking direction `a` to direction `b` (snap_vector_to_vector). */
+function between(a: V3, b: V3): { axis: V3; angle: number } {
+  const la = Math.hypot(...a);
+  const lb = Math.hypot(...b);
+  if (la < 1e-12 || lb < 1e-12) return { axis: [0, 0, 0], angle: 0 };
+  const u: V3 = [a[0] / la, a[1] / la, a[2] / la];
+  const v: V3 = [b[0] / lb, b[1] / lb, b[2] / lb];
+  const axis: V3 = [
+    u[1] * v[2] - u[2] * v[1],
+    u[2] * v[0] - u[0] * v[2],
+    u[0] * v[1] - u[1] * v[0],
+  ];
+  const c = Math.max(-1, Math.min(1, dot(u, v)));
+  if (Math.hypot(...axis) < 1e-9) {
+    if (c > 0) return { axis: [0, 0, 0], angle: 0 };
+    // Opposite: any axis square to them.
+    const p: V3 = Math.abs(u[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
+    return {
+      axis: [u[1] * p[2] - u[2] * p[1], u[2] * p[0] - u[0] * p[2], u[0] * p[1] - u[1] * p[0]],
+      angle: Math.PI,
+    };
+  }
+  return { axis, angle: Math.acos(c) };
 }

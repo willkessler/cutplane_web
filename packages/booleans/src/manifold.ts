@@ -728,3 +728,41 @@ export function sliceSolid(
     t.manifold.delete();
   }
 }
+
+/**
+ * A closed outline that crosses itself made simple: the region it encloses
+ * (non-zero winding), and of that the largest piece's outer boundary,
+ * anticlockwise. Null if it encloses nothing.
+ */
+export function simpleOutline(
+  points: readonly (readonly [number, number])[],
+): [number, number][] | null {
+  const M = lib();
+  const cs = new M.CrossSection([points.map((p) => [p[0], p[1]] as [number, number])], 'NonZero');
+  try {
+    let best: [number, number][] | null = null;
+    let bestArea = 0;
+    for (const piece of cs.decompose()) {
+      const a = piece.area();
+      const outer = piece.toPolygons().find((loop) => signedArea2(loop) > 0);
+      piece.delete();
+      if (outer && a > bestArea) {
+        best = outer.map((p) => [p[0], p[1]]);
+        bestArea = a;
+      }
+    }
+    return best;
+  } finally {
+    cs.delete();
+  }
+}
+
+function signedArea2(loop: readonly (readonly number[])[]): number {
+  let a = 0;
+  for (let i = 0; i < loop.length; i++) {
+    const p = loop[i]!;
+    const q = loop[(i + 1) % loop.length]!;
+    a += p[0]! * q[1]! - q[0]! * p[1]!;
+  }
+  return a / 2;
+}

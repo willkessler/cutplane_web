@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ROOM, WorldGeometry, preorder, type CutObject } from '@cutplane/kernel';
+import { ROOM, WorldGeometry, preorder, type Brep, type CutObject } from '@cutplane/kernel';
 import type { CutDocument } from '@cutplane/formats';
 import { CLASSIC, rgb, shadeFace, type PointLight } from '../viewer/palette.ts';
 
@@ -30,16 +30,15 @@ export interface Model {
  * Triangulates every face (holes included, via ShapeUtils) in world space.
  * `colorOf` gives each face's colour (0..1). Returns positions and colours.
  */
-function triangulate(
-  m: Model,
+export function triangulate(
+  b: Brep,
+  g: WorldGeometry,
   faceFilter: (f: number) => boolean,
   colorOf: (f: number) => readonly number[],
   pos: number[],
   col: number[],
   flattenY?: number,
 ): void {
-  const b = m.object.brep;
-  const g = m.world;
   const v3 = (v: number) => new THREE.Vector3(g.x(v), g.y(v), g.z(v));
   for (const f of b.faces()) {
     if (!faceFilter(f)) continue;
@@ -165,7 +164,8 @@ export class ModelView {
     const pos: number[] = [];
     const col: number[] = [];
     triangulate(
-      m,
+      b,
+      m.world,
       () => true,
       (f) =>
         shadeFace(
@@ -184,7 +184,8 @@ export class ModelView {
       const spos: number[] = [];
       const scol: number[] = [];
       triangulate(
-        m,
+        b,
+        m.world,
         (f) => m.world.faceNormal(f)[1] > 0,
         () => [0, 0, 0],
         spos,

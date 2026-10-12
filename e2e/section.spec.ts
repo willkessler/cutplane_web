@@ -110,7 +110,8 @@ test('scroll pushes the plane and the crosshair follows the pointer', async ({ p
   s = await page.evaluate(() => window.__cutplane!.state());
   expect(s.x).toBeGreaterThan(100);
   const z0 = s.z;
-  await page.mouse.wheel(0, 200);
+  // The wheel rolled up (away from you) pushes the plane away.
+  await page.mouse.wheel(0, -200);
   await expect
     .poll(async () => (await page.evaluate(() => window.__cutplane!.state())).z)
     .toBeLessThan(z0);

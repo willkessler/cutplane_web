@@ -34,7 +34,12 @@ export const NORMALPAD_SQUARE = 60;
 export const DECAL_THICKNESS = 10;
 export const TOOLPAD_ZOFFSET = 7;
 export const HEADPAD_ZOFFSET = 3;
-const DECAL_ZOFFSET = TOOLPAD_ZOFFSET * 4;
+/**
+ * How far a decal stands off its pad's face. The original's Decalzoffset
+ * (Toolpadzoffset × 4, measured to the decal's middle) only ever showed head on;
+ * with the room turned it left the pictures floating well off their pads.
+ */
+export const DECAL_GAP = 1;
 
 export interface ToolbarConfig {
   name: string;
@@ -122,14 +127,14 @@ function bboxOf(objects: Iterable<{ brep: Brep; xform: Mat4 }>): [V3, V3] | null
 
 /**
  * apply_front_decal: the branch `decal`'s picture, shrunk to fit the front of `pad`
- * (less `margin` around it) and `thickness` deep, `forward` in front of it.
+ * (less `margin` around it) and `thickness` deep, its back `gap` in front of the pad.
  */
 export function applyFrontDecal(
   rt: Runtime,
   decal: CutObject,
   pad: CutObject,
   thickness: number,
-  forward: number,
+  gap: number,
   margin: number,
 ): void {
   const branch = [...subtree(decal)];
@@ -154,7 +159,7 @@ export function applyFrontDecal(
       mat4.translation(toOrigin[0]!, toOrigin[1]!, toOrigin[2]!),
       mat4.scaleAbout([0, 0, 0], [s[0]!, s[1]!, s[2]!]),
     ),
-    mat4.translation(center[0], center[1], center[2] + forward),
+    mat4.translation(center[0], center[1], center[2] + gap + thickness / 2),
   );
   const pieces = branch.map((o) => ({
     brep: o.brep.clone(),
@@ -215,7 +220,7 @@ export function createToolbar(
 
   const icon = readDataFile(rt, headpad, read(cfg.iconFile));
   if (icon) {
-    applyFrontDecal(rt, icon, headpad, DECAL_THICKNESS * 2, DECAL_ZOFFSET, 0);
+    applyFrontDecal(rt, icon, headpad, DECAL_THICKNESS * 2, DECAL_GAP, 0);
     rt.discard(icon);
   }
 
@@ -244,7 +249,7 @@ export function createToolbar(
     rt.adopt(handle, pad, false);
     const tool = readDataFile(rt, pad, read(file));
     if (tool) {
-      applyFrontDecal(rt, tool, pad, DECAL_THICKNESS, DECAL_ZOFFSET, 0);
+      applyFrontDecal(rt, tool, pad, DECAL_THICKNESS, DECAL_GAP, 0);
       for (const o of subtree(tool))
         if (rt.vm.props.has(o, P.Visible)) rt.vm.props.del(o, P.Visible);
     }
@@ -421,7 +426,7 @@ export const TOOLBAR_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void
     const rec = vm.pop();
     const pad = objectOf(first(rec));
     const tool = pad?.children[0];
-    if (pad && tool) applyFrontDecal(rt, tool, pad, DECAL_THICKNESS, DECAL_ZOFFSET, 0);
+    if (pad && tool) applyFrontDecal(rt, tool, pad, DECAL_THICKNESS, DECAL_GAP, 0);
     vm.push(rec);
   },
 };

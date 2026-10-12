@@ -13,7 +13,7 @@ import {
 import { isObject, isSub } from '../features.ts';
 import type { Runtime, TextItem, V3 } from '../runtime.ts';
 import { charWidth } from '../text/hershey.ts';
-import { DECAL_THICKNESS, applyFrontDecal, registerPadTechniques } from './toolbar.ts';
+import { DECAL_GAP, DECAL_THICKNESS, applyFrontDecal, registerPadTechniques } from './toolbar.ts';
 
 /**
  * Plates (storage_cutplane.c's read_plate; tools.c's create_storage_pad),
@@ -37,7 +37,6 @@ import { DECAL_THICKNESS, applyFrontDecal, registerPadTechniques } from './toolb
  */
 
 const STORAGE_SQUARE = 60; // Storagesquare = Normalpadsquare
-const DECAL_ZOFFSET = 7 * 4;
 const MIN_X = -511;
 const MIN_Y = -382;
 
@@ -243,7 +242,7 @@ export function createStoragePad(
   pad.color = [255, 110, 10];
   rt.translate(pad, [0, 0, 10]);
   const floppy = createFloppy(rt, [255, 0, 255], [255, 150, 255], [255, 255, 255]);
-  applyFrontDecal(rt, floppy, pad, DECAL_THICKNESS, DECAL_ZOFFSET, STORAGE_SQUARE / 8);
+  applyFrontDecal(rt, floppy, pad, DECAL_THICKNESS, DECAL_GAP, STORAGE_SQUARE / 8);
   rt.discard(floppy);
   const plate = readPlate(rt, pad, parsePlateRsc(read('storageplate.rsc')), source);
   rt.setName(plate, 'StoragePlate');

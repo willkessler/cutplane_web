@@ -18,6 +18,7 @@ import {
   PLANE_UP_BIAS,
   ROTATE_PER_PX,
   YAW_LIMIT,
+  isMouseWheel,
 } from './controller.ts';
 
 const held = (h: Partial<Held> = {}): Held => ({ ...NOTHING_HELD, ...h });
@@ -147,10 +148,21 @@ describe('Controller', () => {
     expect([c.yaw, c.pitch]).toEqual([-YAW_LIMIT, PITCH_MAX]);
   });
 
-  it('wheel moves the plane in every profile', () => {
+  it('wheel moves the plane in every profile: rolled up (away) goes deeper', () => {
     const c = new Controller('three-button', held());
-    c.wheel(100);
+    c.wheel(-100);
     expect(c.z).toBe(ROOM.max[2] - 50);
+    // A mouse wheel on a Mac (the trackpad profile) too.
+    const t = new Controller('trackpad', held());
+    t.wheel(-100, 0, true);
+    expect(t.z).toBe(ROOM.max[2] - 50);
+  });
+
+  it('tells a mouse wheel from a trackpad', () => {
+    expect(isMouseWheel({ deltaMode: 1, deltaX: 0, deltaY: 3 })).toBe(true);
+    expect(isMouseWheel({ deltaMode: 0, deltaX: 0, deltaY: -100, wheelDeltaY: 120 })).toBe(true);
+    expect(isMouseWheel({ deltaMode: 0, deltaX: 0, deltaY: -4, wheelDeltaY: 12 })).toBe(false);
+    expect(isMouseWheel({ deltaMode: 0, deltaX: 0, deltaY: -40, wheelDeltaY: 0 })).toBe(false);
   });
 
   it('a trackpad swipe follows the plane on screen, as ⌥ + move does', () => {

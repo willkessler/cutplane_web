@@ -5,6 +5,7 @@ export {
   booleanSolids,
   booleansReady,
   initBooleans,
+  simpleOutline,
   sliceSolid,
   type BoolOp,
   type FaceSource,

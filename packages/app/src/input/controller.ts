@@ -97,15 +97,17 @@ export class Controller {
   }
 
   /**
-   * Scroll / wheel: plane depth in every profile. Fingers or wheel pushed away go deeper.
-   * A trackpad's two-finger swipe is read the way ⌥ + move is: along the plane's on-screen
-   * depth direction, so with the room turned the swipe follows the plane sideways too. A
-   * wheel (one axis) always drives depth directly.
+   * Scroll / wheel: plane depth in every profile. A mouse wheel rolled up (away from you)
+   * pushes the plane away, deeper into the room. A trackpad's two-finger swipe is read the
+   * way ⌥ + move is: along the plane's on-screen depth direction, so with the room turned
+   * the swipe follows the plane sideways too. `notched` marks a mouse wheel (see
+   * isMouseWheel), which always drives depth directly.
    */
-  wheel(deltaY: number, deltaX = 0): void {
+  wheel(deltaY: number, deltaX = 0, notched = this.profile !== 'trackpad'): void {
     const slow = this.held.ctrl ? CONSTRAIN_SLOW : 1;
-    if (this.profile !== 'trackpad') {
-      this.pushPlane(-deltaY * PLANE_PER_WHEEL * slow);
+    if (notched) {
+      // Rolled up gives deltaY < 0: deeper.
+      this.pushPlane(deltaY * PLANE_PER_WHEEL * slow);
       return;
     }
     // The swipe as pointer motion (natural scrolling: fingers up give deltaY > 0).
@@ -193,4 +195,21 @@ export class Controller {
         break; // handled by the app
     }
   }
+}
+
+/**
+ * Whether a wheel event came from a mouse's wheel rather than a trackpad: Firefox reports
+ * a wheel in lines; Chrome and Safari report a trackpad's wheelDeltaY as -3 × deltaY and
+ * a wheel's in notches of 120.
+ */
+export function isMouseWheel(e: {
+  deltaMode: number;
+  deltaX: number;
+  deltaY: number;
+  wheelDeltaY?: number;
+}): boolean {
+  if (e.deltaMode !== 0) return true;
+  const w = e.wheelDeltaY;
+  if (w === undefined || w === 0) return false;
+  return w !== -3 * e.deltaY && e.deltaX === 0 && w % 120 === 0;
 }

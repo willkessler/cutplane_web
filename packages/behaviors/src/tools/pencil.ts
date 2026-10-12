@@ -1,5 +1,6 @@
 import { featuresWord, first, type VM } from '@cutplane/cpl';
 import { Brep, extrudeFace, makeLamina, snap, validate, type CutObject } from '@cutplane/kernel';
+import { booleansReady, simpleOutline } from '@cutplane/booleans';
 import { isObject } from '../features.ts';
 import type { Runtime, V3 } from '../runtime.ts';
 import type { WorldFeature } from '../features.ts';
@@ -10,8 +11,11 @@ import type { WorldFeature } from '../features.ts';
  * letting go closes it into a face and extrudes it 50 deep (extrude_face).
  *
  * New here: the stroke is tidied before it is closed (steps under MIN_STEP
- * dropped, straight runs merged), and a stroke that crosses itself, or is too
- * small to be a face, is refused, as end_draw refused one that wasn't flat.
+ * dropped, straight runs merged). An open stroke is closed with a straight line
+ * from its end back to its start; one that then crosses itself (an end that
+ * overshoots the start, a figure eight) becomes the largest region it encloses.
+ * Only a stroke too small to be a face is thrown away, as end_draw threw away
+ * one that wasn't flat.
  */
 
 /** end_draw's extrusion: 50 units along z. */
@@ -98,8 +102,14 @@ export function closeStroke(raw: readonly V3[]): Brep | null {
   if (raw.some((p) => p[2] !== z)) return null; // end_draw: only finish if flat
   let pts = tidy(raw.map((p) => [snap(p[0]), snap(p[1]), z] as V3));
   if (pts.length < 3) return null;
+  if (!simple(pts)) {
+    const outline = booleansReady() ? simpleOutline(pts.map((p) => [p[0], p[1]] as const)) : null;
+    if (!outline) return null;
+    pts = tidy(outline.map((p) => [snap(p[0]), snap(p[1]), z] as V3));
+    if (pts.length < 3 || !simple(pts)) return null;
+  }
   const area = signedArea(pts);
-  if (Math.abs(area) < MIN_AREA || !simple(pts)) return null;
+  if (Math.abs(area) < MIN_AREA) return null;
   if (area < 0) pts = pts.reverse();
   const b = new Brep();
   const { front, back } = makeLamina(b, pts);
@@ -161,8 +171,15 @@ function simple(pts: readonly V3[]): boolean {
     const d2 = cross(p3, p4, p2);
     const d3 = cross(p1, p2, p3);
     const d4 = cross(p1, p2, p4);
-    return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))
-      || d1 === 0 && d2 === 0 && d3 === 0 && d4 === 0; // prettier-ignore
+    if (d1 === 0 && d2 === 0 && d3 === 0 && d4 === 0) return overlap(p1, p2, p3, p4);
+    return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)); // prettier-ignore
+  };
+  // Two segments on one line overlap if their spans along it do.
+  const overlap = (p1: V3, p2: V3, p3: V3, p4: V3) => {
+    const k = Math.abs(p2[0] - p1[0]) >= Math.abs(p2[1] - p1[1]) ? 0 : 1;
+    const [a0, a1] = [Math.min(p1[k], p2[k]), Math.max(p1[k], p2[k])];
+    const [b0, b1] = [Math.min(p3[k], p4[k]), Math.max(p3[k], p4[k])];
+    return Math.min(a1, b1) > Math.max(a0, b0);
   };
   for (let i = 0; i < n; i++)
     for (let j = i + 2; j < n; j++) {

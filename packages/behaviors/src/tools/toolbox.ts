@@ -21,7 +21,7 @@ import {
 import { isObject, isSub } from '../features.ts';
 import type { Runtime, V3 } from '../runtime.ts';
 import { createColorControl, type ColorControl } from './colorcontrol.ts';
-import { DECAL_THICKNESS, applyFrontDecal } from './toolbar.ts';
+import { DECAL_GAP, DECAL_THICKNESS, applyFrontDecal } from './toolbar.ts';
 
 /**
  * Toolboxes (tools.c's create_toolbox, setup_prims_toolbox,
@@ -53,7 +53,6 @@ const PRIMS_RES = 14;
 const MAX_X = 510;
 const MIN_Y = -382;
 const MIN_Z = -499;
-const DECAL_ZOFFSET = 7 * 4;
 
 /** globals.c's colours. */
 const C = {
@@ -106,7 +105,7 @@ export function createToolbox(
   d: number,
 ): CutObject {
   const toolbox = make(rt, createCube(w, h, d), C.box);
-  applyFrontDecal(rt, decal, toolbox, DECAL_THICKNESS * 2, DECAL_ZOFFSET, w / 10);
+  applyFrontDecal(rt, decal, toolbox, DECAL_THICKNESS * 2, DECAL_GAP, w / 10);
   const at: V3[] = [
     [0, h - 1, 0],
     [0, h - 1, d],

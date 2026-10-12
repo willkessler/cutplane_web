@@ -30,7 +30,7 @@ import {
   type Held,
   type Profile,
 } from './input/bindings.ts';
-import { Controller } from './input/controller.ts';
+import { Controller, isMouseWheel } from './input/controller.ts';
 import { WorkMode } from './input/workmode.ts';
 import { Crosshair } from './render/crosshair.ts';
 import { Highlights } from './render/highlights.ts';
@@ -603,7 +603,9 @@ canvas.addEventListener(
     e.preventDefault(); // also stops pinch-zooming the page
     if (demo) return;
     const scale = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? canvas.clientHeight : 1;
-    control.wheel(e.deltaY * scale, e.deltaX * scale);
+    const mouse =
+      control.profile !== 'trackpad' || isMouseWheel(e as WheelEvent & { wheelDeltaY?: number });
+    control.wheel(e.deltaY * scale, e.deltaX * scale, mouse);
   },
   { passive: false },
 );

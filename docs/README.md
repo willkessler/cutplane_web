@@ -67,7 +67,8 @@ lasts only while you hold the key or button.
 
 Dragging the plane follows the plane on screen: you push it the way it visibly travels as it goes
 deeper. Facing the room, that is up the screen; with the room turned 90°, it is sideways. Two-finger
-swipes on a trackpad follow it the same way. A mouse wheel turned away always sends it deeper.
+swipes on a trackpad follow it the same way. A mouse wheel rolled up (away from you) always sends
+it deeper, on a Mac too, where a wheel is told apart from a trackpad's swipe.
 
 ### Editing
 
@@ -192,17 +193,21 @@ undo away.
 ![A cube cut in two by the saw, the halves pulled apart either side of the plane](images/m6-saw.png)
 
 - **Saw.** Click on something with it and it's cut in two at the plane. Each piece becomes an
-  object of its own, pulled 10 apart either side of the plane so the cut shows. **\\** does the
-  same to what is picked, without the saw.
+  object of its own, pulled 10 apart either side of the plane so the cut shows, even when what
+  was cut is a part of a group (the Discovery's module, say). **\\** does the same to what is
+  picked, without the saw.
 - **Drill.** Press on an object with it: a red copy of it, the **cutter**, comes away with the
   drill. Carry it into another object (move the plane to carry it in depth) and let go, and the
   cutter is taken out of that object. A cut that leaves pieces apart makes each piece an object.
   The hole's faces are the object's colour, as in the original, not the cutter's.
-- **Pencil.** Press and draw in the plane. Let go and the stroke closes into a face and becomes a
-  solid 50 deep, straddling the plane. A stroke that crosses itself, or is too small, comes to
-  nothing.
-- **Magnet.** Press on a face (or edge) of one object and let go on a face of another: the first
-  moves so that its face lies on the second's.
+- **Pencil.** Press and draw in the plane. Let go and the stroke is closed with a straight line
+  back to where it started, and becomes a solid 50 deep, straddling the plane. A stroke that
+  crosses itself keeps the largest region it encloses. Only a scrap too small to be a face comes
+  to nothing.
+- **Magnet.** Press on a face of one object (where the plane cuts it: its outline in the plane)
+  and let go on a face of another. The first object turns and moves so its face lies flush on
+  the second's, facing it. An edge snaps to an edge the same way. Pressing inside an object, not
+  on its outline, does nothing, as in the original.
 - **Grabber.** Picks whole objects, even where a plain click would take a face or an edge.
 - **Pan tool** (or **P**). Drag on empty space to move the whole world with the crosshair.
 - **Magnifier** (or **Z**). Drag up to zoom the world in about the crosshair, down to zoom out:
@@ -272,9 +277,17 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   saved only the name of a code file, and only for vertices, edges and faces. The CPL editor is
   new, and so are Save and Open outside the Load/Save plate.
 - **The pencil tidies its stroke.** Steps too small to see and points along straight runs are
-  merged before the stroke is closed, and a stroke that crosses itself, or closes on less than
-  25 square units, is thrown away. The original kept every point and only refused a stroke that
-  wasn't flat, so a scribble could make a broken solid.
+  merged before the stroke is closed. A stroke that crosses itself becomes the largest region it
+  encloses, and one that closes on less than 25 square units is thrown away. The original kept
+  every point and only refused a stroke that wasn't flat, so a scribble could make a broken
+  solid.
+- **The saw parts a group's halves.** In `slice.cpl` each half's 10-unit move goes to the whole
+  group a part belongs to, so the two moves cancelled and a grouped part's halves stayed
+  together. A later Cutplane moved them apart; here `slice_object` moves a grouped part's
+  pieces itself.
+- **Decals sit on their pads.** The original stood each pad's picture `Decalzoffset` (28) off
+  the pad, which only ever showed head on. Here it stands 1 off, so with the room turned the
+  pictures stay on their pads.
 - **Booleans and slicing go through manifold-3d.** The original's own boolean (`boolean.c`)
   handled only an object's first shell and had known bugs. Here both operands become triangles
   tagged by face, manifold-3d does the operation, and the result comes back as the original's

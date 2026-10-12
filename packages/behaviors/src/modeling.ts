@@ -8,7 +8,7 @@ import {
   type BoolOp,
   type ResultShell,
 } from '@cutplane/booleans';
-import type { Brep, CutObject } from '@cutplane/kernel';
+import { groupRoot, type Brep, type CutObject } from '@cutplane/kernel';
 import { isObject, isSub, type WorldFeature } from './features.ts';
 import type { Runtime } from './runtime.ts';
 
@@ -87,6 +87,9 @@ export function sliceObject(
   return { back, front };
 }
 
+/** How far slice.cpl moves each half off the plane. */
+const SAW_GAP = 10;
+
 export const MODELING_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>> = {
   /**
    * CPL_do_zoom: (crosshair move) → (the same): the world being edited zooms about
@@ -103,6 +106,11 @@ export const MODELING_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => voi
    * CPL_slice_object: (objects) → (front pieces, rear pieces): each object (or a
    * vertex, edge or face's object) sliced at the plane. slice.cpl pops the rear
    * pieces first and sends them back 10, then the front ones forward 10.
+   *
+   * New here (a later Cutplane did this too): a TRANS of a part of a group moves the
+   * whole group, so the ±10 moves cancelled and a grouped part's halves stayed
+   * together. A grouped part's pieces are moved apart here instead, each on its own,
+   * and left out of what slice.cpl moves.
    */
   slice_object(rt, vm) {
     const set = vm.pop();
@@ -118,7 +126,13 @@ export const MODELING_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => voi
       back.push(...r.back);
       front.push(...r.front);
     }
-    vm.push(featuresWord(...front));
-    vm.push(featuresWord(...back));
+    const loose = (pieces: CutObject[], dz: number) =>
+      pieces.filter((p) => {
+        if (groupRoot(p) === p) return true;
+        rt.moveBranch(p, [0, 0, dz]);
+        return false;
+      });
+    vm.push(featuresWord(...loose(front, SAW_GAP)));
+    vm.push(featuresWord(...loose(back, -SAW_GAP)));
   },
 };

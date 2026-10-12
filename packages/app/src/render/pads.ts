@@ -13,6 +13,7 @@ import {
 import { WorldGeometry, mat4, subtree, type CutObject } from '@cutplane/kernel';
 import { CLASSIC, shadeFace } from '../viewer/palette.ts';
 import { Lines, closedPolyline, group } from './lines.ts';
+import { triangulate } from './models.ts';
 
 /** draw_headpad_technique's outline: a square with a tab down its left side. */
 const S = HEADPAD_SQUARE;
@@ -31,6 +32,8 @@ const HEADPAD: [number, number][] = [
 ];
 
 const WHITE = [255, 255, 255];
+/** How far each decal piece sits in front of the one before it (room units). */
+const PIECE_STEP = 0.4;
 /** tools.h's Normalpadcorner. */
 const PLATE_CORNER = 60 / 16;
 
@@ -94,23 +97,14 @@ export class PadView {
     for (const o of decaledPads(rt)) {
       if (!rt.vm.props.has(o, P.Visible)) continue;
       const decal = decalOf(rt, o)!;
-      for (const piece of decal) {
-        const m = mat4.multiply(piece.matrix, o.xform);
-        const g = new WorldGeometry(piece.brep, m);
+      decal.forEach((piece, i) => {
+        // Each piece a hair in front of the one before, so pieces that share a face
+        // (the grabber's two blocks) don't fight over it.
+        const m = mat4.multiply(mat4.multiply(piece.matrix, mat4.translation(0, 0, i * PIECE_STEP)), o.xform); // prettier-ignore
         const b = piece.brep;
-        for (const f of b.faces()) {
-          const n = g.faceNormal(f);
-          if (n[0] === 0 && n[1] === 0 && n[2] === 0) continue;
-          const shade = shadeFace(n, b.faceColors.get(f) ?? piece.color);
-          const ring = b.loopHalfEdges(b.faceLoop(f)).map((h) => b.heVertex(h));
-          const pts = ring.map((v) => [g.x(v), g.y(v), g.z(v)] as const);
-          for (let i = 1; i + 1 < pts.length; i++)
-            for (const p of [pts[0]!, pts[i]!, pts[i + 1]!]) {
-              dpos.push(p[0], p[1], p[2]);
-              dcol.push(...shade);
-            }
-        }
-      }
+        const g = new WorldGeometry(b, m);
+        triangulate(b, g, () => true, (f) => shadeFace(g.faceNormal(f), b.faceColors.get(f) ?? piece.color), dpos, dcol); // prettier-ignore
+      });
     }
     this.through.set(through);
     this.black.set(black);
