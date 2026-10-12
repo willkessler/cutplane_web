@@ -50,9 +50,9 @@ export const ROTATE_DOCK: V3 = [
   0,
 ];
 const PK = 10;
-const BAUBLE_SIZE = PK; // Baublesize
+export const BAUBLE_SIZE = PK; // Baublesize
 const DRAG_BAUBLE_SIZE = PK * 1.3; // Dragbaublesize
-const CENTER_SIZE = PK * 2; // Rotateiconctrsize
+export const CENTER_SIZE = PK * 2; // Rotateiconctrsize
 /** rotateobj.h's tolznorm. */
 const TOLZNORM = 0.996;
 const DEG = 180 / Math.PI;

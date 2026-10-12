@@ -1,5 +1,23 @@
 import * as THREE from 'three';
-import { CORNER_SHOW, HANDLE_SIZE, type Handle, type ScaleBoxes } from '../edit/scalebox.ts';
+type V3 = [number, number, number];
+
+/** A handle's pick-box half-width (Pkboxsize), and how near the plane a corner shows. */
+const HANDLE_SIZE = 10;
+const CORNER_SHOW = 5;
+
+/** A corner (bit k: the high side of axis k), or where the edge from `corner` along `axis` pierces the plane. */
+export type Handle<B> =
+  | { kind: 'corner'; box: B; corner: number }
+  | { kind: 'edge'; box: B; corner: number; axis: 0 | 1 | 2; at: V3 };
+
+/** The boxes as drawn, and the handle under the crosshair or being dragged. */
+export interface BoxDrawing<B> {
+  boxes: readonly B[];
+  corners(b: B): V3[];
+  piercings(b: B, z: number): Extract<Handle<B>, { kind: 'edge' }>[];
+  hover: Handle<B> | undefined;
+  dragged: Handle<B> | undefined;
+}
 import { CLASSIC } from '../viewer/palette.ts';
 import { Lines, closedPolyline, group } from './lines.ts';
 
@@ -36,7 +54,7 @@ function fill(out: number[], x: number, y: number, z: number, r: number): void {
   );
 }
 
-const same = (a: Handle | undefined, b: Handle) =>
+const same = <B>(a: Handle<B> | undefined, b: Handle<B>) =>
   !!a &&
   a.box === b.box &&
   a.kind === b.kind &&
@@ -78,11 +96,11 @@ export class ScaleBoxView {
     this.object.add(this.filled);
   }
 
-  update(boxes: ScaleBoxes, z: number): void {
+  update<B>(boxes: BoxDrawing<B>, z: number): void {
     const out = { grey: [] as number[], white: [] as number[], yellow: [] as number[], shadow: [] as number[], through: [] as number[], box: [] as number[] }; // prettier-ignore
     const solid: number[] = [];
     const hot = boxes.dragged ?? boxes.hover;
-    const handle = (h: Handle, x: number, y: number, colour: 'grey' | 'white') => {
+    const handle = (h: Handle<B>, x: number, y: number, colour: 'grey' | 'white') => {
       const zz = z + LIFT;
       const lit = same(hot, h);
       if (lit && boxes.dragged) fill(solid, x, y, zz, HANDLE_SIZE);
@@ -93,7 +111,7 @@ export class ScaleBoxView {
     for (const b of boxes.boxes) {
       const c = boxes.corners(b);
       c.forEach((p, i) => {
-        const h: Handle = { kind: 'corner', box: b, corner: i };
+        const h: Handle<B> = { kind: 'corner', box: b, corner: i };
         if (Math.abs(p[2] - z) <= CORNER_SHOW || same(hot, h)) handle(h, p[0], p[1], 'white');
       });
       for (const h of boxes.piercings(b, z)) handle(h, h.at[0], h.at[1], 'grey');

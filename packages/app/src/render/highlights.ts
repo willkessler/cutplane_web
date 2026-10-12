@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { NONE, ROOM, type Brep, type CutObject } from '@cutplane/kernel';
-import type { Editor } from '../edit/editor.ts';
 import { CLASSIC, rgb } from '../viewer/palette.ts';
 import { Lines, closedPolyline, group, type LineStyle } from './lines.ts';
 import type { Model } from './models.ts';
@@ -43,6 +42,25 @@ class Pen {
 
 function square(out: number[], x: number, y: number, z: number, r: number): void {
   closedPolyline([x - r, y - r, z, x + r, y - r, z, x + r, y + r, z, x - r, y + r, z], out);
+}
+
+type V3 = [number, number, number];
+
+/** A picked feature, with the model it belongs to (whole objects by themselves). */
+export type Picked =
+  | { kind: 'vertex' | 'edge' | 'face'; model: Model; id: number }
+  | { kind: 'object'; object: CutObject };
+
+/** What to highlight: the crosshair's selectable, the picks, the marquee. */
+export interface HighlightState {
+  hover:
+    | {
+        model: Model;
+        pick: { kind: 'vertex' | 'edge' | 'face' | 'inPlaneFace' | 'object'; id: number; at: V3 };
+      }
+    | undefined;
+  picked: readonly Picked[];
+  marquee: { from: V3; to: V3 } | undefined;
 }
 
 /**
@@ -100,7 +118,7 @@ export class Highlights {
 
   /** `outlined`: other things under the crosshair (a goodie's part) to outline as hovered. */
   update(
-    editor: Editor,
+    editor: HighlightState,
     models: readonly Model[],
     eye: THREE.Vector3,
     outlined: readonly Model[] = [],

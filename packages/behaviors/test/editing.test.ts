@@ -104,6 +104,9 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     expect(rt.primary.root.children).not.toContain(cube);
     rt.undo();
     expect(rt.primary.root.children).toContain(cube);
+    // ...with its properties: drawn and selectable again.
+    expect(rt.vm.props.has(cube, P.Visible)).toBe(true);
+    expect(cube.attrs.props).toContain('Visible');
   });
 
   it('D duplicates what is picked, (100, 100, 0) away, and picks the copy', () => {
@@ -125,6 +128,17 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     expect([copy!.xform[12], copy!.xform[13], copy!.xform[14]]).toEqual([0, 0, -100]);
     expect(rt.picked()).toEqual([copy]);
     expect(rt.vm.props.has(cube, P.Picked)).toBe(false);
+    // One undoable step (scale boxes changing hands reorder siblings, which is no edit).
+    rt.undo();
+    expect(rt.primary.root.children).toEqual([cube]);
+    // Nothing selectable is left over from before (nor from the copy, which is gone).
+    at(100, 100, 100);
+    expect(kinds(rt.selected())).toEqual(['vertex']);
+    expect(rt.vm.props.features(rt.primary, P.Visible)).toEqual([cube]);
+    // Redo brings the copy back, drawn.
+    rt.redo();
+    const back = rt.primary.root.children.find((o) => o !== cube)!;
+    expect(rt.vm.props.has(back, P.Visible)).toBe(true);
   });
 
   it('Space jumps the plane to the back wall and back (cursor.cpl)', () => {

@@ -97,6 +97,19 @@ function sameBrep(a: Brep, b: Brep): boolean {
   return true;
 }
 
+/**
+ * The same parents and links. Sibling order is left out: scale boxes coming and
+ * going reorder siblings, and that alone is no edit.
+ */
+function sameTree(a: TreeSnapshot, b: TreeSnapshot): boolean {
+  if (a.entries.length !== b.entries.length) return false;
+  const at = new Map(a.entries.map((e) => [e.object, e]));
+  return b.entries.every((f) => {
+    const e = at.get(f.object);
+    return e !== undefined && e.parent === f.parent && e.linked === f.linked;
+  });
+}
+
 interface OpenStep {
   before: Map<CutObject, ObjectSnapshot>;
   tree?: TreeSnapshot;
@@ -149,13 +162,7 @@ export class Journal {
     const after = before.map((b) => snapshotObject(b.object));
     const changed = before.filter((b, i) => !sameSnap(b, after[i]!));
     const treeAfter = s.tree ? snapshotTree(this.root(), this.ignore) : undefined;
-    const treeChanged =
-      s.tree !== undefined &&
-      (s.tree.entries.length !== treeAfter!.entries.length ||
-        s.tree.entries.some((e, i) => {
-          const f = treeAfter!.entries[i]!;
-          return e.object !== f.object || e.parent !== f.parent || e.linked !== f.linked;
-        }));
+    const treeChanged = s.tree !== undefined && !sameTree(s.tree, treeAfter!);
     if (changed.length === 0 && !treeChanged) return undefined;
     const keep = new Set(changed.map((c) => c.object));
     const step: Step = {

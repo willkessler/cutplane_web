@@ -1,7 +1,18 @@
 import * as THREE from 'three';
 import { readCut } from '@cutplane/formats';
-import { ROOM, createCube, createObject, mat4, type CutObject } from '@cutplane/kernel';
+import { ROOM, createCube, createObject, mat4 } from '@cutplane/kernel';
 import type { CutDocument } from '@cutplane/formats';
+import { P, PROPERTY_FILES } from '@cutplane/cpl';
+import {
+  COLOR_CRTNS,
+  Controls,
+  Runtime,
+  createColorControl,
+  installRotateTool,
+  isObject,
+  scaleBoxes as scaleBoxesIn,
+  type V3,
+} from '@cutplane/behaviors';
 import { DEMO_SECONDS, demoPose } from './demo.ts';
 import {
   NOTHING_HELD,
@@ -12,10 +23,6 @@ import {
   type Held,
   type Profile,
 } from './input/bindings.ts';
-import { Editor, type V3 } from './edit/editor.ts';
-import { ColorControl } from './edit/colorcontrol.ts';
-import { RotateTool } from './edit/rotatetool.ts';
-import { ScaleBoxes } from './edit/scalebox.ts';
 import { Controller } from './input/controller.ts';
 import { WorkMode } from './input/workmode.ts';
 import { Crosshair } from './render/crosshair.ts';
@@ -28,6 +35,15 @@ import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
 import { SectionLines } from './render/sectionlines.ts';
 import { createCamera, deeperOnScreen, fitFov, orbitCamera, unitsPerPixel } from './scene.ts';
 import { CLASSIC, rgb } from './viewer/palette.ts';
+import { AppStage } from './world/stage.ts';
+import {
+  boxDrawing,
+  colorState,
+  highlightState,
+  outlinedParts,
+  toolActive,
+  toolDrawing,
+} from './world/views.ts';
 
 const $ = <T extends HTMLElement>(id: string) => {
   const el = document.getElementById(id);
@@ -99,58 +115,66 @@ plane.style = styleSelect.value as PlaneStyle;
 const held: Held = { ...NOTHING_HELD };
 const control = new Controller(profileSelect.value as Profile, held);
 const work = new WorkMode(app, canvas);
-/** The world being edited: its top-level objects. */
-const roots: CutObject[] = [];
-const editor = new Editor({
-  get models() {
-    return models.models;
-  },
-  roots,
-  structureChanged() {
-    models.sync(roots);
-    dirty = true;
-  },
-  section: (m) => section.sections.get(m),
-  changed(objects) {
-    models.rebuild(objects);
-    dirty = true;
-  },
-  committed() {
-    control.plane.setDepths(models.depths());
-  },
-});
-const cursor = (): V3 => [control.x, control.y, control.z];
-const rotateTool = new RotateTool(editor);
-const scaleBoxes = new ScaleBoxes(editor, () => models.models);
-let envDirty = true;
-const colorControl = new ColorControl(editor, {
-  models: () => envView.models,
-  section: (m) => envSection.sections.get(m),
-  changed(objects) {
-    envView.rebuild(objects);
-    envDirty = true;
-  },
-  structureChanged() {
-    envView.sync(colorControl.roots);
-    envDirty = true;
-  },
-});
-envView.sync(colorControl.roots);
+const base = import.meta.env.BASE_URL;
 
-/** The Pick button: the rotate tool takes it when it is under the crosshair, else the editor. */
+/** The CPL the world runs: rom.cpl, the property files, the crosshair's and the rotate tool's. */
+const CPL_FILES = [
+  'rom.cpl',
+  'cursor.cpl',
+  'rotatecircle.cpl',
+  'rotatexbar.cpl',
+  'rotatebauble.cpl',
+  ...PROPERTY_FILES.map((p) => `${p.toLowerCase()}.cpl`),
+];
+const cpl = new Map<string, string>();
+const source = (f: string): string => {
+  const text = cpl.get(f);
+  if (text === undefined) throw new Error(`${f}: not loaded`);
+  return text;
+};
+async function loadCpl(): Promise<void> {
+  // The originals are Latin-1 (and plain ASCII where it matters).
+  const latin1 = new TextDecoder('latin1');
+  await Promise.all(
+    CPL_FILES.map(async (f) => {
+      const res = await fetch(`${base}original/cpl/${f}`);
+      if (!res.ok) throw new Error(`${f}: ${res.status}`);
+      cpl.set(f, latin1.decode(await res.arrayBuffer()));
+    }),
+  );
+}
+
+/** tools.c: the goodies toolbox's spot, bottom right on the back wall; the colour control stands there. */
+const COLOR_CORNER: V3 = [510 - 212.5, -382 + 28.3, -499];
+
+// Made in start(), once the CPL has loaded.
+let stage!: AppStage;
+let rt!: Runtime;
+let controls!: Controls;
+let rotateTool!: ReturnType<typeof installRotateTool>;
+let colorControl!: ReturnType<typeof createColorControl>;
+let ready = false;
+
+function makeWorld(): void {
+  stage = new AppStage(control);
+  stage.z = control.z;
+  rt = new Runtime({ stage, source });
+  rt.loadCode(source);
+  rotateTool = installRotateTool(rt, source);
+  rt.registerCrtns(COLOR_CRTNS);
+  colorControl = createColorControl(rt, COLOR_CORNER);
+  controls = new Controls(rt);
+  ready = true;
+}
+
 function pressPick(shift: boolean): void {
+  if (!ready) return;
   control.resetConstrain();
-  rotateTool.updateHover(cursor());
-  if (rotateTool.hover) rotateTool.press(cursor());
-  else if (scaleBoxes.handleAt(cursor())) scaleBoxes.press(cursor());
-  else if (colorControl.partAt(cursor())) colorControl.press(cursor());
-  else editor.press(cursor(), shift);
+  controls.pressPick(shift);
 }
 function releasePick(): void {
-  rotateTool.release(cursor());
-  scaleBoxes.release();
-  colorControl.release(cursor());
-  editor.release(cursor());
+  if (!ready) return;
+  controls.releasePick();
 }
 
 profileSelect.addEventListener('change', () => {
@@ -173,7 +197,6 @@ interface Entry {
 const modelSelect = $<HTMLSelectElement>('model');
 const NEW_CUBE = 'new:cube';
 const EXTRA: Entry[] = [{ file: 'original/rsc/hand6.rsc', title: 'Flying hand (rsc/hand6.rsc)' }];
-const base = import.meta.env.BASE_URL;
 
 /** A fresh cube in the middle of the room, to shape from scratch. */
 function newCube(): CutDocument {
@@ -186,9 +209,6 @@ function newCube(): CutDocument {
 }
 
 async function loadModel(src: string): Promise<void> {
-  editor.reset();
-  rotateTool.putAway();
-  scaleBoxes.reset();
   let doc: CutDocument;
   if (src === NEW_CUBE) doc = newCube();
   else {
@@ -196,7 +216,10 @@ async function loadModel(src: string): Promise<void> {
     if (!res.ok) throw new Error(`${src}: ${res.status}`);
     doc = readCut(await res.text()).doc;
   }
-  roots.splice(0, roots.length, ...doc.roots);
+  if (controls.pickHeld) controls.releasePick();
+  rt.clearWorld(rt.primary);
+  rt.journal.clear();
+  rt.importObjects(rt.primary, doc.roots);
   models.load(doc);
   control.plane.setDepths(models.depths());
   control.plane.set(ROOM.max[2]);
@@ -211,11 +234,13 @@ modelSelect.addEventListener('change', () => {
 
 // ---- view ----
 let dirty = true;
+let envDirty = true;
 let lastKey = '';
 let lastHighlights = '';
-let lastHover = '';
 let lastTool = '';
 let lastBoxes = '';
+let lastWorld = -1;
+let planeHeld = false;
 
 function resize(): void {
   const { clientWidth: w, clientHeight: h } = canvas;
@@ -249,87 +274,107 @@ function applyDemo(t: number): void {
   control.yaw = p.yaw;
   control.pitch = p.pitch;
   if (p.rotateKeys < demoKeys) demoKeys = 0; // looped
-  for (; demoKeys < p.rotateKeys; demoKeys++) rotateTool.snap(cursor());
-  const down = editor.pressed || rotateTool.pressed || scaleBoxes.pressed || colorControl.pressed;
-  if (p.pressed && !down) pressPick(false);
-  else if (!p.pressed && down) releasePick();
+  for (; demoKeys < p.rotateKeys; demoKeys++) controls.snapRotateTool();
+  if (p.pressed && !controls.pickHeld) pressPick(false);
+  else if (!p.pressed && controls.pickHeld) releasePick();
+}
+
+/**
+ * One frame of the world (update.c's new_update_state): the steering since the last
+ * frame goes to CPL as crosshair motion, CPL runs, and the crosshair and plane end up
+ * wherever it left them.
+ */
+function step(): void {
+  const plane = control.motion === 'plane';
+  if (plane !== planeHeld) {
+    planeHeld = plane;
+    if (plane) controls.pressPlane();
+    else controls.releasePlane();
+  }
+  controls.setConstrain(held.ctrl);
+  const d: V3 = [control.x - stage.x, control.y - stage.y, control.z - stage.z];
+  controls.moveCrosshair(d, (dd) => stage.preview(...dd));
+  controls.frame();
+  // CPL may have held the crosshair back or put it somewhere else (a tool's bar, a dial).
+  if (stage.x !== control.x || stage.y !== control.y) placeCrosshair(stage.x, stage.y);
+  if (stage.z !== control.z) control.plane.set(stage.z);
+  if (rt.quitRequested) rt.quitRequested = false;
+}
+
+/** Catches the drawn models up with the world: new and gone objects, changed geometry. */
+function syncModels(): void {
+  if (rt.version !== lastWorld) {
+    lastWorld = rt.version;
+    models.sync(rt.primary.root.children);
+    envView.sync(rt.environment.root.children);
+    dirty = envDirty = true;
+  }
+  const changed = rt.takeChanged();
+  if (changed.size) {
+    models.rebuild(changed);
+    envView.rebuild(changed);
+    dirty = envDirty = true;
+  }
+  if ((dirty || envDirty) && !controls.pickHeld) control.plane.setDepths(models.depths());
+}
+
+/**
+ * Renders until no CPL message is waiting. A command sent as a message (Jumplane,
+ * Snaprotatetool, Delete) is queued by its RAM sentence and read by its feature's
+ * code on the next frame; key commands and the test hooks shouldn't wait for it.
+ */
+function settle(): void {
+  render();
+  const waiting = () => rt.worlds.some((w) => rt.vm.props.features(w, P.Msgpending).length > 0);
+  for (let i = 0; i < 8 && waiting(); i++) render();
 }
 
 const readout = $<HTMLDivElement>('readout');
 function render(): void {
+  step();
+  syncModels();
   orbitCamera(camera, control.yaw, control.pitch);
   control.planeAxis = deeperOnScreen(camera);
-  plane.z = control.z;
-  if (rotateTool.pressed) {
-    const [x, y] = rotateTool.move(cursor());
-    if (x !== control.x || y !== control.y) placeCrosshair(x, y);
-  } else if (scaleBoxes.pressed) scaleBoxes.move(cursor(), held.ctrl);
-  else if (colorControl.pressed) colorControl.move(cursor());
-  else editor.move(cursor());
-  scaleBoxes.sync();
-  crosshair.place(control.x, control.y, control.z);
-  const key = `${control.z}|${control.yaw}|${control.pitch}`;
+  plane.z = stage.z;
+  crosshair.place(stage.x, stage.y, stage.z);
+  const key = `${stage.z}|${control.yaw}|${control.pitch}`;
   if (envDirty || key !== lastKey) {
-    envSection.update(envView.models, control.z, camera.position);
+    envSection.update(envView.models, stage.z, camera.position);
     envDirty = false;
   }
   if (dirty || key !== lastKey) {
-    section.update(models.models, control.z, camera.position);
+    section.update(models.models, stage.z, camera.position);
     lastKey = key;
     dirty = false;
     const s = section.stats;
     readout.innerHTML =
-      `plane <b>${control.z.toFixed(1)}</b>${control.plane.isSnapped ? ' (on a vertex depth)' : ''} · ` +
+      `plane <b>${stage.z.toFixed(1)}</b>${control.plane.isSnapped ? ' (on a vertex depth)' : ''} · ` +
       `room <b>${control.yaw.toFixed(0)}°</b> / <b>${control.pitch.toFixed(0)}°</b> · ` +
       `section <b>${s.loops}</b> loop${s.loops === 1 ? '' : 's'} in <b>${s.objects}</b> object${s.objects === 1 ? '' : 's'}`;
   }
-  const hoverKey = `${control.x}|${control.y}|${control.z}|${section.version}|${envSection.version}`;
-  if (hoverKey !== lastHover) {
-    // The tool lies over the models and wins the crosshair (its CPL ran first and ate the pick).
-    rotateTool.updateHover(cursor());
-    scaleBoxes.updateHover(cursor());
-    colorControl.updateHover(cursor());
-    const chip = colorControl.pressed && !colorControl.hover; // carrying the chip to a target
-    if (rotateTool.carrying) {
-      /* the tool looks for a feature to land on itself */
-    } else if (
-      !chip &&
-      (rotateTool.busy ||
-        scaleBoxes.hover ||
-        scaleBoxes.pressed ||
-        colorControl.hover ||
-        colorControl.pressed)
-    )
-      editor.clearHover();
-    else editor.updateHover(cursor());
-    lastHover = hoverKey;
-  }
-  const hkey = `${editor.version}|${section.version}|${key}|${colorControl.version}`;
+  // Highlights follow the VM's Selectable and Picked properties.
+  const hkey = `${rt.vm.props.version}|${section.version}|${key}|${stage.x}|${stage.y}`;
   if (hkey !== lastHighlights) {
-    const part = colorControl.hover;
-    // The part under the crosshair is outlined; on the base, the whole control (it moves as one).
-    const outlined = !part
-      ? []
-      : envView.models.filter((m) =>
-          part.kind === 'base'
-            ? m.object === colorControl.base || m.object.parent === colorControl.base
-            : m.object ===
-              (part.kind === 'chip' ? colorControl.chip : colorControl.bars[part.index]),
-        );
-    highlights.update(editor, models.models, camera.position, outlined);
+    highlights.update(
+      highlightState(rt, models.models),
+      models.models,
+      camera.position,
+      outlinedParts(rt, envView.models),
+    );
     lastHighlights = hkey;
-  }
-  // The tool only follows the crosshair while it shows the grab ring there (over a bar or bauble).
-  const ring = rotateTool.hover && rotateTool.hover.kind !== 'center';
-  const tkey = `${rotateTool.version}|${control.z}|${ring ? `${control.x}|${control.y}` : ''}`;
-  if (tkey !== lastTool) {
-    toolView.update(rotateTool, control.z, [control.x, control.y]);
-    lastTool = tkey;
-  }
-  const bkey = `${scaleBoxes.version}|${editor.version}|${control.z}`;
-  if (bkey !== lastBoxes) {
-    boxView.update(scaleBoxes, control.z);
-    lastBoxes = bkey;
+    const t = toolDrawing(rt, rotateTool);
+    const ring = t.hover && t.hover.kind !== 'center';
+    const tkey = `${JSON.stringify(t)}|${stage.z}|${ring ? `${stage.x}|${stage.y}` : ''}`;
+    if (tkey !== lastTool) {
+      toolView.update(t, stage.z, [stage.x, stage.y]);
+      lastTool = tkey;
+    }
+    const b = boxDrawing(rt);
+    const bkey = `${hkey}|${b.boxes.length}`;
+    if (bkey !== lastBoxes) {
+      boxView.update(b, stage.z);
+      lastBoxes = bkey;
+    }
   }
   renderer.render(scene, camera);
 }
@@ -414,8 +459,7 @@ canvas.addEventListener('pointermove', (e) => {
   }
 });
 canvas.addEventListener('pointerenter', () => {
-  if (!editor.pressed && !rotateTool.pressed && !scaleBoxes.pressed && !colorControl.pressed)
-    resync = true;
+  if (ready && !controls.pickHeld) resync = true;
 });
 canvas.addEventListener('pointerdown', (e) => {
   syncHeld(e);
@@ -446,19 +490,22 @@ canvas.addEventListener(
 );
 window.addEventListener('keydown', (e) => {
   syncHeld(e);
-  if (demo || e.target instanceof HTMLSelectElement) return;
+  if (demo || !ready || e.target instanceof HTMLSelectElement) return;
   const c = commandFor(e.code, held);
   if (!c) return;
   e.preventDefault();
   if (c === 'workMode') {
     if (work.state === 'off') void work.enter();
     else if (e.code === 'KeyF') work.exit(); // F toggles, like a video player's full screen
-  } else if (c === 'undo') editor.undo();
-  else if (c === 'redo') editor.redo();
-  else if (c === 'duplicate') editor.duplicate();
-  else if (c === 'rotateTool') rotateTool.snap(cursor());
-  else if (c === 'delete') editor.deletePicked();
+  } else if (c === 'undo') rt.undo();
+  else if (c === 'redo') rt.redo();
+  else if (c === 'duplicate') controls.duplicate();
+  else if (c === 'rotateTool') controls.snapRotateTool();
+  else if (c === 'delete') controls.delete();
+  else if (c === 'planeJump')
+    controls.planeJump(); // cursor.cpl's Jumplane
   else control.command(c);
+  settle(); // the command takes effect now, not a frame or two later
 });
 window.addEventListener('keyup', syncHeld);
 // Modifier releases are lost while the window is unfocused; never leave a quasimode stuck.
@@ -512,6 +559,8 @@ async function start(): Promise<void> {
   resize();
   window.addEventListener('resize', resize);
   showHints();
+  await loadCpl();
+  makeWorld();
 
   const index: Entry[] = await fetch(`${base}samples/index.json`)
     .then((r) => (r.ok ? (r.json() as Promise<Entry[]>) : []))
@@ -559,67 +608,75 @@ async function start(): Promise<void> {
         s += String.fromCharCode(...px.subarray(i, i + 0x8000));
       return `${w}x${h}:${btoa(s)}`;
     },
-    state: () => ({
-      x: control.x,
-      y: control.y,
-      z: control.z,
-      yaw: control.yaw,
-      pitch: control.pitch,
-      motion: control.motion,
-    }),
+    state() {
+      settle(); // the world catches up with the pointer first
+      return {
+        x: stage.x,
+        y: stage.y,
+        z: stage.z,
+        yaw: control.yaw,
+        pitch: control.pitch,
+        motion: control.motion,
+      };
+    },
     set(s) {
-      if (s.x !== undefined || s.y !== undefined)
+      if (s.x !== undefined || s.y !== undefined) {
         control.setCursor(s.x ?? control.x, s.y ?? control.y);
+        aim = [control.x, control.y];
+      }
       if (s.z !== undefined) control.plane.set(s.z);
       if (s.yaw !== undefined || s.pitch !== undefined) {
         control.yaw = s.yaw ?? control.yaw;
         control.pitch = s.pitch ?? control.pitch;
       }
-      render();
+      settle();
     },
     stats: () => section.stats,
     press(shift = false) {
       render();
       pressPick(shift);
-      render();
+      settle();
     },
     release() {
       releasePick();
-      render();
+      settle();
     },
-    color: () => ({
-      rgb: [...colorControl.rgb],
-      hover: colorControl.hover?.kind ?? null,
-      base: [...colorControl.base.xform.slice(12, 15)],
-    }),
-    tool: () => ({
-      center: [...rotateTool.center],
-      hover: rotateTool.hover?.kind ?? null,
-      rotating: rotateTool.rotating,
-    }),
+    color: () => colorState(rt, colorControl),
+    tool: () => {
+      const t = toolDrawing(rt, rotateTool);
+      return {
+        center: [...t.center],
+        hover: t.hover?.kind ?? null,
+        rotating: toolActive(rt, rotateTool),
+      };
+    },
     undo() {
-      editor.undo();
+      rt.undo();
       render();
     },
     redo() {
-      editor.redo();
+      rt.redo();
       render();
     },
     edit() {
-      const h = editor.hover;
+      settle(); // the world catches up with the pointer first
+      const h = highlightState(rt, models.models);
       let faces = 0;
       let vertices = 0;
       for (const m of models.models) {
         faces += m.object.brep.numFaces;
         vertices += m.object.brep.numVertices;
       }
+      // The world's objects, looking through scale boxes to what they hold.
+      const boxes = new Set(scaleBoxesIn(rt, rt.primary.root));
+      const tops = rt.primary.root.children.flatMap((o) => (boxes.has(o) ? o.children : [o]));
       return {
-        hover: h ? `${h.pick.kind}` : null,
-        picked: editor.picked.map((p) => p.kind),
+        hover: h.hover ? `${h.hover.pick.kind}` : null,
+        picked: h.picked.map((p) => p.kind),
         faces,
         vertices,
-        marquee: editor.marquee !== undefined,
-        colors: roots.map((r) => [...r.color]),
+        marquee: h.marquee !== undefined,
+        colors: tops.filter(isObject).map((r) => [...r.color]),
       };
     },
     demoSeconds: DEMO_SECONDS,

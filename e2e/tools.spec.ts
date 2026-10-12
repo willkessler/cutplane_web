@@ -48,7 +48,7 @@ test('the rotate tool: docked, brought to the cube with R, rolling it', async ({
   for (let x = 62; x <= 100; x += 2) await set(page, { x, y: 4 + (x % 7) });
   expect((await tool(page)).rotating).toBe(true);
   const at = await page.evaluate(() => window.__cutplane!.state());
-  expect(at.y).toBe(0); // held on the bar
+  expect(at.y).toBe(4); // held parallel to the bar (create_xbar_rotrec keeps the offset)
   await shot(page, 'tool-rolled', browserName);
   await release(page);
 

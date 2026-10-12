@@ -163,6 +163,8 @@ export class Properties {
   readonly code: Address[] = BUILTIN_PROPS.map(() => 0);
   private readonly own = new Map<Feature, OwnProp[]>();
   private readonly worldLists = new Map<Feature, PropList[]>();
+  /** Bumped whenever a feature gains or loses a property (for views that redraw on change). */
+  version = 0;
 
   constructor(private readonly worlds: PropertyWorlds) {}
 
@@ -232,6 +234,7 @@ export class Properties {
     const node = new PropNode(f, value);
     list.unshift({ kind: p, node });
     this.listFor(f, p).addFront(node);
+    this.version++;
     this.worlds.changed?.(f, p, true);
   }
 
@@ -250,6 +253,7 @@ export class Properties {
     if (wl) wl.remove(o!.node);
     o!.node.live = false;
     if (list.length === 0) this.own.delete(f);
+    this.version++;
     this.worlds.changed?.(f, p, false);
     return true;
   }

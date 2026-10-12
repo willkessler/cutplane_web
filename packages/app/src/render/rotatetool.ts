@@ -1,13 +1,21 @@
 import * as THREE from 'three';
-import {
-  BAUBLE_SIZE,
-  ROTATE_CENTER,
-  ROTATE_RADIUS,
-  type Bar,
-  type RotateTool,
-} from '../edit/rotatetool.ts';
+import { BAUBLE_SIZE, CENTER_SIZE as ROTATE_CENTER, ROTATE_RADIUS } from '@cutplane/behaviors';
 import { CLASSIC } from '../viewer/palette.ts';
 import { Lines, circle, group } from './lines.ts';
+
+type V2 = [number, number];
+export type Bar = 'h' | 'v';
+export type ToolPart =
+  { kind: 'center' } | { kind: 'bar'; bar: Bar } | { kind: 'bauble'; bar: Bar; end: 1 | -1 };
+
+/** The tool as drawn: its centre, which bars and baubles show, the part the crosshair has. */
+export interface ToolDrawing {
+  center: V2;
+  show: { hbar: boolean; vbar: boolean; hbaubles: boolean; vbaubles: boolean };
+  hover: ToolPart | undefined;
+  barDir(bar: Bar): V2;
+  bauble(bar: Bar, end: 1 | -1): V2;
+}
 
 /** Rotatetooldepth: the white copy sits this far right, down and toward the viewer of the black. */
 const DEPTH = 2;
@@ -46,7 +54,7 @@ export class RotateToolView {
     this.object = group(this.through, this.black, this.white, this.hotShadow, this.hot);
   }
 
-  update(tool: RotateTool, z: number, crosshair: readonly [number, number]): void {
+  update(tool: ToolDrawing, z: number, crosshair: readonly [number, number]): void {
     const [cx, cy] = tool.center;
     const through: number[] = [];
     const black: number[] = [];

@@ -576,6 +576,8 @@ export class Runtime implements Host {
       for (const h of this.features.known(a))
         if (this.features.alive(h)) copyProps(h, this.features.of(b, h.type, h.id));
     }
+    // The step records the copies with their properties, so redo brings them back whole.
+    if (parent === this.primary.root) for (const [, b] of pairs) this.journal.touch(b);
     this.treeChanged();
     return copy;
   }
@@ -1103,6 +1105,8 @@ export class Runtime implements Host {
         const doomed = this.vm.props.features(w, P.Killed);
         if (doomed.length === 0) break;
         const f = doomed[0]!;
+        // Undo puts a killed object back with its properties.
+        if (isObject(f) && this.worldOf(f) === this.primary) this.journal.touch(f);
         this.vm.props.forget(f);
         if (isObject(f)) this.killObject(f);
         else if (isSub(f)) this.killSub(f);
@@ -1203,8 +1207,13 @@ export class Runtime implements Host {
     o.color = [...s.color];
     o.name = s.name;
     this.vm.props.forget(o);
-    for (const n of [...s.props].reverse()) this.addProp(o, n);
     for (const h of this.features.known(o)) this.vm.props.forget(h);
+    // The object's and its features' lasting properties, as the snapshot had them.
+    const lasting = (names: readonly string[]) => names.filter((n) => !TRANSIENT_PROPS.has(n));
+    o.attrs.props = lasting(s.props);
+    for (const map of [o.brep.vertexAttrs, o.brep.edgeAttrs, o.brep.faceAttrs])
+      for (const a of map.values()) a.props = lasting(a.props);
+    this.register(o);
     this.changed(o);
   }
 
@@ -1225,10 +1234,21 @@ export class Runtime implements Host {
     if (!s) return false;
     // Scale boxes were never recorded: they go first (what they held stays where it is).
     for (const box of scaleBoxes(this, this.primary.root)) this.dissolve(box);
+    const was = new Set(subtree(this.primary.root));
     if (s.tree) restoreTree(this.primary.root, s.tree[side]);
     for (const snap of s[side]) this.restore(snap);
-    // Nothing stays picked across an undo.
-    for (const f of this.vm.props.features(this.primary, P.Picked)) this.vm.props.del(f, P.Picked);
+    // Objects the step leaves out of the world take their properties with them.
+    const inTree = new Set(subtree(this.primary.root));
+    const gone = new Set([...was, ...s[side].map((x) => x.object)]);
+    for (const o of gone) {
+      if (inTree.has(o)) continue;
+      this.vm.props.forget(o);
+      for (const h of this.features.known(o)) this.vm.props.forget(h);
+      this.selectables.delete(o);
+    }
+    // Nothing stays picked across an undo, and selectables are found afresh.
+    for (const p of [P.Picked, P.Selectable])
+      for (const f of this.vm.props.features(this.primary, p)) this.vm.props.del(f, p);
     for (const o of subtree(this.primary.root)) this.selectables.set(o, NOTHING);
     this.treeChanged();
     return true;
