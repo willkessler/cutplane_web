@@ -187,7 +187,16 @@ test('windowed trackpad: moving with ⌘ or ⌥ held mid-drag does not make the 
   expect(moved(carried, turned)).toBeLessThan(5);
 
   await page.mouse.move(cx + 282, cy - 60, { steps: 5 });
-  expect(moved(await state(), carried)).toBeGreaterThan(20);
+  const dropped = await state();
+  expect(moved(dropped, carried)).toBeGreaterThan(20);
   await page.mouse.up();
+
+  // With nothing held the crosshair stays put too, so it is still inside what it was over.
+  await page.keyboard.down('Meta');
+  await page.mouse.move(cx - 200, cy + 150, { steps: 20 });
+  await page.keyboard.up('Meta');
+  await page.mouse.move(cx - 199, cy + 150);
+  expect(moved(await state(), dropped)).toBeLessThan(5);
+  expect((await edit(page)).hover).toBe('object');
   expect(errors).toEqual([]);
 });

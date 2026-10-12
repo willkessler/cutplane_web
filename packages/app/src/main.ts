@@ -252,15 +252,16 @@ function planeUnder(clientX: number, clientY: number): THREE.Vector3 | null {
 }
 
 /**
- * Windowed mode: the crosshair sits under the pointer, on the plane. While a drag is held,
- * the pointer can drift from the crosshair: it keeps moving while ⌘ turns the room or ⌥
- * pushes the plane, and the point under it changes as the view does. Rather than let the
- * crosshair (and what it holds) leap to it, the pointer takes hold of the crosshair again
- * at an offset, until the button is let go.
+ * Windowed mode: the crosshair follows the (hidden) pointer, on the plane. The pointer can
+ * drift from the crosshair: it keeps moving while ⌘ turns the room or ⌥ pushes the plane,
+ * and the point under it changes as the view does. Rather than let the crosshair (and
+ * anything it holds) leap to it, the pointer takes hold of the crosshair again at an
+ * offset. Coming back into the canvas from outside puts the crosshair under it again.
  */
 let aim: [number, number] = [0, 0];
 let grip: [number, number] = [0, 0];
 let regrip = false;
+let resync = true;
 let lastView = '';
 
 function pointAt(e: PointerEvent): void {
@@ -268,9 +269,9 @@ function pointAt(e: PointerEvent): void {
   camera.updateMatrixWorld(); // the room may have turned since the last frame
   const hit = planeUnder(e.clientX, e.clientY);
   const view = `${control.yaw}|${control.pitch}|${control.z}`;
-  if (!editor.pressed) grip = [0, 0];
+  if (resync) grip = [0, 0];
   else if (hit && (regrip || view !== lastView)) grip = [aim[0] - hit.x, aim[1] - hit.y];
-  regrip = false;
+  regrip = resync = false;
   lastView = view;
   if (!hit) return;
   aim = [hit.x + grip[0], hit.y + grip[1]];
@@ -288,6 +289,9 @@ canvas.addEventListener('pointermove', (e) => {
     regrip = true;
     control.move(e.movementX, e.movementY, upp);
   }
+});
+canvas.addEventListener('pointerenter', () => {
+  if (!editor.pressed) resync = true;
 });
 canvas.addEventListener('pointerdown', (e) => {
   syncHeld(e);
@@ -341,6 +345,9 @@ if (work.unsupported) $<HTMLButtonElement>('work').disabled = true;
 work.onChange((s) => {
   // Losing the pointer mid-drag finishes the drag where it is, never half-applied.
   if (s !== 'on') editor.release(cursor());
+  // The crosshair moved by relative motion meanwhile; the windowed pointer takes it from there.
+  aim = [control.x, control.y];
+  regrip = true;
   app.classList.toggle('working', s !== 'off');
   $<HTMLDivElement>('pause').classList.toggle('shown', s === 'paused');
   Object.assign(held, NOTHING_HELD);
