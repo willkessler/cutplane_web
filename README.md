@@ -6,11 +6,14 @@ A browser-native rebuild of **Cutplane / 3Form**, the late-1980s SGI 3D modeler 
 _moving section plane_. You push a plane through the room, and wherever it slices your solids you
 see their cross-sections. Vertices, edges and faces are picked and edited where they cross it.
 
-> **Status: M4 (tools).** The animation shows the _Discovery_, modeled in 3Form in April 1991
-> and loaded unchanged from its original `disc4.cut`. The cutplane is pushed through it (the
-> yellow line is the live section), a face of the command module is taken hold of through the
-> section, pulled out and pushed back home, and then the rotate tool is brought to the lower ship
-> and a slide along its bar rolls the ship around and back. The CPL environment comes next.
+> **Status: M5 (CPL and the environment).** The animation shows the _Discovery_, modeled in
+> 3Form in April 1991 and loaded unchanged from its original `disc4.cut`. The cutplane is pushed
+> through it (the yellow line is the live section), and a face of the command module is taken hold
+> of through the section, pulled out and pushed back home. The rotate tool is brought to the lower
+> ship and a slide along its bar rolls the ship around and back. Last, a click on the toolpads'
+> headpad opens its rail. All of this now runs on the original CPL scripts (`rom.cpl`,
+> `cursor.cpl`, the tools' and pads' code) in a CPL virtual machine. Code is stored in objects and
+> can be edited while it runs. Modeling operations come next.
 > See the [roadmap](docs/README.md#roadmap), the [controls](docs/README.md#using-cutplane) and
 > [how it differs from the original](docs/README.md#differences-from-the-original).
 
@@ -34,7 +37,7 @@ docker compose --profile prod up web       # production image at http://localhos
 | `packages/formats`   | `.cut` / `.rsc` / `.dcl` / `.icon` I/O; OBJ, STL and glTF import and export   |
 | `packages/booleans`  | manifold-3d adapter, with coplanar face re-merge back into the B-rep          |
 | `packages/cpl`       | CPL assembler, virtual machine, disassembler and debugger                     |
-| `packages/behaviors` | The host API that CPL code calls                                              |
+| `packages/behaviors` | The world CPL runs in: host API, C routines, the environment's tools          |
 | `packages/app`       | three.js renderer, input and full-screen work mode, UI                        |
 
 ## Deploying

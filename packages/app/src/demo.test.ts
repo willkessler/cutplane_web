@@ -19,7 +19,7 @@ describe('README demo script', () => {
     }
   });
 
-  it('pulls a face out and puts it back, rolls the module and back, then clicks on nothing', () => {
+  it('pulls a face out and back, rolls the module and back, opens and closes a rail, clicks on nothing', () => {
     const dt = 1 / 30;
     type At = { x: number; y: number; depth: number };
     const holds: { from: At; to: At; reach: number }[] = [];
@@ -36,12 +36,14 @@ describe('README demo script', () => {
       }
       was = p.pressed;
     }
-    expect(holds).toHaveLength(3);
+    expect(holds).toHaveLength(5);
     expect(holds[0]!.reach).toBeGreaterThan(100);
     expect(holds[0]!.to).toEqual(holds[0]!.from);
     expect(holds[1]!.reach).toBeGreaterThan(50); // the roll along the rotate tool's bar...
     expect(holds[1]!.to).toEqual(holds[1]!.from); // ...and back
-    expect(holds[2]!.reach).toBe(0);
+    // Two clicks on the headpad (open its rail, close it), then one on nothing.
+    for (const h of holds.slice(2)) expect(h.reach).toBe(0);
+    expect(holds[2]!.from).toEqual(holds[3]!.from);
     expect(demoPose(0).pressed).toBe(false);
     // R twice: the tool comes and is put away again, so the loop starts with it docked.
     expect(demoPose(DEMO_SECONDS - 1e-6).rotateKeys).toBe(2);

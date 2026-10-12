@@ -12,7 +12,7 @@ The user guide and architecture notes will grow here as each milestone lands. Sc
 | **M2** ✅ | Room, plane, section and full-screen work mode                      |
 | **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo    |
 | **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                 |
-| M5        | CPL VM and environment: code stored in objects, live editing        |
+| **M5** ✅ | CPL VM and environment: code stored in objects, live editing        |
 | M6        | Modeling operations: slice, booleans, drill, push/pull              |
 | M7        | Formats: OBJ, STL, glTF, drag and drop, autosave                    |
 | M8        | Ship: user guide, help plate, deployment                            |
@@ -133,15 +133,66 @@ Like everything else, the tools stand in the room and are used through the plane
   Deleting a vertex cuts it off, the faces around it becoming one face across its neighbours;
   an edge between two faces lying flat merges them, any other edge goes with both its ends; a
   face goes with all its corners. A delete that would leave the solid broken or flat is refused.
-- **The colour control** stands by the back wall, bottom right (the plane jump takes you there):
-  three bars, red, green and blue, on a base, and a white paint chip. Drag a bar's top up or down
-  and what is picked takes the mixed colour as you go. Drag the chip and a copy comes away with
-  the crosshair; carry it to a face or an object (move the plane with it) and let go to paint
-  it there. A face painted on its own keeps its colour when its object is recoloured. Drag the
-  **base** to bring the whole control along, up beside what you are colouring (move the plane
-  while holding it to carry it forward).
+- **The colour control** lives in the goodies box (see below): three bars, red, green and blue,
+  on a base, and a white paint chip. Drag a bar's top up or down and what is picked takes the
+  mixed colour as you go. Drag the chip and a copy comes away with the crosshair; carry it to a
+  face or an object (move the plane with it) and let go to paint it there. A face painted on its
+  own keeps its colour when its object is recoloured. Drag the **base** to bring the whole
+  control along, up beside what you are colouring (move the plane while holding it to carry it
+  forward).
 
 All of these can be undone.
+
+### The environment
+
+![The toolpads' rail opened: pencil, saw and drill on their pads](images/env-rails.png)
+
+The room is laid out as in the 3Form photos. Everything in it runs on the original CPL scripts.
+
+- **Toolbars** ride in the plane, top left: a **headpad** with its icon (the hammer for tools,
+  the grabber for arranging), and under it a rail of **toolpads**, each with its tool's picture.
+  Click a headpad to open or close its rail.
+  - Click a toolpad and its tool comes off it and rides on the crosshair, just in front of the
+    plane. Click the pad again to put the tool back.
+  - Drag a pad by its handle (the strip along its top) to pull it off the rail. Let it go
+    anywhere to leave it floating, on another rail to hang it there, or on a headpad to drop it in.
+  - The tools themselves (pencil, saw, drill, magnifier, group, pan, magnet) do their work in M6.
+- **Toolboxes** stand on the floor by the back wall, bottom right; Space takes the plane there.
+  Click one to open it, and what it holds stacks up above it.
+  - **Primitives box.** Pick a primitive (cube, cylinder, cone, sphere, pyramid) and a copy is
+    stamped into the world, picked, ready to drag forward. The box closes again.
+  - **Goodies box.** It holds the **camera**, the **light bulb** and the **colour control**. Drag
+    one out to use it; drop it on the box to put it back.
+    - The bulb lights the room in its colour from wherever it is. Paint it with the colour
+      control to change the light.
+    - Click the camera to show what it sees, on a slide above it, and drag it to look elsewhere.
+- **The storage pad** (the floppy disk, bottom left in the plane) opens the **Load / Save
+  plate**. Click a field and type: the keys go to the field (Backspace, ← →; Esc puts the old
+  text back), not to the commands.
+  - Return on **Save to:** keeps the world in this browser under that name.
+  - Return on **Load from:** brings in a world you saved, or a bundled sample (`disc4`,
+    `stapler`...).
+
+![The Load / Save plate, a name being typed into Load from:](images/env-plate.png)
+
+![The camera out of its box, its slide showing the Discovery](images/goodies-camera.png)
+
+### Code
+
+![The CPL editor showing stamp.cpl](images/code-editor.png)
+
+Behaviour lives in CPL, the original's own scripting language, and the app runs the original
+scripts. **Code**, in the toolbar, opens the editor (outside work mode only, so nothing flat
+covers the room while you work).
+
+- Choose a **property file** (`stamp.cpl`, `toolbox.cpl`, `paint.cpl` and so on) to see the code
+  that runs for everything with that property. Choose **What is picked** to see the picked
+  thing's name, its properties and its own private code.
+- Edit it and press **Apply** (⌘↵ / Ctrl+↵). The world runs the new code from the next frame,
+  with nothing restarted: change `stamp.cpl` and the next stamp behaves differently. A broken edit
+  is refused, its errors listed, and the old code keeps running.
+- **Save** writes the world as a `.cut` file, and each object's private code goes into the file
+  with it. **Open…** reads one back, and the code comes too.
 
 ### Work mode
 
@@ -172,7 +223,12 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   nothing, a face folded flat) is undone on release, and a delete that would do the same is
   refused. The original let both happen.
 - **Group drags.** Pressing on something already picked keeps the other picks, so several things
-  can be dragged together.
+  can be dragged together. This is the one change to the original's CPL: `assets/cpl/rom.cpl`
+  is `rom.cpl` with it made (marked "cutplane_web"), as the lines its authors had commented out
+  were meant to do. Every other script runs as it was.
+- **Code in files, edited live.** Objects carry their CPL inline in `.cut` files. The original
+  saved only the name of a code file, and only for vertices, edges and faces. The CPL editor is
+  new, and so are Save and Open outside the Load/Save plate.
 - **Trackpad and two-button profiles.** The SGI had a three-button mouse (middle drags the
   plane, right turns the room). That layout is still a profile, alongside ⌥ / ⌘ quasimodes for
   trackpads and a two-button layout.
@@ -196,13 +252,21 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   turn it inside out.
 - **Colour bars** all map their height to 0–255 the same way. In the original, the bar being
   dragged used a different formula and could go past 255.
+- **Toolboxes, pads and plates.** The storage pad starts in the plane, bottom left. The
+  original left it by the back wall, and only a drag brought it into the plane.
+- **The camera's view** is a slide standing in the room above the camera. The original opened a
+  second window. The **light bulb** adds a point light in its colour to the face shading, as
+  `setup_light_source(2, ...)` did.
+- **Saving through the Load/Save plate** keeps the world in the browser, under the typed name,
+  and loading looks there first, then among the bundled samples. The original read and wrote
+  files in its working directory.
 - **Sections** always come out as closed loops, even through nearly flat faces that 1991 float32
   drift left slightly bent. The original warned "face crosses plane odd number of times" there.
 
-**Timing by distance, not events.** The original counted mouse events for Ctrl's axis decision
-and for the rotate tool's brief stops (at perpendicular, and the dial at horizontal). Browsers
-send many more, smaller events, so these are measured as a distance or an angle instead. The
-amounts are the same: 5 units for Ctrl and the perpendicular stop, 3° for the dial.
+**Timing.** Ctrl's axis decision is measured by distance (5 units), since browsers send many
+more, smaller events than the SGI did. The rotate tool's brief stops (at perpendicular, and the
+dial at horizontal) are the original CPL's counters again. The app sends CPL one coalesced move
+per frame, so they count frames, as the original counted its update loop.
 
 **Geometry.** Every coordinate snaps to a 1/256-unit grid, so repeated rotations can't build
 up error and coincident points are exactly equal. The original used floats. Files written by
@@ -219,7 +283,39 @@ older versions of the format are normalised to the latest one on save.
     that);
   - `recombine_affected_coplanar_fves`;
   - `duplicate.cpl`, `delete.cpl`, `colorctrl.cpl`, `sizebbox.cpl` and the `old*` rotate
-    scripts.
+    scripts (those, `calipers.cpl`, `menu.cpl`, `toolbar.cpl` and `workgroup.cpl` are in an
+    older CPL dialect that doesn't assemble).
+- **Not yet:** the measure pad (its name, size and distance plates need primitives that can be
+  resized, which come with M6) and the tools' own work (M6).
+
+## CPL and the environment (M5)
+
+- **`packages/cpl`** is the language. The assembler reads the original `.cpl` files as they are,
+  and the VM follows `cplcore.c` and `cplops.c` closely:
+  - tagged words in one flat memory, with the original's addressing (`A:`, `AA:`, `*`, `&`);
+  - the resolver iterates feature lists like an odometer;
+  - JSRAT, per-feature message queues, and updates logged during a frame and done at its end;
+  - property lists kept per world, as the original's were.
+    The disassembler and trace drive the tests. Each known bug in the original VM is fixed only
+    behind an option (`fixes`), so the original scripts run as they always did.
+- **`packages/behaviors`** is the world the VM runs in: the C side of the original, on the
+  kernel.
+  - `Runtime` implements the host API the opcodes call (picking, translation, adoption,
+    duplicates, deletes, colours, labels, worlds) and select.c's selectechniques.
+  - `Controls` turns input into RAM sentences as `controls.c` did: PICK, RELEAS, TRANS of the
+    crosshair and of what is picked, key commands as messages, and typed characters for text
+    inputs.
+  - Each tool in `src/tools/` builds its objects the way `tools.c`, `rotatetool.c` or `scale.c`
+    did and ports the C routines (`Crtn:`) its scripts call. The tools are the rotate tool, scale
+    boxes, colour control, toolbars, toolboxes, goodies and plates.
+  - Undo is a journal of the edited world. Scale boxes come and go with picking, so they are
+    never recorded.
+- **The app** sends each frame's motion to CPL and draws what the VM says: highlights from
+  Selectable and Picked, the tools from Visible and Active, pads, decals, Hershey labels and
+  plates.
+- **Tests** run the original scripts end to end: picking, dragging, marquee, delete, duplicate,
+  plane jump, every tool, stamping, the pads and the plates. Further tests cover live edits
+  of `stamp.cpl` and an object's code surviving a save and a reload.
 
 ## Tools (M4)
 
@@ -235,11 +331,7 @@ Ported from `rotatetool.c`, `rotateobj.c`, `scale.c`, `duplicate.c`, `topology.c
 - **Deliberate fixes** are listed under
   [Differences from the original](#differences-from-the-original).
 - **Goodies.** The colour control's base runs `goodies.cpl`, which every goodie runs: picked, it
-  drags the whole control. Its other half, freeing a goodie from its toolbox or dropping it back
-  in, waits for toolboxes in M5.
-- **Not ported yet:** toolboxes, tool pads and the goodies box are the CPL environment's (M5);
-  until then the colour control stands where the goodies box would be, and the eraser end of the
-  pencil comes with the pencil.
+  drags the whole control. In M5 it moved into the goodies box, out of which it is dragged.
 - **Kernel.** `ops/delete.ts` follows `delete_vertex`: every face around the vertex is first cut
   so only a triangle touches it, then the triangles merge into one face across the neighbours,
   which is triangulated if bent. Earlier deletes can leave a vertex where two fans of faces meet;

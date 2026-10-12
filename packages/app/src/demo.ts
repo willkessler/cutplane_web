@@ -7,6 +7,7 @@
  * section, pulls it out, pushes it back home (where its neighbours merge
  * flat again). Last, R brings the rotate tool to the sphere, a slide along
  * its bar rolls the module and back, R on the tool's centre puts it away,
+ * a click on the toolpads' headpad opens its rail and another closes it,
  * and a click on nothing lets go.
  */
 export interface Pose {
@@ -43,6 +44,8 @@ const START: Pose = {
 
 /** A face on the equator of the lower ship's sphere, with the plane through its middle. */
 const GRAB = { x: -186, y: -150, depth: 0.055 };
+/** The toolpads' headpad (toolpads.rsc), riding the plane top left. */
+const HEADPAD = { x: -385, y: 320 };
 /** Inside the sphere's section at that depth: the rotate tool goes here. */
 const PIVOT = { x: -110, y: -130 };
 
@@ -82,6 +85,11 @@ const SCRIPT: Step[] = [
   { seconds: 0.3, press: false },
   { seconds: 0.8, to: PIVOT }, // to the tool's centre
   { seconds: 0.5, rotateKey: true }, // R again: the tool goes back to its corner
+  { seconds: 1.6, to: HEADPAD }, // up to the toolpads' headpad, in the plane
+  { seconds: 0.2, press: true }, // a click opens its rail (headpad.cpl)
+  { seconds: 1.6, press: false }, // pencil, saw and drill, on their pads
+  { seconds: 0.2, press: true }, // a click closes it again
+  { seconds: 0.4, press: false },
   { seconds: 1.6, to: { depth: 0, x: 260, y: -170 } }, // and out
   { seconds: 0.2, press: true }, // a click on nothing lets go of the face, ready to loop
   { seconds: 0.4, press: false },
