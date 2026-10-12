@@ -10,5 +10,9 @@
   },
   "scripts": {
     "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@cutplane/kernel": "workspace:*",
+    "manifold-3d": "^3.5.4"
   }
 }
