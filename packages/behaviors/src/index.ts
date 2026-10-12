@@ -8,3 +8,4 @@ export * from './tools/colorcontrol.ts';
 export * from './tools/scalebox.ts';
 export * from './tools/rotatetool.ts';
 export * from './tools/toolbar.ts';
+export * from './tools/toolbox.ts';

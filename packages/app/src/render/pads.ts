@@ -6,6 +6,7 @@ import {
   HEADPAD_ZOFFSET,
   TOOLPAD_ZOFFSET,
   decalOf,
+  decaledPads,
   isPad,
   type Runtime,
 } from '@cutplane/behaviors';
@@ -86,25 +87,28 @@ export class PadView {
           pos.push(p[0], p[1], p[2]);
           col.push(...c);
         }
-      const decal = decalOf(rt, o);
-      if (decal)
-        for (const piece of decal) {
-          const m = mat4.multiply(piece.matrix, o.xform);
-          const g = new WorldGeometry(piece.brep, m);
-          const b = piece.brep;
-          for (const f of b.faces()) {
-            const n = g.faceNormal(f);
-            if (n[0] === 0 && n[1] === 0 && n[2] === 0) continue;
-            const shade = shadeFace(n, b.faceColors.get(f) ?? piece.color);
-            const ring = b.loopHalfEdges(b.faceLoop(f)).map((h) => b.heVertex(h));
-            const pts = ring.map((v) => [g.x(v), g.y(v), g.z(v)] as const);
-            for (let i = 1; i + 1 < pts.length; i++)
-              for (const p of [pts[0]!, pts[i]!, pts[i + 1]!]) {
-                dpos.push(p[0], p[1], p[2]);
-                dcol.push(...shade);
-              }
-          }
+    }
+    // Decals: on pads, and on anything else that has one (the toolboxes' fronts).
+    for (const o of decaledPads(rt)) {
+      if (!rt.vm.props.has(o, P.Visible)) continue;
+      const decal = decalOf(rt, o)!;
+      for (const piece of decal) {
+        const m = mat4.multiply(piece.matrix, o.xform);
+        const g = new WorldGeometry(piece.brep, m);
+        const b = piece.brep;
+        for (const f of b.faces()) {
+          const n = g.faceNormal(f);
+          if (n[0] === 0 && n[1] === 0 && n[2] === 0) continue;
+          const shade = shadeFace(n, b.faceColors.get(f) ?? piece.color);
+          const ring = b.loopHalfEdges(b.faceLoop(f)).map((h) => b.heVertex(h));
+          const pts = ring.map((v) => [g.x(v), g.y(v), g.z(v)] as const);
+          for (let i = 1; i + 1 < pts.length; i++)
+            for (const p of [pts[0]!, pts[i]!, pts[i + 1]!]) {
+              dpos.push(p[0], p[1], p[2]);
+              dcol.push(...shade);
+            }
         }
+      }
     }
     this.through.set(through);
     this.black.set(black);

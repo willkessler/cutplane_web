@@ -1,14 +1,14 @@
 import * as THREE from 'three';
 import { readCut } from '@cutplane/formats';
-import { ROOM, createCube, createObject, mat4 } from '@cutplane/kernel';
+import { ROOM, createCube, createObject, mat4, type CutObject } from '@cutplane/kernel';
 import type { CutDocument } from '@cutplane/formats';
 import { P, PROPERTY_FILES } from '@cutplane/cpl';
 import {
   COLOR_CRTNS,
   Controls,
   Runtime,
-  createColorControl,
   installRotateTool,
+  installToolboxes,
   installToolbars,
   isPad,
   isObject,
@@ -129,6 +129,8 @@ const CPL_FILES = [
   'rotatecircle.cpl',
   'rotatexbar.cpl',
   'rotatebauble.cpl',
+  'nikon.cpl',
+  'lens.cpl',
   ...PROPERTY_FILES.map((p) => `${p.toLowerCase()}.cpl`),
 ];
 const cpl = new Map<string, string>();
@@ -188,15 +190,13 @@ async function loadCpl(): Promise<void> {
   );
 }
 
-/** tools.c: the goodies toolbox's spot, bottom right on the back wall; the colour control stands there. */
-const COLOR_CORNER: V3 = [510 - 212.5, -382 + 28.3, -499];
-
 // Made in start(), once the CPL has loaded.
 let stage!: AppStage;
 let rt!: Runtime;
 let controls!: Controls;
 let rotateTool!: ReturnType<typeof installRotateTool>;
-let colorControl!: ReturnType<typeof createColorControl>;
+let colorControl!: ReturnType<typeof installToolboxes>['colorControl'];
+let toolboxes!: ReturnType<typeof installToolboxes>;
 let ready = false;
 
 function makeWorld(): void {
@@ -206,8 +206,9 @@ function makeWorld(): void {
   rt.loadCode(source);
   rotateTool = installRotateTool(rt, source);
   rt.registerCrtns(COLOR_CRTNS);
-  colorControl = createColorControl(rt, COLOR_CORNER);
   installToolbars(rt, resource, TOOLBARS);
+  toolboxes = installToolboxes(rt, source);
+  colorControl = toolboxes.colorControl;
   controls = new Controls(rt);
   ready = true;
 }
@@ -586,6 +587,7 @@ declare global {
       release(): void;
       tool(): { center: number[]; hover: string | null; rotating: boolean };
       color(): { rgb: number[]; hover: string | null; base: number[] };
+      locate(what: string): unknown;
       undo(): void;
       redo(): void;
       edit(): {
@@ -688,6 +690,23 @@ async function start(): Promise<void> {
       settle();
     },
     color: () => colorState(rt, colorControl),
+    locate(what) {
+      // Centres of the environment's things, for scripted runs (tests, the README animation).
+      const box = (o: CutObject | undefined) => {
+        const b = o ? rt.bbox(o) : null;
+        return b ? [0, 1, 2].map((k) => (b[0][k]! + b[1][k]!) / 2) : null;
+      };
+      const cc = colorControl;
+      const parts: Record<string, () => unknown> = {
+        prims: () => box(toolboxes.prims),
+        goodies: () => box(toolboxes.goodies),
+        stamps: () => toolboxes.prims.children.filter((c) => rt.hasProp(c, 'Stamp')).map(box),
+        base: () => box(cc.base),
+        chip: () => box(cc.chip),
+        bars: () => cc.bars.map((b) => ({ center: box(b), top: rt.bbox(b)![1][1] })),
+      };
+      return parts[what]?.() ?? null;
+    },
     tool: () => {
       const t = toolDrawing(rt, rotateTool);
       return {

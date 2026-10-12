@@ -117,7 +117,42 @@ test('a picked cube gets a scale box; its edge handle stretches it', async ({
   expect(errors).toEqual([]);
 });
 
-test('the colour control by the back wall: a bar recolours the picked cube, the chip paints', async ({
+type P3 = [number, number, number];
+const locate = <T>(page: Page, what: string) =>
+  page.evaluate((w) => window.__cutplane!.locate(w), what) as Promise<T>;
+
+/** The plane through the toolboxes by the back wall. */
+const BOXES_Z = -480;
+
+/** Clicks a toolbox open (tools.c puts them by the back wall). */
+async function openBox(page: Page, which: 'prims' | 'goodies') {
+  const at = await locate<P3>(page, which);
+  await set(page, { z: BOXES_Z, x: at[0], y: at[1] });
+  await press(page);
+  await release(page);
+}
+
+test('the primitives box: picking a primitive stamps a copy into the world, picked', async ({
+  page,
+  browserName,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20 });
+  await openBox(page, 'prims');
+  await shot(page, 'prims-open', browserName);
+  const [cube] = await locate<P3[]>(page, 'stamps');
+  await set(page, { x: cube![0], y: cube![1] });
+  const before = (await edit(page)).faces;
+  await press(page);
+  await release(page);
+  const s = await edit(page);
+  expect(s.picked).toEqual(['object']);
+  expect(s.faces).toBe(before + 6);
+  await shot(page, 'stamped', browserName);
+  expect(errors).toEqual([]);
+});
+
+test('the colour control in the goodies box: a bar recolours the picked cube, the chip paints', async ({
   page,
   browserName,
 }) => {
@@ -128,14 +163,15 @@ test('the colour control by the back wall: a bar recolours the picked cube, the 
   await release(page);
   const color = () => page.evaluate(() => window.__cutplane!.color());
 
-  // Space: the plane jumps to the back wall, where the control stands.
-  await page.keyboard.press('Space');
-  await set(page, { x: 312, y: -230 });
+  await openBox(page, 'goodies');
+  const bars = await locate<{ center: P3; top: number }[]>(page, 'bars');
+  const red = bars[0]!;
+  await set(page, { x: red.center[0], y: red.top - 5 });
   expect((await color()).hover).toBe('bar');
   await shot(page, 'color-hover', browserName);
   const before = (await color()).rgb;
   await press(page);
-  for (let y = -235; y >= -290; y -= 5) await set(page, { x: 312, y });
+  for (let d = 5; d <= 50; d += 5) await set(page, { x: red.center[0], y: red.top - 5 - d });
   await release(page);
   const after = (await color()).rgb;
   expect(after[0]).toBeLessThan(before[0]!);
@@ -143,13 +179,15 @@ test('the colour control by the back wall: a bar recolours the picked cube, the 
   await shot(page, 'color-bar', browserName);
 
   // Turn the blue right down, then carry the chip to the cube and drop it there.
-  await set(page, { x: 392, y: -230 });
+  const blue = bars[2]!;
+  await set(page, { x: blue.center[0], y: blue.top - 5 });
   await press(page);
-  for (let y = -235; y >= -310; y -= 5) await set(page, { x: 392, y });
+  for (let d = 5; d <= 70; d += 5) await set(page, { x: blue.center[0], y: blue.top - 5 - d });
   await release(page);
   await page.evaluate(() => window.__cutplane!.undo()); // takes the cube's colour back...
   const mix = (await color()).rgb; // ...but the control keeps its setting
-  await set(page, { z: -470, x: 442, y: -322 });
+  const chip = await locate<P3>(page, 'chip');
+  await set(page, { z: chip[2], x: chip[0], y: chip[1] });
   expect((await color()).hover).toBe('chip');
   await press(page);
   await set(page, { z: -300 });
@@ -161,17 +199,21 @@ test('the colour control by the back wall: a bar recolours the picked cube, the 
   expect(errors).toEqual([]);
 });
 
-test('the colour control comes along when its base is dragged', async ({ page, browserName }) => {
+test('the colour control comes out of its box when its base is dragged', async ({
+  page,
+  browserName,
+}) => {
   test.setTimeout(60_000);
   const errors = await open(page, 'sample=cube');
   await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
   const color = () => page.evaluate(() => window.__cutplane!.color());
-  await page.keyboard.press('Space');
-  await set(page, { x: 300, y: -340 });
+  await openBox(page, 'goodies');
+  const base = await locate<P3>(page, 'base');
+  await set(page, { x: base[0], y: base[1] });
   expect((await color()).hover).toBe('base');
   const from = (await color()).base;
   await press(page);
-  for (let i = 1; i <= 10; i++) await set(page, { x: 300 - 15 * i, y: -340 + 10 * i });
+  for (let i = 1; i <= 10; i++) await set(page, { x: base[0] - 15 * i, y: base[1] + 10 * i });
   await set(page, { z: -300 }); // the plane carries it forward too
   await release(page);
   const to = (await color()).base;

@@ -1255,6 +1255,7 @@ export class Runtime implements Host {
     const gone = new Set([...was, ...s[side].map((x) => x.object)]);
     for (const o of gone) {
       if (inTree.has(o)) continue;
+      if (o.parent && !o.parent.children.includes(o)) o.parent = null;
       this.vm.props.forget(o);
       for (const h of this.features.known(o)) this.vm.props.forget(h);
       this.selectables.delete(o);
