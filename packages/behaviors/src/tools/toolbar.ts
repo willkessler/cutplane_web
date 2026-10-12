@@ -426,6 +426,12 @@ export const TOOLBAR_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void
   },
 };
 
+/** The pad selectechniques (headpads; toolpads, rails, plates, dialogs and text inputs). */
+export function registerPadTechniques(rt: Runtime): void {
+  rt.selectTechniques['set_headpad_selectable'] = (o) => headpadSelectable(rt, o);
+  rt.selectTechniques['set_normalpad_selectable'] = (o) => normalpadSelectable(rt, o);
+}
+
 /** The toolbars from their resources, with their C routines and selectechniques. */
 export function installToolbars(
   rt: Runtime,
@@ -433,12 +439,13 @@ export function installToolbars(
   rscFiles: string[],
 ): CutObject[] {
   rt.registerCrtns(TOOLBAR_CRTNS);
-  rt.selectTechniques['set_headpad_selectable'] = (o) => headpadSelectable(rt, o);
-  rt.selectTechniques['set_normalpad_selectable'] = (o) => normalpadSelectable(rt, o);
+  registerPadTechniques(rt);
   const pads = rscFiles.map((f) => createToolbar(rt, parseToolbarRsc(read(f)), read));
   rt.vm.resolveObjectRefs();
   return pads;
 }
 
 export const isPad = (o: CutObject) =>
-  o.drawTechnique === 'draw_pad_technique' || o.drawTechnique === 'draw_headpad_technique';
+  o.drawTechnique === 'draw_pad_technique' ||
+  o.drawTechnique === 'draw_headpad_technique' ||
+  o.drawTechnique === 'draw_plate_technique';

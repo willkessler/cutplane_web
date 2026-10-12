@@ -10,8 +10,11 @@ import {
   Aux,
   setupAux,
   Word,
+  charWord,
+  messageWord,
 } from '@cutplane/cpl';
 import type { Runtime, V3 } from './runtime.ts';
+import { charstreamOf } from './tools/plates.ts';
 
 /**
  * Input as CPL (controls.c): button presses, key commands and crosshair
@@ -145,6 +148,30 @@ export class Controls {
     setupAux(ad, Aux.Rotate);
     ad.vec = [dx, dy, 0, 0, 0, 0, 0];
     this.vm.storeInstruction(opcodeWord(Op.ROTATE), envWord(Env.Room_part), ad);
+  }
+
+  // ---- typing (stream_char_to_objects) ----
+
+  /** Something (a text input) wants typed characters instead of key commands. */
+  get typing(): boolean {
+    return charstreamOf(this.rt).length > 0;
+  }
+
+  /**
+   * A typed character goes to each listener as an Incomingchar message: printable
+   * characters, and ^H (backspace), ^B / ^F (left / right), CR and ESC.
+   */
+  typeChar(code: number): void {
+    const vm = this.vm;
+    let msg = vm.messages.indexOf('Incomingchar');
+    if (msg < 0) msg = vm.messages.push('Incomingchar') - 1;
+    for (const f of charstreamOf(this.rt)) {
+      vm.enterMessage(messageWord(msg));
+      vm.enterMessage(charWord(code));
+      vm.queueMessage(f, true);
+      vm.messageBlockReset();
+    }
+    this.events = true;
   }
 
   // ---- motion (store_mouse_cursor_move, store_cursor_move) ----

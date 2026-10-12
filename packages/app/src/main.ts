@@ -9,6 +9,7 @@ import {
   Runtime,
   installRotateTool,
   installToolboxes,
+  installStoragePad,
   installToolbars,
   isPad,
   isObject,
@@ -33,6 +34,7 @@ import { RotateToolView } from './render/rotatetool.ts';
 import { ScaleBoxView } from './render/scalebox.ts';
 import { setLineResolution } from './render/lines.ts';
 import { ModelView } from './render/models.ts';
+import { LabelView } from './render/labels.ts';
 import { PadView } from './render/pads.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
 import { SectionLines } from './render/sectionlines.ts';
@@ -81,8 +83,10 @@ const boxView = new ScaleBoxView();
 const envView = new ModelView();
 const envSection = new SectionLines();
 const padView = new PadView();
+const labelView = new LabelView();
 scene.add(
   padView.object,
+  labelView.object,
   envView.object,
   envSection.object,
   toolView.object,
@@ -132,6 +136,8 @@ const CPL_FILES = [
   'rotatebauble.cpl',
   'nikon.cpl',
   'lens.cpl',
+  'save.cpl',
+  'load.cpl',
   ...PROPERTY_FILES.map((p) => `${p.toLowerCase()}.cpl`),
 ];
 const cpl = new Map<string, string>();
@@ -160,7 +166,9 @@ async function loadResources(): Promise<void> {
     }
     throw new Error(`${f}: not found`);
   };
-  await Promise.all([...TOOLBARS, 'padhandle.dcl', 'toolpad.dcl', 'toolbar.dcl'].map(get));
+  await Promise.all(
+    [...TOOLBARS, 'padhandle.dcl', 'toolpad.dcl', 'toolbar.dcl', 'storageplate.rsc'].map(get),
+  );
   // Each toolbar names its icons (and the tools they become).
   const icons = TOOLBARS.flatMap((f) => {
     const lines = resource(f).split(/\r?\n/);
@@ -210,6 +218,18 @@ function makeWorld(): void {
   installToolbars(rt, resource, TOOLBARS);
   toolboxes = installToolboxes(rt, source);
   colorControl = toolboxes.colorControl;
+  installStoragePad(rt, resource, source, {
+    // "Save to:" keeps the world in this browser; "Load from:" looks there, then in the samples.
+    async read(name) {
+      const kept = stored(`world.${name}`);
+      if (kept !== null) return kept;
+      const res = await fetch(`${base}samples/${name.replace(/\.cut$/, '')}.cut`);
+      return res.ok && !res.headers.get('content-type')?.includes('text/html') ? res.text() : null;
+    },
+    write(name, text) {
+      store(`world.${name}`, text);
+    },
+  });
   controls = new Controls(rt);
   ready = true;
 }
@@ -406,7 +426,7 @@ function render(): void {
       `section <b>${s.loops}</b> loop${s.loops === 1 ? '' : 's'} in <b>${s.objects}</b> object${s.objects === 1 ? '' : 's'}`;
   }
   // Highlights follow the VM's Selectable and Picked properties.
-  const hkey = `${rt.vm.props.version}|${section.version}|${key}|${stage.x}|${stage.y}`;
+  const hkey = `${rt.vm.props.version}|${rt.version}|${section.version}|${key}|${stage.x}|${stage.y}`;
   if (hkey !== lastHighlights) {
     highlights.update(
       highlightState(rt, models.models),
@@ -416,6 +436,7 @@ function render(): void {
     );
     lastHighlights = hkey;
     padView.update(rt);
+    labelView.update(rt);
     codePanel.show();
     const t = toolDrawing(rt, rotateTool);
     const ring = t.hover && t.hover.kind !== 'center';
@@ -553,6 +574,23 @@ window.addEventListener('keydown', (e) => {
     e.target instanceof HTMLInputElement
   )
     return;
+  // A text input is listening (textinput.cpl): keys are typed, not commands.
+  if (controls.typing && !e.metaKey && !e.ctrlKey) {
+    const special: Record<string, number> = {
+      Backspace: 0x08,
+      ArrowLeft: 0x02,
+      ArrowRight: 0x06,
+      Enter: 0x0d,
+      Escape: 0x1b,
+    };
+    const code = special[e.key] ?? (e.key.length === 1 ? e.key.charCodeAt(0) : undefined);
+    if (code !== undefined) {
+      e.preventDefault();
+      controls.typeChar(code);
+      settle();
+    }
+    return;
+  }
   const c = commandFor(e.code, held);
   if (!c) return;
   e.preventDefault();

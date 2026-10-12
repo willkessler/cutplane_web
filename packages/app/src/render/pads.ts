@@ -31,6 +31,8 @@ const HEADPAD: [number, number][] = [
 ];
 
 const WHITE = [255, 255, 255];
+/** tools.h's Normalpadcorner. */
+const PLATE_CORNER = 60 / 16;
 
 /**
  * Pads, rails and headpads as grafx.c drew them (draw_pad_technique,
@@ -134,6 +136,17 @@ function outline(rt: Runtime, o: CutObject): [number, number, number][] {
     if (v === undefined) return [];
     const [x, y, z] = [g.x(v), g.y(v), g.z(v)];
     return HEADPAD.map(([dx, dy]) => [x + dx, y + dy, z + HEADPAD_ZOFFSET]);
+  }
+  if (o.drawTechnique === 'draw_plate_technique') {
+    // A rounded rectangle from the first vertex to the second (Normalpadcorner corners).
+    const [v0, v1] = b.vertices();
+    if (v0 === undefined || v1 === undefined) return [];
+    const [x, y, z] = [g.x(v0), g.y(v0), g.z(v0)];
+    const w = g.x(v1) - x;
+    const h = g.y(v1) - y;
+    const k = PLATE_CORNER;
+    const corners: [number, number][] = [[k, 0], [w - k, 0], [w, k], [w, h - k], [w - k, h], [k, h], [0, h - k], [0, k]]; // prettier-ignore
+    return corners.map(([dx, dy]) => [x + dx, y + dy, z]);
   }
   const f = b.faces()[0];
   if (f === undefined) return [];

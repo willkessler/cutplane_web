@@ -83,6 +83,20 @@ export const SelectKind = {
   Obj: 6,
 } as const;
 
+/** One string of an object's label (text.c's textstring). */
+export interface TextItem {
+  text: string | null;
+  /** Where it starts, in the object's frame. */
+  offset: V3;
+  xscale: number;
+  yscale: number;
+  penWidth: number;
+  color: V3;
+  style: 'Plain' | 'Bold' | 'Shadow' | 'Underline' | 'Italic';
+  /** The I-beam's place (characters from the start), or -1 for none. */
+  insertion: number;
+}
+
 export interface Selectable {
   feature: Feature | null;
   kind: number;
@@ -920,17 +934,47 @@ export class Runtime implements Host {
     this.vm.resolveObjectRefs();
   }
 
-  private readonly labels = new WeakMap<CutObject, (string | null)[]>();
+  private readonly labels = new WeakMap<CutObject, TextItem[]>();
+
+  /** An object's label: its text items (text.c's textgroup), item 1 first. */
+  labelItems(o: CutObject): TextItem[] {
+    return this.labels.get(o) ?? [];
+  }
+
+  /** add_label_item (create_label for the first): black, plain, unit scale, pen 1. */
+  addLabelItem(
+    o: CutObject,
+    text: string | null,
+    offset: V3,
+    init: Partial<TextItem> = {},
+  ): TextItem {
+    let l = this.labels.get(o);
+    if (!l) this.labels.set(o, (l = []));
+    const item: TextItem = {
+      text,
+      offset: [...offset],
+      xscale: 1,
+      yscale: 1,
+      penWidth: 1,
+      color: [0, 0, 0],
+      style: 'Plain',
+      insertion: -1,
+      ...init,
+    };
+    l.push(item);
+    this.vm.props.set(o, P.Haslabel, 1);
+    this.version++;
+    return item;
+  }
 
   label(obj: Feature, n: number): string | null {
-    return this.labels.get(obj as CutObject)?.[n] ?? null;
+    return this.labels.get(obj as CutObject)?.[n - 1]?.text ?? null;
   }
 
   setLabel(obj: Feature, n: number, text: string | null): void {
-    const o = obj as CutObject;
-    let l = this.labels.get(o);
-    if (!l) this.labels.set(o, (l = []));
-    l[n] = text;
+    const item = this.labels.get(obj as CutObject)?.[n - 1];
+    if (!item) return;
+    item.text = text;
     this.version++;
   }
 
