@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { ROOM } from '@cutplane/kernel';
-import { CAMERA_EYE_Z, CAMERA_FOV, createCamera, fitFov } from './scene.ts';
+import {
+  CAMERA_EYE_Z,
+  CAMERA_FOV,
+  createCamera,
+  deeperOnScreen,
+  fitFov,
+  orbitCamera,
+} from './scene.ts';
 import { shadeFace } from './viewer/palette.ts';
 
 describe('camera', () => {
@@ -18,6 +25,26 @@ describe('camera', () => {
   it('widens the view on narrow windows so the room still fits across', () => {
     expect(fitFov(16 / 9)).toBe(CAMERA_FOV);
     expect(fitFov(0.75)).toBeGreaterThan(CAMERA_FOV);
+  });
+});
+
+describe('deeperOnScreen', () => {
+  const at = (yaw: number, pitch: number) => {
+    const c = createCamera(16 / 10);
+    orbitCamera(c, yaw, pitch);
+    return deeperOnScreen(c);
+  };
+
+  it('has no screen direction looking straight into the room', () => {
+    const [x, y] = at(0, 0);
+    expect(Math.hypot(x, y)).toBeLessThan(1e-9);
+  });
+
+  it('points up the screen seen from above, and sideways with the room turned', () => {
+    expect(at(0, 90)[1]).toBeCloseTo(1);
+    expect(at(0, 30)[1]).toBeCloseTo(0.5);
+    expect(Math.abs(at(90, 0)[0])).toBeCloseTo(1);
+    expect(at(90, 0)[0]).toBeCloseTo(-at(-90, 0)[0]);
   });
 });
 

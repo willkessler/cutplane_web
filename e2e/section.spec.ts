@@ -72,6 +72,33 @@ test('sections the Discovery and respects the room limits', async ({ page, brows
   expect(errors).toEqual([]);
 });
 
+/** Pixels of section-line yellow (front faces and in-plane edges) in the current frame. */
+async function yellowPixels(page: Page): Promise<number> {
+  const data = await page.evaluate(() => window.__cutplane!.readPixels());
+  const px = Buffer.from(data.slice(data.indexOf(':') + 1), 'base64');
+  let n = 0;
+  for (let i = 0; i < px.length; i += 4)
+    if (px[i]! > 180 && px[i + 1]! > 180 && px[i + 2]! < 60) n++;
+  return n;
+}
+
+test('a section that grows is drawn in full (both fans)', async ({ page, browserName }) => {
+  const pose = { z: 354.4, yaw: -13, pitch: 11, x: 450, y: 300 };
+  await open(page, 'sample=single-fan');
+  await page.evaluate((p) => window.__cutplane!.set(p), pose);
+  const fresh = await yellowPixels(page);
+  expect(fresh).toBeGreaterThan(200);
+
+  // Draw a tiny section first, then the big one: line geometry must not stay at the small size.
+  await open(page, 'sample=single-fan');
+  await page.evaluate(() =>
+    window.__cutplane!.set({ z: 515, yaw: -13, pitch: 11, x: 450, y: 300 }),
+  );
+  await page.evaluate((p) => window.__cutplane!.set(p), pose);
+  expect(await yellowPixels(page)).toBe(fresh);
+  await shot(page, 'fans', browserName);
+});
+
 test('scroll pushes the plane and the crosshair follows the pointer', async ({ page }) => {
   await open(page, 'sample=discovery');
   const box = (await page.locator('#viewport').boundingBox())!;

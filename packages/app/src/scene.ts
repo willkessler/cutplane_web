@@ -58,3 +58,15 @@ export function unitsPerPixel(
   const dist = CAMERA_EYE_Z - z;
   return (2 * dist * Math.tan(((camera.fov / 2) * Math.PI) / 180)) / Math.max(1, cssHeight);
 }
+
+/**
+ * The screen direction (right, up) in which a point moving deeper into the room (-z)
+ * travels, for the camera as it is now; length 1 when depth lies in the screen, 0 when
+ * looking straight along it.
+ */
+export function deeperOnScreen(camera: THREE.Camera): [number, number] {
+  camera.updateMatrixWorld();
+  const e = camera.matrixWorld.elements;
+  // Columns 0 and 1 are the camera's right and up axes in room space; dot each with -z.
+  return [-e[2]!, -e[6]!];
+}

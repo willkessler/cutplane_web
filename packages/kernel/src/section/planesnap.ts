@@ -2,20 +2,24 @@ import { ROOM } from '../room.ts';
 
 /** Depths closer than this collapse into one stop (user.c's sort_into_nearpts). */
 export const DEPTH_MERGE = 0.5;
-/** How far the plane must be pushed before it comes unstuck (user.c's Freedomforplane). */
-export const PLANE_FREEDOM = 5;
+/** Moves bigger than this fly past stops (user.h's Minplanesnapdist). */
+export const MIN_SNAP_MOVE = 7;
 
 /**
  * Moves the cutplane in depth, "clicking" onto vertex depths as it passes
- * them, as the original's do_sticking does: when a move would carry the
- * plane past a vertex depth, it stops there and stays put until it has
- * been pushed PLANE_FREEDOM units further. Parking the plane exactly on a
- * vertex depth is what makes faces and edges lie in the plane.
+ * them, as the original's snap_plane_to_nearestpt does: a slow move (at
+ * most MIN_SNAP_MOVE) that would carry the plane past a vertex depth lands
+ * exactly on it instead; the next move carries on from there. Fast moves
+ * pass straight through, so the plane flies through a dense model and only
+ * clicks into place as you slow down. Parking the plane exactly on a vertex
+ * depth is what makes faces and edges lie in the plane.
+ *
+ * (user.c also has do_sticking, which held the plane on a stop until it was
+ * pushed 5 units further, but nothing calls it.)
  */
 export class PlaneSnapper {
   private depths: Float64Array = new Float64Array(0);
-  private stuck = false;
-  private push = 0;
+  private snapped = false;
   z: number;
 
   constructor(z = ROOM.max[2]) {
@@ -36,32 +40,25 @@ export class PlaneSnapper {
     return this.depths;
   }
 
-  get isStuck(): boolean {
-    return this.stuck;
+  /** True when the last move landed on a stop. */
+  get isSnapped(): boolean {
+    return this.snapped;
   }
 
   /** Jumps without snapping (plane jump, programmatic moves). */
   set(z: number): void {
     this.z = clampZ(z);
-    this.stuck = false;
+    this.snapped = false;
   }
 
   /** Applies a depth change `dz`, honouring stops unless `free` (the Constrain key turns them off). */
   move(dz: number, free = false): number {
     if (dz === 0) return this.z;
-    if (this.stuck && !free) {
-      this.push += Math.abs(dz);
-      if (this.push <= PLANE_FREEDOM) return this.z;
-      this.stuck = false;
-    }
     const from = this.z;
     const to = clampZ(from + dz);
-    const stop = free ? undefined : this.firstStopBetween(from, to);
-    if (stop !== undefined) {
-      this.z = stop;
-      this.stuck = true;
-      this.push = 0;
-    } else this.z = to;
+    const stop = free || Math.abs(dz) > MIN_SNAP_MOVE ? undefined : this.firstStopBetween(from, to);
+    this.snapped = stop !== undefined;
+    this.z = stop ?? to;
     return this.z;
   }
 

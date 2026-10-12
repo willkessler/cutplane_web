@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import {
   Brep,
-  PLANE_FREEDOM,
+  MIN_SNAP_MOVE,
   PlaneSnapper,
   WorldGeometry,
   computeSection,
@@ -156,23 +156,29 @@ describe('computeSection', () => {
 });
 
 describe('PlaneSnapper', () => {
-  it('stops on a vertex depth, then comes unstuck after PLANE_FREEDOM', () => {
-    const p = new PlaneSnapper(100);
+  it('lands slow moves on a vertex depth, then carries on', () => {
+    const p = new PlaneSnapper(60);
     p.setDepths([0, 50, 50.2, -200, 9999]);
     expect([...p.stops]).toEqual([-200, 0, 50]);
-    expect(p.move(-30)).toBe(70);
-    expect(p.move(-30)).toBe(50); // would have passed 50
-    expect(p.isStuck).toBe(true);
-    expect(p.move(-PLANE_FREEDOM)).toBe(50); // still stuck
-    expect(p.move(-1)).toBe(49); // free again
-    expect(p.move(-100)).toBe(0);
-    expect(p.move(10, true)).toBe(10); // constrain: no stops
+    expect(p.move(-6)).toBe(54);
+    expect(p.move(-6)).toBe(50); // would have passed 50
+    expect(p.isSnapped).toBe(true);
+    expect(p.move(-1)).toBe(49); // no holding: the next move leaves at once
+    expect(p.isSnapped).toBe(false);
+    expect(p.move(-6, true)).toBe(43); // constrain: no stops
   });
 
-  it('stops moving forward too, and clamps to the room', () => {
-    const p = new PlaneSnapper(-499);
+  it('flies through stops on fast moves', () => {
+    const p = new PlaneSnapper(100);
+    p.setDepths([0, 50, 95]);
+    expect(p.move(-(MIN_SNAP_MOVE + 1))).toBe(100 - MIN_SNAP_MOVE - 1);
+    expect(p.move(-60)).toBe(100 - MIN_SNAP_MOVE - 61);
+  });
+
+  it('snaps moving forward too, and clamps to the room', () => {
+    const p = new PlaneSnapper(-305);
     p.setDepths([-300]);
-    expect(p.move(1000)).toBe(-300);
+    expect(p.move(7)).toBe(-300);
     p.set(400);
     expect(p.move(1000)).toBe(500);
   });

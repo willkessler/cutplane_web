@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PLANE_FREEDOM, ROOM } from '@cutplane/kernel';
+import { ROOM } from '@cutplane/kernel';
 import {
   LEFT,
   MIDDLE,
@@ -10,7 +10,14 @@ import {
   motionFor,
   type Held,
 } from './bindings.ts';
-import { Controller, KEY_STEP, PITCH_MAX, ROTATE_PER_PX, YAW_LIMIT } from './controller.ts';
+import {
+  Controller,
+  KEY_STEP,
+  PITCH_MAX,
+  PLANE_GAIN,
+  ROTATE_PER_PX,
+  YAW_LIMIT,
+} from './controller.ts';
 
 const held = (h: Partial<Held> = {}): Held => ({ ...NOTHING_HELD, ...h });
 
@@ -57,25 +64,35 @@ describe('Controller', () => {
     expect([c.x, c.y]).toEqual([ROOM.max[0], ROOM.max[1]]);
   });
 
-  it('pushes the plane with ⌥ + move: up the screen goes deeper', () => {
+  it('pushes the plane with ⌥ + move: up the screen goes deeper when facing the room', () => {
     const h = held({ alt: true });
     const c = new Controller('trackpad', h);
     c.move(0, -100, 1);
-    expect(c.z).toBe(ROOM.max[2] - 100);
+    expect(c.z).toBeCloseTo(ROOM.max[2] - 100 * PLANE_GAIN);
     expect(c.x).toBe(0);
+    c.move(100, 0, 1); // sideways does nothing straight on
+    expect(c.z).toBeCloseTo(ROOM.max[2] - 100 * PLANE_GAIN);
   });
 
-  it('stops the plane at vertex depths unless Constrain is held', () => {
+  it('pushes the plane the way it travels on screen once the room is turned', () => {
+    const c = new Controller('trackpad', held({ alt: true }));
+    c.planeAxis = [1, 0]; // room turned 90°: deeper is to the right
+    c.move(100, 0, 1);
+    const z1 = c.z;
+    expect(ROOM.max[2] - z1).toBeGreaterThan(100 * PLANE_GAIN * 0.95);
+    c.move(0, -100, 1); // up is now mostly sideways to the plane's travel
+    expect(z1 - c.z).toBeLessThan(100 * PLANE_GAIN * 0.3);
+  });
+
+  it('snaps the plane at vertex depths on slow moves unless Constrain is held', () => {
     const h = held({ alt: true });
     const c = new Controller('trackpad', h);
-    c.plane.setDepths([400]);
-    c.move(0, -200, 1);
-    expect(c.z).toBe(400);
-    c.move(0, -PLANE_FREEDOM, 1);
-    expect(c.z).toBe(400);
+    c.plane.setDepths([496]);
+    c.move(0, -4, 1);
+    expect(c.z).toBe(496);
     h.ctrl = true;
     c.move(0, -40, 1); // slowed to a quarter, and free
-    expect(c.z).toBe(390);
+    expect(c.z).toBeCloseTo(496 - 10 * PLANE_GAIN);
   });
 
   it('rotates the room with ⌘ + move inside the original limits', () => {

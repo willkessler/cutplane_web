@@ -8,19 +8,15 @@
  * - paused: the lock was lost (Esc, ⌘-Tab, a notification). Everything
  *   stays where it was; a click resumes.
  *
- * Where the browser supports the Keyboard Lock API (Chromium, full screen),
- * a tap of Esc reaches the app and only a held Esc leaves work mode.
+ * One tap of Esc leaves (the browser's own exit). We deliberately don't take
+ * the Keyboard Lock API's Esc: with it, Chromium makes you hold Esc down for
+ * seconds to get out.
  */
 export type WorkState = 'off' | 'on' | 'paused';
 
 /** Pointer-lock deltas bigger than this right after locking are spurious (some Chromium builds). */
 const SPIKE = 250;
 const SETTLE_MS = 150;
-
-interface KeyboardLock {
-  lock(codes?: string[]): Promise<void>;
-  unlock(): void;
-}
 
 export class WorkMode {
   state: WorkState = 'off';
@@ -39,7 +35,13 @@ export class WorkMode {
   ) {
     if (!('requestPointerLock' in target))
       this.unsupported = 'pointer lock is not available in this browser';
-    document.addEventListener('pointerlockchange', () => this.sync());
+    document.addEventListener('pointerlockchange', () => {
+      // Esc releases the pointer first; in full screen, wait for the full-screen exit that
+      // follows instead of flashing the pause overlay.
+      if (!this.locked && document.fullscreenElement && this.wanted)
+        setTimeout(() => this.sync(), 100);
+      else this.sync();
+    });
     document.addEventListener('pointerlockerror', () => this.sync());
     document.addEventListener('fullscreenchange', () => {
       if (!document.fullscreenElement && this.wanted) this.exit();
@@ -63,8 +65,6 @@ export class WorkMode {
     const locking = this.lock();
     if (!document.fullscreenElement)
       await this.root.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
-    const kb = (navigator as Navigator & { keyboard?: KeyboardLock }).keyboard;
-    if (document.fullscreenElement && kb) kb.lock(['Escape']).catch(() => {});
     await locking;
   }
 
@@ -75,7 +75,6 @@ export class WorkMode {
 
   exit(): void {
     this.wanted = false;
-    (navigator as Navigator & { keyboard?: KeyboardLock }).keyboard?.unlock();
     if (this.locked) document.exitPointerLock();
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
     this.sync();

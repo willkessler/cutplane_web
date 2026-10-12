@@ -7,6 +7,14 @@ export const PITCH_MIN = 0;
 export const PITCH_MAX = 90;
 /** Degrees of room rotation per pixel of pointer motion. */
 export const ROTATE_PER_PX = 0.25;
+/** Plane drags move the plane this much faster than the crosshair moves for the same motion. */
+export const PLANE_GAIN = 1.5;
+/**
+ * Plane drags are read along the screen direction the plane moves in as it goes deeper,
+ * plus this much "up the screen", so that looking straight into the room (where depth
+ * has no screen direction) pushing up still means deeper, and the axis turns smoothly.
+ */
+export const PLANE_UP_BIAS = 0.3;
 /** Room units of plane depth per pixel of wheel/scroll delta. */
 export const PLANE_PER_WHEEL = 0.5;
 /** Arrow keys rotate the room in 10° steps. */
@@ -29,6 +37,13 @@ export class Controller {
   pitch = 0;
   profile: Profile;
   held: Held;
+  /**
+   * Where a point moving deeper into the room goes on screen, as (right, up) with length
+   * at most 1 (the room's -z axis seen by the camera; see scene.ts deeperOnScreen). The
+   * app keeps it current as the room turns: with the room turned 90°, the plane goes
+   * deeper as you move right, not up.
+   */
+  planeAxis: readonly [number, number] = [0, 0];
   /** Where the plane was before a plane jump, so the next jump returns it. */
   private jumpedFrom: number | undefined;
 
@@ -52,10 +67,15 @@ export class Controller {
       case 'point':
         this.setCursor(this.x + dx * unitsPerPx * slow, this.y - dy * unitsPerPx * slow);
         break;
-      case 'plane':
-        // Pushing away (up the screen) sends the plane deeper into the room.
-        this.pushPlane(dy * unitsPerPx * slow);
+      case 'plane': {
+        // Drag the plane the way it visibly travels: along its on-screen depth direction.
+        const ax = this.planeAxis[0];
+        const ay = this.planeAxis[1] + PLANE_UP_BIAS;
+        const len = Math.hypot(ax, ay);
+        const deeper = (dx * ax - dy * ay) / len;
+        this.pushPlane(-deeper * unitsPerPx * PLANE_GAIN * slow);
         break;
+      }
       case 'rotate':
         // Drag the room around: rightward turns its front to the right, downward tips its top toward you.
         this.rotate(-dx * ROTATE_PER_PX * slow, dy * ROTATE_PER_PX * slow);

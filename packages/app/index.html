@@ -110,7 +110,9 @@
         margin: 0 0 12px;
         font-size: 16px;
       }
-      .working #hud {
+      /* Working, nothing flat sits over the room: no toolbar, no status bar. */
+      .working #hud,
+      .working #status {
         display: none;
       }
       .demo #hud,

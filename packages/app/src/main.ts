@@ -18,7 +18,7 @@ import { setLineResolution } from './render/lines.ts';
 import { ModelView } from './render/models.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
 import { SectionLines } from './render/sectionlines.ts';
-import { createCamera, fitFov, orbitCamera, unitsPerPixel } from './scene.ts';
+import { createCamera, deeperOnScreen, fitFov, orbitCamera, unitsPerPixel } from './scene.ts';
 import { CLASSIC, rgb } from './viewer/palette.ts';
 
 const $ = <T extends HTMLElement>(id: string) => {
@@ -150,9 +150,9 @@ function applyDemo(t: number): void {
 const readout = $<HTMLDivElement>('readout');
 function render(): void {
   orbitCamera(camera, control.yaw, control.pitch);
+  control.planeAxis = deeperOnScreen(camera);
   plane.z = control.z;
   crosshair.place(control.x, control.y, control.z);
-  crosshair.setMode(demo ? 'point' : control.motion);
   const key = `${control.z}|${control.yaw}|${control.pitch}`;
   if (dirty || key !== lastKey) {
     section.update(models.models, control.z, camera.position);
@@ -160,7 +160,7 @@ function render(): void {
     dirty = false;
     const s = section.stats;
     readout.innerHTML =
-      `plane <b>${control.z.toFixed(1)}</b>${control.plane.isStuck ? ' (on a vertex depth)' : ''} · ` +
+      `plane <b>${control.z.toFixed(1)}</b>${control.plane.isSnapped ? ' (on a vertex depth)' : ''} · ` +
       `room <b>${control.yaw.toFixed(0)}°</b> / <b>${control.pitch.toFixed(0)}°</b> · ` +
       `section <b>${s.loops}</b> loop${s.loops === 1 ? '' : 's'} in <b>${s.objects}</b> object${s.objects === 1 ? '' : 's'}`;
   }
@@ -168,10 +168,7 @@ function render(): void {
 }
 
 function showHints(): void {
-  const hints = bindingHints(control.profile);
-  if (work.state !== 'off') hints.push(work.unsupported ? '' : 'Hold Esc: leave work mode');
-  $<HTMLDivElement>('hints').innerHTML = hints
-    .filter(Boolean)
+  $<HTMLDivElement>('hints').innerHTML = bindingHints(control.profile)
     .map((h) => `<span>${h}</span>`)
     .join('');
 }

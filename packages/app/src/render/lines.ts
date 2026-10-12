@@ -57,13 +57,17 @@ export class Lines {
 
   /** Replaces the segments: six numbers (two points) per segment. */
   set(positions: ArrayLike<number>): void {
-    const g = this.object.geometry;
     if (positions.length === 0) {
       this.object.visible = false;
       return;
     }
     this.object.visible = true;
+    // A fresh geometry every time: three.js caches an instanced geometry's instance count
+    // the first time it draws it, so refilling one that grew would silently drop segments.
+    this.object.geometry.dispose();
+    const g = new LineSegmentsGeometry();
     g.setPositions(positions as number[] | Float32Array);
+    this.object.geometry = g;
     if (this.material.dashed) this.object.computeLineDistances();
   }
 }

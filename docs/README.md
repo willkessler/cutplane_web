@@ -30,15 +30,15 @@ reads over any colour, dotted where geometry in front of the plane hides it, and
 for edges lying exactly in the plane. Whatever is behind the plane shows through its stipple, so
 "behind" is visible at a glance. Shadows fall straight down onto the floor.
 
-As the plane moves it **clicks onto vertex depths**: when a move would carry it past a vertex, it
-stops there until pushed 5 more units (the original's `do_sticking`). That is how faces and edges
-come to lie in the plane, ready to grab. Hold **Ctrl** to move slowly and freely.
+As the plane moves slowly it **clicks onto vertex depths**: a small move that would carry it past
+a vertex lands exactly on it, and the next move carries on. Fast moves fly straight through, so a
+dense model never slows you down (the original's `snap_plane_to_nearestpt`). That is how faces and
+edges come to lie in the plane, ready to grab. Hold **Ctrl** to move slowly with no snapping.
 
 ### Controls
 
 Pick a profile in the toolbar (Macs default to the trackpad). Every mode is **spring-loaded**: it
-lasts only while you hold the key or button, and a small glyph beside the crosshair shows which
-one is active.
+lasts only while you hold the key or button.
 
 | Action          | Trackpad / one button | Three-button mouse | Two-button mouse     |
 | --------------- | --------------------- | ------------------ | -------------------- |
@@ -54,16 +54,18 @@ one is active.
 | 0       | Reset the view                                            |
 | Enter   | Start working (full screen, pointer captured)             |
 
-Pushing away (up the screen, or scrolling away) sends the plane deeper into the room.
+Dragging the plane follows the plane on screen: you push it the way it visibly travels as it goes
+deeper. Facing the room, that is up the screen; with the room turned 90°, it is sideways. Scrolling
+away always sends it deeper.
 
 ### Work mode
 
 **Start working** (or Enter) goes full screen and captures the pointer, like the SGI: the cursor
 can't leave the window, and the plane and room can be pushed as far as you like without hitting a
-screen edge. Input is raw relative motion, unaccelerated where the browser allows.
+screen edge. Input is raw relative motion, unaccelerated where the browser allows. Nothing flat
+covers the room while you work: the toolbar and the status bar disappear.
 
-- **Leaving:** hold Esc in Chromium (the Keyboard Lock API lets a single tap reach the app), or
-  tap Esc in Firefox and Safari.
+- **Leaving:** tap Esc.
 - **Pausing:** if the pointer is released (Esc, ⌘-Tab, a notification), everything stays where
   it was, and a click resumes.
 - **Without work mode** the app runs windowed: the crosshair sits exactly under the hidden
