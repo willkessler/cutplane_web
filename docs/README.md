@@ -63,8 +63,8 @@ lasts only while you hold the key or button.
 | ⌘Z, ⇧⌘Z | Undo, redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y elsewhere)     |
 
 Dragging the plane follows the plane on screen: you push it the way it visibly travels as it goes
-deeper. Facing the room, that is up the screen; with the room turned 90°, it is sideways. Scrolling
-away always sends it deeper.
+deeper. Facing the room, that is up the screen; with the room turned 90°, it is sideways. Two-finger
+swipes on a trackpad follow it the same way. A mouse wheel turned away always sends it deeper.
 
 ### Editing
 

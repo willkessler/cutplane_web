@@ -588,7 +588,7 @@ canvas.addEventListener(
     e.preventDefault(); // also stops pinch-zooming the page
     if (demo) return;
     const scale = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? canvas.clientHeight : 1;
-    control.wheel(e.deltaY * scale);
+    control.wheel(e.deltaY * scale, e.deltaX * scale);
   },
   { passive: false },
 );

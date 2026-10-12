@@ -15,6 +15,7 @@ import {
   KEY_STEP,
   PITCH_MAX,
   PLANE_GAIN,
+  PLANE_UP_BIAS,
   ROTATE_PER_PX,
   YAW_LIMIT,
 } from './controller.ts';
@@ -144,6 +145,22 @@ describe('Controller', () => {
     const c = new Controller('three-button', held());
     c.wheel(100);
     expect(c.z).toBe(ROOM.max[2] - 50);
+  });
+
+  it('a trackpad swipe follows the plane on screen, as ⌥ + move does', () => {
+    // Facing the room: a swipe up (deltaY > 0, natural scrolling) goes deeper, as before.
+    const c = new Controller('trackpad', held());
+    c.wheel(100);
+    expect(c.z).toBeCloseTo(ROOM.max[2] - 50);
+    // The room turned so the plane goes deeper to the right on screen: a swipe right
+    // (deltaX < 0) goes deeper, and one straight up barely moves it.
+    const t = new Controller('trackpad', held());
+    t.planeAxis = [1, -PLANE_UP_BIAS];
+    t.wheel(0, -100);
+    expect(t.z).toBeCloseTo(ROOM.max[2] - 50);
+    const z = t.z;
+    t.wheel(100, 0);
+    expect(Math.abs(t.z - z)).toBeLessThan(1);
   });
 
   it('plane jump goes to the back wall and returns', () => {

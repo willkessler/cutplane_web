@@ -96,9 +96,23 @@ export class Controller {
     }
   }
 
-  /** Scroll / wheel: plane depth in every profile. Fingers or wheel pushed away go deeper. */
-  wheel(deltaY: number): void {
-    this.pushPlane(-deltaY * PLANE_PER_WHEEL * (this.held.ctrl ? CONSTRAIN_SLOW : 1));
+  /**
+   * Scroll / wheel: plane depth in every profile. Fingers or wheel pushed away go deeper.
+   * A trackpad's two-finger swipe is read the way ⌥ + move is: along the plane's on-screen
+   * depth direction, so with the room turned the swipe follows the plane sideways too. A
+   * wheel (one axis) always drives depth directly.
+   */
+  wheel(deltaY: number, deltaX = 0): void {
+    const slow = this.held.ctrl ? CONSTRAIN_SLOW : 1;
+    if (this.profile !== 'trackpad') {
+      this.pushPlane(-deltaY * PLANE_PER_WHEEL * slow);
+      return;
+    }
+    // The swipe as pointer motion (natural scrolling: fingers up give deltaY > 0).
+    const ax = this.planeAxis[0];
+    const ay = this.planeAxis[1] + PLANE_UP_BIAS;
+    const deeper = (-deltaX * ax + deltaY * ay) / Math.hypot(ax, ay);
+    this.pushPlane(-deeper * PLANE_PER_WHEEL * slow);
   }
 
   pushPlane(dz: number): void {
