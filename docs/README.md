@@ -8,7 +8,7 @@ The user guide and architecture notes will grow here as each milestone lands. Sc
 | Milestone | Scope                                                               |
 | --------- | ------------------------------------------------------------------- |
 | **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI              |
-| M1        | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation |
+| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation |
 | M2        | Room, plane, section and full-screen work mode                      |
 | M3        | Direct manipulation: selection hierarchy, drag, constrain, carry    |
 | M4        | Rotate tool and editing, undo                                       |
