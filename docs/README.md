@@ -108,8 +108,10 @@ covers the room while you work: the toolbar and the status bar disappear.
 - **Leaving:** tap Esc (or F).
 - **Pausing:** if the pointer is released (Esc, ⌘-Tab, a notification), everything stays where
   it was, and a click resumes.
-- **Without work mode** the app runs windowed: the crosshair sits exactly under the hidden
-  pointer, and all the bindings above still work.
+- **Without work mode** the app runs windowed: the crosshair follows the hidden pointer, and
+  all the bindings above still work. While ⌘ or ⌥ is held the pointer keeps moving but the
+  crosshair doesn't, so afterwards the pointer picks the crosshair up where it was left
+  (it never jumps); it lines up with the pointer again when the pointer re-enters the window.
 
 ![The flying hand (rsc/hand6.rsc) cut through the palm](images/section-hand6.png)
 
