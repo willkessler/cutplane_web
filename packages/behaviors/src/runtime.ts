@@ -311,6 +311,33 @@ export class Runtime implements Host {
       this.vm.loadPropertyCode(source(`${p.toLowerCase()}.cpl`), `${p.toLowerCase()}.cpl`, p);
     this.vm.loadPrivateCode(this.cursorObj, source('cursor.cpl'), 'cursor.cpl');
     this.vm.resolveObjectRefs();
+    this.codeLoaded = true;
+  }
+
+  private codeLoaded = false;
+
+  private readonly triedPropertyFiles = new Set<string>();
+
+  /**
+   * read_feature_props: a property read without code gets its code from <name>.cpl
+   * if there is one (read_CPL_propfile), as the grabber, magnet and pan tool do.
+   */
+  private loadPropertyFile(name: string): void {
+    // Not before ROM and the property files are in (the constructor builds things first).
+    if (!this.codeLoaded || this.triedPropertyFiles.has(name)) return;
+    this.triedPropertyFiles.add(name);
+    const p = this.vm.props.find(name);
+    if (p >= 0 && this.vm.props.code[p]) return;
+    const file = `${name.toLowerCase()}.cpl`;
+    let text: string;
+    try {
+      text = this.source(file);
+    } catch {
+      return; // no such file: the property has no code
+    }
+    if (p < 0) this.vm.props.defineNew(name);
+    this.vm.loadPropertyCode(text, file, name);
+    this.vm.resolveObjectRefs();
   }
 
   /** Puts the crosshair and plane objects where the stage says they are. */
@@ -392,7 +419,10 @@ export class Runtime implements Host {
    * code in) is the file's reversed. The saw's Slice runs before its Tool code that way.
    */
   private register(o: CutObject): void {
-    for (const n of o.attrs.props) this.addProp(o, n);
+    for (const n of o.attrs.props) {
+      this.loadPropertyFile(n);
+      this.addProp(o, n);
+    }
     this.attachCode(o, o.attrs, o.name ?? 'object');
     const b = o.brep;
     for (const [type, map] of [
@@ -970,6 +1000,21 @@ export class Runtime implements Host {
     this.treeChanged();
     this.changed(o);
     return o;
+  }
+
+  /** How far the world has been zoomed in, all told (zoom.c's totalzoom). */
+  totalZoom = 1;
+
+  /** zoom_world: everything in `world` scales by `factor` about `center` (undoable). */
+  zoomWorld(world: WorldFeature, center: V3, factor: number): void {
+    if (!Number.isFinite(factor) || factor <= 0 || factor === 1) return;
+    const m = mat4.scaleAbout(center, [factor, factor, factor]);
+    for (const r of world.root.children) {
+      for (const x of subtree(r)) if (world === this.primary) this.journal.touch(x);
+      transformTree(r, m);
+      for (const x of subtree(r)) this.changed(x);
+    }
+    if (world === this.primary) this.totalZoom *= factor;
   }
 
   /** kill_obj, now: the object leaves its world (undoable). */

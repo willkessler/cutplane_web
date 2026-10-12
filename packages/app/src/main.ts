@@ -149,6 +149,10 @@ const CPL_FILES = [
   'save.cpl',
   'load.cpl',
   ...PROPERTY_FILES.map((p) => `${p.toLowerCase()}.cpl`),
+  // Read when a tool with the property is read (read_feature_props' read_CPL_propfile).
+  'grabber.cpl',
+  'magnetic.cpl',
+  'pan.cpl',
 ];
 const cpl = new Map<string, string>();
 const source = (f: string): string => {
@@ -637,6 +641,10 @@ window.addEventListener('keydown', (e) => {
   else if (c === 'redo') rt.redo();
   else if (c === 'duplicate') controls.duplicate();
   else if (c === 'rotateTool') controls.snapRotateTool();
+  else if (c === 'group') controls.group();
+  else if (c === 'slice') controls.slice();
+  else if (c === 'zoomTool') controls.takeTool('Magnifier');
+  else if (c === 'panTool') controls.takeTool('Pantool');
   else if (c === 'delete') controls.delete();
   else if (c === 'planeJump')
     controls.planeJump(); // cursor.cpl's Jumplane
@@ -748,6 +756,8 @@ declare global {
         vertices: number;
         marquee: boolean;
         colors: number[][];
+        /** Objects at the top of the world (a group counts once). */
+        objects: number;
       };
       demoSeconds: number;
     };
@@ -910,6 +920,7 @@ async function start(): Promise<void> {
         vertices,
         marquee: h.marquee !== undefined,
         colors: tops.filter(isObject).map((r) => [...r.color]),
+        objects: tops.length,
       };
     },
     demoSeconds: DEMO_SECONDS,

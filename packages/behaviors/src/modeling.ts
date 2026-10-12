@@ -9,7 +9,7 @@ import {
   type ResultShell,
 } from '@cutplane/booleans';
 import type { Brep, CutObject } from '@cutplane/kernel';
-import { isObject, isSub } from './features.ts';
+import { isObject, isSub, type WorldFeature } from './features.ts';
 import type { Runtime } from './runtime.ts';
 
 /**
@@ -88,6 +88,17 @@ export function sliceObject(
 }
 
 export const MODELING_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>> = {
+  /**
+   * CPL_do_zoom: (crosshair move) → (the same): the world being edited zooms about
+   * the crosshair by 1.01 for each unit the crosshair moved up (zoom.cpl).
+   */
+  do_zoom(rt, vm) {
+    const w = vm.pop();
+    const dy = w.offset[1] ?? 0;
+    rt.zoomWorld(vm.working as WorldFeature, rt.cursor(), 1.01 ** dy);
+    vm.push(w);
+  },
+
   /**
    * CPL_slice_object: (objects) → (front pieces, rear pieces): each object (or a
    * vertex, edge or face's object) sliced at the plane. slice.cpl pops the rear

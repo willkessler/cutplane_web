@@ -54,13 +54,17 @@ describe('binding profiles', () => {
     expect(commandFor('ArrowLeft', held())).toBe('rotateLeft');
     expect(commandFor('KeyF', held())).toBe('workMode');
     expect(commandFor('KeyF', held({ meta: true }))).toBeUndefined();
+    expect(commandFor('KeyG', held())).toBe('group');
+    expect(commandFor('Backslash', held())).toBe('slice');
+    expect(commandFor('KeyZ', held())).toBe('zoomTool');
+    expect(commandFor('KeyZ', held({ meta: true }))).toBe('undo');
     expect(commandFor('KeyW', held({ meta: true }))).toBeUndefined();
     expect(commandFor('Space', held({ meta: true }))).toBeUndefined();
     expect(commandFor('KeyZ', held({ meta: true }))).toBe('undo');
     expect(commandFor('KeyZ', held({ meta: true, shift: true }))).toBe('redo');
     expect(commandFor('KeyZ', held({ ctrl: true }))).toBe('undo');
     expect(commandFor('KeyY', held({ ctrl: true }))).toBe('redo');
-    expect(commandFor('KeyZ', held())).toBeUndefined();
+    expect(commandFor('KeyZ', held())).toBe('zoomTool'); // controls.h's ZTOOLBUTTON
   });
 });
 

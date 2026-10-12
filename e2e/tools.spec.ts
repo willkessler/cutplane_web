@@ -287,3 +287,33 @@ test('the pencil draws a closed shape in the plane, which becomes a solid', asyn
   await shot(page, 'pencil-solid', browserName);
   expect(errors).toEqual([]);
 });
+
+test('backslash slices the picked cube; G groups a duplicate with it and ungroups', async ({
+  page,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  await press(page);
+  await release(page);
+  await page.keyboard.press('Backslash');
+  expect((await edit(page)).faces).toBe(12);
+  await page.keyboard.press('ControlOrMeta+KeyZ');
+  expect((await edit(page)).faces).toBe(6);
+
+  // Duplicate (both picked), then G: the two go under one grouper; G again parts them.
+  await set(page, { x: 0, y: 0 });
+  await press(page);
+  await release(page);
+  await page.keyboard.press('KeyD');
+  expect((await edit(page)).objects).toBe(2);
+  // The copy is picked; shift-click the original (where the copy doesn't cover it) too.
+  await set(page, { x: -80, y: -80 });
+  await page.evaluate(() => window.__cutplane!.press(true));
+  await release(page);
+  await page.keyboard.press('KeyG');
+  expect((await edit(page)).objects).toBe(1);
+  expect((await edit(page)).faces).toBe(12);
+  await page.keyboard.press('KeyG');
+  expect((await edit(page)).objects).toBe(2);
+  expect(errors).toEqual([]);
+});

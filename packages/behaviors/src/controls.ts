@@ -176,6 +176,31 @@ export class Controls {
     this.vm.encodeInstruction(' QMSG Obj:Rotatetool_Innercircle,Const:Prioritymsg');
   }
 
+  /** G (GROUPBUTTON): group.cpl groups what is picked, or ungroups a picked group. */
+  group(): void {
+    this.events = true;
+    this.vm.encodeInstruction(' MAKEMSG Msg:Activate');
+    this.vm.encodeInstruction(' QMSG Obj:Grouptool,Const:Prioritymsg');
+  }
+
+  /** \\ (SLICEBUTTON): what is picked is sliced at the plane, the pieces pulled apart. */
+  slice(): void {
+    this.events = true;
+    this.vm.encodeInstruction(' PUSH Prop:Picked*');
+    this.vm.encodeInstruction(' CRTN Crtn:slice_object');
+    this.vm.encodeInstruction(' POP A:R2');
+    this.vm.encodeInstruction(' TRANS A:R2*,Const:Normaltranslate,Const:V[0.0,0.0,-10.0]');
+    this.vm.encodeInstruction(' POP A:R3');
+    this.vm.encodeInstruction(' TRANS A:R3*,Const:Normaltranslate,Const:V[0.0,0.0,10.0]');
+  }
+
+  /** Z and P (ZTOOLBUTTON, PANTOOLBUTTON): the magnifier or pan tool comes to the crosshair. */
+  takeTool(name: 'Magnifier' | 'Pantool'): void {
+    this.events = true;
+    this.vm.encodeInstruction(' MAKEMSG Msg:Activatetool');
+    this.vm.encodeInstruction(` QMSG Obj:${name},Const:Prioritymsg`);
+  }
+
   /** store_roomrot: the room turns by (dx, dy) tenths of a degree. */
   rotateRoom(dx: number, dy: number): void {
     const ad = new Word();
