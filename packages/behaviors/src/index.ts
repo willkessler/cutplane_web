@@ -4,3 +4,5 @@ export * from './journal.ts';
 export * from './runtime.ts';
 export * from './controls.ts';
 export * from './crtns.ts';
+export * from './tools/colorcontrol.ts';
+export * from './tools/scalebox.ts';

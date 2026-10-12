@@ -39,6 +39,12 @@ import {
 } from '@cutplane/kernel';
 import { FeatureIndex, isObject, isSub, isWorld, type Sub, type WorldFeature } from './features.ts';
 import { BUILTIN_CRTNS } from './crtns.ts';
+import {
+  SCALEBOX_CRTNS,
+  createScaleBoxTemplate,
+  scaleBoxes,
+  setScaleBoxSelectable,
+} from './tools/scalebox.ts';
 import { Journal, restoreTree, type ObjectSnapshot, type Step } from './journal.ts';
 
 /**
@@ -75,7 +81,7 @@ export const SelectKind = {
   Obj: 6,
 } as const;
 
-interface Selectable {
+export interface Selectable {
   feature: Feature | null;
   kind: number;
   at: V3;
@@ -172,6 +178,8 @@ export class Runtime implements Host {
   readonly cursorObj: CutObject;
   readonly backwall: CutObject;
   readonly groupObj: CutObject;
+  /** create_scalebbox's template, which rom.cpl copies around picked objects. */
+  readonly scaleBoxTemplate: CutObject;
 
   /** select.c's always_set_selectable (set by Crtn:always_set_select during drags). */
   alwaysSetSelectable = false;
@@ -214,7 +222,10 @@ export class Runtime implements Host {
     this.environment = world('Environment_world');
     this.help = world('Help_world');
     this.worlds = [this.scratch, this.primary, this.environment, this.help];
-    this.journal = new Journal(() => this.primary.root);
+    this.journal = new Journal(
+      () => this.primary.root,
+      (o) => this.vm.props.has(o, P.Scalebbox),
+    );
 
     this.vm = new VM({
       host: this,
@@ -260,6 +271,9 @@ export class Runtime implements Host {
     this.vm.props.del(this.backwall, P.Visible);
     this.groupObj = this.makeObj(env, null, 'Groupobj', ['Nonmanifold', 'Noshadow']);
     this.vm.props.del(this.groupObj, P.Visible);
+    this.scaleBoxTemplate = createScaleBoxTemplate(this);
+    this.registerCrtns(SCALEBOX_CRTNS);
+    this.selectTechniques['set_scalebbox_selectable'] = (o) => setScaleBoxSelectable(this, o);
     this.placeEnvironment();
   }
 
@@ -302,6 +316,7 @@ export class Runtime implements Host {
     this.vm.props.add(o, P.Visible);
     for (const p of props) this.addProp(o, p);
     this.treeChanged();
+    if (name !== null) this.vm.resolveObjectRefs();
     return o;
   }
 
@@ -340,6 +355,8 @@ export class Runtime implements Host {
       for (const o of subtree(r)) this.register(o);
     }
     this.treeChanged();
+    // Code loaded before these existed may name them (Obj:Paintchip).
+    this.vm.resolveObjectRefs();
   }
 
   /** Gives CPL an object's properties, in the file's order. */
@@ -513,8 +530,9 @@ export class Runtime implements Host {
   duplicate(obj: Feature): CutObject {
     const o = obj as CutObject;
     const copy = duplicateTree(o);
-    const parent = o.parent ?? this.primary.root;
-    if (this.worldOf(parent) === this.primary) this.journal.touchTree();
+    // duplicate_obj_branch: the copy goes to the top of the original's world, linked.
+    const parent = (this.worldOf(o) ?? this.primary).root;
+    if (parent === this.primary.root) this.journal.touchTree();
     copy.parent = parent;
     copy.linked = true;
     parent.children.push(copy);
@@ -527,9 +545,15 @@ export class Runtime implements Host {
     pair(o, copy);
     for (const [a, b] of pairs) {
       b.attrs.props = [];
-      for (const p of this.vm.props.of(a).reverse())
-        if (!TRANSIENT_PROPS.has(this.vm.props.names[p] ?? '')) this.vm.props.add(b, p);
-      this.vm.sharePrivateCode(a, b);
+      const copyProps = (from: Feature, to: Feature) => {
+        for (const p of this.vm.props.of(from).reverse())
+          if (!TRANSIENT_PROPS.has(this.vm.props.names[p] ?? '')) this.vm.props.add(to, p);
+        this.vm.sharePrivateCode(from, to);
+      };
+      copyProps(a, b);
+      // ...and its vertices', edges' and faces' (the clone keeps element ids).
+      for (const h of this.features.known(a))
+        if (this.features.alive(h)) copyProps(h, this.features.of(b, h.type, h.id));
     }
     this.treeChanged();
     return copy;
@@ -1079,6 +1103,22 @@ export class Runtime implements Host {
     this.treeChanged();
   }
 
+  /** A scale box leaves the tree unrecorded; its children go to its parent, linked. */
+  private dissolve(box: CutObject): void {
+    const p = box.parent;
+    if (!p) return;
+    p.children.splice(p.children.indexOf(box), 1, ...box.children);
+    for (const c of box.children) {
+      c.parent = p;
+      c.linked = true;
+    }
+    box.children = [];
+    box.parent = null;
+    this.vm.props.forget(box);
+    for (const h of this.features.known(box)) this.vm.props.forget(h);
+    this.selectables.delete(box);
+  }
+
   /** Deleting a vertex, edge or face; refused if it would break the solid (as in M4). */
   private killSub(s: Sub): void {
     const o = s.object;
@@ -1114,10 +1154,17 @@ export class Runtime implements Host {
 
   // ---- C routines ----
 
+  private readonly toolCrtns: Partial<Record<string, (rt: Runtime, vm: VM) => void>> = {};
+
+  /** Adds C routines (an environment tool's). */
+  registerCrtns(table: Partial<Record<string, (rt: Runtime, vm: VM) => void>>): void {
+    Object.assign(this.toolCrtns, table);
+  }
+
   private crtn(name: string, vm: VM): void {
     const own = this.crtnTable[name];
     if (own) own(vm);
-    else BUILTIN_CRTNS[name]?.(this, vm);
+    else (this.toolCrtns[name] ?? BUILTIN_CRTNS[name])?.(this, vm);
   }
 
   // ---- undo ----
@@ -1151,6 +1198,8 @@ export class Runtime implements Host {
 
   private applyStep(s: Step | undefined, side: 'before' | 'after'): boolean {
     if (!s) return false;
+    // Scale boxes were never recorded: they go first (what they held stays where it is).
+    for (const box of scaleBoxes(this, this.primary.root)) this.dissolve(box);
     if (s.tree) restoreTree(this.primary.root, s.tree[side]);
     for (const snap of s[side]) this.restore(snap);
     // Nothing stays picked across an undo.

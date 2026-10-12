@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { P, T } from '@cutplane/cpl';
 import { mat4 } from '@cutplane/kernel';
-import { isObject, isSub } from '../src/index.ts';
+import { isObject, isSub, scaleBoxes } from '../src/index.ts';
 import { world } from './world.ts';
 
 const kinds = (fs: { type: number }[]) =>
@@ -116,8 +116,12 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     controls.duplicate();
     frame();
     frame();
-    const copy = rt.primary.root.children.find((o) => o !== cube);
+    // The copy is picked, so it sits in a scale box of its own; the cube's has gone.
+    const boxes = scaleBoxes(rt, rt.primary.root);
+    expect(boxes).toHaveLength(1);
+    const copy = boxes[0]!.children[0];
     expect(copy).toBeDefined();
+    expect(cube.parent).toBe(rt.primary.root);
     expect([copy!.xform[12], copy!.xform[13], copy!.xform[14]]).toEqual([0, 0, -100]);
     expect(rt.picked()).toEqual([copy]);
     expect(rt.vm.props.has(cube, P.Picked)).toBe(false);

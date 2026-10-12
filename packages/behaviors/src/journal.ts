@@ -39,15 +39,26 @@ export function snapshotObject(o: CutObject): ObjectSnapshot {
   };
 }
 
-export function snapshotTree(root: CutObject): TreeSnapshot {
+/**
+ * The tree under `root`. Objects `skip` names (scale boxes) are left out as
+ * though their children sat where they do: linked, under their parent.
+ */
+export function snapshotTree(
+  root: CutObject,
+  skip: (o: CutObject) => boolean = () => false,
+): TreeSnapshot {
   const entries: TreeSnapshot['entries'] = [];
-  const walk = (p: CutObject) => {
+  const walk = (p: CutObject, as: CutObject, through: boolean) => {
     for (const c of p.children) {
-      entries.push({ object: c, parent: p, linked: c.linked });
-      walk(c);
+      if (skip(c)) {
+        walk(c, as, true);
+        continue;
+      }
+      entries.push({ object: c, parent: as, linked: through ? true : c.linked });
+      walk(c, c, false);
     }
   };
-  walk(root);
+  walk(root, root, false);
   return { entries };
 }
 
@@ -96,7 +107,11 @@ export class Journal {
   private readonly redoStack: Step[] = [];
   private open: OpenStep | null = null;
 
-  constructor(private readonly root: () => CutObject) {}
+  constructor(
+    private readonly root: () => CutObject,
+    /** Objects that are never recorded (scale boxes: made and dissolved by picking). */
+    private readonly ignore: (o: CutObject) => boolean = () => false,
+  ) {}
 
   get canUndo(): boolean {
     return this.undoStack.length > 0;
@@ -114,6 +129,7 @@ export class Journal {
 
   /** About to change `o` (its geometry, placement, colour or name). */
   touch(o: CutObject): void {
+    if (this.ignore(o)) return;
     const s = this.step();
     if (!s.before.has(o)) s.before.set(o, snapshotObject(o));
   }
@@ -121,7 +137,7 @@ export class Journal {
   /** About to change the tree (adopt, delete, a new object). */
   touchTree(): void {
     const s = this.step();
-    s.tree ??= snapshotTree(this.root());
+    s.tree ??= snapshotTree(this.root(), this.ignore);
   }
 
   /** Closes the step; returns it if anything actually changed. */
@@ -132,7 +148,7 @@ export class Journal {
     const before = [...s.before.values()];
     const after = before.map((b) => snapshotObject(b.object));
     const changed = before.filter((b, i) => !sameSnap(b, after[i]!));
-    const treeAfter = s.tree ? snapshotTree(this.root()) : undefined;
+    const treeAfter = s.tree ? snapshotTree(this.root(), this.ignore) : undefined;
     const treeChanged =
       s.tree !== undefined &&
       (s.tree.entries.length !== treeAfter!.entries.length ||
