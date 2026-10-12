@@ -41,7 +41,8 @@ export function motionFor(profile: Profile, h: Held): Motion {
   switch (profile) {
     case 'trackpad':
       // ⌘ + move rotates the room, ⌥ + move pushes the plane; no click needed under pointer lock.
-      if (h.meta) return 'rotate';
+      // A mouse's right button (or a two-finger click held) rotates the room here too.
+      if (h.meta || h.buttons & RIGHT) return 'rotate';
       if (h.alt) return 'plane';
       return 'point';
     case 'three-button':
@@ -133,7 +134,7 @@ export function bindingHints(profile: Profile): string[] {
       return [
         'Move: crosshair',
         'Hold ⌥ + move: plane depth',
-        'Hold ⌘ + move: rotate room',
+        'Hold ⌘ + move, or right-drag: rotate room',
         ...common,
       ];
     case 'three-button':

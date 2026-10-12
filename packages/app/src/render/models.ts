@@ -5,6 +5,8 @@ import { CLASSIC, rgb, shadeFace, type PointLight } from '../viewer/palette.ts';
 
 /** Objects the original would draw: Visible, not Killed, not a scale box or a group placeholder. */
 export function isDrawn(o: CutObject): boolean {
+  // The marquee is drawn as its box (Highlights), never as an object with a section.
+  if (o.drawTechnique === 'draw_marquee_technique') return false;
   const p = o.attrs.props;
   return (
     p.includes('Visible') &&

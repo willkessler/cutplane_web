@@ -41,15 +41,15 @@ snapping.
 Pick a profile in the toolbar (Macs default to the trackpad). Every mode is **spring-loaded**: it
 lasts only while you hold the key or button.
 
-| Action          | Trackpad / one button | Three-button mouse | Two-button mouse     |
-| --------------- | --------------------- | ------------------ | -------------------- |
-| Move crosshair  | move                  | move               | move                 |
-| Plane depth     | hold ⌥ + move, scroll | middle-drag, wheel | hold ⌥ + move, wheel |
-| Rotate the room | hold ⌘ + move         | right-drag         | right-drag           |
-| Pick, drag      | click, press and drag | left               | left                 |
-| Carry in depth  | drag, then hold ⌥     | left + middle      | drag, then hold ⌥    |
-| Add or remove   | shift-click           | shift-click        | shift-click          |
-| One axis        | hold Ctrl             | hold Ctrl          | hold Ctrl            |
+| Action          | Trackpad / one button        | Three-button mouse | Two-button mouse     |
+| --------------- | ---------------------------- | ------------------ | -------------------- |
+| Move crosshair  | move                         | move               | move                 |
+| Plane depth     | hold ⌥ + move, scroll        | middle-drag, wheel | hold ⌥ + move, wheel |
+| Rotate the room | hold ⌘ + move, or right-drag | right-drag         | right-drag           |
+| Pick, drag      | click, press and drag        | left               | left                 |
+| Carry in depth  | drag, then hold ⌥            | left + middle      | drag, then hold ⌥    |
+| Add or remove   | shift-click                  | shift-click        | shift-click          |
+| One axis        | hold Ctrl                    | hold Ctrl          | hold Ctrl            |
 
 | Key     | Command                                                   |
 | ------- | --------------------------------------------------------- |
@@ -166,6 +166,9 @@ The room is laid out as in the 3Form photos. Everything in it runs on the origin
     - The bulb lights the room in its colour from wherever it is. Paint it with the colour
       control to change the light.
     - Click the camera to show what it sees, on a slide above it, and drag it to look elsewhere.
+      Put the plane through its lens and drag the lens to aim the camera: it turns about its
+      middle to follow the crosshair (`lens.cpl`). Dropped back on its box, the bulb goes out
+      and the camera's slide goes away.
 - **The storage pad** (the floppy disk, bottom left in the plane) opens the **Load / Save
   plate**. Click a field and type: the keys go to the field (Backspace, ← →; Esc puts the old
   text back), not to the commands.

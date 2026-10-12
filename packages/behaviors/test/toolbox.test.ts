@@ -90,4 +90,63 @@ describe('toolboxes through toolbox.cpl, stamp.cpl and goodies.cpl', () => {
     expect(bulb.parent).toBe(w.rt.environment.root);
     expect(w.center(bulb)[0]).toBeCloseTo(x - 250, 0);
   });
+
+  /** Opens the goodies box and drags `name` out of it, 250 to the left. */
+  const takeOut = (w: ReturnType<typeof setup>, name: string) => {
+    if (!w.rt.hasProp(w.goodies, 'Toolboxopen')) w.click(w.goodies);
+    const o = w.goodies.children.find((c) => c.name === name)!;
+    w.at(...w.center(o), Z);
+    w.controls.pressPick(false);
+    w.frame();
+    w.move(-150, 0);
+    w.move(-100, 0);
+    w.controls.releasePick();
+    w.frame();
+    w.frame();
+    return o;
+  };
+
+  it('the light bulb and the camera go back in when dropped on their box (dunked)', () => {
+    const w = setup();
+    for (const name of ['Lightbulb', 'Nikon']) {
+      const o = takeOut(w, name);
+      expect(o.parent).toBe(w.rt.environment.root);
+      const from = w.center(o);
+      const to = w.center(w.goodies);
+      w.at(...from, Z);
+      w.controls.pressPick(false);
+      w.frame();
+      w.move(to[0] - from[0], to[1] - from[1]);
+      // The box stays selectable under the goodie being dragged over it.
+      expect(w.rt.vm.props.has(w.goodies, P.Selectable)).toBe(true);
+      w.controls.releasePick();
+      w.frame();
+      w.frame();
+      expect(o.parent).toBe(w.goodies);
+      expect(visible(w, o)).toBe(false);
+      expect(w.rt.hasProp(w.goodies, 'Toolboxopen')).toBe(false);
+    }
+  });
+
+  it("dragging the camera's lens aims the camera (lens.cpl, rotate_camera)", () => {
+    const w = setup();
+    const nikon = takeOut(w, 'Nikon');
+    const lens = nikon.children[0]!;
+    const b = w.rt.bbox(lens)!;
+    w.at(...w.center(lens), (b[0][2] + b[1][2]) / 2);
+    w.frame();
+    const before = [...nikon.xform];
+    const dir = () => [nikon.xform[8]!, nikon.xform[9]!, nikon.xform[10]!];
+    expect(dir()[1]).toBeCloseTo(0, 5);
+    w.controls.pressPick(false);
+    w.frame();
+    w.move(0, 40);
+    w.move(0, 40);
+    w.controls.releasePick();
+    w.frame();
+    expect(nikon.xform).not.toEqual(before);
+    // Pulled up, the lens now looks up.
+    expect(dir()[1]).toBeGreaterThan(0.3);
+    expect(nikon.parent).toBe(w.rt.environment.root);
+  });
 });

@@ -1,4 +1,4 @@
-import { P, first, type Feature, type VM } from '@cutplane/cpl';
+import { Aux, P, Word, first, setupAux, type Feature, type VM } from '@cutplane/cpl';
 import {
   createCube,
   createIsoscelesPrism,
@@ -317,6 +317,25 @@ export const cameraViewOf = (rt: Runtime): CameraView | undefined => cameras.get
 const objectOf = (f: Feature | null): CutObject | null =>
   isObject(f) ? f : isSub(f) ? f.object : null;
 
+const unit = (v: V3): V3 => {
+  const n = Math.hypot(...v) || 1;
+  return [v[0] / n, v[1] / n, v[2] / n];
+};
+
+/** compute_obj_centroid: the mean of an object's vertices, in the room. */
+function centroid(rt: Runtime, o: CutObject): V3 {
+  const g = rt.world(o);
+  const c: V3 = [0, 0, 0];
+  const vs = o.brep.vertices();
+  for (const v of vs) {
+    c[0] += g.x(v);
+    c[1] += g.y(v);
+    c[2] += g.z(v);
+  }
+  const n = vs.length || 1;
+  return [c[0] / n, c[1] / n, c[2] / n];
+}
+
 /** A branch's box, its visible parts only (grow_group_bbox over what is drawn). */
 function groupBox(rt: Runtime, o: CutObject): [V3, V3] | null {
   let out: [V3, V3] | null = null;
@@ -377,6 +396,37 @@ export const TOOLBOX_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void
     const view = cameras.get(rt);
     cameras.set(rt, { camera, shown: view?.shown ?? false });
     rt.version++;
+  },
+
+  /**
+   * CPL_rotate_camera: (lens, camera, translation) → the rotation that turns the
+   * camera about its centroid so the lens follows the crosshair (lens.cpl).
+   */
+  rotate_camera(rt, vm) {
+    const tr = vm.pop();
+    const camera = objectOf(first(vm.pop()));
+    const lens = objectOf(first(vm.pop()));
+    const w = new Word();
+    setupAux(w, Aux.Rotate);
+    w.vec = [0, 0, 1, 0, 0, 0, 0];
+    if (camera && lens) {
+      const c = centroid(rt, camera);
+      const at = rt.cursor();
+      const t: V3 = [tr.offset[0] ?? 0, tr.offset[1] ?? 0, tr.offset[2] ?? 0];
+      const v1 = unit([at[0] - c[0], at[1] - c[1], at[2] - c[2]]);
+      const v2 = unit([at[0] + t[0] - c[0], at[1] + t[1] - c[1], at[2] + t[2] - c[2]]);
+      const axis: V3 = [
+        v1[1] * v2[2] - v1[2] * v2[1],
+        v1[2] * v2[0] - v1[0] * v2[2],
+        v1[0] * v2[1] - v1[1] * v2[0],
+      ];
+      const dot = Math.min(1, Math.max(-1, v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2]));
+      // The C cut this to whole degrees; at 60 frames a second a slow drag moves less
+      // than a degree a frame, so here the fraction is kept and the camera still turns.
+      const tenths = (Math.acos(dot) * 1800) / Math.PI;
+      if (tenths > 1e-6 && Math.hypot(...axis) > 1e-9) w.vec = [...axis, ...c, tenths];
+    }
+    vm.push(w);
   },
 
   /** CPL_toggle_slide: the camera's slide on or off. */

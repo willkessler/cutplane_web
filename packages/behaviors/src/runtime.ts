@@ -1040,7 +1040,7 @@ export class Runtime implements Host {
 
   private setWorldSelectables(world: WorldFeature): void {
     const visible = this.vm.props.features(world, P.Visible);
-    // Objects found by set_object_selectable compete: one best pick per world (M3).
+    // Objects found by set_object_selectable compete in the world being edited: one best pick (M3).
     const candidates: { o: CutObject; s: Selectable; pick: KernelPick }[] = [];
     for (const f of visible) {
       if (!isObject(f) || this.vm.props.has(f, P.Nonselectable)) continue;
@@ -1050,9 +1050,12 @@ export class Runtime implements Host {
         else this.applySelectable(f, NOTHING);
       } else this.setFeatureSelectable(f, false);
     }
+    // In the environment each object is selectable on its own, as select.c had it: a
+    // goodie dragged over its toolbox leaves the box selectable too, so it can be dunked.
     let best: (typeof candidates)[number] | undefined;
-    for (const c of candidates) if (!best || betterPick(c.pick, best.pick)) best = c;
-    for (const c of candidates) this.applySelectable(c.o, c === best ? c.s : NOTHING);
+    if (world !== this.environment)
+      for (const c of candidates) if (!best || betterPick(c.pick, best.pick)) best = c;
+    for (const c of candidates) this.applySelectable(c.o, !best || c === best ? c.s : NOTHING);
   }
 
   /** The other selectechniques (pads, scale boxes, rotate tool parts), by name. */

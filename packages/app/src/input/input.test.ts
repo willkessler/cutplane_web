@@ -28,6 +28,8 @@ describe('binding profiles', () => {
     expect(motionFor('trackpad', held({ alt: true }))).toBe('plane');
     expect(motionFor('trackpad', held({ meta: true }))).toBe('rotate');
     expect(motionFor('trackpad', held({ buttons: LEFT }))).toBe('point');
+    // A mouse on a Mac: the right button rotates the room.
+    expect(motionFor('trackpad', held({ buttons: RIGHT }))).toBe('rotate');
   });
 
   it('three-button: the SGI layout', () => {

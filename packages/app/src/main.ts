@@ -479,7 +479,8 @@ function render(): void {
     }
   }
   const view = cameraViewOf(rt);
-  cameraSlide.update(rt, view?.shown ? view.camera : undefined, renderer, scene);
+  const shown = view?.shown && rt.vm.props.has(view.camera, P.Visible) ? view.camera : undefined;
+  cameraSlide.update(rt, shown, renderer, scene);
   renderer.render(scene, camera);
 }
 
