@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { ROOM, WorldGeometry, preorder, type CutObject } from '@cutplane/kernel';
 import type { CutDocument } from '@cutplane/formats';
-import { CLASSIC, rgb, shadeFace } from '../viewer/palette.ts';
+import { CLASSIC, rgb, shadeFace, type PointLight } from '../viewer/palette.ts';
 
 /** Objects the original would draw: Visible, not Killed, not a scale box or a group placeholder. */
 export function isDrawn(o: CutObject): boolean {
@@ -101,6 +101,18 @@ export class ModelView {
     side: THREE.DoubleSide,
   });
 
+  /** The light bulb's light, when it's out of its box and on. */
+  light: PointLight | undefined;
+
+  /** A new light: every model is shaded again. */
+  relight(light: PointLight | undefined): void {
+    this.light = light;
+    for (const m of this.models) {
+      this.drop(m);
+      this.build(m);
+    }
+  }
+
   load(doc: CutDocument): void {
     for (const m of this.models) this.drop(m);
     this.models = [...preorder(doc.roots)]
@@ -151,7 +163,13 @@ export class ModelView {
     triangulate(
       m,
       () => true,
-      (f) => shadeFace(m.world.faceNormal(f), b.faceColors.get(f) ?? m.object.color),
+      (f) =>
+        shadeFace(
+          m.world.faceNormal(f),
+          b.faceColors.get(f) ?? m.object.color,
+          this.light ? faceCenter(m, f) : undefined,
+          this.light,
+        ),
       pos,
       col,
     );
@@ -180,4 +198,19 @@ export class ModelView {
   *depths(): IterableIterator<number> {
     for (const m of this.models) for (const v of m.object.brep.vertices()) yield m.world.z(v);
   }
+}
+
+/** A face's centre (the mean of its outer loop's vertices). */
+function faceCenter(m: Model, f: number): number[] {
+  const b = m.object.brep;
+  const g = m.world;
+  const vs = b.loopHalfEdges(b.faceLoop(f)).map((h) => b.heVertex(h));
+  let [x, y, z] = [0, 0, 0];
+  for (const v of vs) {
+    x += g.x(v);
+    y += g.y(v);
+    z += g.z(v);
+  }
+  const n = vs.length || 1;
+  return [x / n, y / n, z / n];
 }

@@ -9,6 +9,8 @@ import {
   Runtime,
   installRotateTool,
   installToolboxes,
+  bulbLightOf,
+  cameraViewOf,
   installStoragePad,
   installToolbars,
   isPad,
@@ -34,6 +36,7 @@ import { RotateToolView } from './render/rotatetool.ts';
 import { ScaleBoxView } from './render/scalebox.ts';
 import { setLineResolution } from './render/lines.ts';
 import { ModelView } from './render/models.ts';
+import { CameraSlide } from './render/cameraslide.ts';
 import { LabelView } from './render/labels.ts';
 import { PadView } from './render/pads.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
@@ -84,7 +87,9 @@ const envView = new ModelView();
 const envSection = new SectionLines();
 const padView = new PadView();
 const labelView = new LabelView();
+const cameraSlide = new CameraSlide();
 scene.add(
+  cameraSlide.object,
   padView.object,
   labelView.object,
   envView.object,
@@ -391,7 +396,19 @@ function syncModels(): void {
     dirty = envDirty = true;
   }
   if ((dirty || envDirty) && !controls.pickHeld) control.plane.setDepths(models.depths());
+  // The light bulb lights the room while it's out (set_light).
+  const bulb = bulbLightOf(rt);
+  const bulbObj = rt.findObject('Lightbulb');
+  const light = bulb && bulbObj && rt.vm.props.has(bulbObj, P.Visible) ? bulb : undefined;
+  const lightKey = light ? JSON.stringify(light) : '';
+  if (lightKey !== lastLight) {
+    lastLight = lightKey;
+    models.relight(light);
+    envView.relight(light);
+    dirty = envDirty = true;
+  }
 }
+let lastLight = '';
 
 /**
  * Renders until no CPL message is waiting. A command sent as a message (Jumplane,
@@ -454,6 +471,8 @@ function render(): void {
       lastBoxes = bkey;
     }
   }
+  const view = cameraViewOf(rt);
+  cameraSlide.update(rt, view?.shown ? view.camera : undefined, renderer, scene);
   renderer.render(scene, camera);
 }
 
@@ -826,6 +845,8 @@ async function start(): Promise<void> {
         chip: () => box(cc.chip),
         bars: () => cc.bars.map((b) => ({ center: box(b), top: rt.bbox(b)![1][1] })),
         picked: () => box(rt.pickedObjects()[0]),
+        bulb: () => box(rt.findObject('Lightbulb') ?? undefined),
+        camera: () => box(rt.findObject('Nikon') ?? undefined),
       };
       return parts[what]?.() ?? null;
     },

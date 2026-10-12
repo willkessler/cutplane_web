@@ -33,7 +33,12 @@ export const rgb = ([r, g, b]: readonly number[]) => ((r! << 16) | (g! << 8) | b
  * two directional lights fixed to the room, <1,1,1> at 125 and <-1,1,1> at
  * 50. Faces pointing down get ambient only. Returns 0..1 per channel.
  */
-export function shadeFace(n: readonly number[], color: Rgb8): [number, number, number] {
+export function shadeFace(
+  n: readonly number[],
+  color: Rgb8,
+  at?: readonly number[],
+  bulb?: PointLight,
+): [number, number, number] {
   const [nx, ny, nz] = n as [number, number, number];
   let light = 80;
   if (ny >= 0) {
@@ -43,9 +48,23 @@ export function shadeFace(n: readonly number[], color: Rgb8): [number, number, n
     light += 125 * d1 + 50 * d2;
   }
   const f = light / 255;
+  // The light bulb (setup_light_source(2, ...)): a point light in the bulb's colour.
+  let lit = [0, 0, 0];
+  if (bulb && at) {
+    const l = [0, 1, 2].map((i) => bulb.at[i]! - at[i]!);
+    const len = Math.hypot(l[0]!, l[1]!, l[2]!) || 1;
+    const d = Math.max(0, (nx * l[0]! + ny * l[1]! + nz * l[2]!) / len);
+    lit = [0, 1, 2].map((i) => (d * bulb.color[i]!) / 255);
+  }
   return [
-    Math.min(1, (color[0] * f) / 255),
-    Math.min(1, (color[1] * f) / 255),
-    Math.min(1, (color[2] * f) / 255),
+    Math.min(1, (color[0] * (f + lit[0]!)) / 255),
+    Math.min(1, (color[1] * (f + lit[1]!)) / 255),
+    Math.min(1, (color[2] * (f + lit[2]!)) / 255),
   ];
+}
+
+/** A light at a point (the light bulb goodie's). */
+export interface PointLight {
+  at: readonly number[];
+  color: Rgb8;
 }
