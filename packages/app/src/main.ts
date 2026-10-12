@@ -1,3 +1,5 @@
+import { initBooleans } from '@cutplane/booleans';
+import manifoldWasm from 'manifold-3d/manifold.wasm?url';
 import * as THREE from 'three';
 import { readCut, writeCut } from '@cutplane/formats';
 import { ROOM, createCube, createObject, mat4, type CutObject } from '@cutplane/kernel';
@@ -751,7 +753,8 @@ async function start(): Promise<void> {
   resize();
   window.addEventListener('resize', resize);
   showHints();
-  await Promise.all([loadCpl(), loadResources()]);
+  // The booleans' WebAssembly (manifold-3d) loads alongside the CPL and resources.
+  await Promise.all([loadCpl(), loadResources(), initBooleans(manifoldWasm)]);
   makeWorld();
 
   const index: Entry[] = await fetch(`${base}samples/index.json`)
@@ -846,6 +849,8 @@ async function start(): Promise<void> {
         return b ? [0, 1, 2].map((k) => (b[0][k]! + b[1][k]!) / 2) : null;
       };
       const cc = colorControl;
+      const padsOf = (head: string) =>
+        (rt.findObject(head)?.children[0]?.children ?? []).map((h) => box(h.children[0]));
       const parts: Record<string, () => unknown> = {
         prims: () => box(toolboxes.prims),
         goodies: () => box(toolboxes.goodies),
@@ -856,6 +861,11 @@ async function start(): Promise<void> {
         picked: () => box(rt.pickedObjects()[0]),
         bulb: () => box(rt.findObject('Lightbulb') ?? undefined),
         camera: () => box(rt.findObject('Nikon') ?? undefined),
+        // A rail's headpad, and its pads in order (toolpads: pencil, saw, drill).
+        toolpads: () => box(rt.findObject('Toolpads') ?? undefined),
+        arrangepads: () => box(rt.findObject('Arrangepads') ?? undefined),
+        pads: () => padsOf('Toolpads'),
+        arrangers: () => padsOf('Arrangepads'),
       };
       return parts[what]?.() ?? null;
     },

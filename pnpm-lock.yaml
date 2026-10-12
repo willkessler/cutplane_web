@@ -208,6 +208,9 @@ importers:
       '@cutplane/behaviors':
         specifier: workspace:*
         version: link:../behaviors
+      '@cutplane/booleans':
+        specifier: workspace:*
+        version: link:../booleans
       '@cutplane/cpl':
         specifier: workspace:*
         version: link:../cpl
@@ -217,6 +220,9 @@ importers:
       '@cutplane/kernel':
         specifier: workspace:*
         version: link:../kernel
+      manifold-3d:
+        specifier: ^3.5.4
+        version: 3.5.4(@gltf-transform/core@4.5.1)(@gltf-transform/extensions@4.5.1)(@gltf-transform/functions@4.5.1(@types/node@24.19.2))(esbuild-wasm@0.27.7)
       three:
         specifier: ^0.186.1
         version: 0.186.1
@@ -227,6 +233,9 @@ importers:
 
   packages/behaviors:
     dependencies:
+      '@cutplane/booleans':
+        specifier: workspace:*
+        version: link:../booleans
       '@cutplane/cpl':
         specifier: workspace:*
         version: link:../cpl

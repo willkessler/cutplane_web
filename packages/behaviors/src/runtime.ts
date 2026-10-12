@@ -36,8 +36,10 @@ import {
   WorldGeometry,
   type CutObject,
   type FeatureAttrs,
+  type Mat4,
   type ObjectSection,
   type Pick as KernelPick,
+  type Rgb,
 } from '@cutplane/kernel';
 import { FeatureIndex, isObject, isSub, isWorld, type Sub, type WorldFeature } from './features.ts';
 import { BUILTIN_CRTNS } from './crtns.ts';
@@ -48,6 +50,7 @@ import {
   setScaleBoxSelectable,
 } from './tools/scalebox.ts';
 import { Journal, restoreTree, type ObjectSnapshot, type Step } from './journal.ts';
+import { MODELING_CRTNS, booleanObjects } from './modeling.ts';
 
 /**
  * The world the CPL VM runs in: the original's worlds, objects and
@@ -294,6 +297,7 @@ export class Runtime implements Host {
     this.vm.props.del(this.groupObj, P.Visible);
     this.scaleBoxTemplate = createScaleBoxTemplate(this);
     this.registerCrtns(SCALEBOX_CRTNS);
+    this.registerCrtns(MODELING_CRTNS);
     this.selectTechniques['set_scalebbox_selectable'] = (o) => setScaleBoxSelectable(this, o);
     this.placeEnvironment();
   }
@@ -380,10 +384,13 @@ export class Runtime implements Host {
     this.vm.resolveObjectRefs();
   }
 
-  /** Gives CPL an object's properties, in the file's order. */
+  /**
+   * Gives CPL an object's properties as read_feature_props did: added in the file's
+   * order, each to the front of the list, so the list (and the order JSRAT runs their
+   * code in) is the file's reversed. The saw's Slice runs before its Tool code that way.
+   */
   private register(o: CutObject): void {
-    const names = [...o.attrs.props];
-    for (const n of names.reverse()) this.addProp(o, n);
+    for (const n of o.attrs.props) this.addProp(o, n);
     this.attachCode(o, o.attrs, o.name ?? 'object');
     const b = o.brep;
     for (const [type, map] of [
@@ -393,7 +400,7 @@ export class Runtime implements Host {
     ] as const)
       for (const [id, a] of map) {
         const h = this.features.of(o, type, id);
-        for (const n of [...a.props].reverse()) this.addProp(h, n);
+        for (const n of a.props) this.addProp(h, n);
         this.attachCode(h, a, `${o.name ?? 'object'}:${id}`);
       }
   }
@@ -512,7 +519,8 @@ export class Runtime implements Host {
   // ---- property mirror ----
 
   propertyChanged(f: Feature, p: number): void {
-    const names = this.vm.propNames(f);
+    // Kept in the file's order (the list reversed), so register() rebuilds the same list.
+    const names = this.vm.propNames(f).reverse();
     if (isObject(f)) f.attrs.props = names;
     else if (isSub(f)) {
       const map =
@@ -916,8 +924,57 @@ export class Runtime implements Host {
     return Number.isFinite(lo[0]) ? [lo, hi] : null;
   }
 
-  boolean(): Feature[] {
-    return []; // M6
+  /** CPBOOLEAN (do_boolean): see modeling.ts. */
+  boolean(a: Feature, b: Feature, op: number): Feature[] {
+    return booleanObjects(this, a as CutObject, b as CutObject, op);
+  }
+
+  // ---- modeling (used by modeling.ts) ----
+
+  /** An object's solid replaced by a modeling operation's result (undoable). */
+  reshape(o: CutObject, brep: Brep): void {
+    if (this.worldOf(o) === this.primary) this.journal.touch(o);
+    for (const s of this.features.known(o)) this.vm.props.forget(s);
+    this.drags.delete(o);
+    o.brep = brep;
+    this.selectables.set(o, NOTHING);
+    this.changed(o);
+  }
+
+  /**
+   * A new object holding `brep` beside `like`: the same parent, frame, colour,
+   * techniques and lasting properties (make_childobj_noshell, copy_feature_color).
+   */
+  spawnBeside(like: CutObject, brep: Brep): CutObject {
+    const parent = like.parent ?? (this.worldOf(like) ?? this.primary).root;
+    const primary = this.worldOf(like) === this.primary;
+    if (primary) this.journal.touchTree();
+    const o = createObject(brep, {
+      name: null,
+      xform: Float64Array.from(like.xform) as Mat4,
+      color: [...like.color] as Rgb,
+      attrs: { props: [] },
+      selectTechnique: like.selectTechnique,
+      drawTechnique: like.drawTechnique,
+      screenBBoxTechnique: like.screenBBoxTechnique,
+    });
+    o.linked = like.linked ?? true;
+    o.parent = parent;
+    parent.children.splice(parent.children.indexOf(like) + 1, 0, o);
+    for (const p of this.vm.props.of(like).reverse())
+      if (!TRANSIENT_PROPS.has(this.vm.props.names[p] ?? '')) this.vm.props.add(o, p);
+    this.vm.sharePrivateCode(like, o);
+    if (primary) this.journal.touch(o);
+    this.treeChanged();
+    this.changed(o);
+    return o;
+  }
+
+  /** kill_obj, now: the object leaves its world (undoable). */
+  killNow(o: CutObject): void {
+    if (this.worldOf(o) === this.primary) this.journal.touch(o);
+    this.vm.props.forget(o);
+    this.killObject(o);
   }
 
   // ---- names, labels, colours ----

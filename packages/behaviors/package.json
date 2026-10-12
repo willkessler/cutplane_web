@@ -12,6 +12,7 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
+    "@cutplane/booleans": "workspace:*",
     "@cutplane/cpl": "workspace:*",
     "@cutplane/formats": "workspace:*",
     "@cutplane/kernel": "workspace:*"

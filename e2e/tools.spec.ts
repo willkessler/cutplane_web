@@ -224,3 +224,30 @@ test('the colour control comes out of its box when its base is dragged', async (
   await shot(page, 'color-moved', browserName);
   expect(errors).toEqual([]);
 });
+
+test('the saw cuts the cube in two at the plane; undo puts it back', async ({
+  page,
+  browserName,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0 });
+  type P3 = [number, number, number];
+  const click = async (at: P3) => {
+    await set(page, { x: at[0], y: at[1] });
+    await press(page);
+    await release(page);
+  };
+  await click(await locate<P3>(page, 'toolpads'));
+  const [, saw] = await locate<P3[]>(page, 'pads');
+  await click(saw!);
+  await set(page, { x: 30, y: 20 });
+  await shot(page, 'saw-ready', browserName);
+  await click([30, 20, 0]);
+  // Two closed blocks now, pulled 10 apart either side of the plane.
+  expect((await edit(page)).faces).toBe(12);
+  await set(page, { yaw: -60, pitch: 15 });
+  await shot(page, 'saw-cut', browserName);
+  await page.keyboard.press('ControlOrMeta+KeyZ');
+  expect((await edit(page)).faces).toBe(6);
+  expect(errors).toEqual([]);
+});

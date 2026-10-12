@@ -1,0 +1,151 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { initBooleans } from '@cutplane/booleans';
+import { BOOL_OP, P } from '@cutplane/cpl';
+import { createCube, createObject, mat4, validate, volume, type CutObject } from '@cutplane/kernel';
+import { booleanObjects, installToolbars } from '../src/index.ts';
+import { world } from './world.ts';
+
+beforeAll(() => initBooleans());
+
+const ORIGINAL = resolve(import.meta.dirname, '../../../assets/original');
+const read = (f: string) => {
+  for (const dir of ['rsc', 'icons']) {
+    const p = join(ORIGINAL, dir, f);
+    if (existsSync(p)) return readFileSync(p, 'latin1');
+  }
+  throw new Error(`${f}: not found`);
+};
+
+function setup() {
+  const w = world();
+  const [tools] = installToolbars(w.rt, read, ['toolpads.rsc']);
+  w.at(0, 0, 0);
+  w.frame();
+  const center = (o: CutObject): [number, number] => {
+    const b = w.rt.bbox(o)!;
+    return [(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2];
+  };
+  const click = (o: CutObject | [number, number]) => {
+    const [x, y] = Array.isArray(o) ? o : center(o);
+    w.at(x, y);
+    w.controls.pressPick(false);
+    w.frame();
+    w.controls.releasePick();
+    w.frame();
+    w.frame();
+  };
+  /** Opens the toolpads rail and takes the tool off pad `i` (0 pencil, 1 saw, 2 drill). */
+  const take = (i: number) => {
+    if (!w.rt.hasProp(tools!, 'Open') && !w.rt.vm.props.has(tools!.children[0]!, P.Visible))
+      click(tools!);
+    const pad = tools!.children[0]!.children[i]!.children[0]!;
+    const tool = pad.children[0]!;
+    click(pad);
+    expect(tool.parent).toBe(w.rt.cursorObj);
+    return { pad, tool };
+  };
+  const solids = () => w.rt.primary.root.children.filter((o) => o.brep.numFaces > 0);
+  return { ...w, tools: tools!, center, click, take, solids };
+}
+
+const sound = (o: CutObject) => {
+  const r = validate(o.brep);
+  return r.ok && r.closedManifold;
+};
+
+describe('booleans on objects (do_boolean)', () => {
+  it('A less B: A takes the result, B is gone; one undo puts both back', () => {
+    const w = setup();
+    const a = w.cube;
+    const b = createObject(createCube(100, 100, 400), { xform: mat4.translation(-50, -50, -200) });
+    b.attrs.props = ['Visible'];
+    w.rt.importObjects(w.rt.primary, [b]);
+    w.rt.commit();
+    const out = booleanObjects(w.rt, a, b, BOOL_OP.Subtraction);
+    expect(out).toEqual([a]);
+    expect(sound(a)).toBe(true);
+    expect(volume(a.brep)).toBeCloseTo(200 ** 3 - 100 * 100 * 200, 3);
+    w.frame();
+    expect(w.solids()).toEqual([a]);
+    expect(w.rt.undo()).toBe(true);
+    expect(w.solids()).toHaveLength(2);
+    expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3, 3);
+  });
+});
+
+describe('the saw (slice.cpl, slice_object)', () => {
+  it('a click with the saw cuts what is under the crosshair in two at the plane', () => {
+    const w = setup();
+    const { pad, tool } = w.take(1);
+    expect(tool.name).toBe('Saw');
+    w.at(40, 30, 0);
+    w.frame();
+    w.click([40, 30]);
+    const pieces = w.solids();
+    expect(pieces).toHaveLength(2);
+    for (const p of pieces) {
+      expect(sound(p)).toBe(true);
+      expect(volume(p.brep)).toBeCloseTo(200 * 200 * 100, 3);
+    }
+    // Pulled 10 apart either side of the plane, so the cut shows.
+    const [back, front] = [...pieces].sort((a, b) => w.rt.bbox(a)![0][2] - w.rt.bbox(b)![0][2]);
+    expect(w.rt.bbox(back!)![1][2]).toBeCloseTo(-10, 6);
+    expect(w.rt.bbox(front!)![0][2]).toBeCloseTo(10, 6);
+    // The saw goes back to its pad once used.
+    expect(tool.parent).toBe(pad);
+    // One step undoes the cut.
+    expect(w.rt.undo()).toBe(true);
+    expect(w.solids()).toHaveLength(1);
+    expect(volume(w.solids()[0]!.brep)).toBeCloseTo(200 ** 3, 3);
+  });
+
+  it('clicking on nothing with the saw cuts nothing', () => {
+    const w = setup();
+    w.take(1);
+    w.click([300, 200]);
+    expect(w.solids()).toHaveLength(1);
+  });
+});
+
+describe('the drill (drill.cpl, CPBOOLEAN)', () => {
+  it('pressing on a bar makes a red cutter of it; dropped through the cube, it drills a hole', () => {
+    const w = setup();
+    const bar = createObject(createCube(40, 40, 400), {
+      name: 'Bar',
+      xform: mat4.translation(-320, -20, -200),
+    });
+    bar.attrs.props = ['Visible'];
+    w.rt.importObjects(w.rt.primary, [bar]);
+    w.rt.commit();
+    const { pad, tool } = w.take(2);
+    expect(w.rt.hasProp(tool, 'Drill')).toBe(true); // the bit; the body and handle are its children
+    w.at(-300, 0, 0);
+    w.frame();
+    w.controls.pressPick(false);
+    w.frame();
+    // The cutter: a red copy of the bar, carried by the drill.
+    const cutter = tool.children.find((c) => c.color[0] === 155 && c.brep.numFaces > 0);
+    expect(cutter).toBeDefined();
+    w.move(150, 0);
+    w.move(150, 0);
+    w.controls.releasePick();
+    w.frame();
+    w.frame();
+    // The cube has a 40 × 40 hole through it; the bar is untouched; the cutter is gone.
+    expect(sound(w.cube)).toBe(true);
+    expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3 - 40 * 40 * 200, 3);
+    expect(w.cube.brep.faces().filter((f) => w.cube.brep.faceLoops(f).length === 2)).toHaveLength(
+      2,
+    );
+    expect(volume(bar.brep)).toBeCloseTo(40 * 40 * 400, 3);
+    expect(w.solids().sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))).toEqual([
+      bar,
+      w.cube,
+    ]);
+    expect(tool.parent).toBe(pad);
+    expect(w.rt.undo()).toBe(true);
+    expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3, 3);
+  });
+});

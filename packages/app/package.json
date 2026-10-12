@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@cutplane/behaviors": "workspace:*",
+    "@cutplane/booleans": "workspace:*",
     "@cutplane/cpl": "workspace:*",
     "@cutplane/formats": "workspace:*",
     "@cutplane/kernel": "workspace:*",
+    "manifold-3d": "^3.5.4",
     "three": "^0.186.1"
   },
   "devDependencies": {
