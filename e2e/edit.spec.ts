@@ -147,3 +147,47 @@ test('windowed: turning the room or moving the plane mid-drag does not make the 
   expect((await edit(page)).picked).toEqual(['object']);
   expect(errors).toEqual([]);
 });
+
+test('windowed trackpad: moving with ⌘ or ⌥ held mid-drag does not make the drag jump', async ({
+  page,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await page.evaluate(() => localStorage.setItem('cutplane.profile', 'trackpad'));
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+  await set(page, { z: 0 });
+  const box = (await page.locator('#viewport').boundingBox())!;
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  const state = () => page.evaluate(() => window.__cutplane!.state());
+  const moved = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    Math.hypot(a.x - b.x, a.y - b.y);
+
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx + 30, cy, { steps: 5 });
+  const before = await state();
+
+  // ⌘ + move turns the room while the pointer travels a long way. (Headless browsers
+  // report movementX unreliably, so whether the room turns here varies; the arrow-key
+  // test above covers a real turn. What matters is that the pointer wandered off.)
+  await page.keyboard.down('Meta');
+  await page.mouse.move(cx + 230, cy + 60, { steps: 20 });
+  await page.keyboard.up('Meta');
+  await page.mouse.move(cx + 231, cy + 60);
+  const turned = await state();
+  expect(moved(turned, before)).toBeLessThan(5);
+
+  // ⌥ + move carries the cube in depth.
+  await page.keyboard.down('Alt');
+  await page.mouse.move(cx + 231, cy - 60, { steps: 20 });
+  await page.keyboard.up('Alt');
+  await page.mouse.move(cx + 232, cy - 60);
+  const carried = await state();
+  expect(moved(carried, turned)).toBeLessThan(5);
+
+  await page.mouse.move(cx + 282, cy - 60, { steps: 5 });
+  expect(moved(await state(), carried)).toBeGreaterThan(20);
+  await page.mouse.up();
+  expect(errors).toEqual([]);
+});

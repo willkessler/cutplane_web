@@ -253,24 +253,25 @@ function planeUnder(clientX: number, clientY: number): THREE.Vector3 | null {
 
 /**
  * Windowed mode: the crosshair sits under the pointer, on the plane. While a drag is held,
- * turning the room or moving the plane changes which point is under the pointer; rather
- * than let the crosshair (and what it holds) leap there, the pointer keeps hold of the
- * crosshair at an offset until the button is let go.
+ * the pointer can drift from the crosshair: it keeps moving while ⌘ turns the room or ⌥
+ * pushes the plane, and the point under it changes as the view does. Rather than let the
+ * crosshair (and what it holds) leap to it, the pointer takes hold of the crosshair again
+ * at an offset, until the button is let go.
  */
-let lastPointer: { x: number; y: number; view: string } | undefined;
 let aim: [number, number] = [0, 0];
 let grip: [number, number] = [0, 0];
+let regrip = false;
+let lastView = '';
 
 function pointAt(e: PointerEvent): void {
-  orbitCamera(camera, control.yaw, control.pitch); // the room may have turned since the last frame
+  orbitCamera(camera, control.yaw, control.pitch);
+  camera.updateMatrixWorld(); // the room may have turned since the last frame
+  const hit = planeUnder(e.clientX, e.clientY);
   const view = `${control.yaw}|${control.pitch}|${control.z}`;
   if (!editor.pressed) grip = [0, 0];
-  else if (lastPointer && lastPointer.view !== view) {
-    const was = planeUnder(lastPointer.x, lastPointer.y);
-    if (was) grip = [aim[0] - was.x, aim[1] - was.y];
-  }
-  lastPointer = { x: e.clientX, y: e.clientY, view };
-  const hit = planeUnder(e.clientX, e.clientY);
+  else if (hit && (regrip || view !== lastView)) grip = [aim[0] - hit.x, aim[1] - hit.y];
+  regrip = false;
+  lastView = view;
   if (!hit) return;
   aim = [hit.x + grip[0], hit.y + grip[1]];
   control.pointTo(...aim);
@@ -283,7 +284,10 @@ canvas.addEventListener('pointermove', (e) => {
   if (work.state === 'on') {
     if (work.accept(e.movementX, e.movementY)) control.move(e.movementX, e.movementY, upp);
   } else if (control.motion === 'point') pointAt(e);
-  else control.move(e.movementX, e.movementY, upp);
+  else {
+    regrip = true;
+    control.move(e.movementX, e.movementY, upp);
+  }
 });
 canvas.addEventListener('pointerdown', (e) => {
   syncHeld(e);
