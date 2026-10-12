@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+.DS_Store
+.env*
+# Local-only corpus of the original 1991-94 .cut archive (see docs); never committed.
+corpus/

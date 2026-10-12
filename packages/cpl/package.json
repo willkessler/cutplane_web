@@ -1,0 +1,14 @@
+{
+  "name": "@cutplane/cpl",
+  "version": "0.0.0",
+  "private": true,
+  "description": "CPL assembler, virtual machine, disassembler and debugger",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ."
+  }
+}

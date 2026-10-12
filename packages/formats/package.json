@@ -1,0 +1,14 @@
+{
+  "name": "@cutplane/formats",
+  "version": "0.0.0",
+  "private": true,
+  "description": ".cut/.rsc/.dcl/.icon readers and writers; OBJ/STL/glTF import and export",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ."
+  }
+}

@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: cutplane-web
+    runtime: docker
+    dockerfilePath: ./docker/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /
+    autoDeploy: true

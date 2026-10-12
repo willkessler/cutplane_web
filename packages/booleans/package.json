@@ -1,0 +1,14 @@
+{
+  "name": "@cutplane/booleans",
+  "version": "0.0.0",
+  "private": true,
+  "description": "manifold-3d adapter: B-rep to mesh and back, with coplanar face re-merge",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ."
+  }
+}

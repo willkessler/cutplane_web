@@ -1,0 +1,57 @@
+# `docker compose up`           -> dev server on http://localhost:5173
+# `docker compose run --rm dev pnpm check`  -> format, lint, typecheck, unit tests, build
+# `docker compose run --rm e2e` -> Playwright (Chromium, Firefox, WebKit)
+# `docker compose --profile prod up web` -> production image on http://localhost:8080
+x-node-modules: &node-modules
+  - .:/work
+  - node_modules:/work/node_modules
+  - nm_kernel:/work/packages/kernel/node_modules
+  - nm_formats:/work/packages/formats/node_modules
+  - nm_booleans:/work/packages/booleans/node_modules
+  - nm_cpl:/work/packages/cpl/node_modules
+  - nm_behaviors:/work/packages/behaviors/node_modules
+  - nm_app:/work/packages/app/node_modules
+  - pnpm_store:/pnpm/store
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    volumes: *node-modules
+    ports:
+      - '5173:5173'
+    command: sh -c "pnpm install --frozen-lockfile && pnpm dev"
+
+  e2e:
+    profiles: [test]
+    image: mcr.microsoft.com/playwright:v1.64.0-noble
+    working_dir: /work
+    environment:
+      CI: ${CI:-}
+    volumes: *node-modules
+    ipc: host
+    command: >
+      sh -c "npm install -g pnpm@12.12.1 >/dev/null &&
+             pnpm config set store-dir /pnpm/store &&
+             pnpm install --frozen-lockfile && xvfb-run -a pnpm e2e"
+
+  web:
+    profiles: [prod]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    environment:
+      PORT: 8080
+    ports:
+      - '8080:8080'
+
+volumes:
+  node_modules:
+  nm_kernel:
+  nm_formats:
+  nm_booleans:
+  nm_cpl:
+  nm_behaviors:
+  nm_app:
+  pnpm_store:

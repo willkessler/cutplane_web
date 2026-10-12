@@ -1,0 +1,8 @@
+# Development / CI toolchain. All installs and builds run in here, never on the host.
+FROM node:24-bookworm-slim
+RUN npm install -g pnpm@12.12.1 && apt-get update \
+  && apt-get install -y --no-install-recommends git ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+ENV PNPM_HOME=/pnpm CI_TOOLCHAIN=docker
+RUN pnpm config set store-dir /pnpm/store
+WORKDIR /work
