@@ -60,15 +60,15 @@ test('sections the Discovery and respects the room limits', async ({ page, brows
   await page.locator('#viewport').focus();
   for (let i = 0; i < 12; i++) await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('ArrowUp');
-  let s = await page.evaluate(() => window.__cutplane!.state());
+  const s = await page.evaluate(() => window.__cutplane!.state());
   expect(s.yaw).toBe(90);
   expect(s.pitch).toBe(10);
+  // Space glides the plane to the back wall over a quarter second, and back again.
+  const z = async () => (await page.evaluate(() => window.__cutplane!.state())).z;
   await page.keyboard.press('Space');
-  s = await page.evaluate(() => window.__cutplane!.state());
-  expect(s.z).toBe(-499);
+  await expect.poll(z).toBeCloseTo(-499, 3);
   await page.keyboard.press('Space');
-  s = await page.evaluate(() => window.__cutplane!.state());
-  expect(s.z).toBe(0);
+  await expect.poll(z).toBeCloseTo(0, 3);
   expect(errors).toEqual([]);
 });
 

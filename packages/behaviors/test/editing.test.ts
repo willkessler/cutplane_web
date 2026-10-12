@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { P, T } from '@cutplane/cpl';
 import { createCube, createObject, mat4 } from '@cutplane/kernel';
-import { isObject, isSub, scaleBoxes } from '../src/index.ts';
+import { GLIDE_MS, isObject, isSub, scaleBoxes } from '../src/index.ts';
 import { world } from './world.ts';
 
 const kinds = (fs: { type: number }[]) =>
@@ -144,14 +144,26 @@ describe('editing through rom.cpl and cursor.cpl', () => {
   it('Space jumps the plane to the back wall and back (cursor.cpl)', () => {
     const { rt, stage, controls, frame } = world();
     const z0 = stage.z;
-    controls.planeJump();
-    frame();
-    frame();
-    expect(stage.z).toBe(-499);
-    controls.planeJump();
-    frame();
-    frame();
-    expect(stage.z).toBe(z0);
+    // It glides there over GLIDE_MS, eased: a little way at first, all the way at the end.
+    const jump = () => {
+      controls.planeJump();
+      frame();
+      const seen: number[] = [];
+      for (let t = 0; t <= GLIDE_MS; t += 25) {
+        controls.glide(t);
+        frame();
+        frame();
+        seen.push(stage.z);
+      }
+      expect(controls.planeGliding).toBe(false);
+      return seen;
+    };
+    const there = jump();
+    expect(stage.z).toBeCloseTo(-499, 6);
+    expect(there[2]).toBeGreaterThan(-499 + (z0 + 499) / 2); // not halfway yet at 50 ms
+    for (let i = 1; i < there.length; i++) expect(there[i]!).toBeLessThanOrEqual(there[i - 1]!);
+    jump();
+    expect(stage.z).toBeCloseTo(z0, 6);
     void rt;
   });
 

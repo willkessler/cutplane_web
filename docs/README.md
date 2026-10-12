@@ -53,7 +53,7 @@ lasts only while you hold the key or button.
 
 | Key     | Command                                                   |
 | ------- | --------------------------------------------------------- |
-| Space   | Plane jump: to the back wall, and back again              |
+| Space   | Plane jump: glides to the back wall, and back again       |
 | ← → ↑ ↓ | Rotate the room 10° (±90° side to side, 0–90° from above) |
 | 0       | Reset the view                                            |
 | F       | Start or stop working (full screen, pointer captured)     |
@@ -226,9 +226,14 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   nothing, a face folded flat) is undone on release, and a delete that would do the same is
   refused. The original let both happen.
 - **Group drags.** Pressing on something already picked keeps the other picks, so several things
-  can be dragged together. This is the one change to the original's CPL: `assets/cpl/rom.cpl`
-  is `rom.cpl` with it made (marked "cutplane_web"), as the lines its authors had commented out
-  were meant to do. Every other script runs as it was.
+  can be dragged together. `assets/cpl/rom.cpl` is `rom.cpl` with this change made (marked
+  "cutplane_web"), as the lines its authors had commented out were meant to do.
+- **The plane jump glides.** Space sends the plane to the back wall and back over a quarter
+  second, eased, instead of in one frame, so the room doesn't jump under you. Whatever is picked
+  or held still travels with it. `assets/cpl/cursor.cpl` is `cursor.cpl` with this change
+  (marked "cutplane_web"): `Jumplane` works out the jump, and a new `Glideplane` message moves
+  each frame's share. These two are the only changes to the original's CPL; every other script
+  runs as it was.
 - **Code in files, edited live.** Objects carry their CPL inline in `.cut` files. The original
   saved only the name of a code file, and only for vertices, edges and faces. The CPL editor is
   new, and so are Save and Open outside the Load/Save plate.

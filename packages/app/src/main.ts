@@ -195,8 +195,8 @@ async function loadResources(): Promise<void> {
 async function loadCpl(): Promise<void> {
   // The originals are Latin-1 (and plain ASCII where it matters).
   const latin1 = new TextDecoder('latin1');
-  // cutplane_web's own versions (assets/cpl: rom.cpl) first, else the originals.
-  const ours = new Set(['rom.cpl']);
+  // cutplane_web's own versions (assets/cpl: rom.cpl, cursor.cpl) first, else the originals.
+  const ours = new Set(['rom.cpl', 'cursor.cpl']);
   await Promise.all(
     CPL_FILES.map(async (f) => {
       const res = await fetch(`${base}${ours.has(f) ? 'cpl' : 'original/cpl'}/${f}`);
@@ -372,6 +372,7 @@ function step(): void {
     else controls.releasePlane();
   }
   controls.setConstrain(held.ctrl);
+  controls.glide(performance.now()); // a plane jump under way
   const d: V3 = [control.x - stage.x, control.y - stage.y, control.z - stage.z];
   controls.moveCrosshair(d, (dd) => stage.preview(...dd));
   controls.frame();

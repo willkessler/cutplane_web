@@ -29,6 +29,9 @@ export const ON_PLANE_TOL = 1e-3;
 /** controls.c's DUPLICATEBUTTON offset. */
 export const DUPLICATE_OFFSET: V3 = [100, 100, 0];
 
+/** How long the plane jump's glide takes. */
+export const GLIDE_MS = 250;
+
 export class Controls {
   /** Pick button held. */
   pickHeld = false;
@@ -42,6 +45,7 @@ export class Controls {
   private waitForGoodDrag = false;
   /** Something happened this frame. */
   private events = false;
+  private gliding: { start: number | undefined; done: number } | null = null;
 
   constructor(private readonly rt: Runtime) {}
 
@@ -80,6 +84,7 @@ export class Controls {
     this.planeHeld = true;
     this.events = true;
     this.vm.storeInstruction(opcodeWord(Op.PICK), envWord(Env.Cutplane_part));
+    this.gliding = null; // the plane is the user's again
     this.vm.encodeInstruction(' MAKEMSG Msg:Canceljump');
     this.vm.encodeInstruction(' QMSG Obj:Crosshair_Cursor,Const:Noprioritymsg');
     this.vm.encodeInstruction(' PUSH Const:TRUE');
@@ -129,10 +134,39 @@ export class Controls {
     this.vm.encodeInstruction(' QMSG A:R3*,Const:Noprioritymsg');
   }
 
+  /**
+   * Space: cursor.cpl's Jumplane works out the jump (to the back wall, or back);
+   * glide() then moves the plane there over GLIDE_MS (cutplane_web's cursor.cpl).
+   */
   planeJump(): void {
     this.events = true;
     this.vm.encodeInstruction(' MAKEMSG Msg:Jumplane');
     this.vm.encodeInstruction(' QMSG Obj:Crosshair_Cursor,Const:Prioritymsg');
+    this.gliding = { start: undefined, done: 0 };
+  }
+
+  /** Whether a plane jump is still gliding. */
+  get planeGliding(): boolean {
+    return this.gliding !== null;
+  }
+
+  /** Each frame of a plane jump: Glideplane with this frame's share of it, eased in and out. */
+  glide(now: number): void {
+    const g = this.gliding;
+    if (!g) return;
+    g.start ??= now;
+    const t = Math.min(1, (now - g.start) / GLIDE_MS);
+    const f = t >= 1 ? 1 : (1 - Math.cos(Math.PI * t)) / 2;
+    const share = f - g.done;
+    if (t >= 1) this.gliding = null;
+    if (share <= 0) return;
+    g.done = f;
+    this.events = true;
+    this.vm.encodeInstruction(' MAKEMSG Msg:Glideplane');
+    this.vm.encodeInstruction(
+      ` MAKEMSG Const:M[{0.0,0.0,0.0,0.0},{0.0,0.0,0.0,0.0},{0.0,0.0,${share},0.0},{0.0,0.0,0.0,1.0}]`,
+    );
+    this.vm.encodeInstruction(' QMSG Obj:Crosshair_Cursor,Const:Noprioritymsg');
   }
 
   /** The R key: rotatecircle.cpl's Snaprotatetool message. */
