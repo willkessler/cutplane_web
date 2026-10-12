@@ -1,5 +1,7 @@
 # Cutplane
 
+**[Try it in your browser →](https://willkessler.github.io/cutplane_web/)** Nothing to install.
+
 ![The Discovery, built in 3Form in 1991, loaded from its original .cut file](docs/images/demo.gif)
 
 A browser-native rebuild of **Cutplane / 3Form**, the late-1980s SGI 3D modeler built around a
@@ -42,6 +44,10 @@ docker compose --profile prod up web       # production image at http://localhos
 | `packages/app`       | three.js renderer, input and full-screen work mode, UI                        |
 
 ## Deploying
+
+Every push to `main` builds the static site in the dev image and publishes it to
+[GitHub Pages](https://willkessler.github.io/cutplane_web/) ([workflow](.github/workflows/pages.yml)).
+`BASE_PATH` sets the path it is served under (`/` by default).
 
 The production image (`docker/Dockerfile`) builds the static site and serves it with Caddy on
 `$PORT`. Both [Render](render.yaml) and [Railway](railway.json) configs are included. Point

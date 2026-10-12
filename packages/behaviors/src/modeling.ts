@@ -42,6 +42,10 @@ const OPS: Record<number, BoolOp> = {
  * do_boolean(A, B, op): A becomes the result. A subtraction that leaves several
  * solids keeps the first in A and makes the rest objects beside it; B is gone
  * afterwards (the original's "dup obj hack" killed it). Returns the results.
+ *
+ * New here: a subtraction that would leave nothing (the drill pressed and released
+ * on the same object, its cutter an exact copy) leaves A as it was; the original
+ * deleted A wholesale.
  */
 export function booleanObjects(rt: Runtime, a: CutObject, b: CutObject, op: number): CutObject[] {
   const kind = OPS[op];
@@ -56,7 +60,7 @@ export function booleanObjects(rt: Runtime, a: CutObject, b: CutObject, op: numb
   const breps = solidsOf(shells).map((g) => brepOf(g, [a, b]));
   rt.killNow(b);
   if (breps.length === 0) {
-    rt.killNow(a);
+    if (kind !== 'subtract') rt.killNow(a);
     return [];
   }
   rt.reshape(a, breps[0]!);

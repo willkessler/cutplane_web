@@ -199,7 +199,8 @@ undo away.
 - **Drill.** Press on an object with it: a red copy of it, the **cutter**, comes away with the
   drill. Carry it into another object (move the plane to carry it in depth) and let go, and the
   cutter is taken out of that object. A cut that leaves pieces apart makes each piece an object.
-  The hole's faces are the object's colour, as in the original, not the cutter's.
+  The hole's faces are the object's colour, as in the original, not the cutter's. Pressed and
+  let go on the same object, the drill does nothing.
 - **Pencil.** Press and draw in the plane. Let go and the stroke is closed with a straight line
   back to where it started, and becomes a solid 50 deep, straddling the plane. A stroke that
   crosses itself keeps the largest region it encloses. Only a scrap too small to be a face comes
@@ -285,6 +286,9 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   group a part belongs to, so the two moves cancelled and a grouped part's halves stayed
   together. A later Cutplane moved them apart; here `slice_object` moves a grouped part's
   pieces itself.
+- **A drill click does nothing.** Pressed and let go on one object, the drill's cutter is an
+  exact copy of it, and `CPBOOLEAN` took the whole object away. A subtraction that would leave
+  nothing now leaves the object as it was.
 - **Decals sit on their pads.** The original stood each pad's picture `Decalzoffset` (28) off
   the pad, which only ever showed head on. Here it stands 1 off, so with the room turned the
   pictures stay on their pads.

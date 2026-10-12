@@ -169,6 +169,14 @@ describe('the drill (drill.cpl, CPBOOLEAN)', () => {
     expect(w.rt.undo()).toBe(true);
     expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3, 3);
   });
+  it('pressing and releasing on one object leaves it whole', () => {
+    const w = setup();
+    w.take(2);
+    w.click(w.cube);
+    expect(sound(w.cube)).toBe(true);
+    expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3, 3);
+    expect(w.solids()).toEqual([w.cube]);
+  });
 });
 
 describe('the pencil (pencil.cpl, start_draw, extend_draw, end_draw)', () => {
