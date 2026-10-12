@@ -1,0 +1,92 @@
+;
+;		CPL Rotate Tool Code
+;		For the center circle of rotate tool
+;		Date: October 26,1990	
+;		Version: 1
+;
+
+Rotatexbaron	DEFPROP
+Rotatecircleon	DEFPROP
+
+Rotatecircle	BWIPED	AA:XOP*,A:_End_circle&		; Event still active?
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_circle&
+
+		OWNER	A:R1,Const:Mothervfe		; Get circle
+
+;		Is the circle selectable?
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_circle&
+
+;		Make sure to turn off acceleration selection checks.
+		PUSH	Const:TRUE
+		CRTN	Crtn:always_set_select
+
+		OWNER	A:R1,Const:Motherobj
+		ADDPROP	A:R1*,Prop:Rotatecircleon	; mark the circle in use
+		WIPE	A:XOP*				; eat the PICK
+		SNAP	Env:Crosshair_part,A:R1*	; snap to center
+		ADOPT	Env:Crosshair_part,A:R1*,Const:TRUE ; now xhair's child 
+		PUSH	Const:Rotateiconcentersize	; make select size bigger
+		CRTN	Crtn:set_picksize
+		JUMP	A:_End_circle&			; quit
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_trans&
+; 		 Releasing selectable?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_circle&
+
+;		Make sure to turn acceleration selection checks back on.
+		PUSH	Const:FALSE
+		CRTN	Crtn:always_set_select
+
+		HASPROP	Prop:Selectable*,Prop:Rotatexbaron,A:R3,Const:Self
+		BTRUE	A:R3,A:_End_circle&		; if xbar in use, quit
+
+		OWNER	A:R1,Const:Motherobj		; Get circle
+		HASPROP	A:R1*,Prop:Rotatecircleon,A:R3,Const:Self
+		BFALSE	A:R3,A:_End_circle&		; if circle !in use, quit
+
+		REMPROP	A:R1*,Prop:Rotatecircleon	; unmark circle usage
+		WIPE	A:XOP*				; eat the RELEAS
+
+		WORLD	Const:WPrimary_world
+		BEMPTY	Prop:Selectable*,A:_Setpicksize& ; Something selectable?
+		UNPICK	Prop:Picked*			; Yes,unpick picked
+		PICK	Prop:Selectable*		; Pick the selectble objs
+		CRTN	Crtn:snap_rotatetool		; snap it to selectables
+
+_Setpicksize	WORLD	Const:WEnvironment_world
+		CRTN	Crtn:reset_picksize		; make select size small
+		ADOPT	Env:Cutplane_part,A:R1*,Const:TRUE
+		JUMP	A:_End_circle&			; quit
+
+_Check_trans	OWNER	A:R1,Const:Motherobj		; Get circle
+		HASPROP	A:R1*,Prop:Rotatecircleon,A:R2,Const:Self ; active?
+		BFALSE	A:R2*,A:_End_circle&		; no, quit
+
+;		 Is event a translate?
+		BNEQUAL	AA:XOP*,Opcd:TRANS,A:_End_circle&
+;		 Translating xhair?
+	    	BNEQUAL	AA:XAS,Env:Crosshair_part,A:_Check_transpk&
+
+		UNSEL	A:R1*
+		WORLD	Const:WPrimary_world		; set it up according
+		PUSH	Prop:Selectable*		; to what is selectable	
+		CRTN	Crtn:setup_rotatetool		; in the primary world
+		POP	A:R1				; return whether snapped
+		WORLD	Const:WEnvironment_world
+;_Kill_transxh	WIPE	A:XOP*				; kill xhair translate
+		JUMP	A:_End_circle&			; and you're done
+
+; 		 Check for pick trans
+_Check_transpk 	BNEQUAL	AA:XAS,Prop:Picked,A:_End_circle&
+
+_Kill_transpk	WIPE	A:XOP*				; kill picked translate
+
+_End_circle	RTS
+
+

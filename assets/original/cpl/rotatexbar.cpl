@@ -1,0 +1,259 @@
+;
+;		CPL Rotate Tool Code
+;		For either cross bar of rotate tool
+;		Date: October 26,1990	
+;		Version: 1
+;
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Main code
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+Rotatexbar	OWNER	A:R1,Const:Motherevf		; Get rotate xbar
+
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check for activation
+_Activatemsg	BNEQUAL	A:R2,Msg:Activate,A:_Deactivatemsg&
+		UNQMSG	A:_Rotated_all
+		PUSH	A:R1
+		JSR	A:_Activatexbar&
+		JUMP	A:_End_rotatexbar&
+
+;		 Check for deactivation
+_Deactivatemsg	BNEQUAL	A:R2,Msg:Deactivate,A:_Pickwithpan&
+		PUSH	A:R1
+		JSR	A:_Deactivatexbar&
+		JUMP	A:_End_rotatexbar&
+
+_Pickwithpan	BNEQUAL	A:R2,Msg:Pickwithpan,A:_End_rotatexbar&
+		ANCEST	A:R1*,A:R3			; Is circle selectable?
+		HASPROP	A:R3*,Prop:Selectable,A:R4,Const:Self 
+		BTRUE	A:R4,A:_End_pickwithpan&	; yes, don't do squat
+		MOVE	Const:TRUE,A:_Rotated_all
+		PUSH	A:R1
+		JSR	A:_Activatexbar&
+_End_pickwithpan JUMP	A:_End_rotatexbar&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_rotatexbar&	; Event still active?
+
+_Check_activate HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; Xbar selectable?
+		BTRUE	A:R2*,A:_Check_pick&		; yes, check normal stuff
+
+;		If a bauble became selectable while xbar is active,
+;		send it a message to turn itself on, after deactivating
+;		this xbar.
+
+		BEMPTY	Prop:Selectable*,A:_End_rotatexbar&
+
+		MOTHER	Prop:Selectable*,A:R2,Const:Motherevf
+		AND	A:R1,A:R2,A:R3			; is selectable a bauble?
+		BEMPTY	A:R3,A:_End_rotatexbar&		; no, quit
+
+		MAKEMSG	Msg:Activate
+		MAKEMSG	A:_Rotated_all
+		QMSG	Prop:Selectable*,Const:Prioritymsg
+		PUSH	A:R1
+		JSR	A:_Deactivatexbar&
+;		But, turn off acceleration selection checks again.
+		PUSH	Const:TRUE
+		CRTN	Crtn:always_set_select
+
+;	NOTA BENE: The following code causes the xbar to destroy
+;	any TRANS Prop:Picked* instructions that might be under examination.
+;	This is a MAJOR assumption on my part,that the current XOP's instruction
+;	will be one of those. I count on it... if it weren't, then because the
+;	xbar has just deactivated itself it will
+;	not have a chance to examine any others.
+
+;		 Is event a translate?
+		BNEQUAL	AA:XOP*,Opcd:TRANS,A:_End_rotatexbar&
+;		 Translating picked?
+		BNEQUAL	AA:XAS,Prop:Picked,A:_End_rotatexbar&
+		WIPE	A:XOP*				; kill trans of picked!
+		JUMP	A:_End_rotatexbar&
+
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_rotatexbar&
+
+;		If a pick, try to turn on xbar
+
+_Check_circle	OWNER	A:R2,Const:Motherobj		; Get xbar, and circle
+		ANCEST	A:R2*,A:R3			; Is circle selectable?
+		HASPROP	A:R3*,Prop:Selectable,A:R4,Const:Self 
+		BTRUE	A:R4,A:_End_rotatexbar&		; yes, don't do squat
+
+; 		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_rotatexbar&
+		WIPE	A:XOP*				; eat the PICK
+
+		MOVE	Const:FALSE,A:_Rotated_all
+		PUSH	A:R1
+		JSR	A:_Activatexbar&		; turn it on
+
+_End_circheck	JUMP	A:_End_rotatexbar&		; quit
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_trans&
+; 		 Releasing selectable?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_rotatexbar&
+
+;		 Don't do nothin if rotatebar not on!
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_rotatexbar&
+
+		WIPE	A:XOP*				; eat the RELEAS
+
+;		WORLD	Const:WPrimary_world
+;		MAKEMSG	Msg:Unpick
+;		QMSG	Prop:Picked*,Const:Noprioritymsg
+;		WORLD	Const:WEnvironment_world
+
+		MAKEMSG	Msg:Deactivatetool
+		MAKEMSG	Prop:Toolpadempty*
+		QMSG	Obj:Pantool,Const:Prioritymsg
+
+		PUSH	A:R1
+		JSR	A:_Deactivatexbar&		; turn it off
+		JUMP	A:_End_rotatexbar&		; quit
+
+_Check_trans	OWNER	A:R1,Const:Motherevf		; Get xbar
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; In use?
+		BFALSE	A:R2*,A:_End_rotatexbar&	; no, quit
+
+;		 Is event a translate?
+_Check_trans2	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_End_rotatexbar&
+;		 Translating xhair?
+		BNEQUAL	AA:XAS,Env:Crosshair_part,A:_Check_transpk&
+
+;		 kill xhair trans if paused
+		BFALSE	A:_Paused,A:_Do_xbar_rot&
+		BEQUAL	A:_Pause_counter,Const:I0,A:_Do_xbar_rot&
+		ADD	A:_Pause_counter,Const:I-1,A:_Pause_counter
+		WIPE	A:XOP*
+		JUMP	A:_End_rotatexbar&
+
+;		Constrain TRANS using a C call and get a rotate info record
+;		into R2
+
+_Do_xbar_rot	PUSH	A:R4				; (filler)
+		PUSH	A:R1				; pass xbar
+		PUSH	AA:XAD*				; pass translate rec
+		CRTN	Crtn:xbar_rotate
+		POP	A:R7				; get back new trans
+		POP	A:R1				; get back rotate rec
+		POP	A:_Paused			; get back if paused
+		POP	A:R4				; get what to unpick
+;							; if an fve snapped
+
+		ROTATE	A:_Rotated_stuff*,A:R1		; rotate the picked
+;		make sure to switch to primary so rotatetool doesn't get
+;		nonselectable_prop accidentally...
+		WORLD	Const:WPrimary_world
+		ADDPROP	Prop:Selectable*,Prop:Nonselectable
+		UNSEL	Prop:Selectable*		; unsel selectables
+		WORLD	Const:WEnvironment_world
+
+;	 	 Do the transformed translation that keeps xhair on xbar	
+		TRANS	Env:Crosshair_part,Const:Normaltranslate,A:R7
+_Finish_xbarot	WIPE	A:XOP*				; kill xhair trans
+		
+		BFALSE	A:_Paused,A:_Checkfacesnap&
+;		 if paused, put a counter in the pause counter and quit
+		MOVE	Const:I5,A:_Pause_counter
+		JUMP	A:_End_rotatexbar&
+
+_Checkfacesnap	BFALSE	A:R4,A:_End_rotatexbar&		; face(s) snapped?
+		WORLD	Const:WPrimary_world		; select main world
+		UNPICK	Prop:Picked*
+		WORLD	Const:WEnvironment_world	; select main world
+		OWNER	A:R1,Const:Motherevf
+		PUSH	A:R1
+		JSR	A:_Deactivatexbar&
+		JUMP	A:_End_rotatexbar&
+
+_Check_transpk 	BNEQUAL	AA:XAS,Prop:Picked,A:_End_rotatexbar&
+
+_Kill_transpk	WIPE	A:XOP*				; kill picked translate
+
+_End_rotatexbar	BMSGS	A:R1,A:_Check_messages&
+		RTS
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Subroutines
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Activatexbar	POP	A:R9				; get xbar
+		ADDPROP	A:R9*,Prop:Active		; mark the xbar in use
+;		Make sure to turn off acceleration selection checks.
+		PUSH	Const:TRUE
+		CRTN	Crtn:always_set_select
+;		Kill off all those stupid scaling boxes (who needs em?)
+;		But, this forces the user to repick when s/he needs to scale.
+;		WORLD	Const:WPrimary_world
+;		MAKEMSG	Msg:Suicide
+;		QMSG	Prop:Scalebbox*,Const:Prioritymsg
+;		WORLD	Const:WEnvironment_world
+
+; 		 Cancel any pausing
+		MOVE	Const:I0,A:_Pause_counter
+		MOVE	Const:FALSE,A:_Paused
+
+;		 Set up to rotate picked objects unless pantool active, in which
+;		 case rotate them all.
+		
+		BFALSE	A:_Rotated_all,A:_Rotate_picked&
+		MOVE	Const:WPrimary_world,A:_Rotated_stuff
+		JUMP	A:_End_activate&
+
+_Rotate_picked	WORLD	Const:WPrimary_world
+		MOVE	Prop:Picked*,A:_Rotated_stuff
+		WORLD	Const:WEnvironment_world
+
+_End_activate	RTS
+
+_Deactivatexbar	POP	A:R9				; Yes, get xbar
+		REMPROP	A:R9*,Prop:Active		; unmark xbar usage
+		WORLD	Const:WPrimary_world
+		REMPROP	Prop:Nonselectable*,Prop:Nonselectable
+		WORLD	Const:WEnvironment_world	; go back to env.
+
+;		Set world rotation to false for next go round of usual usage.
+		MOVE	Const:FALSE,A:_Rotated_all
+
+; 		 Cancel any pausing
+		MOVE	Const:I0,A:_Pause_counter
+		MOVE	Const:FALSE,A:_Paused
+
+;		Make sure to turn acceleration selection checks back on.
+		PUSH	Const:FALSE
+		CRTN	Crtn:always_set_select
+
+		MOVE	Const:FALSE,A:_Rotated_all
+
+		RTS
+
+; Some local vars
+
+_Rotated_all	CPLDATA
+_Rotated_stuff	CPLDATA
+_Paused		CPLDATA
+;	this really needs to be initialized to zero automatically but cpl is
+;	still missing static vars...
+_Pause_counter	CPLDATA

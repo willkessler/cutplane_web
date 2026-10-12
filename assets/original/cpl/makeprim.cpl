@@ -1,0 +1,75 @@
+;
+;		CPL Private Code: creating features as part of the measureplate
+;		Date: May 15,1991, in the wee hours
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get textinput object
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+_Check_makeprim	BNEQUAL	A:R2,Msg:Incomingchar,A:_Check_events&
+		UNQMSG	A:R3				; get typed char.
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; is textinput active?
+		BFALSE	A:R2,A:_End_makeprim&		; no, ignore char
+
+_CheckCR	BNEQUAL	A:R3,Const:A0x0D,A:_Putbackmsg&	; on CR, do sizing
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+
+		GETLABEL A:R1*,A:R2,Const:I1		; get name of prim
+		PUSH	A:R2				; pass name
+		CHLDRN	Obj:Measure_Plate,A:R3
+		INDEX	A:R3,A:R4,Const:I8
+		GETLABEL A:R4*,A:R5,Const:I1
+		STR2AUX	A:R5,A:R6
+		PUSH	A:R6				; pass length
+		CRTN	Crtn:inch_2_world		; convert to world coords
+		INDEX	A:R3,A:R4,Const:I10
+		GETLABEL A:R4*,A:R5,Const:I1
+		STR2AUX	A:R5,A:R6
+		PUSH	A:R6				; pass width
+		CRTN	Crtn:inch_2_world		; convert to world coords
+		INDEX	A:R3,A:R4,Const:I12
+		GETLABEL A:R4*,A:R5,Const:I1
+		STR2AUX	A:R5,A:R6
+		PUSH	A:R6				; pass height
+		CRTN	Crtn:inch_2_world		; convert to world coords
+
+		CRTN	Crtn:remake_prim		; simple for now...
+		UPDATE	A:_Sized_feature*,Const:UAllupdateflags/when:Now
+;		 hack should just be Redrawflag
+		GLUPDATE Const:UAllupdateflags/when:Now
+
+		CLEAR	A:_Sized_feature
+		MAKEMSG	Msg:Acceptext			; tell textinput prop
+		QMSG	A:R1*,Const:Prioritymsg		; user's done w/input
+		JUMP	A:_End_makeprim&
+
+_Putbackmsg	MAKEMSG	Msg:Incomingchar		; give it to textinput
+		MAKEMSG	A:R3				; prop!
+		QMSG	A:R1*,Const:Prioritymsg	
+		JUMP	A:_End_makeprim&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	NOP
+_End_makeprim	RTS					; totally eventless!
+
+; =-=-=-=-=-=-=-= Local vars =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 
+
+_New_label	CPLDATA
+_Sized_feature	CPLDATA
+_New_size	CPLDATA

@@ -1,0 +1,117 @@
+;
+;		CPL Property Codes:Zoooooom
+;		Date: November 30,1990
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Panning	DEFPROP					; indicates pan in use
+
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main pan code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Pan		DEFPROP
+
+Pan		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get pantool
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Check topmost msg
+		CHKMSG	A:R2
+; no msgs handled for now....
+		JUMP	A:_End_pan&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_pan&		; Event still active?
+
+;		 Is pantool Active?
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_pan&		; no,quit
+
+;		Do pan upon trans
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_pick&
+
+;		Check to see if we are panning. If yes, then
+;		if translating xhair, wipe it, if translating picked, translate
+;		all visible objects in primary world.
+
+_Check_pan	HASPROP	A:R1*,Prop:Panning,A:R2,Const:Self ; Are we panning?
+		BFALSE	A:R2,A:_End_pan&		; No: quit
+
+;		 Translating xhair?
+_Trans_xhair	BEQUAL	AA:XAS,Env:Crosshair_part,A:_End_pan&
+
+_Trans_picked	BNEQUAL	AA:XAS,Prop:Picked,A:_End_pan&	; TRANSlating picked?
+
+;		 Change to all vis. objs
+_Do_pan		WORLD	Const:WPrimary_world
+		TRANS	Const:WPrimary_world,Const:Normaltranslate,AA:XAD
+		WORLD	Const:WEnvironment_world
+		WIPE	A:XOP*
+		MOVE	Const:TRUE,A:_Pan_dragged
+
+		JUMP	A:_End_pan&
+
+;		 Is opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_pan&
+
+;		Are there selectable toolpads?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_pan&		; yes, let toolpad work
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_pan&		; yes, let headpad work
+
+;		Swallow if other env objects are selectable, e.g. rotatetool,
+;		but let them know that i did that.
+		BNEMPTY	Prop:Selectable*,A:_Inform_sels&
+
+		MOVE	Const:FALSE,A:_Pan_dragged
+		ADDPROP	A:R1*,Prop:Panning		; no,mark pantool
+
+		ADDPROP	A:R1*,Prop:Toolused		; let toolpad know
+;							; the pantool was used
+
+		WIPE	A:XOP*				; no one else sees pick
+		JUMP	A:_End_pan&
+
+_Inform_sels	MAKEMSG	Msg:Pickwithpan			; spic'n'span?
+		QMSG	Prop:Selectable*,Const:Prioritymsg
+		WIPE	A:XOP*				
+		JUMP	A:_End_pan&
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_pan&
+;		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_pan&
+
+		HASPROP	A:R1*,Prop:Panning,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_pan&		; don't pan first time
+
+		REMPROP	A:R1*,Prop:Panning		; unmark pantool
+
+		BTRUE	A:_Pan_dragged,A:_End_pan&
+
+		MAKEMSG	Msg:Attachtool
+		MAKEMSG	A:R1*
+; 		 adopt me to any free toolpad
+		QMSG	Prop:Toolpadempty*,Const:Prioritymsg 
+
+_End_pan	RTS
+
+; some local vars...
+_Pan_dragged	CPLDATA

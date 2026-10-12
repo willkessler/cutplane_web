@@ -1,0 +1,205 @@
+
+;		CPL code to allow dragging of a lightbulb.
+;		Lightbulb frees the lightbulb object from its parent upon PICK
+;		(if it has a parent).  It calls the light setting routine
+;		when dragged. It does not unpick itself upon a release so that
+;		it can be colored by the color bar.
+;		
+;		Date: January 8,1990
+;		Version: 1
+
+Lightbulb	DEFPROP
+Lightbulboff	DEFPROP
+
+Lightbulb	STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get lightbulb
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check for adopting a new color message.
+_Check_colormsg	BNEQUAL	A:R2,Msg:Adoptcolor,A:_End_lightbulb&
+		UNQMSG	A:R3
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; picked?
+		BTRUE	A:R2,A:_Gets_color&		; yes, gets color
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; Selectable?
+		BTRUE	A:R2,A:_Gets_color&		; yes, gets color
+		JUMP	A:_End_lightbulb&
+_Gets_color	SETCOLOR A:R1*,A:R3*			;set lightbulb's color
+		PUSH	A:R1
+		CRTN	Crtn:set_light
+		JUMP	A:_End_lightbulb&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_lightbulb&	; Event still active?
+
+;		 Event is a ROTATE?
+_Check_rotate	BNEQUAL	AA:XOP*,Opcd:ROTATE,A:_Check_trans&
+;		 Rotating room?
+		BNEQUAL	AA:XAS,Env:Room_part,A:_End_lightbulb&
+
+		HASPROP	A:R1*,Prop:Lightbulboff,A:R2,Const:Self ; Is bulb on?
+		BTRUE	A:R3,A:_End_lightbulb&
+		PUSH	A:R1
+		CRTN	Crtn:set_light			; update lighting
+		GLUPDATE Const:URedrawflag/when:Now 	; reset everybody
+		JUMP	A:_End_lightbulb&
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_pick&
+
+;		Check to see if we are dragging stuff.
+
+;		 TRANSlating picked?
+_Trans_picked	BNEQUAL	AA:XAS,Prop:Picked,A:_End_lightbulb&
+		OWNER	A:R1,Const:Motherobj		; Get object 
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; Is object picked?
+		BFALSE	A:R2,A:_End_lightbulb&		; No: quit
+
+_Transobject	HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; Bulb selectable?
+		BFALSE	A:R2,A:_End_lightbulb&
+
+		TRANS	A:R2*,Const:Quicktranslate,AA:XAD ; Else, translate obj
+		HASPROP	A:R1*,Prop:Lightbulboff,A:R3,Const:Self ; Is it on?
+		BTRUE	A:R3,A:_Clear_release&
+		PUSH	A:R2
+		CRTN	Crtn:set_light			; update lighting
+		GLUPDATE Const:URedrawflag/when:Now 	; reset everybody
+		JUMP	A:_Clear_release&
+
+
+;		Check to see if we are dragging stuff.
+
+; 	Handle a pick
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_lightbulb&
+
+_Pick_bulb	OWNER	A:R1,Const:Motherobj		; Get object
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; is it selectable?
+		BFALSE	A:R2,A:_Check_base&
+
+		PUSH	A:R1
+		JSR	A:_Turnonbulb&
+		UNPICK	Prop:Picked*			; unpick other env objs
+		PICK	A:R1*				; pick it
+_Finish_pick	WIPE	A:XOP*				; kill pick
+		JUMP	A:_End_lightbulb&
+
+_Check_base	CHLDRN	A:R1*,A:R2
+		HASPROP	A:R2*,Prop:Selectable,A:R3,Const:Self
+		BFALSE	A:R3,A:_End_lightbulb&
+
+_Toggle_light	HASPROP	A:R1*,Prop:Lightbulboff,A:R2,Const:Self
+		BTRUE	A:R2,A:_Turn_me_on&
+
+_Turn_me_off	PUSH	A:R1
+		JSR	A:_Turnoffbulb&
+		JUMP	A:_Finish_toggle&
+
+_Turn_me_on	PUSH	A:R1
+		JSR	A:_Turnonbulb&
+
+_Finish_toggle	WIPE	A:XOP*				; kill pick
+		JUMP	A:_End_lightbulb&
+
+;		Handle a release
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_delete& 
+; 		 Releasing selectables?		
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_lightbulb&
+
+		OWNER	A:R1,Const:Motherobj		; Get object
+
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; obj selectable?
+		BFALSE	A:R2,A:_End_lightbulb&
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; if obj not picked,
+		BFALSE	A:R2,A:_End_lightbulb&		; quit
+
+_Check_dunk	PARENT	A:R1*,A:R2			; is object a child?
+		BEQUAL	Const:WEnvironment_world,A:R2,A:_Try_dunk&		
+
+;		Yes, free it from parent toolbox, and close it
+		ADOPT	Const:WEnvironment_world,A:R1*,Const:TRUE
+		PUSH	A:R2
+		JSR	A:Close_toolbox&		; close owner toolbox
+		JUMP	A:_Clear_release&
+
+;		If a toolbox is selectable when you RELEAS send a message to
+;		the toolbox to adopt this lightbulb object
+
+_Try_dunk	HASPROP	Prop:Selectable*,Prop:Toolbox,A:R2,Const:Self
+		BFALSE	A:R2,A:_Clear_release&
+
+		PUSH	A:R1
+		JSR	A:_Turnoffbulb&
+		MAKEMSG Msg:Dunkobject			; Tell toolbox to dunk
+		MAKEMSG	A:R1*				; this lightbulb object.
+		MAKEMSG	Msg:Closetoolbox		; Tell toolbox to close.
+		QMSG	A:R2*,Const:Prioritymsg		; Queue message string.
+		JSRAT	A:R2*,Code:Property_code	; call toolbox!
+
+_Clear_release	WIPE	A:XOP*
+		JUMP	A:_End_lightbulb&
+
+_Check_delete	BNEQUAL	AA:XOP*,Opcd:DELETE,A:_End_lightbulb& 
+
+		PUSH	A:R1
+		JSR	A:_Turnoffbulb&
+		OWNER	A:R1,Const:Motherobj		; Get object
+		MAKEMSG Msg:Dunkobject			; Tell toolbox to dunk
+		MAKEMSG	A:R1*				; this lightbulb object.
+		MAKEMSG	Msg:Closetoolbox		; Tell toolbox to close.
+		MOVE	Obj:Goodiesbox,A:R2
+		QMSG	A:R2*,Const:Prioritymsg		; Queue message string.
+		JSRAT	A:R2*,Code:Property_code	; call toolbox!
+_Clear_delete	WIPE	A:XOP*
+		JUMP	A:_End_lightbulb&
+
+_End_lightbulb	BMSGS	A:R1,A:_Check_messages&
+		RTS
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Subroutines
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Turnoffbulb	POP	A:R9
+		ADDPROP	A:R9*,Prop:Lightbulboff
+		REMPROP	A:R9*,Prop:Background		; so it misses room rots
+		GETCOLOR A:R9*,A:R8
+		PUSH	A:R8
+		PUSH	Const:FALSE
+		PUSH	A:R9*
+		CRTN	Crtn:switch_light
+		POP	A:R8
+		SETCOLOR A:R9*,A:R8
+		GLUPDATE Const:URedrawflag/when:Now	; reset everybody
+		RTS
+
+_Turnonbulb	POP	A:R9
+		REMPROP	A:R9*,Prop:Lightbulboff
+		ADDPROP	A:R9*,Prop:Background		; so it sees room rots
+		GETCOLOR A:R9*,A:R8
+		PUSH	A:R8
+		PUSH	Const:TRUE
+		PUSH	A:R9*
+		CRTN	Crtn:switch_light
+		POP	A:R8
+		SETCOLOR A:R9*,A:R8
+		PUSH	A:R9
+		CRTN	Crtn:set_light			; update lighting
+		GLUPDATE Const:URedrawflag/when:Now	; reset everywhere!
+		RTS

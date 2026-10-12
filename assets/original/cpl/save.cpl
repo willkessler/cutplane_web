@@ -1,0 +1,89 @@
+;
+;		CPL Private Code:Save objects to a 3Form file
+;		Date: February 10,1991
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get textinput object
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check to see if the user has sent me a CR.
+_Check_inputmsg	BNEQUAL	A:R2,Msg:Incomingchar,A:_Check_dosave&
+		UNQMSG	A:R3				; get typed char.
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; is textinput active?
+		BFALSE	A:R2,A:_End_save&		; no, ignore char
+
+_CheckCR	BNEQUAL	A:R3,Const:A0x0D,A:_Putbackmsg&	; on CR, do saving
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+
+
+		GLUPDATE Const:URedrawflag/when:Now
+;		WORLD	Const:WPrimary_world
+;		MOVE	Prop:Picked*,A:R4
+;		WORLD	Const:WEnvironment_world
+;		BNEMPTY	A:R4,A:_Setup_save&
+;		MOVE	Const:WPrimary_world,A:R4
+
+;_Setup_save	MOTHER	A:R4,A:R5
+;		PUSH	A:R5
+
+		MOVE	Const:WPrimary_world,A:R4
+		PUSH	A:R4
+
+_Finish_save	GETLABEL A:R1*,A:R2,Const:I1
+		PUSH	A:R2
+
+;		Unpick picked unless this textinput object also has sizer prop..
+;		HACK TIL THE COWS COME HOME
+
+		WORLD	Const:WPrimary_world
+		MAKEMSG	Msg:Unpick
+		QMSG	Prop:Picked*,Const:Noprioritymsg
+		JSRAT	Prop:Msgpending*,Code:Private_code
+		JSRAT	Prop:Msgpending*,Code:Property_code
+		WORLD	Const:WEnvironment_world
+		GLUPDATE Const:UAllupdateflags/when:Now	; so things really get
+;							; deleted now!!!	
+
+;		 trust that the stuff's still on that stack...
+		CRTN	Crtn:write_to_file		; stupid for now...
+
+		MAKEMSG	Msg:Acceptext			; tell textinput prop
+		QMSG	A:R1*,Const:Prioritymsg		; user's done w/input
+		PARENT	A:R1*,A:R2
+		PARENT	A:R2*,A:R3
+		MAKEMSG	Msg:Closedialog			; make dialog box close
+		QMSG	A:R3*,Const:Prioritymsg		; 
+
+		JUMP	A:_End_save&
+
+_Putbackmsg	MAKEMSG	Msg:Incomingchar		; give it to textinput
+		MAKEMSG	A:R3				; prop!
+		QMSG	A:R1*,Const:Prioritymsg	
+		JUMP	A:_End_save&
+
+;		 Check to see if somebody wants me to do my saving job.
+_Check_dosave	BNEQUAL	A:R2,Msg:Savetofile,A:_End_save&
+
+		GETLABEL A:R1*,A:R2,Const:I1
+		PUSH	Const:WPrimary_world
+		PUSH	A:R2
+		CRTN	Crtn:write_to_file		; stupid for now...
+		JUMP	A:_End_save&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	NOP
+_End_save	RTS					; totally eventless!

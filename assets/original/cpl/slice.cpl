@@ -1,0 +1,113 @@
+;
+;		CPL Property Codes:Slice
+;		Date: November 29,1990	
+;		Version: 2
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Slice		DEFPROP
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;  Slice subroutines
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; Slice passed set of objects... uses R8 and R9.
+
+_Slice_sub	POP	A:R8
+		UNSEL	A:R8*
+		UNPICK	A:R8*
+		PUSH	A:R8				; pass sliced objs
+		CRTN	Crtn:slice_object
+		POP	A:R8				; get rear results
+		TRANS	A:R8*,Const:Normaltranslate,Const:V[0.0,0.0,-10.0]
+		POP	A:R9				; get front results
+		TRANS	A:R9*,Const:Normaltranslate,Const:V[0.0,0.0,10.0]
+;		 supposedly the pieces are now off the plane so clear their
+;		 section lines...	
+		UPDATE	A:R8*,Const:UClearcutsectionflag/when:Now
+		UPDATE	A:R9*,Const:UClearcutsectionflag/when:Now
+		RTS
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main slice code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+Slice		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get saw
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+
+;		 Message jump table starts here.
+;		 Check to see if the marquee has sent me a set of objects
+_Check_inputmsg	CHKMSG	A:R2
+		BNEQUAL	A:R2,Msg:Marqueedset,A:_End_slice&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+		UNQMSG	A:R3				; get sliceable set
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; is slicer active?
+		BFALSE	A:R2,A:_End_slice&		; no, ignore it
+
+;		 slice marqueed objects
+
+		PUSH	A:R3
+		JSR	A:_Slice_sub&
+
+		JUMP	A:_End_slice&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_slice&		; Is event still active?
+
+		OWNER	A:R1,Const:Motherobj		; Is slicer Active?
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_slice&		; no,quit
+
+;	Do a slice upon a pick, barring selectable toolpads.
+
+;		 Is Opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_End_slice&	
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_slice&
+
+;		Are there selectable toolpads?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_slice&		; yes, let toolpad work
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_slice&		; yes, let headpad work
+
+		ADDPROP	A:R1*,Prop:Toolused		; let toolpad know
+;							; the saw was used
+
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*,A:R2		; if no objects
+		BEMPTY	A:R2,A:_End_slice&		; are selectable, quit
+
+_Do_slice	WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*, A:R2
+		WORLD	Const:WEnvironment_world
+		PUSH	A:R2
+		JSR	A:_Slice_sub&
+		WIPE	A:XOP*				; no picking please!
+
+		MAKEMSG	Msg:Attachtool
+		MAKEMSG	A:R1*
+; 		 adopt me to any free toolpad
+		QMSG	Prop:Toolpadempty*,Const:Prioritymsg 
+
+		JUMP	A:_End_slice&
+
+_End_slice	WORLD	Const:WEnvironment_world
+		RTS

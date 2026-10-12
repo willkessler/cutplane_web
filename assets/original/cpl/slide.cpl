@@ -1,0 +1,80 @@
+;
+;		CPL Slide Pad Private Code
+;		Date: February 10,1991
+;		Version: 2
+;
+;		*** Pushbutton-Style Interface ***
+;
+
+; A property that defines an object as a slide holder created by the slideer
+; code
+
+Slidepicked	DEFPROP
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Slide subroutines
+; WARNING: The following routines make extensive use of R6,R7,R8,R9... so
+; save 'em if you wan' 'em!
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+Slide		OWNER	A:R1,Const:Motherobj		; Get slideer
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+		JUMP	A:_End_slide&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+
+_Check_events	BWIPED	AA:XOP*,A:_End_slide&		; Event still active?
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_trans&
+;		 Are you picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_slide&
+
+;		if you were holding a tool, that's ok, just let it stay active,
+;		but trap the pick (which the tool presumably has already passed
+;		up).
+
+_Pick_slide	ADDPROP	A:R1*,Prop:Slidepicked
+		JUMP	A:_End_slide&
+
+
+;		 Event is a TRANSLATE?
+
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_release&
+
+;		Check to see if we are dragging stuff.
+
+;		 TRANSlating picked?
+_Trans_picked	BNEQUAL	AA:XAS,Prop:Picked,A:_End_slide&
+
+		HASPROP	A:R1*,Prop:Slidepicked,A:R2,Const:Self
+		REMPROP	A:R1*,Prop:Slidepicked
+		JUMP	A:_End_slide&
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_slide&
+; 		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_slide&
+
+		OWNER	A:R1,Const:Motherobj		; Get slide
+		HASPROP	A:R1*,Prop:Slidepicked,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_slide&
+
+		CRTN	Crtn:toggle_slide
+		GLUPDATE Const:URedrawflag/when:Now
+		REMPROP	A:R1*,Prop:Slidepicked
+
+		JUMP	A:_End_slide&
+
+_End_slide	RTS
+
+; =-=-=-=-=-=-=-= Local vars here =-=-=-=-=-=-=-=-=-=-=-=-=-=
+

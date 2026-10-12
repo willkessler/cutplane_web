@@ -1,0 +1,200 @@
+
+;		CPL Toolbox Property Codes
+;		Date: October 20,1990	
+;		Version: 1
+
+
+;   Usual order for args is:
+;   opcode,source,target,data
+;   Some or all of these args may be missing but they cannot be out of this
+;   order.
+
+;  A: means this CPL_word has a CPL pointer.
+;  AA: means this CPL_word has a CPL handle.
+;    * means the "Contents_of" flag in the CPL_word is set to true, meaning,
+;    take the contents of this pointer/handle.
+;    & means the "Address_of" flag in the CPL_word is set to true, meaning
+;    store the address of the CPL_word itself.
+
+;		Code for toolbox.
+
+
+Toolboxopen	DEFPROP
+
+; if toolbox has this property, it should not open/close itself on release
+Toolboxdragged	DEFPROP
+
+Toolbox		DEFPROP
+
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;  Toolbox subroutines... can be called by toolbox occupants as well.
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; Open a closed toolbox, unless it was dragged. Toolbox passed on stack.
+; Uses R8 and R9.
+
+Open_toolbox	POP	A:R8
+		HASPROP	A:R8*,Prop:Toolboxdragged,A:R9,Const:Self ; dragged?
+		BTRUE	A:R9,A:_Oclear_dragged&		; yes, clear dragged
+
+;		otherwise, open the box
+		OWNER	A:R8,Const:Motherobj
+		DESCEND	A:R8*,A:R9			; Get toolbox occupants
+		ADDPROP	A:R9*,Prop:Visible		; Make them visible
+		PUSH	A:R8				; arrange occupants
+		CRTN	Crtn:arrange_prims
+		POP	A:R8
+		ADDPROP	A:R8*,Prop:Toolboxopen		; Mark box open
+		UPDATE	A:R8*,Const:UComputebboxflag/when:Now
+		JUMP	A:_End_open&
+
+_Oclear_dragged	REMPROP	A:R8*,Prop:Toolboxdragged
+_End_open	RTS
+
+; Close an open toolbox, unless it was dragged. Toolbox passed on stack.
+; Uses R7,R8 and R9.
+
+Close_toolbox	POP	A:R7
+		HASPROP	A:R7*,Prop:Toolboxdragged,A:R8,Const:Self ; dragged?
+		BTRUE	A:R8,A:_Cclear_dragged&		; yes, clear dragged
+
+;		otherwise, close the box	
+		DESCEND	A:R7*,A:R8			; Get toolbox occupants
+		HASPROP	A:R8*,Prop:Hideable,A:R9,Const:Self
+		REMPROP	A:R9*,Prop:Visible		; Make them invisible.
+		UNSEL	A:R9*				; Unselect them.
+		REMPROP	A:R7*,Prop:Toolboxopen		; Mark box closed
+		UPDATE	A:R7*,Const:UMakecutsectionflag/when:Now
+		UPDATE	A:R8*,Const:UComputebboxflag/when:Now
+		JUMP	A:_End_close&
+
+_Cclear_dragged	REMPROP	A:R7*,Prop:Toolboxdragged
+_End_close	RTS
+
+;		Dunk passed objects into the toolbox.
+
+Dunk		POP	A:R9
+		OWNER	A:R1,Const:Motherobj		; Get toolbox
+		REMPROP	A:R9*,Prop:Visible
+;		MAKEMSG	Msg:Unpick
+;		QMSG	A:R9*,Const:Prioritymsg		; unpick dunked objs
+		ADOPT	A:R1*,A:R9*,Const:TRUE
+		RTS
+		
+;		Dunk passed objects into the toolbox and make them primitives.
+
+Dunk_prim	POP	A:R9
+		ADDPROP	A:R9*,Prop:Hideable
+		ADDPROP	A:R9*,Prop:Stamp
+		ADDPROP	A:R9*,Prop:Lockedgeometry
+		PUSH	A:R9
+		JSR	A:Dunk&
+		RTS
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;  Main toolbox code starts here
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Toolbox		STARTPROP
+		BWIPED	AA:XOP*,A:_End_toolbox&		; Event still active?
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get toolbox
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_trans&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+;		 Check for open toolbox msg.
+_Check_openmsg	BNEQUAL	A:R2,Msg:Opentoolbox,A:_Check_closemsg&
+		PUSH	A:R1
+		JSR	A:Open_toolbox&
+		JUMP	A:_End_toolbox&
+
+;		 Check for close toolbox msg.
+_Check_closemsg	BNEQUAL	A:R2,Msg:Closetoolbox,A:_Check_dunkmsg&
+		PUSH	A:R1
+		JSR	A:Close_toolbox&
+		JUMP	A:_End_toolbox&
+
+;		 Check for dunk (goodies-style) msg.
+_Check_dunkmsg	BNEQUAL	A:R2,Msg:Dunkobject,A:_Check_primsg&
+		UNQMSG	A:R3				; get dunked object
+		PUSH	A:R3
+		JSR	A:Dunk&
+		JUMP	A:_End_toolbox&
+
+;		 Check for dunk (stamp-style) msg.
+_Check_primsg	BNEQUAL	A:R2,Msg:Dunkprim,A:_End_toolbox&
+		UNQMSG	A:R3				; get dunked primitive
+		PUSH	A:R3
+		JSR	A:Dunk_prim&
+		JUMP	A:_End_toolbox&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;		Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_pick&
+
+;		Check to see if we are dragging stuff.
+
+;		TRANSlating picked?
+_Trans_picked	BNEQUAL	AA:XAS,Prop:Picked,A:_Check_pick& 
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; Is box picked?
+		BFALSE	A:R2,A:_End_toolbox&		; No,quit
+
+;		if this toolbox was not marked as dragged, mark it
+		HASPROP	A:R1*,Prop:Toolboxdragged,A:R2,Const:Self
+		BTRUE	A:R2,A:_Transtoolbox&		;
+		ADDPROP	A:R1*,Prop:Toolboxdragged	;
+_Transtoolbox	TRANS	A:R1*,Const:Quicktranslate,AA:XAD ; Now translate the box
+
+_Transwipe	WIPE	A:XOP*
+		JUMP	A:_End_toolbox&
+
+; 	Handle a pick
+
+;		Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		If so, picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_toolbox&
+
+_Pick_toolbox	OWNER	A:R1,Const:Motherobj		; Get toolbox
+		PICK	A:R1*				; pick it
+		WIPE	A:XOP*				; kill pick
+		JUMP	A:_End_toolbox&
+
+;		Handle a release
+
+;		Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_toolbox&
+;		Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_toolbox&
+
+		OWNER	A:R1,Const:Motherobj		; Get toolbox
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; box picked? if no,
+		BFALSE	A:R2,A:_End_toolbox&		; quit
+
+_Unpick_toolbox	UNPICK	A:R1*				; yes, unpick it
+
+_Try_opening_it	HASPROP	A:R1*,Prop:Toolboxopen,A:R2,Const:Self
+		BTRUE	A:R2,A:_Close_it&		; if open,try to close
+
+_Open_it	PUSH	A:R1
+		JSR	A:Open_toolbox&
+		JUMP	A:_Clear_release&
+
+_Close_it	PUSH	A:R1
+		JSR	A:Close_toolbox&
+
+_Clear_release	WIPE	A:XOP*
+
+_End_toolbox	BMSGS	A:R1,A:_Check_messages&
+		RTS
+

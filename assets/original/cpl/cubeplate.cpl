@@ -1,0 +1,74 @@
+;
+;		CPL Private Code: The cube input plate
+;		Date: May 26,1991
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+Cube_Plate	OWNER	A:R1,Const:Motherobj		; Get cubeplate
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		CHKMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check to see if an object has sent me an info rec.
+_Check_inforec	BNEQUAL	A:R2,Msg:Incominginfo,A:_Createpacket?&
+		UNQMSG	A:R2
+		UNQMSG	A:_Oldcube			; get old cube
+		UNQMSG	A:_Newlength			; get length
+		UNQMSG	A:_Newidth			; get width
+		UNQMSG	A:_Newheight			; get height
+;		Send the values off to the constituent fields.... note that
+;		the old cube itself is kept here for safekeeping.
+		MAKEMSG	Msg:Incomingvalue
+		MAKEMSG	A:_Newlength
+		QMSG	Obj:Cube_length,Const:Prioritymsg
+		MAKEMSG	Msg:Incomingvalue
+		MAKEMSG	A:_Newidth
+		QMSG	Obj:Cube_width,Const:Prioritymsg
+		MAKEMSG	Msg:Incomingvalue
+		MAKEMSG	A:_Newheight
+		QMSG	Obj:Cube_height,Const:Prioritymsg
+
+		JUMP	A:_End_cubeplate&
+
+_Createpacket?	BNEQUAL	A:R2,Msg:Createpacket,A:_Check_events&
+		UNQMSG	A:R2
+		CHLDRN	A:R1*,A:R2
+;		Make all the plate's fields put their values on the stack.
+		MAKEMSG	Msg:Getsize
+		QMSG	A:R2*,Const:Prioritymsg
+		JSRAT	A:R2*,Code:Private_code
+		PUSH	A:_Oldcube			; pass C the previous
+;							; primitive...
+		CRTN	Crtn:generate_info_rec		; make a new prim rec...
+		POP	A:_Newinfo			; et hop! ca y est!
+		MAKEMSG	Msg:Recreateprim
+		MAKEMSG	A:_Newinfo
+		QMSG	Obj:MeasurePad,Const:Prioritymsg
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	NOP
+_End_cubeplate	RTS					; totally eventless!
+
+; =-=-=-=-=-=-=-= Local vars =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 
+
+;	This is storage for the information pieces passed in and back out to
+;	the cube creation routines.
+
+_Oldcube	CPLDATA
+_Newlength	CPLDATA
+_Newidth	CPLDATA
+_Newheight	CPLDATA
+_Newinfo	CPLDATA
+

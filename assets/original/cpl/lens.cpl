@@ -1,0 +1,90 @@
+;
+;		CPL Nikon Camera Lens Private Code
+;		Date: February 17,1991
+;		Version: 1
+;
+;
+
+; This private code pivots the camera to follow the xhair allowing you to aim it
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Lens subroutines
+; WARNING: The following routines make extensive use of R6,R7,R8,R9... so
+; save 'em if you wan' 'em!
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+Lens		OWNER	A:R1,Const:Motherobj		; Get lens
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+		JUMP	A:_End_lens&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+
+_Check_events	BWIPED	AA:XOP*,A:_End_lens&		; Event still active?
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_trans&
+;		 Are you picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_lens&
+
+_Pick_lens	PICK	A:R1*
+		WIPE	A:XOP*
+		JUMP	A:_End_lens&
+
+
+;		 Event is a TRANSLATE?
+
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_release&
+
+;		Check to see if we are dragging stuff.
+
+;		 TRANSlating picked?
+_Trans_picked	BNEQUAL	AA:XAS,Prop:Picked,A:_End_lens&
+
+		PARENT	A:R1*,A:R2			; get camera body
+		PUSH	A:R1
+		PUSH	A:R2
+		PUSH	AA:XAD*
+		CRTN	Crtn:rotate_camera
+		POP	A:R3
+		ROTATE	A:R2*,A:R3
+		UPDATE	A:R3*,Const:UAllupdateflags/when:Now
+
+;	This is how things SHOULD be done sometime soon
+;		HASPROP	A:R2*,Prop:Hotspot,A:R3,Const:Subfeatures ; get hotface
+;		DIFF3D	A:R3*,
+;		DOTPROD
+;		XPROD
+;		ROTATE
+
+;		redraw the camera view via C code for now... yecch
+		PUSH	A:R2
+		CRTN	Crtn:set_camera
+		WIPE	A:XOP*				; wipe trans!
+
+		JUMP	A:_End_lens&
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_lens&
+; 		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_lens&
+
+		OWNER	A:R1,Const:Motherobj		; Get lens
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_lens&
+
+		UNPICK	A:R1*
+		WIPE	A:XOP*
+
+_End_lens	RTS
+
+; =-=-=-=-=-=-=-= Local vars here =-=-=-=-=-=-=-=-=-=-=-=-=-=
+

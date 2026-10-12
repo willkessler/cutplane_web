@@ -1,0 +1,116 @@
+;
+;		CPL Rotate Tool Code
+;		For the baubles of the rotate tool
+;		Date: October 26,1990	
+;		Version: 1
+;
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Rotatexbaron	DEFPROP				
+Baubleon	DEFPROP
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Main code
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Rotatebauble	BWIPED	AA:XOP*,A:_End_bauble&		; Event still active?
+
+_Check_activate	OWNER	A:R1*,Const:Mothervfe		; Bauble selectable?
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self
+		BFALSE	A:R2*,A:_End_bauble&		; no, quit
+
+_Check_transit	BEMPTY	Prop:Rotatexbaron*,A:_Check_pick& ; an xbar in use?
+		REMPROP	Prop:Rotatexbaron*,Prop:Rotatexbaron ; if so, turn it off
+		JSR	A:_Activatebauble&		; and turn on bauble
+		WIPE	A:XOP*				; eat the TRANS
+		JUMP	A:_Check_trans2&
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_bauble&
+
+		WIPE	A:XOP*				; eat the PICK
+;		Make sure to turn off acceleration selection checks.
+		PUSH	Const:TRUE
+		CRTN	Crtn:always_set_select
+
+		JSR	A:_Activatebauble&		; yes, turn on bauble
+		JUMP	A:_End_bauble&			; and quit
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_trans&
+;		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_bauble&
+
+		WIPE	A:XOP*				; yes,eat the RELEAS
+;		Make sure to turn acceleration selection checks back on.
+		PUSH	Const:FALSE
+		CRTN	Crtn:always_set_select
+
+		JSR	A:_Deactivatebubl&		; turn off bauble
+		JUMP	A:_End_bauble&			; quit
+
+_Check_trans	OWNER	A:R1,Const:Mothervfe		; Get bauble
+		HASPROP	A:R1*,Prop:Baubleon,A:R2,Const:Self ; active?
+		BFALSE	A:R2*,A:_End_bauble&		; no, quit
+
+;		 Is event a translate?
+_Check_trans2	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_End_bauble&
+;		 Translating crosshair?
+	    	BNEQUAL	AA:XAS,Env:Crosshair_part,A:_Check_transpk&
+
+;		Constrain TRANS using a C call and get a rotate info record
+;		into R2
+
+		MOVE	Prop:Selectable,A:R4		; these are just bogus
+		MOVE	A:R4,A:R5
+		PUSH	A:R5				; (filler)
+		PUSH	A:R4				; (filler)
+		PUSH	A:R1				; pass bauble
+		PUSH	AA:XAD*				; pass translate rec
+		CRTN	Crtn:bauble_rotate
+		POP	AA:XAD				; get back new trans
+		POP	A:R6				; get back tool rot rec
+		POP	A:R1				; get back obj rot rec
+		POP	A:R4				; get back what to unpick
+		POP	A:R5				; get back whether
+;							; returned to xbar
+		WORLD	Const:WPrimary_world		; select main world
+		UNPICK	A:R4*				; unpick the snapped
+		ROTATE	Prop:Picked*,A:R1		; rotate the picked
+		ADDPROP	Prop:Selectable*,Prop:Nonselectable
+		UNSEL	Prop:Selectable*
+		WORLD	Const:WEnvironment_world	; go back to env.
+
+		BNEMPTY	A:R5,A:_End_bauble&		; went back to xbar. 
+;						; NOTE:xbar deactivates me
+
+_Rotateowner	OWNER	A:R2,Const:Motherobj		; otherwise
+		ROTATE	A:R2*,A:R6			; rotate the tool about Z
+_Terminator	JUMP	A:_End_bauble&			; quit
+
+_Check_transpk 	BNEQUAL	AA:XAS,Prop:Picked,A:_End_bauble&
+
+_Kill_transpk	WIPE	A:XOP*				; kill picked translate
+
+
+_End_bauble	RTS
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Subroutines
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Activatebauble	OWNER	A:R1,Const:Mothervfe
+		ADDPROP	A:R1*,Prop:Baubleon		; mark the bauble in use
+		RTS
+
+_Deactivatebubl	OWNER	A:R1,Const:Mothervfe		; Yes, get bauble
+		REMPROP	A:R1*,Prop:Baubleon		; unmark bauble usage
+		WORLD	Const:WPrimary_world
+		REMPROP	Prop:Nonselectable*,Prop:Nonselectable
+		WORLD	Const:WEnvironment_world	; go back to env.
+
+		RTS

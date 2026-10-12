@@ -1,0 +1,88 @@
+
+;		CPL Paint Property Codes: For Paint Chip w/color bars
+;		Date: December 2 1990
+;		Version: 2
+
+
+;		Code for a routine that calls painting upon a release
+
+Paint		DEFPROP
+
+Paint		STARTPROP
+		BWIPED	AA:XOP*,A:_End_paint&		; Is event still active?
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get toolbox
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check for adopting a new color message.
+_Check_colormsg	BNEQUAL	A:R2,Msg:Adoptcolor,A:_End_paint&
+		UNQMSG	A:R3
+		SETCOLOR A:R1*,A:R3*			; set this object's color
+		JUMP	A:_End_paint&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;		Is owner in painting?
+_Check_events	HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; Is object active?
+		BFALSE	A:R2,A:_Check_pick&		; no, see if it should be
+
+;		Check to see if we are dragging stuff.
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_release&
+;		 TRANSlating picked?
+_Trans_picked	BNEQUAL	AA:XAS,Prop:Picked,A:_Check_release&	
+
+;		 Else, translate the obj
+_Transobject	TRANS	A:R1*,Const:Quicktranslate,AA:XAD
+		WIPE	A:XOP*				; wipe TRANS
+		JUMP	A:_End_paint&			; and quit
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_paint&
+;		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_paint&
+
+		GETCOLOR A:R1*,A:R2
+		MAKEMSG	Msg:Adoptcolor
+		MAKEMSG	A:R2
+		WORLD	Const:WPrimary_world		; color the selectables 
+		MOVE	Prop:Selectable*,A:R2
+		WORLD	Const:WEnvironment_world
+		OR	Obj:Lightbulb*,A:R2*,A:R3	; and the lightbulb
+		QMSG	A:R3*,Const:Prioritymsg ; send this color
+
+		UNPICK	A:R1*
+		REMPROP	A:R1*,Prop:Active
+		WTRANS	A:R1*,Const:WPrimary_world	; put me in primary world
+		CPDELETE	A:R1*				; and commit sapuku!
+		WIPE	A:XOP*
+		JUMP	A:_End_paint&
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_Check_release&
+
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_paint&		; no, quit
+
+		UNPICK	Prop:Picked*			; Unpick other env objs
+		DUP	A:R1*,A:R2			; Make a duplicate
+		ADDPROP	A:R2*,Prop:Active		; Mark dup as painting
+		PICK	A:R2*				; So duplicate will TRANS
+		WIPE   	A:XOP*				; Wipe this PICK
+
+
+_End_paint	RTS
+
+

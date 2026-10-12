@@ -1,11 +1,15 @@
 # Cutplane
 
+![The Discovery, built in 3Form in 1991, loaded from its original .cut file](docs/images/demo.gif)
+
 A browser-native rebuild of **Cutplane / 3Form**, the late-1980s SGI 3D modeler built around a
 _moving section plane_. You push a plane through the room, and wherever it slices your solids you
 see their cross-sections. Vertices, edges and faces are picked and edited where they cross it.
 
-> **Status: M0 (scaffold).** The app currently renders the empty room and the cutplane.
-> See the [roadmap](docs/README.md#roadmap).
+> **Status: M1 (geometry kernel and `.cut` files).** The animation shows the _Discovery_,
+> modeled in 3Form in April 1991 and loaded unchanged from its original `disc4.cut`, in a
+> preview renderer. Sectioning, editing and tools come next. See the
+> [roadmap](docs/README.md#roadmap).
 
 ## Quick start
 

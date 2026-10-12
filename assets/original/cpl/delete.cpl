@@ -1,0 +1,33 @@
+
+;		CPL code to allow object deletion.
+;		Date: February 10,1990
+;		Private code for this single tool
+;		Version: 1
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get deleter
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check for doing a delete.
+_Checkdeletemsg	BNEQUAL	A:R2,Msg:Activate,A:_End_delete&
+;		If the message included a deletable set, get it. Otherwise
+;		delete picked objects in the primary world.
+		BNOMSGS	A:R1,A:_Delete_picked&
+		UNQMSG	A:R3				; get killable set
+		JUMP	A:_Do_delete&			; passed with message
+
+_Delete_picked	WORLD	Const:WPrimary_world
+		MOVE	Prop:Picked*,A:R3
+
+_Do_delete	MAKEMSG	Msg:Delete
+		QMSG	A:R3*,Const:Noprioritymsg
+
+_End_delete	BMSGS	A:R1,A:_Check_messages&
+		WORLD	Const:WEnvironment_world
+		RTS

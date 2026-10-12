@@ -1,0 +1,152 @@
+;
+;		CPL Private Code: The measurepad message center
+;		Date: May 25,1991
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+MeasurePad	OWNER	A:R1,Const:Motherobj		; Get measurepad
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		CHKMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check to see if an object has sent me an info rec.
+_Check_inforec	BNEQUAL	A:R2,Msg:Incominginfo,A:_Check_hideplates&
+		UNQMSG	A:R2
+		UNQMSG	A:_Oldprim			; get old prim.
+		UNQMSG	A:_Newinfo			; get info rec.
+;		Here, decide which primitive the info rec refers to, and
+;		store the name of the relevant info pad away to be displayed.
+		PUSH	A:_Newinfo
+		CRTN	Crtn:get_plate_by_name		; get the relevant input
+;							; plate by its name.
+
+		POP	A:_Activeplate
+
+;		If there is more than one thing picked, use the distance plate,
+;		with the first two items picked to measure distance.
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Picked*,A:_Primary_pix
+		WORLD	Const:WEnvironment_world
+		COUNT	A:_Primary_pix,A:R4
+		BNEQUAL	A:R4,Const:I1,A:_Setup_dist&
+
+;		Don't do activate/deactivate stuff if important plate is already
+;		active...
+;		HASPROP	A:_Activeplate*,Prop:Active,A:R3,Const:Self
+;		BTRUE	A:R3,A:_Sendinfo&
+
+;		Tell previously active plate (if there was one) to deactivate
+		JSR	A:_Deactivate_plates&
+
+;		Tell a new plate to activate
+		MAKEMSG	Msg:Activate
+		QMSG	A:_Activeplate*,Const:Prioritymsg
+		JSRAT	A:_Activeplate*,Code:Property_code
+
+;		MOTHER	A:_Oldprim*,A:R3,Const:Motherobj
+;		NOT	A:R3,A:_Oldprim,A:R4
+;		BNEMPTY	A:R4,A:_Sendinfo&
+
+;		If you got an actual object prim, also turn on the Name_Plate
+		MAKEMSG	Msg:Activate
+		QMSG	Obj:Name_Plate,Const:Prioritymsg
+		MAKEMSG	Msg:Incomingname
+		MAKEMSG	A:_Oldprim*
+		QMSG	Obj:Name_Field,Const:Prioritymsg
+
+;	Forward the information as a message to the concerned plate
+;	after breaking it up into pieces... uses C routine, kinda a hack,
+;	because the Croutine DIRECTLY enters the pieces into the global message
+;	queue and CPL assumes they are there and just does a QMSG.
+
+_Sendinfo	MAKEMSG	Msg:Incominginfo
+		MAKEMSG	A:_Oldprim*			; send ptr to old prim
+		PUSH	A:_Newinfo			; send info about it,
+		CRTN	Crtn:breakup_info_rec		; broken up
+		QMSG	A:_Activeplate*,Const:Prioritymsg
+		JUMP	A:_End_measurepad&
+
+_Setup_dist	JSR	A:_Deactivate_plates&
+		MAKEMSG	Msg:Activate
+;		Send the distance plate a message that it should remeasure the
+;		distance between the first two picked items, also passed.
+		QMSG	Obj:Distance_Plate,Const:Prioritymsg
+		MAKEMSG	Msg:Remeasure
+		DEBUG	Const:FALSE
+		INDEX	A:_Primary_pix,A:R4,Const:I1	; assume this var has
+		MAKEMSG	A:R4*				; Picked*, see above
+		INDEX	A:_Primary_pix,A:R4,Const:I2	; branch to here.
+		MAKEMSG	A:R4*
+		QMSG	Obj:Distance_Plate,Const:Prioritymsg
+		JUMP	A:_End_measurepad&
+
+_Check_hideplates BNEQUAL A:R2,Msg:Hideplates,A:_Check_recreate&
+		UNQMSG	A:R2
+		MAKEMSG	Msg:Deactivate
+		CHLDRN	A:R1*,A:R2
+		HASPROP	A:R2*,Prop:Visible,A:R3,Const:Self
+		QMSG	A:R3*,Const:Prioritymsg
+		JSRAT	A:R3*,Code:Property_code
+		MAKEMSG	Msg:Activate
+		QMSG	Obj:Name_Plate,Const:Prioritymsg
+		JUMP	A:_End_measurepad&
+
+_Check_recreate	BNEQUAL A:R2,Msg:Recreateprim,A:_Check_events&
+		UNQMSG	A:R2
+		UNQMSG	A:_Newinfo			; get info packet...
+		PUSH	A:_Oldprim
+		PUSH	A:_Newinfo
+		CRTN	Crtn:remake_prim
+		POP	A:_Newprim
+		MAKEMSG	Msg:Pick
+		QMSG	A:_Newprim*,Const:Prioritymsg
+
+		MAKEMSG	Msg:Delete
+		QMSG	A:_Oldprim*,Const:Prioritymsg
+
+;		Tell myself to reset everything onto the new prim... gag hack
+		MAKEMSG	Msg:Incominginfo
+		MAKEMSG	A:_Newprim*
+		GETPROP	A:_Newprim*,Prop:Primitive,A:R3
+		MAKEMSG	A:R3
+		QMSG	A:R1*,Const:Prioritymsg	
+		JUMP	A:_End_measurepad&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	NOP
+_End_measurepad	RTS					; totally eventless!
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Measurepad subroutines
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Deactivate_plates MAKEMSG Msg:Deactivate
+		CHLDRN	A:R1*,A:R2
+;		HASPROP	A:R2*,Prop:Active,A:R3,Const:Self
+		QMSG	A:R2*,Const:Prioritymsg
+		JSRAT	A:R2*,Code:Property_code
+		RTS
+
+
+; =-=-=-=-=-=-=-= Local vars =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 
+
+;	This is storage for the information rec passed in and back out to
+;	the primitive creation routines.
+
+_Newinfo	CPLDATA
+_Activeplate	CPLDATA
+_Oldprim	CPLDATA
+_Newprim	CPLDATA
+_Primary_pix	CPLDATA

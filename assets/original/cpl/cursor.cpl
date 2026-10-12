@@ -1,0 +1,329 @@
+;
+;		CPL Cursor Code
+;		Date: November 28,1990	
+;		Version: 2
+;
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; marks an object as a marquee
+Marquee		DEFPROP
+
+;  marks cursor_obj as having started a marquee
+Marqueeing	DEFPROP
+
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main system cursor code starts here			     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	This code allows you to unpick everything by picking off everything
+;	and to start marquees...
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+Cursor		OWNER	A:R1,Const:Motherobj		; Get magnetic
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Check topmost message
+		CHKMSG	A:R2
+
+;		 Message jump table starts here.
+;		 Check to see jump plane message has been sent.
+_Check_jumpmsg	BNEQUAL	A:R2,Msg:Jumplane,A:_Jump_cancel&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Actually jump the plane here...
+		BTRUE	A:_Plane_jumped,A:_Jump_back&
+
+		DIFF3D	Env:Crosshair_part,Obj:Room_Backwall,A:_Plane_jumpvec
+		TRNSFRM	A:_Plane_jumpvec,A:R2,Const:M[{0.0,0.0,0.0,0.0},{0.0,0.0,0.0,0.0},{0.0,0.0,1.0,0.0},{0.0,0.0,0.0,1.0}]
+		MOVE	A:R2,A:_Plane_jumpvec
+		MOVE	Const:TRUE,A:_Plane_jumped
+		TRANS	Env:Crosshair_part,Const:Normaltranslate,A:_Plane_jumpvec
+;	Bring things along with plane.
+		WORLD	Const:WPrimary_world
+		TRANS	Prop:Grabbed*,Const:Normaltranslate,A:_Plane_jumpvec
+		WORLD	Const:WEnvironment_world
+		TRANS	Prop:Picked*,Const:Normaltranslate,A:_Plane_jumpvec
+		GLUPDATE Const:URedrawflag/when:Now
+		MOVE	Prop:Visible*,A:R9
+		JUMP	A:_End_cursor&
+
+_Jump_back	TRNSFRM	A:_Plane_jumpvec,A:R2,Const:M[{0.0,0.0,0.0,0.0},{0.0,0.0,0.0,0.0},{0.0,0.0,-1.0,0.0},{0.0,0.0,0.0,1.0}]	
+		MOVE	A:R2,A:_Plane_jumpvec
+		TRANS	Env:Crosshair_part,Const:Normaltranslate,A:_Plane_jumpvec
+		TRANS	Prop:Picked*,Const:Normaltranslate,A:_Plane_jumpvec
+		WORLD	Const:WPrimary_world
+		TRANS	Prop:Grabbed*,Const:Normaltranslate,A:_Plane_jumpvec
+		WORLD	Const:WEnvironment_world
+		MOVE	Const:FALSE,A:_Plane_jumped
+		GLUPDATE Const:URedrawflag/when:Now
+
+		JUMP	A:_End_cursor&
+
+;		 Cancel a jump if the plane was moved manually because the
+;		 stored position, _Plane_jumpvec, becomes invalid.
+
+_Jump_cancel	BNEQUAL	A:R2,Msg:Canceljump,A:_Constrain_msg&
+		MOVE	Const:FALSE,A:_Plane_jumped
+
+		JUMP	A:_End_cursor&
+
+_Constrain_msg	BNEQUAL	A:R2,Msg:Constraining,A:_Check_zpause&
+		UNQMSG	A:R2
+		UNQMSG	A:_Constraining			; Turns constrain on/off
+
+		WORLD	Const:WPrimary_world
+		AND	Prop:Selectable*,Prop:Scalebbox*,A:R2
+		BEMPTY	A:R2,A:_End_constrainmsg&
+
+;		 Forward constrain message to any picked scalebboxes.
+		MAKEMSG	Msg:Constraining
+		MAKEMSG	A:_Constraining
+		QMSG	A:R2*,Const:Prioritymsg
+
+_End_constrainmsg WORLD	Const:WEnvironment_world
+		JUMP	A:_End_cursor&
+
+_Check_zpause	BNEQUAL	A:R2,Msg:PauseinZ,A:_Check_bogus&
+		BFALSE	A:_Constraining,A:_End_zpause&
+
+;		if constraining and I get a zpause message, turn on pausing
+;		for a limited time only (act now!)
+
+		MOVE	Const:TRUE,A:_Paused
+		MOVE	Const:I20,A:_Pause_counter
+_End_zpause	WORLD	Const:WEnvironment_world
+		JUMP	A:_End_cursor&
+
+
+_Check_bogus	BNEQUAL	A:R2,Msg:Incomingsize,A:_End_cursor&
+		UNQMSG	A:R2
+		UNQMSG	A:R3
+
+		JUMP	A:_End_cursor&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_cursor&		; Is event still active?
+
+; 	on TRANS: if marqueeing, extend marquee
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_pick&
+
+;		 Translating picked?
+	    	BNEQUAL	AA:XAS,Prop:Picked,A:_Check_xhtrans&
+
+;		Paused in Z move?
+		BFALSE	A:_Paused,A:_Check_constrain&
+		BNEQUAL	A:_Pause_counter,Const:I0,A:_Decrement_pause&
+		MOVE	Const:FALSE,A:_Paused
+		JUMP	A:_Finish_trans&
+
+_Decrement_pause ADD	A:_Pause_counter,Const:I-1,A:_Pause_counter
+		JUMP	A:_Finish_trans&
+		
+
+;		 Constrain translates if constraining...	
+_Check_constrain BFALSE	A:_Constraining,A:_More_pktrans&
+		MOVE	Const:FALSE,A:_Constrained_already
+		PUSH	AA:XAD*
+		CRTN	Crtn:normal_constrain
+		POP	AA:XAD
+		MOVE	AA:XAD,A:_ConstrainedXAD
+		MOVE	Const:TRUE,A:_Constrained_already
+
+_More_pktrans	OWNER	A:R1,Const:Motherobj
+		HASPROP	A:R1*,Prop:Marqueeing,A:R2,Const:Self 
+		BFALSE	A:R2,A:_End_cursor&		; no, quit
+
+;		Is marquee visible yet?
+		HASPROP	A:_Thismarquee*,Prop:Visible,A:R2,Const:Self
+		BNEMPTY	A:R2,A:_Extend_marquee&
+		ADDPROP	A:_Thismarquee*,Prop:Visible	; make it so #1!
+
+;		 translate corner to extend marquee
+_Extend_marquee	TRANS	A:_Marquee_corner*,Const:Normaltranslate,AA:XAD
+
+
+_Finish_trans	WIPE	A:XOP*				; Kill picked trans!
+		JUMP	A:_End_cursor&
+
+;		 Is Opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BEQUAL	AA:XAS,Prop:Selectable,A:_Do_sel_pick&
+
+_Plane_pick?	BNEQUAL	AA:XAS,Env:Cutplane_part,A:_End_cursor&
+		MOVE	Const:FALSE,A:_Paused		; not paused initially
+		WIPE	A:XOP*				; plane never really
+;							; gets picked!
+		JUMP	A:_End_cursor&
+
+;	Check to see if anything in either the primary or the environment
+;	worlds are selectable and if so, do not start marquee, but
+;	let CPnormal code do its job.  This should be generalized via POINTER
+;	to the Primary_world via WW register or something so that it can be
+;	changed to whatever the working world currently is...
+
+_Do_sel_pick	WORLD	Const:WPrimary_world
+		BNEMPTY	Prop:Selectable*,A:_End_cursor&
+		OWNER	A:R1,Const:Motherobj
+		WORLD	Const:WEnvironment_world
+		BNEMPTY	Prop:Selectable*,A:_End_cursor&
+
+; allow escaping by picking on border of plane... demo to AVI VC's only
+_Check_escape	CRTN	Crtn:cursor_on_border
+		POP	A:R2
+		BFALSE	A:R2,A:_Mark_marquee&
+
+;		CRTN	Crtn:turnon_arrowcursor
+;		GLUPDATE Const:URedrawflag/when:Now
+		JUMP	A:_End_cursor&
+
+;	nothing selectable, start marqueeing, mark as marqueeing
+
+_Mark_marquee	ADDPROP	A:R1*,Prop:Marqueeing
+		ADDPROP	A:R1*,Prop:Active		; it gets top priority
+
+;       call c routine to start a marquee... should really be done
+;	with object creation... that way we can leave zoom boxes around
+
+		PUSH	A:R1				; pass cursor to crtn
+		CRTN	Crtn:start_marquee
+		POP	A:R1				; returns marquee obj
+		REMPROP	A:R1*,Prop:Visible		; not visible till grown
+		MOVE	A:R1,A:_Thismarquee		; save marquee object
+		ADDPROP	A:_Thismarquee*,Prop:Marquee	; mark it for other tools
+		HASPROP	A:R1*,Prop:Hotspot,A:R2,Const:Subfeatures ; grab corner
+		MOVE	A:R2,A:_Marquee_corner		; save corner to extend
+
+		JUMP	A:_End_cursor&
+
+;	Handle Release
+
+;		 Working on selectables?
+_Check_release	BNEQUAL	AA:XAS,Prop:Selectable,A:_Plane_releas?&
+;		 Is Opcode a RELEAS?
+		BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_mrelease&
+
+;		 ... so no more continued constrained computes...
+		MOVE	Const:FALSE,A:_Constrained_already
+
+;	on RELEASE: unpick everything already picked, then pick
+;	all the things in the marquee. 
+
+		WORLD	Const:WPrimary_world
+		BNEMPTY	Prop:Selectable*,A:_Finish_marquee&
+
+		MAKEMSG	Msg:Unpick
+		QMSG	Prop:Picked*,Const:Noprioritymsg
+		WORLD	Const:WEnvironment_world
+		UNPICK	Prop:Picked*		
+
+		MAKEMSG	Msg:Hideplates
+		QMSG	Obj:MeasurePad,Const:Prioritymsg
+
+		JUMP	A:_Finish_marquee&
+
+;	on Shift_RELEASE, just do the marquee stuff if marqueeing
+
+;		 Is opcode a shift release?
+
+_Check_mrelease	BNEQUAL	AA:XOP*,Opcd:MRELEAS,A:_Plane_releas?&
+
+;	 	Were you marqueeing?
+_Finish_marquee	OWNER	A:R1,Const:Motherobj
+		HASPROP	A:R1*,Prop:Marqueeing,A:R2,Const:Self 
+		BFALSE	A:R2,A:_End_cursor&		; no, quit, unpick nuthin
+
+		REMPROP	A:R1*,Prop:Marqueeing
+		REMPROP	A:R1*,Prop:Active
+		WORLD	Const:WPrimary_world
+		WITHIN	A:_Thismarquee*,Prop:Visible*,A:R2 ; (Primary world vis.)
+		WORLD	Const:WEnvironment_world
+		ANCEST	A:R2*,A:R3
+		MAKEMSG	Msg:Pick
+		QMSG	A:R3*,Const:Noprioritymsg	; tell 'em to pick em
+		UPDATE	A:R3*,Const:URedrawflag/when:Now
+		MAKEMSG	Msg:Marqueedset
+		MAKEMSG	A:R3
+		QMSG	Prop:Active*,Const:Prioritymsg	; send marqueed set out
+		CPDELETE	A:_Thismarquee*			; kill marquee
+		WIPE	A:XOP*				; kill release
+
+;		Make sure to turn acceleration selection checks back on.
+		PUSH	Const:FALSE
+		CRTN	Crtn:always_set_select
+		JUMP	A:_End_cursor&
+
+_Plane_releas?	BNEQUAL	AA:XAS,Env:Cutplane_part,A:_End_cursor&
+		WIPE	A:XOP*				; you can't really
+;							; release the cutplane
+		JUMP	A:_End_cursor&
+
+_Check_xhtrans	BNEQUAL	AA:XAS,Env:Crosshair_part,A:_End_cursor&
+		BFALSE	A:_Constraining,A:_End_cursor&
+
+;		Paused in Z move?
+		BFALSE	A:_Paused,A:_Check_constrainxh&
+;		 using this again is a bit of spaghetti code.. but acceptable
+;		 for now...
+		BNEQUAL	A:_Pause_counter,Const:I0,A:_Decrement_pause&
+		MOVE	Const:FALSE,A:_Paused
+		JUMP	A:_Finish_trans&
+
+_Check_constrainxh BFALSE	A:_Constrained_already,A:_Do_xhconstrain&
+		
+		MOVE	A:_ConstrainedXAD,AA:XAD
+		JUMP	A:_End_cursor&
+
+_Do_xhconstrain	PUSH	AA:XAD*
+		CRTN	Crtn:normal_constrain
+		POP	AA:XAD
+		JUMP	A:_End_cursor&
+
+_End_cursor	WORLD	Const:WEnvironment_world
+		RTS
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 				LOCAL VARS
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;	local variable to store marquee
+
+_Thismarquee	CPLDATA
+
+;	local variable to store vfe of one corner of marquee
+
+_Marquee_corner	CPLDATA
+
+;	local variable stores whether plane was just jumped to back of room
+_Plane_jumped	CPLDATA					; Boolean value stored
+
+;	Vector from plane to back of room.
+
+_Plane_jumpvec	CPLDATA					
+
+;	Boolean val for whether constraining cursor moves or not...
+;	compare and contrast with constraining during scaling or other uses
+
+_Constraining	CPLDATA
+
+;	Whether the value in _ConstrainedXAD has already been computed during
+;	this refresh...
+_Constrained_already CPLDATA
+
+;	The constrained crosshair delta as computed by CPL_normal_constrain.
+;	Stored here so that picked translations can get it without calling
+;	CPL_normal_constrain twice.
+
+_ConstrainedXAD	CPLDATA
+_Paused		CPLDATA
+_Pause_counter	CPLDATA

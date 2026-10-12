@@ -1,0 +1,61 @@
+;		CPL code to for the color handle, incl stuff like dragonly
+;		Date: December 1,1990	
+;		Version: 1
+
+Color_handle	ISWIPED	AA:XOP*,A:R2			; Event still active?
+		BNE	A:R2,A:_End_colhandle&		; no, quit
+
+_Check_trans	AND	AA:XOP*,Opcd:TRANS,A:R2		; Event is a TRANSLATE?
+		BEQ	A:R2,A:_Check_pick&		; No: Check for release
+
+;		Check to see if we are dragging stuff.
+
+_Trans_picked	AND	AA:XAS,Prop:Picked,A:R2		; TRANSlating picked?
+		BEQ	A:R2,A:_Check_pick&		; No: check for pick
+		OWNER	A:R1,Const:Motherobj		; Get chandle 
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; Is object picked?
+		BEQ	A:R2,A:_Check_pick&		; No: check for pick
+
+;		do color manipulation stuff
+_Trans_colhandl	PUSH	AA:XAD
+;		CRTN	Crtn:color_drag
+;		POP	AA:XAD				; XAD constrains chandle
+
+;		 Else, translate the obj
+		TRANS	A:R1*,Const:Normaltranslate,AA:XAD
+;		CHLDRN	A:R1*,A:R2
+;		UPDATE	A:R2*,Const:Uflag:Allupdateflags/when:Now
+		WIPE	A:XOP*
+
+		RTS
+
+; 	Handle a pick
+
+_Check_pick	AND	AA:XOP*,Opcd:PICK,A:R2		; Is event a pick?
+		BEQ	A:R2,A:_Check_release&		; no, check for release
+		AND	AA:XAS,Prop:Selectable,A:R2	; picking selectables?
+		BEQ	A:R2,A:_Check_release&		; no, check for release
+
+_Pick_obj	OWNER	A:R1,Const:Motherobj		; Get object
+		PICK	A:R1*				; pick it
+		WIPE	A:XOP*				; kill pick
+		JUMP	A:_End_colhandle&
+
+;		Handle a release
+
+_Check_release	AND	AA:XOP*,Opcd:RELEAS,A:R2	; Is event a release?
+		BEQ	A:R2,A:_End_colhandle&		; no, quit
+		AND	AA:XAS,Prop:Selectable,A:R2	; release selectables?
+		BEQ	A:R2,A:_End_colhandle&		; no, quit
+
+		OWNER	A:R1,Const:Motherobj		; Get object
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; obj selectable?
+		BEQ	A:R2,A:_End_colhandle&
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; if object not picked,
+		BEQ	A:R2,A:_End_colhandle&		; quit
+
+_Unpick_chandle	UNPICK	A:R1*				; yes, unpick it
+_Clear_release	WIPE	A:XOP*
+
+_End_colhandle	RTS

@@ -1,0 +1,89 @@
+;
+;		CPL Eraser Code
+;		Date: November 14,1990	
+;		Version: 1
+;
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;		Property definitions
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main eraser code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Erase		DEFPROP	
+
+Erase		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get eraser
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Check topmost msg
+		CHKMSG	A:R2
+
+_Check_flip	BNEQUAL	A:R2,Msg:Fliptool,A:_End_erase&
+		UNQMSG	A:R2				; get topmost msg
+		PUSH	A:R1				; see the tool.cpl
+		JSR	A:Flip_tool&			; tool routine library
+		POP	A:R2				; flip returns other side
+		REMPROP	A:R1*,Prop:Active		; deactivate this side
+		ADDPROP	A:R2*,Prop:Active		; activate other side
+		JUMP	A:_End_erase&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_erase&		; Event still active?
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_erase&		; no, quit
+
+;	Do a erase upon a pick, barring selectable toolpads.
+
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_End_erase&	; is Opcode a PICK?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_erase& ; picking sels?
+
+;		Are there selectable toolpads?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R2
+		BNEMPTY	A:R2,A:_End_erase&		; yes, let toolpad work
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_erase&		; yes, let headpad work
+
+		ADDPROP	A:R1*,Prop:Toolused		; let toolpad know
+;							; the eraser was used
+
+_Do_erase	WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*,A:R3
+		WORLD	Const:WEnvironment_world
+		
+;		 If nothing selectable we flip the tool over.
+;		 flip back...
+		BEMPTY	A:R3,A:_Flip_back&
+
+		MOTHER	A:R3*,A:R4,Const:Motherobj
+		BNEQUAL	A:R3,A:R4,A:_Delete_feature&
+
+_Delete_obj	ANCEST	A:R3*,A:R4
+		CPDELETE	A:R4*
+		JUMP	A:_Wipe_pick&
+
+_Delete_feature	CPDELETE	A:R3*
+		JUMP	A:_Wipe_pick&
+
+_Flip_back	MAKEMSG	Msg:Fliptool
+		QMSG	A:R1*,Const:Prioritymsg		; send flip msg to myself
+		JUMP	A:_Wipe_pick&
+
+_Wipe_pick	WIPE	A:XOP*
+
+_End_erase	RTS

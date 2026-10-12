@@ -1,0 +1,314 @@
+;
+;		CPL Basic Tool Code
+;		Date: November 27,1990	
+;		Version: 1
+;
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Toolpadempty	DEFPROP	    ; identical prop found in toolpad.cpl
+Fliptool	DEFPROP
+Toolused	DEFPROP				; this is defunct but still req'd
+;						; for the moment
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Tool subroutines, generic to all tools 
+; WARNING: The following routines make extensive use of R7,R8,R9... so
+; save 'em if you wan' 'em!
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Unorientool	POP	A:R8				; Tool passed on stack
+		HASPROP	A:R8*,Prop:Hotspot,A:R9,Const:Subfeatures 
+		SNAP	A:R9*,Const:Origin
+		ROTATE	A:R8*,Const:Rvec:[0.0,1.0,0.0]/pt:[0.0,0.0,0.0]/ang:-350
+		ROTATE	A:R8*,Const:Rvec:[1.0,0.0,0.0]/pt:[0.0,0.0,0.0]/ang:1350
+		RTS
+
+Orientool	POP	A:R8				; Tool passed on stack
+		HASPROP	A:R8*,Prop:Hotspot,A:R9,Const:Subfeatures 
+		SNAP	A:R9*,Const:Origin
+		ROTATE	A:R8*,Const:Rvec:[1.0,0.0,0.0]/pt:[0.0,0.0,0.0]/ang:-1350
+		ROTATE	A:R8*,Const:Rvec:[0.0,1.0,0.0]/pt:[0.0,0.0,0.0]/ang:350
+		RTS
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Local vars for Flip_tool
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Flipfrom	CPLDATA
+_Flipto		CPLDATA
+
+;
+Flip_tool	POP	A:_Flipfrom			; Tool passed on stack
+		MOVE	A:_Flipfrom,A:_Flipto		; copy to Flipto in case
+;							; its un-flippable	
+
+;		Flip the tool by first translating it to the origin,
+;		snapping the child's hotspot (assumedly the child is the other
+;		end of the tool; if it's not we snap to the parent's hotspot),
+;		and then snapping it to the crosshair
+_Flip_to_child	CHLDRN	A:_Flipfrom*,A:_Flipto
+		BEMPTY	A:_Flipto*,A:_Flip_to_parent&	; Use parent's hotspot.
+
+; 		 Are children tools?
+		HASPROP	A:_Flipto*,Prop:Tool,A:R7,Const:Self 
+		BFALSE	A:R7,A:_Finish_flip&		; no, do nothing.
+		JUMP	A:_Do_flip&			; otherwise, flip
+
+_Flip_to_parent	PARENT	A:_Flipfrom*,A:_Flipto
+		HASPROP	A:_Flipto*,Prop:Tool,A:R7,Const:Self ; is parent a tool?
+		BFALSE	A:R7*,A:_End_flip&		; no, do nothing
+
+_Do_flip	HASPROP	A:_Flipfrom*,Prop:Oriented,A:R7,Const:Self ; orientable?
+		BFALSE	A:R7,A:_Flipaboutx&
+		PUSH	A:_Flipfrom			; Push it for unorient
+		JSR	A:Unorientool&
+
+;		flip it over before reorienting it	
+_Flipaboutx	HASPROP	A:_Flipfrom*,Prop:Hotspot,A:R7,Const:Subfeatures 
+		SNAP	A:R7*,Const:Origin
+		ROTATE	A:R7*,Const:Rvec:[1.0,0.0,0.0]/pt:[0.0,0.0,0.0]/ang:1800
+
+;		Orient with the (possibly new) end at the origin
+_Finish_flip	HASPROP	A:_Flipto*,Prop:Oriented,A:R7,Const:Self
+		BFALSE	A:R7,A:_Finalflipsnap&
+		PUSH	A:_Flipto
+		JSR	A:Orientool&
+_Finalflipsnap	HASPROP	A:_Flipto*,Prop:Hotspot,A:R7,Const:Subfeatures 
+		SNAP	A:R7*,Env:Crosshair_part	; snap back to xhair
+;		 move it a bit in front
+		TRANS	A:_Flipto*,Const:Normaltranslate,Const:V[0.0,0.0,5.0]
+		UPDATE	A:_Flipto*,Const:UAllupdateflags/when:Now
+_End_flip	PUSH	A:_Flipto			; rtn what we flipped to
+		RTS
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Local vars for Activate_tool and Put_away_tool
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Toolstore	CPLDATA
+_Padstore	CPLDATA
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Generic Tool activation code
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Activate_tool	POP	A:_Toolstore			; Tool passed on stack
+;		 Free the tool from the parent pad
+;		 Attach tool to environment's crosshair
+		ADOPT	Env:Crosshair_part,A:_Toolstore*,Const:TRUE
+
+		ADDPROP	A:_Toolstore*,Prop:Active	; Make tool active
+
+;		 Does tool get oriented?
+		HASPROP	A:_Toolstore*,Prop:Oriented,A:R8,Const:Self 
+		BFALSE	A:R8,A:_Snaptohotspot&
+;		 Yes? then orient it
+		PUSH	A:_Toolstore
+		JSR	A:Orientool&
+
+_Snaptohotspot	HASPROP	A:_Toolstore*,Prop:Hotspot,A:R9,Const:Subfeatures 
+		SNAP	A:R9*,Env:Crosshair_part	; snap back to xhair
+		PUSH	A:_Toolstore
+		CRTN	Crtn:tool_off_plane
+		POP	A:R8
+; move it in front of the plane using bbox
+		TRANS	A:_Toolstore*,Const:Normaltranslate,A:R8
+
+;	note that here i haven't used UPDATE because I know that adding visible
+;	prop automatically forces an immediate update... a little slimy
+		ADDPROP	A:_Toolstore*,Prop:Visible	; make tool and children
+		DESCEND	A:_Toolstore*,A:R9		; visible
+		ADDPROP	A:R9*,Prop:Visible
+		RTS
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Generic Tool deactivation code
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Put_away_tool	POP	A:_Toolstore			; Tool passed on stack
+		POP	A:_Padstore			; Pad passed on stack
+		CHLDRN	A:_Toolstore*,A:R9		; Tool has children?
+		BNEMPTY	A:R9,A:_Re_adopt&		; yes, continue
+
+_Preflip	REMPROP	A:_Toolstore*,Prop:Active
+		PUSH	A:_Toolstore			; no, flip it first!
+		JSR	A:Flip_tool&
+		POP	A:_Toolstore			; use other side
+
+;		 Does tool get oriented?
+_Re_adopt	HASPROP	A:_Toolstore*,Prop:Oriented,A:R8,Const:Self 
+		BFALSE	A:R8,A:_Attachtopad&
+
+		PUSH	A:_Toolstore
+		JSR	A:Unorientool&
+;		Attach to pad,unlinked 
+_Attachtopad	ADOPT	A:_Padstore*,A:_Toolstore*,Const:FALSE
+
+		DIFF3D	Prop:Active*,A:_Toolstore*,A:R9	; snap to pad...
+		TRANS	Prop:Active*,A:R9,Const:Normaltranslate
+
+		ADDPROP	A:_Padstore*,Prop:Hasdecal	; restore pads decal
+		PUSH	A:_Padstore
+		CRTN	Crtn:make_decal
+		POP	A:_Padstore
+
+		REMPROP	A:_Toolstore*,Prop:Active	; Make tool inactive
+		REMPROP	A:_Toolstore*,Prop:Visible	; Make tool && children
+	       	DESCEND	A:_Toolstore*,A:R9		; invisible
+		REMPROP	A:R9*,Prop:Visible
+
+		UPDATE	A:_Toolstore*,Const:UAllupdateflags/when:Now
+		RTS
+
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main tool code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+Tool		DEFPROP
+
+Tool		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get toolpad
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+
+;		 Check topmost message
+		CHKMSG	A:R2
+;		 Activate this tool.
+
+_Check_activate	BNEQUAL	A:R2,Msg:Activatetool,A:_Check_pickup&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_Regularactivate&
+
+		PARENT	A:R1*,A:R2			; goto (i hope!) toolpad
+		MAKEMSG	Msg:Attachtool
+		MAKEMSG	A:R1*
+		QMSG	Prop:Toolpadempty*,Const:Prioritymsg
+		JUMP	A:_End_messages&
+
+; Send message to toolpad to tell it to activate me via simulated click on pad.
+_Regularactivate PARENT	A:R1*,A:R2			; goto (i hope!) toolpad
+		MAKEMSG	Msg:Clicktoolpad
+		QMSG	A:R2*,Const:Prioritymsg
+
+		JUMP	A:_End_messages&
+
+
+_Check_pickup	BNEQUAL	A:R2,Msg:Pickuptool,A:_Check_deactivate&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Don't activate unless inactive
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BTRUE	A:R2,A:_End_messages&
+
+		PUSH	A:R1
+		JSR	A:Activate_tool&
+
+		JUMP	A:_End_messages&
+
+
+;		 Deactivate this tool.
+
+_Check_deactivate BNEQUAL A:R2,Msg:Deactivatetool,A:_End_messages&
+;		 Get topmost message
+		UNQMSG	A:R2
+;		 Get pad to adopt it to.
+		UNQMSG	A:R3
+;		 Don't deactivate unless active
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_messages&
+		PUSH	A:R3
+		PUSH	A:R1			       ; push tool to put away
+		JSR	A:Put_away_tool&
+		
+
+;		 This bogus message eating loop is a severe HACK that allows
+;		 me to blow off fixing the fact that tools sometimes get
+;		 bogus messages in the first place, where from??????????
+
+;		UNQMSG	A:R2				; get bogus msg, chuck it
+;		BMSGS	A:R1,A:_Check_messages& 	; and reloop til no more!
+_End_messages	RTS
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_tool&		; Event still active?
+
+
+;		JUMP	A:_End_tool&
+
+; *** ALL THE FOLLOWING CODE IS DEFUNCT RIGHT NOW!!!! (skipped by JUMP, above)
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_tool&		; no, quit
+;
+;	Make the tool follow the crosshair
+;
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_pick& 
+;		 TRANSlating picked?
+	    	BNEQUAL	AA:XAS,Prop:Picked,A:_End_tool&
+
+		HASPROP	A:R1*,Prop:Fliptool,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_tool&
+		WIPE	A:XOP*
+		REMPROP	A:R1*,Prop:Fliptool
+		JUMP	A:_End_tool&
+
+;	Put the tool away on a pick event if you picked in a receptacle and the
+;	tool was active.
+
+;		 Is opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectable?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_tool&
+
+;		Is there a selectable toolpad?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_tool&		; yes, let toolpad work
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_tool&		; yes, let headpad work
+
+;		No, set tool to be flipped	
+_Set_flip	ADDPROP	A:R1,Prop:Fliptool
+
+		WIPE	A:XOP*
+		JUMP	A:_End_tool&
+;
+;	On a release, check to see if flip needed. 		
+;
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_tool& ; is Opcode a RELEAS?
+;		 Releasing selectable?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_tool&
+
+;		Should tool be flipped?	
+		HASPROP	A:R1*,Prop:Fliptool,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_tool&		; no, quit
+
+		REMPROP	A:R1*,Prop:Fliptool		; yes, unmark flipping
+
+		MAKEMSG	Msg:Fliptool
+		QMSG	A:R1*,Const:Prioritymsg		; send flip msg to any
+;							; property that uses it
+_Wiperelease	WIPE	A:XOP*				; clear RELEAS
+		JUMP	A:_End_tool&
+
+_End_tool	BMSGS	A:R1,A:_Check_messages&
+		RTS
+

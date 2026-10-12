@@ -29,6 +29,7 @@ services:
     working_dir: /work
     environment:
       CI: ${CI:-}
+      RECORD: ${RECORD:-}
     volumes: *node-modules
     ipc: host
     command: >

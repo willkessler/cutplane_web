@@ -1,0 +1,242 @@
+;
+;		CPL Pencil Code for use with tool.cpl
+;		Date: November 28,1990
+;		Version: 6
+;
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;  marks holding button down while moving pencil.
+Pencildown	DEFPROP				
+Surfdrawing	DEFPROP
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main pencil code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;		Code for the Draw routine version 1: a la macpaint since easier
+
+Draw		DEFPROP
+
+Draw		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get toolpad
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Check topmost msg
+		CHKMSG	A:R2
+
+_Check_flip	BNEQUAL	A:R2,Msg:Fliptool,A:_End_drawing&
+		UNQMSG	A:R2				; get topmost msg
+		PUSH	A:R1				; see the tool.cpl
+		JSR	A:Flip_tool&			; tool routine library
+		POP	A:R2				; flip returns other side
+		REMPROP	A:R1*,Prop:Active		; deactivate this side
+		ADDPROP	A:R2*,Prop:Active		; activate other side
+		JUMP	A:_End_drawing
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_drawing&		; Event still active?
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_drawing&		; no,quit
+
+;	Start drawing upon a pick, barring selectable toolpads.
+
+;		 Is Opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectable?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_drawing&
+
+;		Are there selectable toolpads?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_drawing&		; yes, let toolpad work
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_drawing&		; yes, let headpad work
+
+		WORLD	Const:WPrimary_world
+		MAKEMSG	Msg:Unpick
+		QMSG	Prop:Picked*,Const:Noprioritymsg
+		MOVE	Prop:Selectable*,A:R3
+		WORLD	Const:WEnvironment_world
+
+		INDEX	A:R3,A:_Drawn_feature,Const:I1
+		BNEMPTY	A:_Drawn_feature,A:_Begin_drawsurf&
+
+
+		ADDPROP	A:R1*,Prop:Fliptool
+
+;		On pick, begin drawing, unless we were drawing on surf, in
+;		which case, cancel drawing on surf.
+_Begin_drawing	ADDPROP	A:R1,Prop:Pencildown
+
+		HASPROP	A:R1*,Prop:Surfdrawing,A:R2,Const:Self
+		BTRUE	A:R2,A:_Final_drawsurf&
+
+		CRTN	Crtn:start_draw
+		POP	A:_Newscribble			; get the new scribbleobj
+
+		ADDPROP	A:_Newscribble*,Prop:Nonmanifold
+		SETCOLOR A:_Newscribble*,Const:C[255,110,10]	; make it orange
+
+		WTRANS	A:_Newscribble*,Const:WPrimary_world
+;		 move it a bit off the plane...
+;		TRANS	A:_Newscribble*,Const:Normaltranslate,Const:V[0.0,0.0,10.0]
+		UPDATE	A:_Newscribble*,Const:UComputebboxflag/when:Now
+		UPDATE	A:_Newscribble*,Const:URecomputebackfaceflag/when:Now
+
+;		Kill pick so nobody else gets to see it.
+		WIPE	A:XOP*
+
+		JUMP	A:_End_drawing&
+
+;		 Is Opcode a RELEAS?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_trans&
+;		 Releasing selectable?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_drawing&
+
+;	If drawing on surf, don't muck around with all this other stuff and
+; 	just wipe the RELEAS.
+		HASPROP	A:R1*,Prop:Surfdrawing,A:R2,Const:Self
+		BFALSE	A:R2,A:_Pencil_down?&
+		BNEMPTY	A:_First_drawn,A:_Wipeoutk9&	; cleared by 2nd pick
+		REMPROP	A:R1*,Prop:Surfdrawing
+_Wipeoutk9	WIPE	A:XOP*
+		JUMP	A:_End_drawing&
+
+;		Is pencil down?
+_Pencil_down?	HASPROP	A:R1*,Prop:Pencildown,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_drawing&
+
+;		yes, finish drawing
+
+_Stop_drawing	REMPROP	A:R1*,Prop:Pencildown		; mark pencil up
+
+
+_Need_to_flip?	HASPROP	A:R1*,Prop:Fliptool,A:R2,Const:Self
+		BFALSE	A:R2,A:_Regularelease&
+;							; if flipping,
+		CPDELETE	A:_Newscribble*			; kill scribble 
+
+		REMPROP	A:R1*,Prop:Fliptool
+		MAKEMSG	Msg:Fliptool
+		QMSG	A:R1*,Const:Prioritymsg		; send flip msg to myself
+
+		JUMP	A:_End_drawing&
+
+_Regularelease	WIPE	A:XOP*				; clear RELEAS
+		MOVE	Prop:Selectable*,A:R1
+		PUSH	A:R1				; push pencil.
+
+		PUSH	A:_Newscribble			; push any scribble too.
+		CRTN	Crtn:end_draw			; Stop drawing
+		POP	A:_Newscribble
+		REMPROP	A:_Newscribble*,Prop:Nonmanifold
+;		 move it a bit back into the plane...
+		TRANS	A:_Newscribble*,Const:Normaltranslate,Const:V[0.0,0.0,-20.0]
+		UPDATE	A:_Newscribble*,Const:UAllupdateflags/when:Now
+		JUMP	A:_End_drawing&
+
+;	Extend drawing if xhair translated
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_End_drawing&
+;		 TRANSlating xhair?
+		BNEQUAL	AA:XAS*,Env:Crosshair_part,A:_End_drawing&
+
+
+_Dotrans	HASPROP	A:R1*,Prop:Pencildown,A:R2,Const:Self 	; pencil down?
+		BFALSE	A:R2,A:_Extend_surf?&		; drawing surf?
+
+;		Do not flip pencil if translated while pressed down
+		REMPROP	A:R1*,Prop:Fliptool
+
+;		 move xhair
+		TRANS	Env:Crosshair_part,Const:Normaltranslate,AA:XAD*
+		WIPE	A:XOP*
+
+		PUSH	A:_Newscribble
+		PUSH	AA:XAD				; pass trans amount
+		CRTN	Crtn:extend_draw		; yes, continue figure
+		UPDATE	A:_Newscribble*,Const:URedrawflag/when:Now
+
+;	in the case of the pencil, this should only be added if something
+; 	was successfully drawn!!! this means the Crtn extend_draw should
+;	be used to check whether to add this prop... tricky tricky
+
+;		ADDPROP	A:R1*,Prop:Toolused		; let toolpad know
+;							; the pencil is in use
+		JUMP	A:_End_drawing&
+
+_Extend_surf?	HASPROP	A:R1*,Prop:Surfdrawing,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_drawing&
+
+;		Get the position of the crosshair cursor, offset by the trans
+;		in XAD.
+		DIFF3D	Const:Origin,Env:Crosshair_part,A:R2
+		ADD	A:R2,AA:XAD,A:R3
+;		 Rubberband a line from start position to the crosshair.
+		PUSH	A:_Start_line_pos
+		PUSH	A:R3
+		CRTN	Crtn:draw_line
+		UPDATE	Obj:Line,Const:UComputebboxflag/when:Now
+		UPDATE	Obj:Line,Const:URecomputebackfaceflag/when:Now
+		UPDATE	Obj:Line,Const:ULogerasebboxflag/when:Now
+		UPDATE	Obj:Line,Const:URedrawflag/when:Now
+		JUMP	A:_End_drawing&
+;
+;		 Begin drawing on the surface of an object.
+;
+;		 So far, only allows starting and ending on vfe's/evf's.
+
+_Begin_drawsurf	MOTHER	A:_Drawn_feature*,A:R3,Const:Motherevf
+;		 only can draw from evf to evf right now.
+		BEQUAL	A:_Drawn_feature,A:R3,A:_More_drawsurf&
+		MOTHER	A:_Drawn_feature*,A:R3,Const:Mothervfe
+		BEQUAL	A:_Drawn_feature,A:R3,A:_More_drawsurf&
+		JUMP	A:_End_drawing&
+
+_More_drawsurf	BNEMPTY	A:_First_drawn,A:_Finish_drawsurf&
+		MOVE	A:_Drawn_feature,A:_First_drawn
+		ADDPROP	A:R1*,Prop:Surfdrawing
+		ADDPROP	Obj:Line,Prop:Visible
+		SETCOLOR Obj:Line,Const:C[255,255,255]		; make line white
+		PUSH	A:_Drawn_feature
+		PUSH	Const:FALSE
+		CRTN	Crtn:draw_on_surface
+		POP	A:_Start_line_pos
+		WIPE	A:XOP*
+		JUMP	A:_End_drawing&
+
+_Finish_drawsurf PUSH	A:_Drawn_feature
+		PUSH	Const:TRUE
+		CRTN	Crtn:draw_on_surface
+
+_Final_drawsurf	MOTHER	A:_First_drawn*,A:R3,Const:Motherobj
+		UPDATE	A:R3*,Const:UAllupdateflags/when:Now
+		REMPROP	Obj:Line,Prop:Visible
+		CLEAR	A:_First_drawn
+		WIPE	A:XOP*
+		JUMP	A:_End_drawing&
+		
+_End_drawing	RTS
+
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+; Local vars
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+_Newscribble	CPLDATA					; local var
+_Drawn_feature	CPLDATA
+_First_drawn	CPLDATA
+_Start_line_pos	CPLDATA

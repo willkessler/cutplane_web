@@ -1,0 +1,175 @@
+
+;		CPL Toolpad Property Codes
+;		Date: November 26,1990	
+;		Version: 1
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Toolpadragged	DEFPROP					; Toolpad was dragged
+Toolpadempty	DEFPROP					; Toolpad has no child
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Toolpad subroutines, generic to all toolpads 
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Toolpad variables
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; variable to hold what was active when you released a toolpad sans drag.
+
+_Old_activetool	CPLDATA
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Main toolpad code starts here
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; A tool pad must: show its tool if it is selectable, allow you to drag it if
+; you pick on it, but if you pick and release on it without dragging,
+; activate its tool.
+
+Toolpad		DEFPROP
+
+Toolpad		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get toolpad
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+;		 Check to see if a tool wants to be attached to me...
+_Checkattachmsg	BNEQUAL	A:R2,Msg:Attachtool,A:_End_toolpad&
+		UNQMSG	A:R3				; get tool
+
+		HASPROP	A:R1*,Prop:Toolpadempty,A:R2,Const:Self
+		BEMPTY	A:R2,A:_End_toolpad&		; don't adopt if already
+;							; has a child
+		PUSH	A:R1
+		PUSH	A:R3
+		JSR	A:Put_away_tool&
+		REMPROP	A:R1*,Prop:Toolpadempty
+
+		JUMP	A:_End_toolpad&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_toolpad&		; Event still active?
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_pick&
+
+;		Check to see if we are dragging stuff.
+
+;		 TRANSlating picked?
+_Trans_picked	BNEQUAL	AA:XAS,Prop:Picked,A:_Check_release&
+
+		OWNER	A:R1,Const:Motherobj		; Get toolpad 
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; Is pad picked?
+		BFALSE	A:R2,A:_End_toolpad&		; No: quit
+
+;		if this toolpad was not marked as dragged, mark it
+		HASPROP	A:R1*,Prop:Toolpadragged,A:R2,Const:Self
+		BTRUE	A:R2,A:_Killtranspk&
+		ADDPROP	A:R1*,Prop:Toolpadragged
+;		Make it a child of the crosshair so it follows xhair around	
+		ADOPT	Env:Crosshair_part,A:R1*,Const:FALSE 
+
+_Killtranspk	WIPE	A:XOP*				; kill the trans
+		JUMP	A:_End_toolpad&
+
+;		Handle a pick
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_toolpad&
+
+; Otherwise, do things regularly cause you might want to pick up another tool
+
+_Pick_toolpad	OWNER	A:R1,Const:Motherobj		; Get toolpad
+		PICK	A:R1*				; pick pad
+		WIPE	A:XOP*				; kill pick
+		JUMP	A:_End_toolpad&
+
+;		Handle a release
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_toolpad&
+;		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_toolpad&
+
+		OWNER	A:R1,Const:Motherobj		; Get toolpad
+
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; pad selectable?
+		BFALSE	A:R2,A:_End_toolpad&
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; if pad not picked,
+		BFALSE	A:R2,A:_End_toolpad&		; quit
+
+_Unpick_toolpad	UNPICK	A:R1*				; yes, unpick it
+
+_Check_dragged	HASPROP	A:R1*,Prop:Toolpadragged,A:R2,Const:Self ; pad dragged?
+		BFALSE	A:R2,A:_Turnontoolpad&		; No, turn it on.
+
+		REMPROP	A:R1*,Prop:Toolpadragged	; unmark it as dragged
+;		 Free pad from xhair if dragged and
+;		 make it a child of the cutplane again
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BEMPTY	A:R3,A:_Check_toolbar&		; no
+
+; 		is toolbar visible?
+		HASPROP	Prop:Toolbar*,Prop:Visible,A:R2,Const:Self
+		BTRUE	A:R2,A:_Dunk_toolpad&
+		REMPROP	A:R1*,Prop:Visible		; no? then hide toolpad
+
+_Dunk_toolpad	ADOPT	Prop:Toolbar*,A:R1*,Const:TRUE	; yes, drop toolpad in
+		PUSH	Prop:Toolbar*			; arrange all prims
+		CRTN	Crtn:arrange_toolpads
+		POP	A:R2
+		JUMP	A:_Clear_release&
+
+_Check_toolbar	PUSH	A:R1*				; is this toolpad
+		PUSH	Prop:Toolbar*			; near a toolbar?
+		CRTN	Crtn:near_toolbar
+		POP	A:R2
+		BEMPTY	A:R2,A:_Floating_pad&		; near none so float it
+
+		ADOPT	A:R2*,A:R1*,Const:TRUE		; adopt to first toolbar
+		JUMP	A:_Clear_release&
+
+_Floating_pad	ADOPT	Env:Cutplane_part,A:R1*,Const:FALSE
+		JUMP	A:_Clear_release&
+
+_Turnontoolpad	MOVE	Prop:Active*,A:_Old_activetool
+
+		CHLDRN	A:R1*,A:R2			; activate pad tool 
+		BEMPTY	A:R2,A:_Putawayactive&		; if no tools, just
+;							; put away active tool	
+		PUSH	A:R2				; otherwise, activate 
+		JSR	A:Activate_tool&		; this pad's child
+		REMPROP	A:R1*,Prop:Hasdecal		; turn off decal
+		ADDPROP	A:R1*,Prop:Toolpadempty
+
+;		if you were holding a tool, put it away, otherwise,  do nothing
+_Putawayactive	BEMPTY	A:_Old_activetool,A:_Clear_release&
+
+		PUSH	A:R1				; pass pad
+		PUSH	A:_Old_activetool		; pass tool
+_Turnofftoolpad	JSR	A:Put_away_tool&
+		REMPROP	A:R1*,Prop:Toolpadempty
+
+_Clear_release	WIPE	A:XOP*
+
+_End_toolpad	RTS
+

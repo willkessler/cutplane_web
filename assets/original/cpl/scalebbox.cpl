@@ -1,0 +1,167 @@
+
+;		CPL code to implement scaling bboxes.
+
+;		Date: February 7 ,1991
+;		Version: 1
+;		Author: who else?
+
+; =-=-=-=-=-=-=-=-=  Useful subroutines. =-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-
+
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+Scalebbox	DEFPROP
+
+Scalebbox	STARTPROP
+		
+		OWNER	A:R1,Const:Self			; Get feature
+
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_wiped&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+_Check_activate	BNEQUAL	A:R2,Msg:Activate,A:_Check_suicide&
+		PICK	A:R1*				; activation ==> pick!
+		JUMP	A:_End_scalebbox&
+
+_Check_suicide	BNEQUAL	A:R2,Msg:Suicide,A:_Check_pickmsg&
+		PARENT	A:R1*,A:R2
+		CHLDRN	A:R1*,A:R3
+		ADOPT	A:R2*,A:R3*,Const:TRUE
+		CPDELETE	A:R1*
+		JUMP	A:_End_scalebbox&
+
+; Other objects could be trying to un/pick something in a marquee and also get
+; the scalebbox: if so, we want to forward that un/pick message to the children!
+
+_Check_pickmsg	BNEQUAL	A:R2,Msg:Pick,A:_Check_unpickmsg&
+		CHLDRN	A:R1*,A:R2
+		MAKEMSG	Msg:Pick
+		QMSG	A:R2*,Const:Prioritymsg
+		JUMP	A:_End_scalebbox&
+
+_Check_unpickmsg BNEQUAL	A:R2,Msg:Unpick,A:_Check_constrainmsg&
+		CHLDRN	A:R1*,A:R2
+		MAKEMSG	Msg:Unpick
+		QMSG	A:R2*,Const:Prioritymsg
+		JUMP	A:_End_scalebbox&
+
+_Check_constrainmsg BNEQUAL	A:R2,Msg:Constraining,A:_End_scalebbox&
+		UNQMSG	A:_Constraining			; whether to turn on/off
+		JUMP	A:_End_scalebbox&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_wiped	BWIPED	AA:XOP*,A:_End_scalebbox&	; Is event active?
+
+;		 Event is a TRANSLATE?
+_Check_trans1	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_pick&
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self  ; only trans if picked
+		BFALSE	A:R2,A:_End_scalebbox&
+
+;		 TRANSlating xhair?
+		BNEQUAL	AA:XAS,Env:Crosshair_part,A:_Check_trans2&
+
+;		Right now i use a C routine to implement the actual scale
+;		but when CPL can get its hands on actual topology this should
+;		all be possible in CPL
+_More_trans1	PUSH	A:R1				; pass scalebbox feature,
+		PUSH	AA:XAD*				; translation,
+		PUSH	A:_Constraining			; & whether constrained
+		PUSH	A:_Switched			; & if switched to vfe.
+		CRTN	Crtn:scalebbox_trans		; to Crtn to do scale
+		POP	A:_Switched			; get back if switched...
+		POP	A:R2				; get back what to
+;							; snap to if snapping
+		POP	A:R3				; get back translation
+		UPDATE	A:R1*,Const:UAllupdateflags/when:Now
+		CHLDRN	A:R1*,A:R9
+		UPDATE	A:R9*,Const:UAllupdateflags/when:Now		
+
+		BEMPTY	A:R2,A:_Transxhair&
+		UNPICK	A:R1*				; deactivate me!
+		MAKEMSG	Msg:Activate
+		QMSG	A:R2*,Const:Prioritymsg		; activate a corner
+
+;	 	 Do the transformed translation that keeps xhair on scalebbox	
+_Transxhair	TRANS	Env:Crosshair_part,Const:Normaltranslate,A:R3
+		
+_Finish_trans	WIPE	A:XOP*
+		JUMP	A:_End_scalebbox&
+
+;		Check to see if we are dragging stuff, and wipe it.
+_Check_trans2	BNEQUAL	AA:XAS,Prop:Picked,A:_Check_pick&
+		WIPE	A:XOP*
+		JUMP	A:_End_scalebbox&
+
+
+;		We check if owner is selectable because this should never
+;		execute unless the owner is selectable.
+
+_Check_pick	OWNER	A:R1,Const:Self			; Is owner selectable?
+		HASPROP	A:R1*,Prop:Selectable,A:R3,Const:Self
+		BFALSE	A:R3,A:_End_scalebbox&		; no, quit
+
+;		Is event a pick?
+
+		BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_scalebbox&	
+
+;		Make sure to turn off acceleration selection checks.
+		PUSH	Const:TRUE
+		CRTN	Crtn:always_set_select
+
+_Pickit		PICK	A:R1*				; pick the scalebbox
+;							; subfeature,
+;	Send edges to the sizer
+		MOTHER	Prop:Selectable*,A:R3,Const:Motherevf
+		NOT	A:R3,Prop:Selectable*,A:R5
+		BNEMPTY	A:R5,A:_Finish_pick&
+		MAKEMSG	Msg:Incomingsize
+		MAKEMSG	A:R1*
+;		CHLDRN	Obj:Measure_Plate,A:R6
+;		INDEX	A:R6,A:R7,Const:I8		; send msg to sizer
+		QMSG	Obj:Cube_Length,Const:Prioritymsg
+
+_Finish_pick	WIPE	A:XOP*				; then wipe this pick
+		MOVE	Const:FALSE,A:_Switched
+		JUMP	A:_End_scalebbox&
+
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_scalebbox&
+;		Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_scalebbox&
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_release&
+
+		UNPICK	A:R1*
+
+;		Make sure to turn acceleration selection checks back on.
+		PUSH	Const:FALSE
+		CRTN	Crtn:always_set_select
+
+		WIPE	A:XOP*
+		MOVE	Const:FALSE,A:_Constraining
+_End_release	JUMP	A:_End_scalebbox&
+
+_End_scalebbox	BMSGS	A:R1,A:_Check_messages&
+		RTS
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 				LOCAL VARS
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+;	Boolean val for whether constraining cursor moves or not...
+;	compare and contrast with constraining during scaling or other uses
+
+_Constraining	CPLDATA
+_Cursor_delta	CPLDATA
+;	Boolean val for whether we switched from scaling along edge to scaling
+;	along corner...
+_Switched	CPLDATA

@@ -1,0 +1,72 @@
+;
+;		CPL Private Code: Sizing piecharts
+;		Date: February 13,1991, in the wee hours
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get textinput object
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check to see if an object has sent me a size.
+_Check_newsize	BNEQUAL	A:R2,Msg:Incomingsize,A:_Check_setsize&
+		UNQMSG	A:_Sized_feature		; what sent me this msg.
+		PUSH	A:_Sized_feature
+		CRTN	Crtn:get_feature_size		; get feature size.
+		POP	A:R3
+		AUX2STR	A:R3*,A:_New_label
+		SETLABEL A:R1*,A:_New_label,Const:I1	; use the new label
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+		JUMP	A:_End_piesize&
+
+_Check_setsize	BNEQUAL	A:R2,Msg:Incomingchar,A:_Check_events&
+		UNQMSG	A:R3				; get typed char.
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; is textinput active?
+		BFALSE	A:R2,A:_End_piesize&		; no, ignore char
+
+_CheckCR	BNEQUAL	A:R3,Const:A0x0D,A:_Putbackmsg&	; on CR, do sizing
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+
+_Finish_size	GETLABEL A:R1*,A:R2,Const:I1
+		STR2AUX	A:R2,A:_New_size
+		PUSH	A:_Sized_feature
+		PUSH	A:_New_size
+		CRTN	Crtn:set_feature_size		; simple for now...
+		UPDATE	A:_Sized_feature*,Const:UAllupdateflags/when:Now
+
+		PARENT	A:R1*,A:R2
+		PUSH	A:R2
+		CRTN	Crtn:remake_piechart
+
+		MAKEMSG	Msg:Acceptext			; tell textinput prop
+		QMSG	A:R1*,Const:Prioritymsg		; user's done w/input
+		JUMP	A:_End_piesize&
+
+_Putbackmsg	MAKEMSG	Msg:Incomingchar		; give it to textinput
+		MAKEMSG	A:R3				; prop!
+		QMSG	A:R1*,Const:Prioritymsg	
+		JUMP	A:_End_piesize&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	NOP
+_End_piesize	RTS					; totally eventless!
+
+; =-=-=-=-=-=-=-= Local vars =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 
+
+_New_label	CPLDATA
+_Sized_feature	CPLDATA
+_New_size	CPLDATA

@@ -1,0 +1,148 @@
+
+;		CPL Toolbar Property Codes
+;		Date: December 1,1990	
+;		Version: 1
+
+
+Toolbaropen	DEFPROP
+
+; if Toolbar has this property, it should not open/close itself on release
+Toolbardragged	DEFPROP
+
+Toolbar		DEFPROP
+
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;  Toolbar subroutines... can be called by Toolbar occupants as well.
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; Open a closed Toolbar, unless it was dragged. Toolbar passed in R1.
+
+Open_Toolbar	HASPROP	A:R1*,Prop:Toolbardragged,A:R2,Const:Self ; dragged?
+		BTRUE	A:R2,A:_Oclear_dragged&		; yes, clear dragged
+
+;		otherwise, open the bar
+		OWNER	A:R1,Const:Motherobj
+		PUSH	A:R1				; arrange occupants
+		CRTN	Crtn:arrange_prims
+		POP	A:R1
+		CHLDRN	A:R1*,A:R2			; Get Toolbar occupants
+		ADDPROP	A:R2*,Prop:Visible		; Make them visible
+		ADDPROP	A:R1*,Prop:Toolbaropen		; Mark bar open
+		JUMP	A:_End_open&
+
+_Oclear_dragged	REMPROP	A:R1*,Prop:Toolbardragged
+_End_open	RTS
+
+; Close an open Toolbar, unless it was dragged. Toolbar passed in R1.
+
+Close_Toolbar	HASPROP	A:R1*,Prop:Toolbardragged,A:R2,Const:Self ; dragged?
+		BTRUE	A:R2,A:_Cclear_dragged&		; yes, clear dragged
+
+;		otherwise, close the bar	
+		CHLDRN	A:R1*,A:R2			; Get Toolbar occupants
+		HASPROP	A:R2*,Prop:Hideable,A:R3,Const:Self
+		REMPROP	A:R3*,Prop:Visible		; Make them invisible
+		REMPROP	A:R1*,Prop:Toolbaropen		; Mark bar closed
+		JUMP	A:_End_close&
+
+_Cclear_dragged	REMPROP	A:R1*,Prop:Toolbardragged
+_End_close	RTS
+
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+	THIS CODE IS BOGUS  	IGNORE THIS CODE	  THIS CODE IS BOGUS
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;  Main Toolbar code starts here
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Toolbar		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get saw
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+		JUMP	A:_End_textinput&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_toolbar&		; Event still active?
+
+; 	Handle a pick
+
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release& ; Is event a pick?
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_toolbar&
+
+_Pick_Toolbar	PICK	A:R1*				; pick it
+;		Make it a child of the crosshair so it follows xhair around	
+		ADOPT	Env:Crosshair_part,A:R1*,Const:TRUE
+		WIPE	A:XOP*				; kill pick
+		JUMP	A:_End_Toolbar&
+
+
+;		Handle a release
+
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_trans&
+;		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_Toolbar&	
+
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; bar selectable?
+		BEQ	A:R2,A:_End_Toolbar&
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; if bar not picked,
+		BEQ	A:R2,A:_Check_open&		; check if open/dragged
+
+_Unpick_Toolbar	UNPICK	A:R1*				; yes, unpick it
+;		Readopt to cutplane...
+		ADOPT	Env:Cutplane_part,A:R1*,Const:TRUE
+
+_Check_open	HASPROP	A:R1*,Prop:Toolbaropen,A:R2,Const:Self
+		BNE	A:R2,A:_Close_it&		; if open,try to close
+
+_Try_opening_it	MOVE	Prop:Picked*,A:R2
+		AND	A:R2*,Prop:Selectable*,A:R3*
+		BEQ	A:R3*,A:_Open_it&		; before we open,
+		UNPICK	A:R3*				; drop objs inside
+		ADOPT	A:R1*,A:R3*,Const:FALSE
+		ADDPROP	A:R3*,Prop:Hideable
+		ADDPROP	A:R3*,Prop:Stamp
+		REMPROP	A:R3*,Prop:Visible
+		JUMP	A:_Clear_release&
+
+_Open_it	JSR	A:Open_Toolbar&
+		JUMP	A:_Clear_release&
+
+_Close_it	JSR	A:Close_Toolbar&		
+
+_Clear_release	WIPE	A:XOP*
+		JUMP	A:_End_Toolbar&
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_pick&
+
+;		Check to see if we are dragging stuff.
+
+;		 TRANSlating picked?
+_Trans_picked	BNEQUAL	AA:XAS,Prop:Picked,A:_End_Toolbar&
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_Toolbar&
+
+		WIPE	A:XOP*
+
+_End_Toolbar	RTS
+

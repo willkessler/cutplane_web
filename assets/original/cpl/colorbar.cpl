@@ -1,0 +1,139 @@
+
+;		CPL code for the Color Bars
+;		Date: December 3,1990	
+;		Version: 1
+;
+;	These bars have to first of all adjust themselves to whatever's
+;	picked upon a PICK that does not concern them, so that when you
+;	pick on some object they accurately reflect the color of that object.
+;
+;	If they are selectable when a PICK occurs, they should snap the xhair
+;	to the top control face of the bar and add the active property
+;	to themselves.
+;
+;	While active, any drag of xhair must TRNSFRM away non-y components,
+;	translate the control face and xhair by the yvalue, and then change
+;	the color of whatever's picked in the working world to reflect this.
+;	There should be some constraining of this to prevent RGB values > 255.
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Colorbar	BWIPED	AA:XOP*,A:_End_colorbar&	; Event still active?
+
+		OWNER	A:R1,Const:Motherobj		; Get colorbar 
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; paint only if active
+		BFALSE	A:R2,A:_Check_pick&		; if !active, activate?
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_release&
+
+;		Check to see if we are dragging stuff.
+
+;		 TRANSlating xhair?
+_Trans_xhair	BNEQUAL	AA:XAS,Env:Crosshair_part,A:_Check_xpicked&
+
+;	 Take y comp of trans
+
+_Adjustcolorbar	MOVE	AA:XAD,A:R2
+		TRNSFRM	A:R2*,A:R3,Const:M[{0.0,0.0,0.0,0.0},{0.0,1.0,0.0,0.0},                                            {0.0,0.0,0.0,0.0},{0.0,0.0,0.0,1.0}]
+;	Assuming colorbar's control face is already picked, drag it
+
+		PUSH	A:R1*				; pass colorbar
+		PUSH	A:R3*				; pass y trans only
+		CRTN	Crtn:control_color		; let C do limiting!
+		POP	A:R2				; get back limited trans
+		POP	A:R3				; get back colortype
+
+;		 move the ctrl face
+		TRANS	A:_Ctrl_face*,Const:Normaltranslate,A:R2
+;		 xhair moves also
+		TRANS	Env:Crosshair_part,Const:Normaltranslate,A:R2
+;		SNAP	Env:Crosshair_part,Prop:Picked*	; and snap xhair to it
+
+; call C code to color picked objects
+; Using execute_OR here to combine set of chip with primary_world
+; picked objs so we only make one crtn call....
+
+		MAKEMSG	Msg:Adoptcolor
+		MAKEMSG	A:R3*
+		MOVE	Obj:Paintchip,A:R2
+		OR	A:R2*,Obj:Lightbulb,A:R3
+		WORLD	Const:WPrimary_world
+		OR	A:R3*,Prop:Picked*,A:R4
+		WORLD	Const:WEnvironment_world		
+		QMSG	A:R4*,Const:Prioritymsg	; send color to chip,bulb,picked.
+		UPDATE	A:R4*,Const:ULogerasebboxflag/when:Now ; redraw painted
+
+_Finish_adjust	WIPE	A:XOP*				; no one sees a drag!
+		JUMP	A:_End_colorbar&
+
+;		 TRANSlating picked?
+_Check_xpicked	BNEQUAL	AA:XAS,Prop:Picked,A:_End_colorbar&
+
+		WIPE	A:XOP*				; already taken care of
+		JUMP	A:_End_colorbar&		; by _Adjustcolorbar
+
+
+; 	Handle a pick
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_colorbar&
+
+_Coloring_on	OWNER	A:R1,Const:Motherobj		; Get colorbar
+		HASPROP	A:R1,Prop:Selectable,A:R2,Const:Self ; is it selectable?
+		BFALSE	A:R2,A:_Set_colorbars&		; no, set colorbars on
+;							; whatever's picked
+
+_Begin_colorbar	ADDPROP	A:R1*,Prop:Active		; Yes,start using it
+		HASPROP	A:R1*,Prop:Hotspot,A:R2,Const:Subfeatures ; get hotspot
+;		UNPICK	Prop:Picked*			; ensure no other pickd 
+		PICK	A:R2*				; face and pick it
+		MOVE	A:R2,A:_Ctrl_face
+;		SNAP	Env:Crosshair_part,A:R2*	; Snap xhair to it
+;		GLUPDATE Const:UAllupdateflags/when:Now
+
+		WIPE	A:XOP*				; Kill pick
+		JUMP	A:_End_colorbar&
+
+_Set_colorbars	WORLD	Const:WPrimary_world		; push whatever's
+		PUSH	Prop:Selectable*		; selectable in primary
+;							; world
+		PARENT	A:R1*,A:R2			; push this bar & sibs
+		CHLDRN	A:R2*,A:R3
+		PUSH	A:R3
+
+		CRTN	Crtn:set_color_bars		; set colorbar sizes
+		JUMP	A:_End_colorbar&
+
+
+;		Handle a release
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_colorbar&
+;		 Releasing selectables?
+		AND	AA:XAS,Prop:Selectable,A:_End_colorbar&
+
+		OWNER	A:R1,Const:Motherobj		; Get colorctrl
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; color ctrl in use?
+		BFALSE	A:R2,A:_End_colorbar&
+
+_Coloring_off	REMPROP	A:R1*,Prop:Active		; stop using it
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Subfeatures ; get hotspot
+		UNPICK	A:R2*				; face and unpick it
+
+_Clear_release	WIPE	A:XOP*				; kill release
+
+_End_colorbar	RTS
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Colorbar variables
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; variable to hold control face
+
+_Ctrl_face	CPLDATA

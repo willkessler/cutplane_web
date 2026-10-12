@@ -1,0 +1,60 @@
+;
+;		CPL Private Code: Naming features as part of the measureplate
+;		Date: May 29,1991, 5am gag
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get textinput object
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check to see if someone has just sent me a name
+_Check_newvalue	BNEQUAL	A:R2,Msg:Incomingname,A:_Check_setname&
+		UNQMSG	A:_New_namedobj
+		GETNAME	A:_New_namedobj*,A:_New_label
+		SETLABEL A:R1*,A:_New_label,Const:I1	; use the new label
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+		JUMP	A:_End_namer&
+
+_Check_setname	BNEQUAL	A:R2,Msg:Incomingchar,A:_End_namer&
+		UNQMSG	A:R3				; get typed char.
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; is textinput active?
+		BFALSE	A:R2,A:_End_namer&		; no, ignore char
+
+_CheckCR	BNEQUAL	A:R3,Const:A0x0D,A:_Putbackmsg&	; on CR, do naming
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+
+		GETLABEL A:R1*,A:_New_label,Const:I1
+		SETNAME	A:_New_namedobj*,A:_New_label
+
+_Send_accept	MAKEMSG	Msg:Acceptext			; tell textinput prop
+		QMSG	A:R1*,Const:Prioritymsg		; user's done w/input
+		JUMP	A:_End_namer&
+
+_Putbackmsg	MAKEMSG	Msg:Incomingchar		; give it to textinput
+		MAKEMSG	A:R3				; prop!
+		QMSG	A:R1*,Const:Prioritymsg	
+		JUMP	A:_End_namer&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	NOP
+_End_namer	RTS					; totally eventless!
+
+; =-=-=-=-=-=-=-= Local vars =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 
+
+_New_label	CPLDATA
+_New_namedobj	CPLDATA

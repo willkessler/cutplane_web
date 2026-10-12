@@ -1,0 +1,53 @@
+
+;		CPL code to allow dragging of an object only, with
+;		Immediate unpick upon release
+;		Date: December 1,1990	
+;		Version: 1
+
+Dragonly	DEFPROP
+
+Dragonly	STARTPROP
+		BWIPED	AA:XOP*,A:_End_dragonly&	; Event still active?
+
+; 		Handle a pick
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_dragonly&
+
+_Pick_obj	OWNER	A:R1,Const:Motherobj		; Get object
+		HASPROP	A:R1,Prop:Selectable,A:R2,Const:Self ; is it selectable?
+		BFALSE	A:R2,A:_End_dragonly&
+
+		WORLD	Const:WEnvironment_world
+
+		UNPICK	Prop:Picked*			; unpick other env objs
+		PICK	A:R1*				; pick it
+		WIPE	A:XOP*				; kill pick
+;		Make it a child of the crosshair so it follows xhair around	
+		ANCEST	A:R1*,A:R2
+		ADOPT	Env:Crosshair_part,A:R2*,Const:TRUE
+		JUMP	A:_End_dragonly&
+
+;		Handle a release
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_dragonly&
+;		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_dragonly&
+
+		OWNER	A:R1,Const:Motherobj		; Get object
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; if obj not picked,
+		BFALSE	A:R2,A:_End_dragonly&		; quit
+
+_Unpick_object	UNPICK	A:R1*				; yes, unpick it
+
+;		Make it a child of the cutplane again
+		ANCEST	A:R1*,A:R2
+		ADOPT	Env:Cutplane_part,A:R2*,Const:TRUE
+
+_Clear_release	WIPE	A:XOP*
+
+_End_dragonly	RTS

@@ -1,0 +1,208 @@
+;
+;		CPL Property Codes:Textinput
+;		Date: January 26,1991
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Textinput	DEFPROP
+Startextinput	DEFPROP
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;  Textinput subroutines
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Textinputon	POP	A:R9
+		ADDPROP	A:R9*,Prop:Active
+;		mark this object as receiving typed chars as msgs.
+		PUSH	A:R9
+		CRTN	Crtn:add_obj_charstream
+		RTS
+
+_Textinputoff	POP	A:R9
+		REMPROP	A:R9*,Prop:Active
+;		unmark this object as receiving typed chars as msgs.
+		PUSH	A:R9
+		CRTN	Crtn:rem_obj_charstream
+		PUSH	Const:I-1			; clear insert pt
+		PUSH	A:R9				; of this string
+		CRTN	Crtn:set_insertion_pt
+		UPDATE	A:R9*,Const:ULogerasebboxflag/when:Now
+		RTS
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main textinput code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+Textinput	STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get textinput object
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		CHKMSG	A:R2
+
+;		 Message jump table starts here.
+;		 Check to see if the user has sent me a typed character.
+_Check_inputmsg	BNEQUAL	A:R2,Msg:Incomingchar,A:_Check_accept&
+		UNQMSG	A:R2
+		UNQMSG	A:R3				; get typed char.
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; is textinput active?
+		BFALSE	A:R2,A:_End_textinput&		; no, ignore char
+
+_CheckAlpha	PUSH	Const:Asciiset
+		PUSH	A:R3
+		CRTN	Crtn:filter_char
+		POP	A:R2
+		BFALSE	A:R2,A:_CheckESC&		; if not an alpha check
+;							; for control chars, etc
+
+;	If we just started typing, erase the old label
+_Check_start	HASPROP	A:R1*,Prop:Startextinput,A:R2,Const:Self
+		BFALSE	A:R2,A:_Addchar&
+
+		REMPROP	A:R1*,Prop:Startextinput
+;		SETLABEL A:R1*,Const:T[ ],Const:I1	; sending   clears
+;		PUSH	Const:I0			; put insert pt at end
+;		PUSH	A:R1				; of this string
+;		CRTN	Crtn:set_insertion_pt
+
+_Addchar	UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+		PUSH	A:R3
+		PUSH	A:R1
+		CRTN	Crtn:label_fits			; check if it still fits!
+		POP	A:R4
+		BFALSE	A:R4,A:_Finish_filter&
+
+		PUSH	A:R3				; if it does, add it.
+		PUSH	A:R1
+		CRTN	Crtn:add_to_label		; this routine here
+_Finish_filter	RTS
+
+_CheckESC	BNEQUAL	A:R3,Const:A,A:_CheckCR&	; stop on ESC's
+		GLUPDATE Const:UAllupdateflags/when:Now
+		PUSH	A:R1
+		JSR	A:_Textinputoff&
+		SETLABEL A:R1*,A:_Safelabel,Const:I1	; restore the old label
+		RTS
+
+_CheckCR	BNEQUAL	A:R3,Const:AM,A:_CheckBS&	; on CR, done with ok
+		GLUPDATE Const:UAllupdateflags/when:Now
+		PUSH	A:R1
+		JSR	A:_Textinputoff&
+		RTS
+
+_CheckBS	BNEQUAL	A:R3,Const:A,A:_CheckLARROW&	; on backspace, delete
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+		PUSH	A:R1
+		CRTN	Crtn:backspace_label		; kill char before point
+		RTS
+
+_CheckLARROW	BNEQUAL	A:R3,Const:A,A:_CheckRARROW&
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+		PUSH	Const:I-1
+		PUSH	A:R1
+		CRTN	Crtn:move_insertion_pt		; move insertion pt left
+		RTS
+
+_CheckRARROW	BNEQUAL	A:R3,Const:A,A:_Chars_done&
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+		PUSH	Const:I1
+		PUSH	A:R1
+		CRTN	Crtn:move_insertion_pt		; move insertion pt right
+_Chars_done	RTS
+
+_Check_accept	BNEQUAL	A:R2,Msg:Acceptext,A:_Check_reject&
+		UNQMSG	A:R2
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+		PUSH	A:R1
+		JSR	A:_Textinputoff&
+		RTS
+
+_Check_reject	BNEQUAL	A:R2,Msg:Rejectext,A:_End_textinput&
+		UNQMSG	A:R2
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+		PUSH	A:R1
+		JSR	A:_Textinputoff&
+		SETLABEL A:R1*,A:_Safelabel,Const:I1	; restore the old label
+		RTS
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_textinput&	; Is event still active?
+;							; if not, quit.
+
+;	Start textinput upon a pick, barring selectable toolpads.
+
+;		 Is Opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&	
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_textinput&
+
+;		Are there selectable toolpads?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_textinput&		; yes, let toolpad work
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_textinput&		; yes, let headpad work
+
+_Check_finished	HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; was I active?
+		BFALSE	A:R2,A:_Turnon&			; no, check for activate
+
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*,A:R2		; if no objects
+		WORLD	Const:Environment_world		; in primary and 
+		MOVE	Prop:Selectable*,A:R3		; no text input objs in
+;		NOT	A:R3,Prop:Textinput*,A:R4	; environment
+		NOT	A:R3,A:R1,A:R4			; (checkmedude)
+		OR	A:R2,A:R4,A:R5			; are selectable,
+		BNEMPTY	A:R5,A:_End_textinput&		; then deactivate.
+
+		PUSH	A:R1
+		JSR	A:_Textinputoff&
+;		WIPE	A:XOP*
+		JUMP	A:_End_textinput&
+
+
+_Turnon		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; was I selectable?
+		BFALSE	A:R2,A:_End_textinput&
+
+
+_More_turnon	PUSH	A:R1
+		JSR	A:_Textinputon&
+		PUSH	Const:I10000			; put insert pt at end
+		PUSH	A:R1				; of this string
+		CRTN	Crtn:set_insertion_pt
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+		GETLABEL A:R1*,A:_Safelabel,Const:I1
+		ADDPROP	A:R1*,Prop:Startextinput
+		WIPE	A:XOP*				; trap pick.
+		JUMP	A:_End_textinput&
+
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_textinput&
+;		Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_textinput&
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; was I active?
+		BFALSE	A:R2,A:_End_textinput&		; no, check for activate
+
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; selectable?
+		BFALSE 	A:R2,A:_End_textinput&
+
+		WIPE	A:XOP*				; wipe the release
+		JUMP	A:_End_textinput&		; so cursor_obj don't see
+;							; it.
+
+_End_textinput	WORLD	Const:WEnvironment_world
+		RTS
+
+; where the old label is stored during entry of a new one in case user cancels
+_Safelabel	CPLDATA

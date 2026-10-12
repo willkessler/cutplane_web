@@ -1,0 +1,129 @@
+;
+;		CPL Rotate Tool Code
+;		For either cross bar of rotate tool
+;		Date: October 26,1990	
+;		Version: 1
+;
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Rotatexbaron	DEFPROP				
+Baubleon	DEFPROP
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Main code
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Rotatexbar	BWIPED	AA:XOP*,A:_End_rotatexbar&	; Event still active?
+
+_Check_activate	OWNER	A:R1*,Const:Motherevf		; Xbar selectable?
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self
+		BFALSE	A:R2*,A:_End_rotatexbar&	; no, quit
+
+_Check_transit	BEMPTY	Prop:Baubleon*,A:_Check_pick& 	; was a bauble in use?
+		REMPROP	Prop:Baubleon*,Prop:Baubleon
+		JSR	A:_Activatexbar&		; and turn on xbar
+		JUMP	A:_Check_trans2&		; then check for TRANS
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_rotatexbar&
+
+;		If a pick, try to turn on xbar
+
+_Check_circle	OWNER	A:R1,Const:Motherobj		; Get xbar, and circle
+		ANCEST	A:R1*,A:R2			; Is circle selectable?
+		HASPROP	A:R2*,Prop:Selectable,A:R3,Const:Self 
+		BTRUE	A:R3,A:_End_rotatexbar&		; yes, don't do squat
+
+
+; 		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_rotatexbar&
+		WIPE	A:XOP*				; eat the PICK
+;		Make sure to turn off acceleration selection checks.
+		PUSH	Const:TRUE
+		CRTN	Crtn:always_set_select
+
+		JSR	A:_Activatexbar&		; turn it on
+		JUMP	A:_End_rotatexbar&		; quit
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_trans&
+; 		 Releasing selectable?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_rotatexbar&
+
+_Check_circle2	OWNER	A:R1,Const:Motherevf		; don't do nothin
+;							; if rotatebar not on!
+		HASPROP	A:R1*,Prop:Rotatexbaron,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_rotatexbar&
+
+		OWNER	A:R1,Const:Motherobj		; Get xbar, and circle
+		ANCEST	A:R1*,A:R2			; Is circle selectable?
+		HASPROP	A:R2*,Prop:Selectable,A:R3,Const:Self
+		HASPROP	A:R2*,Prop:Rotatecircleon,A:R4,Const:Self ; is it in use?
+		AND	A:R3*,A:R4*,A:R5
+		BNEMPTY	A:R5,A:_End_rotatexbar&		; yes, don't do squat
+
+		WIPE	A:XOP*				; eat the RELEAS
+;		Make sure to turn acceleration selection checks back on.
+		PUSH	Const:FALSE
+		CRTN	Crtn:always_set_select
+
+		JSR	A:_Deactivatexbar&		; turn it off
+		JUMP	A:_End_rotatexbar&		; quit
+
+_Check_trans	OWNER	A:R1,Const:Motherevf		; Get xbar
+		HASPROP	A:R1*,Prop:Rotatexbaron,A:R2,Const:Self ; active?
+		BFALSE	A:R2*,A:_End_rotatexbar&	; no, quit
+
+;		 Is event a translate?
+_Check_trans2	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_End_rotatexbar&
+;		 Translating xhair?
+		BNEQUAL	AA:XAS,Env:Crosshair_part,A:_Check_transpk&
+
+;		Constrain TRANS using a C call and get a rotate info record
+;		into R2
+
+		PUSH	A:R4				; (filler)
+		PUSH	A:R1				; pass xbar
+		PUSH	AA:XAD*				; pass translate rec
+		CRTN	Crtn:xbar_rotate
+		POP	AA:XAD				; get back new trans
+		POP	A:R1				; get back rotate rec
+		POP	A:R4				; get what to unpick
+;							; if an fve snapped
+		WORLD	Const:WPrimary_world		; select main world
+		UNPICK	A:R4*				; unpick the snapped
+		ROTATE	Prop:Picked*,A:R1		; rotate the picked
+		ADDPROP	Prop:Selectable*,Prop:Nonselectable
+		UNSEL	Prop:Selectable*		; unsel selectables
+
+_Checkfacesnap	BEMPTY	A:R4,A:_Check_transpk&		; face(s) snapped!
+		UNPICK	Prop:Picked*
+		JSR	A:_Deactivatexbar&
+		JUMP	A:_End_rotatexbar&
+
+_Check_transpk 	BNEQUAL	AA:XAS,Prop:Picked,A:_End_rotatexbar&
+
+_Kill_transpk	WIPE	A:XOP*				; kill picked translate
+
+
+_End_rotatexbar	RTS
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Subroutines
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Activatexbar	OWNER	A:R1,Const:Motherevf		; get xbar
+		ADDPROP	A:R1*,Prop:Rotatexbaron		; mark the xbar in use
+		RTS
+
+_Deactivatexbar	OWNER	A:R1,Const:Motherevf		; Yes, get xbar
+		REMPROP	A:R1*,Prop:Rotatexbaron		; unmark xbar usage
+		WORLD	Const:WPrimary_world
+		REMPROP	Prop:Nonselectable*,Prop:Nonselectable
+		WORLD	Const:WEnvironment_world	; go back to env.
+
+		RTS

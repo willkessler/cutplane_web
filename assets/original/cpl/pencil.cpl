@@ -1,0 +1,123 @@
+;
+;		CPL Pencil Code for use with tool.cpl
+;		Date: November 28,1990
+;		Version: 6
+;
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;  marks holding button down while moving pencil.
+Pencildown	DEFPROP				
+_Newscribble	CPLDATA					; local var
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main pencil code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;		Code for the Draw routine version 1: a la macpaint since easier
+
+Draw		DEFPROP
+
+Draw		STARTPROP
+		BWIPED	AA:XOP*,A:_End_drawing&		; Event still active?
+
+		OWNER	A:R1,Const:Motherobj		; Is pencil Active?
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_drawing&		; no,quit
+
+;	Start drawing upon a pick, barring selectable toolpads.
+
+;		 Is Opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectable?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_drawing&
+
+;		Are there selectable toolpads?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_drawing&		; yes, let toolpad work
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_drawing&		; yes, let headpad work
+
+		WORLD	Const:WPrimary_world
+		UNPICK	Prop:Picked*
+		WORLD	Const:WEnvironment_world
+;		On pick, begin drawing.
+_Begin_drawing	ADDPROP	A:R1,Prop:Pencildown
+		MOVE	Prop:Selectable*,A:R1
+		WIPE	A:XOP*
+		PUSH	A:R1
+		CRTN	Crtn:start_draw
+		POP	A:_Newscribble
+		ADDPROP	A:_Newscribble*,Prop:Nonmanifold
+		WTRANS	A:_Newscribble*,Const:WPrimary_world
+;		 move it a bit off the plane...
+		TRANS	A:_Newscribble*,Const:Normaltranslate,Const:V[0.0,0.0,10.0]
+		UPDATE	A:_Newscribble*,Const:UComputebboxflag/when:Now
+		UPDATE	A:_Newscribble*,Const:URecomputebackfaceflag/when:Now
+		JUMP	A:_End_drawing&
+
+;		 Is Opcode a RELEAS?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_trans&
+;		 Releasing selectable?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_drawing&
+
+;		Is pencil down?
+		HASPROP	A:R1*,Prop:Pencildown,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_drawing&
+
+;		yes, finish drawing
+
+_Stop_drawing	REMPROP	A:R1*,Prop:Pencildown		; mark pencil up
+
+_Wiperelease	WIPE	A:XOP*				; clear RELEAS
+		MOVE	Prop:Selectable*,A:R1
+		PUSH	A:R1
+;
+;	N.B. Croutine should not bite it if nothing was drawn and the guy
+;	just flipped the pencil!!!
+;
+		PUSH	A:_Newscribble			; push any scribble too
+		CRTN	Crtn:end_draw			; stop drawing
+		POP	A:_Newscribble
+		REMPROP	A:_Newscribble*,Prop:Nonmanifold
+;		 move it a bit back into the plane...
+		TRANS	A:_Newscribble*,Const:Normaltranslate,Const:V[0.0,0.0,-20.0]
+		UPDATE	A:_Newscribble*,Const:UAllupdateflags/when:Now
+		JUMP	A:_End_drawing&
+
+;	Extend drawing if xhair translated
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_End_drawing&
+;		 TRANSlating xhair?
+		BNEQUAL	AA:XAS*,Env:Crosshair_part,A:_End_drawing&
+
+;		 move xhair, then
+		TRANS	Env:Crosshair_part,Const:Normaltranslate,AA:XAD*
+_Wipetrans	WIPE	A:XOP*				; wipe it so other objs
+;							; don't see doodly
+
+		HASPROP	A:R1*,Prop:Pencildown,A:R2,Const:Self ; pencil down?
+		BFALSE	A:R2,A:_End_drawing&		; no, quit
+
+		PUSH	A:_Newscribble
+		PUSH	AA:XAD				; pass trans amount
+		CRTN	Crtn:extend_draw		; yes, continue figure
+		POP	A:R2				; for update
+		UPDATE	A:R2*,Const:UComputebboxflag/when:Now
+		UPDATE	A:R2*,Const:URecomputebackfaceflag/when:Now
+		UPDATE	A:R2*,Const:ULogerasebboxflag/when:Now
+
+;	in the case of the pencil, this should only be added if something
+; 	was successfully drawn!!! this means the Crtn extend_draw should
+;	be used to check whether to add this prop... tricky tricky
+
+;		ADDPROP	A:R1*,Prop:Toolused		; let toolpad know
+;							; the pencil is in use
+
+_End_drawing	RTS
+

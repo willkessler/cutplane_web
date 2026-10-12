@@ -1,0 +1,87 @@
+
+;		CPL Pushbutton Pad Codes
+;		Date: February 10,1991
+;		Version: 1
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Pushbutton subroutines, generic to all pushbuttons 
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Pbutton variables
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; variable to hold what was active when you released a pbutton sans drag.
+
+_Old_activetool	CPLDATA
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Main pbutton code starts here
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; A pushbutton pad must push down when you press it, and send an Activate message
+; to its associated tool if it has it.
+
+Pbutton		DEFPROP
+
+Pbutton		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get pbutton
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+;		 Check to see if a tool wants to be attached to me...
+
+		JUMP	A:_End_pbutton&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_pbutton&		; Event still active?
+
+;		Handle a pick
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_pbutton&
+
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; pad selectable?
+		BFALSE	A:R2,A:_End_pbutton&
+
+_Turnonpbutton	CHLDRN	A:R1*,A:R2			; activate pbutton tool
+		HASPROP	A:R2*,Prop:Tool,A:R3,Const:Self
+		BEMPTY	A:R3,A:_End_pbutton&		; if no tools, do nada
+		MAKEMSG	Msg:Activate
+		QMSG	A:R3*,Const:Prioritymsg
+
+		ADDPROP	A:R1*,Prop:Picked		; pick pbutton so it
+;							; can catch the release
+
+		WIPE	A:XOP*
+		JUMP	A:_End_pbutton&
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_pbutton&
+;		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_pbutton&
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_pbutton&		
+
+_Turnoffpbutton	UNPICK	A:R1*				; unpick me upon release
+
+_Clear_release	WIPE	A:XOP*
+
+_End_pbutton	RTS
+

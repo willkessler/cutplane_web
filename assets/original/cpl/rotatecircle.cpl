@@ -1,0 +1,191 @@
+;
+;		CPL Rotate Tool Code
+;		For the center circle of rotate tool
+;		Date: February 2,1991
+;		Version: 2
+;
+
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Main code
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+Rotatecircle	OWNER	A:R1,Const:Mothervfe		; Get circle
+
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check for setup message
+_Setuptoselmsg	BNEQUAL	A:R2,Msg:Setcircletosel,A:_Snapmsg&
+
+		JSR	A:_Setuptosel&
+		JUMP	A:_End_messages&		; rtn
+
+;		 Check for snap rotatetool to feature
+; 		If the rotatecircle is selectable at the time you get sent
+;		this message, it puts the tool away.
+_Snapmsg	BNEQUAL	A:R2,Msg:Snaprotatetool,A:_Pickwithpan&
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self
+		BTRUE	A:R2,A:_Putawayrot&
+
+_Snapit		WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*,A:R3
+		BEMPTY	A:R3*,A:_Snaptoxhair&		; Something selectable?
+		MOTHER	A:R3*,A:R4,Const:Motherobj
+		BEQUAL	A:R3,A:R4,A:_Snaptoxhair&	; snap to inside of obj/s
+		JSR	A:_Setuptosel&
+		CRTN	Crtn:snap_rotatetool		; snap it to selectables
+		JUMP	A:_Finish_snap&
+
+_Snaptoxhair	SNAP	A:R1*,Env:Crosshair_part
+		PUSH	A:R1				; push tool masquerading
+;							; as a selectable!!!
+		CRTN	Crtn:setup_rotatetool		; reset it so it's square
+
+;	  Unpick previously picked feature(s) and pick selectable feature(s).
+_Finish_snap	WORLD	Const:WPrimary_world
+		MAKEMSG	Msg:Unpick
+		QMSG	Prop:Picked*,Const:Noprioritymsg
+		MAKEMSG	Msg:Pick
+		QMSG	Prop:Selectable*,Const:Noprioritymsg 
+		WORLD	Const:Environment_world
+		JUMP	A:_End_messages&
+
+;		 Snap to docking position.
+
+_Putawayrot	SNAP	A:R1*,Const:V[347.5,220.5,0.0]
+		SNAP	A:R1*,Env:Cutplane_part
+		JUMP	A:_End_messages&
+
+_Pickwithpan	BNEQUAL	A:R2,Msg:Pickwithpan,A:_End_messages&
+		PUSH	A:R1
+		JSR	A:_Activate_circle&
+		MOVE	Const:TRUE,A:_Pickedwithpan&
+		JUMP	A:_End_messages&
+
+_End_messages	BMSGS	A:R1,A:_Check_messages&
+		RTS
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_circle&		; Event still active?
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_circle&
+
+;		Is the circle selectable?
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_circle&
+
+		PUSH	A:R1
+		JSR	A:_Activate_circle&
+
+		JUMP	A:_End_circle&			; quit
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_trans&
+; 		 Releasing selectable?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_circle&
+
+		PUSH	A:R1
+		JSR	A:_Deactiv_circle&
+
+		BFALSE	A:_Pickedwithpan,A:_End_release&
+		MOVE	Const:FALSE,A:_Pickedwithpan
+		MAKEMSG	Msg:Deactivatetool
+		MAKEMSG	Prop:Toolpadempty*
+		QMSG	Obj:Pantool,Const:Prioritymsg
+		
+_End_release	JUMP	A:_End_circle&			; quit
+
+_Check_trans	OWNER	A:R1,Const:Motherobj		; Get circle
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; active?
+		BFALSE	A:R2*,A:_End_circle&		; no, quit
+
+;		 Is event a translate?
+		BNEQUAL	AA:XOP*,Opcd:TRANS,A:_End_circle&
+;		 Translating picked?
+_Check_transpk 	BNEQUAL	AA:XAS,Prop:Picked,A:_End_circle&
+
+; Tell circle to set itself up according to what is selectable on the next
+; refresh when the rotate circle gets the setup message.
+;		MAKEMSG	Msg:Setcircletosel		
+;		QMSG	A:R1*,Const:Prioritymsg
+		JSR	A:_Setuptosel&
+
+_Kill_transpk	WIPE	A:XOP*				; kill picked translate
+
+_End_circle	RTS
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Subroutines
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Setuptosel	WORLD	Const:WPrimary_world		; Set circle up according
+		MOVE	Prop:Selectable*,A:R9		; to what is selectable	
+		WORLD	Const:WEnvironment_world	; in primary world.
+		PUSH	A:R9				; rotate tool on and
+		CRTN	Crtn:setup_rotatetool		; pass it to C setup
+		RTS
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Subroutines
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Activate_circle POP	A:R9
+;		Make sure to turn off acceleration selection checks.
+		PUSH	Const:TRUE
+		CRTN	Crtn:always_set_select
+
+		OWNER	A:R9,Const:Motherobj
+		ADDPROP	A:R9*,Prop:Active		; mark the circle in use
+		WIPE	A:XOP*				; eat the PICK
+		SNAP	A:R9*,Env:Crosshair_part	; snap to center
+		ADOPT	Env:Crosshair_part,A:R9*,Const:TRUE ; now xhair's child 
+		PUSH	Const:Rotateiconcentersize	; make select size bigger
+		CRTN	Crtn:set_picksize
+		RTS
+
+_Deactiv_circle	POP	A:R9
+;		Make sure to turn acceleration selection checks back on.
+		PUSH	Const:FALSE
+		CRTN	Crtn:always_set_select
+
+		HASPROP	A:R9*,Prop:Active,A:R8,Const:Self
+		BFALSE	A:R8,A:_End_circle&		; if circle !in use, quit
+
+		REMPROP	A:R9*,Prop:Active		; unmark circle usage
+		WIPE	A:XOP*				; eat the RELEAS
+
+		WORLD	Const:WPrimary_world
+		BEMPTY	Prop:Selectable*,A:_Setpicksize& ; Something selectable?
+		PUSH	Prop:Selectable*		; Yes, setup rotate tool
+		CRTN	Crtn:setup_rotatetool		; on it.
+		MAKEMSG	Msg:Unpick
+		QMSG	Prop:Picked*,Const:Noprioritymsg
+		MAKEMSG	Msg:Pick
+		QMSG	Prop:Selectable*,Const:Noprioritymsg ; tell 'em to pick
+		CRTN	Crtn:snap_rotatetool		; snap it to selectables
+
+_Setpicksize	WORLD	Const:WEnvironment_world
+		CRTN	Crtn:reset_picksize		; make select size small
+		ADOPT	Env:Cutplane_part,A:R9*,Const:TRUE
+		RTS
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Some vars local to rotatecircle...
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Pickedwithpan	CPLDATA

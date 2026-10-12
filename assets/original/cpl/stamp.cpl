@@ -1,0 +1,76 @@
+
+;		CPL Stamp Property Codes
+;		Date: November 29,1990	
+;		Version: 7
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Stamp subroutines 
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;		Code for a routine that calls stamp upon a pick
+
+;		Code for stamp subroutine.
+;		Object set to stamp passed on stack
+
+Stamp_sub	POP	A:R1
+		DUP	A:R1*,A:R2	
+		REMPROP	A:R2*,Prop:Stamp
+		REMPROP	A:R2*,Prop:Hideable
+		REMPROP	A:R2*,Prop:Lockedgeometry
+		WTRANS	A:R2*,Const:WPrimary_world	; move result to main wld
+		WORLD	Const:WPrimary_world
+		MAKEMSG	Msg:Unpick
+		QMSG	Prop:Picked*,Const:Prioritymsg	; First unpick all.
+		MAKEMSG	Msg:Pick
+		QMSG	A:R2*,Const:Prioritymsg		; then pick result
+		WORLD	Const:WEnvironment_world
+		RTS
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main stamp code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Stamp		DEFPROP
+
+Stamp		STARTPROP
+		BWIPED	AA:XOP*,A:_End_stampick&	; Is event still active?
+;		 Is event a pick?
+		BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_stampick&
+
+		OWNER	A:R1,Const:Motherobj		; Was owner selectable?
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_stampick&		; no, quit
+
+		PUSH	A:R1
+		JSR	A:Stamp_sub&			; and stamp owner
+		ADDPROP	A:R1*,Prop:Active		; mark orig as stamped
+		WIPE   	A:XOP*				; Wipe this PICK
+		JUMP	A:_End_stampick&
+
+_Check_release	OWNER	A:R1,Const:Motherobj		;
+;		 Is event a release?
+		BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_stampick&
+;		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_stampick&
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; orig stamped?
+		BFALSE	A:R2,A:_End_stampick&		; no, quit
+		REMPROP	A:R1*,Prop:Active
+		PARENT	A:R1*,A:R2
+
+		MAKEMSG	Msg:Closetoolbox		; tell toolboxes to close
+		QMSG	A:R2*,Const:Prioritymsg		; Queue message string.
+		JSRAT	A:R2*,Code:Property_code
+
+		WIPE	A:XOP*
+
+_End_stampick	RTS
+
+

@@ -1,0 +1,146 @@
+;
+;		CPL Property Codes:Drill (Boolean Subtraction)
+;		Date: January 20,1991
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Drill		DEFPROP
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;  Drill subroutines
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; Create a cutting tool from whatever's selectable by duplicating it, changing
+; its color to red, and adopting it to the drill tool... on RELEASE
+; we'll transfer it back into the world and use it to cut other selectables.
+
+_Create_cutter	POP	A:R8
+		DUP	A:R8*,A:R9
+		SETCOLOR A:R9*,Const:C[155,0,0]		; Make cutter red.
+		REMPROP	A:R9*,Prop:Stamp		; (In case from primbox)
+		REMPROP	A:R9*,Prop:Hideable
+		REMPROP	A:R9*,Prop:Lockedgeometry
+		OWNER	A:R1,Const:Motherobj		; get drill tool
+		ADOPT	A:R1,A:R9*,Const:FALSE		; make a child of drill
+		MOVE	A:R9,A:_Cutter_store		; save it for later use
+		RTS
+
+; Use what cutting tool you have to cut whatever is passed in, e.g. selectables
+
+_Use_cutter	POP	A:R8				; get what we will cut
+		BEMPTY	A:R8*,A:_No_use_cutter&		; do zip if nada passed
+		ADOPT	Const:WPrimary_world,A:_Cutter_store*,Const:TRUE
+		CPBOOLEAN	A:R8*,A:_Cutter_store*,A:R9,Const:Boolsubtract
+		JUMP	A:_End_use_cutter&
+
+_No_use_cutter	ADOPT	Const:WPrimary_world,A:_Cutter_store*,Const:TRUE
+		CPDELETE	A:_Cutter_store*
+
+; should delete original source obj here but it is really newobjB see bools...
+
+_End_use_cutter	CLEAR	A:_Cutter_store
+		RTS
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main drill code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+Drill		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get drill
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Check topmost message
+		CHKMSG	A:R2
+
+;		 Message jump table starts here.
+;		 Check to see if the marquee has sent me a set of objects
+_Check_inputmsg	BNEQUAL	A:R2,Msg:Marqueedset,A:_End_drill&
+;		 Get topmost message
+		UNQMSG	A:R2
+		UNQMSG	A:R3				; get drillable set
+
+;		 drill marqueed objects?
+
+		JUMP	A:_End_drill&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_drill&		; Is event still active?
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_drill&		; no,quit
+
+
+;		 Picking selectables?
+_Check_usage	BNEQUAL	AA:XAS,Prop:Selectable,A:_End_drill&
+
+;		Are there selectable toolpads?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_drill&		; yes, let toolpad work
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_drill&		; yes, let headpad work
+
+;	Do a drill upon a pick, barring selectable toolpads.
+
+;		 Is Opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&	
+
+		ADDPROP	A:R1*,Prop:Toolused		; let toolpad know
+;							; the drill was used
+
+		WORLD	Const:WPrimary_world
+		MAKEMSG	Msg:Unpick
+		QMSG	Prop:Picked*,Const:Noprioritymsg
+		MOVE	Prop:Selectable*,A:R2		; if no objects
+		BEMPTY	A:R2,A:_End_drill&		; are selectable, quit
+
+_Do_drill	WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*, A:R2
+		WORLD	Const:WEnvironment_world
+		PUSH	A:R2
+
+_Begin_cut	JSR	A:_Create_cutter&
+		WIPE	A:XOP*				; no picking please!
+		JUMP	A:_End_drill&
+
+
+;		 Is Opcode a RELEAS?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_drill&	
+
+		BEMPTY	A:_Cutter_store,A:_End_drill&
+
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*, A:R2
+		WORLD	Const:WEnvironment_world	; itself!
+		PUSH	A:R2
+		
+_Finish_cut	JSR	A:_Use_cutter&			; do the cut!
+		WIPE	A:XOP*				; no picking please!
+		MAKEMSG	Msg:Attachtool
+		MAKEMSG	A:R1*
+; 		 adopt me to any free toolpad
+		QMSG	Prop:Toolpadempty*,Const:Prioritymsg 
+		JUMP	A:_End_drill&
+
+_End_drill	WORLD	Const:WEnvironment_world
+		RTS
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Drill variables
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; variable to hold cutter
+
+_Cutter_store	CPLDATA

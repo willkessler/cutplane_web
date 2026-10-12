@@ -1,0 +1,141 @@
+;
+;		CPL Property Codes:Magnet
+;		Date: February 11,1991
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Magnetic	DEFPROP
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;  Magnetic subroutines
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main magnetic code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+Magnetic		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get magnetic
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Check topmost message
+		CHKMSG	A:R2
+
+;		 Message jump table starts here.
+;		 Check to see if the marquee has sent me a set of objects
+_Check_inputmsg	BNEQUAL	A:R2,Msg:Marqueedset,A:_End_magnetic&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+		UNQMSG	A:R3				; get magneticable set
+
+;		 pick up marqueed objects magnetically?
+
+		JUMP	A:_End_magnetic&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_magnetic&	; Is event still active?
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_magnetic&		; no,quit
+
+
+;		 Picking selectables?
+_Check_usage	BNEQUAL	AA:XAS,Prop:Selectable,A:_End_magnetic&
+
+;		Are there selectable toolpads?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_magnetic&		; yes, let toolpad work
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_magnetic&		; yes, let headpad work
+
+;	Do a magnetic upon a pick, barring selectable toolpads.
+
+;		 Is Opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&	
+
+		ADDPROP	A:R1*,Prop:Toolused		; let toolpad know
+;							; the magnetic was used
+
+		WORLD	Const:WPrimary_world
+		MAKEMSG	Msg:Unpick
+		QMSG	Prop:Picked*,Const:Noprioritymsg
+;		 Store grabbable feature; if no objects are selectable, quit
+		MOVE	Prop:Selectable*,A:_Grabbed_feat
+		BEMPTY	A:_Grabbed_feat,A:_End_magnetic&
+
+_Start_magnetic	WORLD	Const:WEnvironment_world
+
+_Grab_edge?	MOTHER	A:_Grabbed_feat*,A:R3,Const:Motherevf
+		BEQUAL	A:_Grabbed_feat,A:R3,A:_Finish_pick&
+
+_Grab_face?	MOTHER	A:_Grabbed_feat*,A:R3,Const:Motherfve
+		BEQUAL	A:_Grabbed_feat,A:R3,A:_Finish_pick&
+
+		JUMP	A:_End_magnetic&
+
+_Finish_pick	INDEX	A:_Grabbed_feat,A:R3,Const:I1
+		MOTHER	A:R3*,A:R4,Const:Motherobj	; pick its mother
+		MAKEMSG	Msg:Pick
+		QMSG	A:R4*,Const:Prioritymsg
+
+		WIPE	A:XOP*				; no other picking!
+		JUMP	A:_End_magnetic&
+
+
+;		 Is Opcode a RELEAS?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_magnetic&	
+
+		BEMPTY	A:_Grabbed_feat,A:_End_magnetic& ; if nothing grabbed
+
+_Finish_magnetic WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*, A:R2
+		WORLD	Const:WEnvironment_world
+		BEMPTY	A:R2,A:_End_magnetic&		; if nothing selectable
+		
+_Stickto_edge?	MOTHER	A:R2*,A:_Snapto_feat,Const:Motherevf
+		BEQUAL	A:R2*,A:_Snapto_feat,A:_Do_stick&
+
+_Stickto_face?	MOTHER	A:R2*,A:_Snapto_feat,Const:Motherfve
+		BEQUAL	A:R2,A:_Snapto_feat,A:_Do_stick&
+
+		JUMP	A:_End_magnetic&
+
+_Do_stick	MOTHER	A:_Grabbed_feat*,A:R4,Const:Motherobj ; unpick its mother
+		MAKEMSG	Msg:Unpick
+		QMSG	A:R4*,Const:Prioritymsg
+
+		SNAP	A:_Snapto_feat*,A:_Grabbed_feat*
+		WIPE	A:XOP*				; no releasing please!
+
+		MAKEMSG	Msg:Attachtool
+		MAKEMSG	A:R1*
+; 		 adopt me to any free toolpad
+		QMSG	Prop:Toolpadempty*,Const:Prioritymsg 
+		JUMP	A:_End_magnetic&
+
+_End_magnetic	WORLD	Const:WEnvironment_world
+		RTS
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Magnetic variables
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; variables to hold "magnetized" features...
+; 
+_Grabbed_feat	CPLDATA
+_Snapto_feat	CPLDATA
+

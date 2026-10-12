@@ -1,0 +1,87 @@
+
+;		CPL code to allow dragging of a goodies object.  This frees
+;		the goodies object from its parent upon PICK if it has a parent
+;		Date: January 4,1990	
+;		Version: 1
+
+Goodies		DEFPROP
+
+Goodies		STARTPROP
+		BWIPED	AA:XOP*,A:_End_goodies&		; Event still active?
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_pick&
+
+;		Check to see if we are dragging stuff.
+
+;		 TRANSlating picked?
+_Trans_picked	BNEQUAL	AA:XAS,Prop:Picked,A:_Check_pick&
+		OWNER	A:R1,Const:Motherobj		; Get object 
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; Is object picked?
+		BFALSE	A:R2,A:_End_goodies&		; No: quit
+
+_Transobject	TRANS	A:R2*,Const:Quicktranslate,AA:XAD ; Else, translate obj
+		WIPE	A:XOP*
+		RTS
+
+; 	Handle a pick
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_goodies&
+
+_Pick_obj	OWNER	A:R1,Const:Motherobj		; Get object
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; is it selectable?
+		BFALSE	A:R2,A:_End_goodies&
+
+		WORLD	Const:WEnvironment_world
+
+		UNPICK	Prop:Picked*			; unpick other env objs
+		PICK	A:R1*				; pick it
+
+_Finish_pick	WIPE	A:XOP*				; kill pick
+		JUMP	A:_End_goodies&
+
+
+;		Handle a release
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_goodies& 
+; 		 Releasing selectables?		
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_goodies&
+
+		OWNER	A:R1,Const:Motherobj		; Get object
+
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; obj selectable?
+		BFALSE	A:R2,A:_End_goodies&
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; if obj not picked,
+		BFALSE	A:R2,A:_End_goodies&		; quit
+
+_Unpick_object	UNPICK	A:R1*				; yes, unpick it
+
+		PARENT	A:R1*,A:R2			; is object a child?
+		BEQUAL	Const:WEnvironment_world,A:R2*,A:_Try_dunk&
+
+;		Yes, free it from parent toolbox, and close it
+		ADOPT	Const:WEnvironment_world,A:R1*,Const:TRUE
+		PUSH	A:R2
+		JSR	A:Close_toolbox&		; close owner toolbox
+		JUMP	A:_Clear_release&
+
+;		If a toolbox is selectable when you RELEAS send a message to
+;		the toolbox to adopt this goodies object
+
+_Try_dunk	HASPROP	Prop:Selectable*,Prop:Toolbox,A:R2,Const:Self
+		BFALSE	A:R2,A:_Clear_release&
+
+		MAKEMSG Msg:Dunkobject			; Tell toolbox to dunk
+		MAKEMSG	A:R1*				; this goodies object.
+		MAKEMSG	Msg:Closetoolbox		; Tell toolbox to close.
+		QMSG	A:R2*,Const:Prioritymsg		; Queue message string.
+		JSRAT	A:R2*,Code:Property_code	; call toolbox!
+
+_Clear_release	WIPE	A:XOP*
+
+_End_goodies	RTS

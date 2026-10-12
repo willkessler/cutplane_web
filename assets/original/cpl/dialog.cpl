@@ -1,0 +1,163 @@
+
+;		CPL Dialog Pad Property Codes
+;		Date: December 16,1990	
+;		Version: 1
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Dialogragged	DEFPROP					; Dialog was dragged
+; should use Dialogopen, Dialogclosed props?
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Dialog subroutines, generic to all dialogs 
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Open_dialog	POP	A:R8				; get plate
+		ADDPROP	A:R8*,Prop:Visible		; show plates
+		DESCEND	A:R8*,A:R9
+		ADDPROP	A:R9*,Prop:Visible		; show inputboxes
+		PARENT	A:R8*,A:R9
+		GETCONN	A:R9*,A:R8			; show anything else
+		ADDPROP	A:R8*,Prop:Visible		; associated... hack
+		DESCEND	A:R8*,A:R7
+		ADDPROP	A:R7*,Prop:Visible
+		RTS
+
+_Close_dialog	POP	A:R8				; get plate
+		REMPROP	A:R8*,Prop:Visible		; hide it
+		DESCEND	A:R8*,A:R9
+		REMPROP	A:R9*,Prop:Visible		; hide inputboxes
+	       	UNSEL	A:R9*
+		PARENT	A:R8*,A:R9
+		GETCONN	A:R9*,A:R8			; hide anything else
+		REMPROP	A:R8*,Prop:Visible		; associated... hack
+	       	UNSEL	A:R8*
+		DESCEND	A:R8*,A:R7
+		REMPROP	A:R7*,Prop:Visible
+	       	UNSEL	A:R7*
+		RTS
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Main dialog code starts here
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; A dialog pad must: show its dialog plate(s) if picked and they are
+; invisible, or hide them if picked and they are visible.
+; If you drag it, it should do nothing.
+; Derived from headpads... should props be combined somehow???
+
+Dialog		DEFPROP
+
+Dialog		STARTPROP
+
+		BWIPED	AA:XOP*,A:_End_dialog& ; Event still active?
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get dialog
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_trans&
+
+;		 Get topmost message
+		CHKMSG	A:R2
+
+;		 Message jump table starts here.
+;		 Check for open dialog msg.
+_Check_openmsg	BNEQUAL	A:R2,Msg:Opendialog,A:_Check_closemsg&
+		UNQMSG	A:R2
+		CHLDRN	A:R1*,A:R2
+		PUSH	A:R2
+		JSR	A:_Open_dialog&
+		JUMP	A:_End_dialog&
+
+;		 Check for close dialog msg.
+_Check_closemsg	BNEQUAL	A:R2,Msg:Closedialog,A:_End_dialog&
+		UNQMSG	A:R2
+		CHLDRN	A:R1*,A:R2
+		PUSH	A:R2
+		JSR	A:_Close_dialog&
+		JUMP	A:_End_dialog&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_pick&
+
+;		Check to see if we are dragging stuff.
+
+;		 TRANSlating picked?
+_Trans_picked	BNEQUAL	AA:XAS,Prop:Picked,A:_End_dialog&
+		OWNER	A:R1,Const:Motherobj		; Get dialog 
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; Is pad picked?
+		BFALSE	A:R2,A:_End_dialog&		; No: quit
+
+;		if this dialog was not marked as dragged, mark it
+		HASPROP	A:R1*,Prop:Dialogragged,A:R2,Const:Self
+		BTRUE	A:R2,A:_Killtranspk&
+		ADDPROP	A:R1*,Prop:Dialogragged
+;		Make it a child of the crosshair so it follows xhair around	
+		ADOPT	Env:Crosshair_part,A:R1*,Const:FALSE 
+
+_Killtranspk	WIPE	A:XOP*				; kill the trans
+		JUMP	A:_End_dialog&
+
+;		Handle a pick
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Are you picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_dialog&
+
+;		if you were holding a tool, that's ok, just let it stay active,
+;		but trap the pick (which the tool presumably has already passed
+;		up).
+
+_Pick_dialog	OWNER	A:R1,Const:Motherobj		; Get dialog
+		PICK	A:R1*				; pick pad
+		WIPE	A:XOP*				; kill pick
+		JUMP	A:_End_dialog&
+
+;		Handle a release
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_dialog&
+; 		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_dialog&
+
+		OWNER	A:R1,Const:Motherobj		; Get dialog
+
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; pad selectable?
+		BFALSE	A:R2,A:_End_dialog&
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; if pad not picked,
+		BFALSE	A:R2,A:_End_dialog&		; quit
+
+_Unpick_dialog	UNPICK	A:R1*				; yes, unpick it
+
+_Check_dragged	HASPROP	A:R1*,Prop:Dialogragged,A:R2,Const:Self ; pad dragged?
+		BFALSE	A:R2,A:_Usedialog&		; No, turn it on.
+
+		REMPROP	A:R1*,Prop:Dialogragged	; unmark it as dragged
+;		Make it child of cutplane again
+		ADOPT	Env:Cutplane_part,A:R1*,Const:TRUE
+		UPDATE	A:R1*,Const:UComputebboxflag/when:Now	; recompute bbox
+		JUMP	A:_Clear_release&
+
+_Usedialog	CHLDRN	A:R1*,A:R2			; check if first plate
+		INDEX	A:R2,A:R3,Const:I1		; is visible...
+		HASPROP	A:R3*,Prop:Visible,A:R4,Const:Self
+		BTRUE	A:R4,A:_Hideplate&
+		PUSH	A:R3
+		JSR	A:_Open_dialog&
+		JUMP	A:_Clear_release&
+
+_Hideplate	PUSH	A:R3
+		JSR	A:_Close_dialog&
+
+_Clear_release	WIPE	A:XOP*
+
+_End_dialog	RTS
+

@@ -1,0 +1,137 @@
+
+;		CPL Toolpad Property Codes
+;		Date: November 26,1990	
+;		Version: 1
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Toolpadempty	DEFPROP					; Toolpad has no child
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Toolpad subroutines, generic to all toolpads 
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Toolpad variables
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; variable to hold what was active when you released a toolpad sans drag.
+
+_Wasactive	CPLDATA
+
+
+Toolpad		DEFPROP
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Toolpad subroutines, generic to all toolpads
+; WARNING: The following routines make extensive use of R7,R8,R9... so
+; save 'em if you wan' 'em!
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; This subroutine activates a toolpad's tool... called by a pick usually,
+; although it can be invoked via a message to this toolpad.
+
+;		if you were already holding a tool, put it away
+_Click_toolpad	POP	A:R9				; get pad
+		MOVE	Prop:Active*,A:_Wasactive
+		MAKEMSG	Msg:Deactivatetool
+		MAKEMSG	A:R9*				; pass pad
+		QMSG	A:_Wasactive*,Const:Prioritymsg
+
+;	Now activate the tool that was on the pad already (if there was one)
+		CHLDRN	A:R9*,A:R8			; activate pad tool 
+		HASPROP	A:R8*,Prop:Tool,A:R7,Const:Self
+		BEMPTY	A:R7,A:_Makepadempty&		; if no tools, just
+;							; put away active tool
+		MAKEMSG	Msg:Pickuptool
+		QMSG	A:R7*,Const:Prioritymsg
+
+;		If nothing was active at the time of the pick, then the pad will
+;		now become empty because its tool becomes active (or it had no
+;		tool at all!)
+
+		BEMPTY	A:_Wasactive*,A:_Makepadempty&
+
+_Swapintopad	REMPROP	A:R9*,Prop:Toolpadempty
+		ADDPROP	A:R9*,Prop:Hasdecal
+		JUMP	A:_End_click&
+
+_Makepadempty	REMPROP	A:R9*,Prop:Hasdecal		; turn off decal
+		ADDPROP	A:R9*,Prop:Toolpadempty
+
+_End_click	RTS
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main toolpad code starts here				     ;
+; A tool pad must: show its tool if it is selectable, give you its tool if
+; it has one, and adopt the one you are carrying if you have it.
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Toolpad		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get toolpad
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Check topmost msg
+		CHKMSG	A:R2
+
+;		 Message jump table starts here.
+;		 Check to see if a tool wants to be attached to me...
+_Checkattachmsg	BNEQUAL	A:R2,Msg:Attachtool,A:_Checkclickmsg&
+
+		UNQMSG	A:R2				; Get topmost message
+		UNQMSG	A:R3				; get tool
+
+		HASPROP	A:R1*,Prop:Toolpadempty,A:R2,Const:Self
+;		 Don't adopt if already has a child
+		BEMPTY	A:R2,A:_End_toolpad&		
+		PUSH	A:R1
+		PUSH	A:R3
+		JSR	A:Put_away_tool&
+		REMPROP	A:R1*,Prop:Toolpadempty
+
+		JUMP	A:_End_toolpad&
+
+; Check to see if a toolpad has been "clicked" by some other object... used by
+; key shortcuts to activate a particular tool. When you send an "Activatetool"
+; message to a tool, if it is not active, it sends a Clicktoolpad msg here, which
+; then acts as it would normally do if you clicked on the toolpad directly
+; with the mouse.
+
+_Checkclickmsg	BNEQUAL	A:R2,Msg:Clicktoolpad,A:_End_toolpad&
+		UNQMSG	A:R2
+		PUSH	A:R1
+		JSR	A:_Click_toolpad&
+
+		JUMP	A:_End_toolpad&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_toolpad&		; Event still active?
+
+;		Handle a pick
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_End_toolpad&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_toolpad&
+
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ; pad selectable?
+		BFALSE	A:R2,A:_End_toolpad&
+
+		PUSH	A:R1
+		JSR	A:_Click_toolpad&
+
+_Clear_pick	WIPE	A:XOP*
+
+_End_toolpad	BMSGS	A:R1,A:_Check_messages&
+		RTS
+
+

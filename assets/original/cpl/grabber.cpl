@@ -1,0 +1,122 @@
+;
+;		CPL Property Codes:Grabber (for grabbing objects as a whole)
+;		Date: May 14,1991
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Grabber		DEFPROP
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;  Grabber subroutines
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main grabber code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+Grabber		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get grabber
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Check topmost message
+		CHKMSG	A:R2
+
+;		 Message jump table starts here.
+;		 Check to see if the marquee has sent me a set of objects
+_Check_inputmsg	BNEQUAL	A:R2,Msg:Marqueedset,A:_End_grabber&
+;		 Get topmost message
+		UNQMSG	A:R2
+		UNQMSG	A:R3				; get grabbable set
+
+;		 grabber marqueed objects?
+
+		JUMP	A:_End_grabber&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_grabber&		; Is event still active?
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; grabber active?
+		BFALSE	A:R2,A:_End_grabber&		; no,quit
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_usage&
+
+;		Check to see if we are dragging with grabber. If yes, make
+;		a note that it happened so the thing gets put away afterwards.
+
+;		 Translating xhair?
+_Trans_xhair	BEQUAL	AA:XAS,Env:Crosshair_part,A:_End_grabber&
+
+_Trans_picked	BNEQUAL	AA:XAS,Prop:Picked,A:_End_grabber& ; TRANSlating picked?
+
+		MOVE	Const:TRUE,A:_Grab_drag
+		JUMP	A:_End_grabber&
+
+;		 Picking selectables?
+_Check_usage	BNEQUAL	AA:XAS,Prop:Selectable,A:_End_grabber&
+
+;		Are there selectable toolpads?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_grabber&		; yes, let toolpad work
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_grabber&		; yes, let headpad work
+
+;	Do a grab upon a pick, barring selectable toolpads.
+
+;		 Is Opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&	
+
+		ADDPROP	A:R1*,Prop:Toolused		; let toolpad know
+;							; the grabber was used
+
+		MOVE	Const:FALSE,A:_Grab_drag
+		WORLD	Const:WPrimary_world
+		MAKEMSG	Msg:Unpick
+		QMSG	Prop:Picked*,Const:Noprioritymsg
+		JSRAT	Prop:Picked*,Code:Property_code	; DO IT NOW!!!!
+		MOVE	Prop:Selectable*,A:R2		; if no objects
+		BEMPTY	A:R2,A:_Finish_grabber&		; are selectable, quit
+
+_Do_grab	MOTHER	A:R2*,A:R3,Const:Motherobj
+		MAKEMSG	Msg:Pick
+		QMSG	A:R3*,Const:Prioritymsg
+
+_Finish_grabber	WIPE	A:XOP*				; no picking please!
+		JUMP	A:_End_grabber&
+
+
+_End_grabber	WORLD	Const:WEnvironment_world
+		RTS
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_grabber&
+;		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_grabber&
+
+		BTRUE	A:_Grab_drag,A:_End_grabber&
+
+		MAKEMSG	Msg:Attachtool
+		MAKEMSG	A:R1*
+; 		 adopt me to any free toolpad
+		QMSG	Prop:Toolpadempty*,Const:Prioritymsg 
+
+_End_grabber	RTS
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Grabber variables
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Grab_drag	CPLDATA

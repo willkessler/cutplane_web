@@ -1,0 +1,140 @@
+
+;		CPL Menu Bar Property Codes
+;		Date: October 3,1990	
+;		Version: 1
+
+
+;   Usual order for args is:
+;   opcode,source,target,data
+;   Some or all of these args may be missing but they cannot be out of this
+;   order.
+
+;  A: means this CPL_word has a CPL pointer.
+;  AA: means this CPL_word has a CPL handle.
+;    * means the "Contents_of" flag in the CPL_word is set to true, meaning,
+;    take the contents of this pointer/handle.
+;    & means the "Address_of" flag in the CPL_word is set to true, meaning
+;    store the address of the CPL_word itself.
+
+;		Code for menu bar routine.
+;      		First, look for a pick aimed at selectables.  If there is one,
+;		Then put away any Active Tools by storing a REMPROP on those.
+;		Then make tools for this menubar visible using DESCEND to
+;		go down the metaobj tree.
+;		Also, need to give them BBoxSelectable prop so the user
+;		doesn't have to be exact when pointing at them.
+
+Menu		DEFPROP
+
+
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;  Menu subroutines... can be called by menu occupants as well.
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Turnon_menu	PUSH	A:R1				; arrange menu occupants
+;		CRTN	Crtn:arrange_prims
+		POP	A:R1
+		DESCEND	A:R1*,A:R2			; Get descendents 
+		ADDPROP	A:R2*,Prop:Visible		; Make them visible
+		ADDPROP	A:R1*,Prop:Activemenu		; Make menu active
+		RTS
+
+Turnoff_menu	DESCEND	A:R1*,A:R2			; Get descendents
+		UNSEL	A:R2*				; Unselect them
+		REMPROP	A:R2*,Prop:Visible		; Make them invisible
+		REMPROP	A:R1*,Prop:Activemenu		; Make menu inactive
+		RTS
+
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;  Main menu code starts here
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Menu		STARTPROP
+		ISWIPED	AA:XOP*,A:R2			; Is event still active?
+		BNE	A:R2,A:_End_menubar&		; no, quit
+
+_Check_trans	AND	AA:XOP*,Opcd:TRANS,A:R2		; Event is a TRANSLATE?
+		BEQ	A:R2,A:_Check_pick&		; No: Check for pick
+	    	AND	AA:XAS,Env:Crosshair_part,A:R2	; TRANSlating xhair?
+		BEQ	A:R2,A:_Trans_picked&		; No: check for transpick
+
+;		Move the menubar with the Cutplane
+
+;_Check_zmove	MOVE	AA:XAD,A:R2
+;		This way, the old way, the menu object stays with the plane
+;		at all times.  Kinda slow
+;		OWNER	A:R1,Const:Motherobj		; Get menu 
+;		TRANS	A:R1*,Const:Normaltranslate,A:R3* ; Translate menu in z
+		RTS
+
+;		Check to see if we are dragging stuff.
+
+_Trans_picked	AND	AA:XAS,Prop:Picked,A:R2		; TRANSlating picked?
+		BEQ	A:R2,A:_Check_pick&		; No: check for pick
+		OWNER	A:R1,Const:Motherobj		; Get menu 
+		HASPROP	A:R1*,Prop:Activemenu,A:R2,Const:Self ; menu active?
+		BEQ	A:R2,A:_End_menubar&		; No, quit
+
+		WIPE	A:XOP*				; Yes: kill TRANS
+		RTS
+
+;		Handle a pick
+
+_Check_pick	AND	AA:XOP*,Opcd:PICK,A:R2		; Is event a pick?
+		BEQ	A:R2,A:_Check_release&		; no, check for RELEAS
+
+		AND	AA:XAS,Env:Cutplane_part,A:R2	; picking cutplane?
+		BEQ	A:R2,A:_Check_pick2&		; no, check selectables
+;							; picking
+		JUMP	A:_End_menubar&
+
+_Check_pick2	AND	AA:XAS,Prop:Selectable,A:R2	; picking selectables?
+		BEQ	A:R2,A:_Check_release&		; no, check for RELEAS
+
+		OWNER	A:R1,Const:Motherobj		; Was owner selectable?
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self
+		BEQ	A:R2,A:_End_menubar&		; no, quit
+
+		WIPE   	A:XOP*				; Wipe this PICK
+
+;		Check if a help tool is currently active (add Helptool prop!)
+;		AND	Prop:Helptool*,Prop:Active*,A:R1
+;		BEQ	A:R1,A:_Turnon_menu&
+
+;		Make all tools belonging to this menu visible
+
+		JSR	A:Turnon_menu&
+		JUMP	A:_End_menubar&
+
+_Check_release	AND	AA:XOP*,Opcd:RELEAS,A:R2	; Is event a release?
+		BEQ	A:R2,A:_End_menubar&		; no, quit
+
+		AND	AA:XAS*,Env:Cutplane_part,A:R2	; releasing cutplane?
+		BEQ	A:R2,A:_Check_release2&		; no, check selectables
+;							; releasing
+
+		OWNER	A:R1,Const:Motherobj		; otherwise, get menu
+		HASPROP	A:R1*,Prop:Hotspot,A:R2,Const:Subfeatures ; get its hotspot
+		DIFF3D	A:R2*,Env:Crosshair_part,A:R3	; find vec from
+;							; hotspot to cursor, and
+;							; remove x,y comps
+		TRNSFRM	A:R3,A:R4,Const:M[{0.0,0.0,0.0,0.0},{0.0,0.0,0.0,0.0},                                             {0.0,0.0,1.0,0.0},{0.0,0.0,0.0,1.0}]
+		OWNER	A:R1,Const:Motherobj
+		TRANS	A:R1*,Const:Normaltranslate,A:R4 ; make menu go there.
+		JUMP	A:_End_menubar&
+
+_Check_release2 OWNER	A:R1,Const:Motherobj		; get menu
+		HASPROP	A:R1*,Prop:Activemenu,A:R2,Const:Self	; menu in use?
+		BEQ	A:R2,A:_End_menubar&		; no, ignore the release
+;		are there selectable tools?
+		AND	Prop:Selectable*,Prop:Tool*,A:R2
+		BNE	A:R2,A:_End_menubar&		; yes, let them turn menu
+;							; off.
+		JSR	A:Turnoff_menu&			; turn it off
+		WIPE	A:XOP*				; Wipe this RELEAS
+
+
+_End_menubar	RTS
+

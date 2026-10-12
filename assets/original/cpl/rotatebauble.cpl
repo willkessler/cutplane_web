@@ -1,0 +1,212 @@
+;
+;		CPL Rotate Tool Code
+;		For the baubles of the rotate tool
+;		Date: October 26,1990	
+;		Version: 1
+;
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Main code
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+Rotatebauble	OWNER	A:R1*,Const:Mothervfe		; Bauble selectable?
+
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check for activation
+_Activatemsg	BNEQUAL	A:R2,Msg:Activate,A:_Deactivatemsg&
+		UNQMSG	A:_Rotated_all
+		PUSH	A:R1
+		JSR	A:_Activatebauble&
+		JUMP	A:_End_bauble&
+
+;		 Check for deactivation
+_Deactivatemsg	BNEQUAL	A:R2,Msg:Deactivate,A:_Pickwithpan&
+		PUSH	A:R1
+		JSR	A:_Deactivatebubl&
+		JUMP	A:_End_bauble&
+
+_Pickwithpan	BNEQUAL	A:R2,Msg:Pickwithpan,A:_End_bauble&
+		MOVE	Const:TRUE,A:_Rotated_all
+		PUSH	A:R1
+		JSR	A:_Activatebauble&
+		JUMP	A:_End_bauble&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_bauble&		; Event still active?
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_bauble&
+
+		WIPE	A:XOP*				; eat the PICK
+		MOVE	Const:FALSE,A:_Rotated_all
+
+		PUSH	A:R1
+		JSR	A:_Activatebauble&		; yes, turn on bauble
+		JUMP	A:_End_bauble&			; and quit
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_trans&
+;		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_bauble&
+
+		WIPE	A:XOP*				; yes,eat the RELEAS
+
+		WORLD	Const:WPrimary_world
+;		MAKEMSG	Msg:Unpick
+;		QMSG	Prop:Picked*,Const:Noprioritymsg
+		WORLD	Const:WEnvironment_world
+
+		MAKEMSG	Msg:Deactivatetool
+		MAKEMSG	Prop:Toolpadempty*
+		QMSG	Obj:Pantool,Const:Prioritymsg
+
+		PUSH	A:R1
+		JSR	A:_Deactivatebubl&		; turn off bauble
+		JUMP	A:_End_bauble&			; quit
+
+_Check_trans	OWNER	A:R1,Const:Mothervfe		; Get bauble
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; active?
+		BFALSE	A:R2*,A:_End_bauble&		; no, quit
+
+;		 Is event a translate?
+_Check_trans2	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_End_bauble&
+;		 Translating crosshair?
+	    	BNEQUAL	AA:XAS,Env:Crosshair_part,A:_Check_transpk&
+
+;		 kill xhair trans if paused
+		BFALSE	A:_Paused,A:_Do_bauble_rot&
+		BEQUAL	A:_Pause_counter,Const:I0,A:_Do_bauble_rot&
+		ADD	A:_Pause_counter,Const:I-1,A:_Pause_counter
+		WIPE	A:XOP*
+		JUMP	A:_End_bauble&
+
+;		Constrain TRANS using a C call and get a rotate info record
+;		into R2
+
+_Do_bauble_rot	MOVE	Prop:Selectable,A:R4		; these are just bogus
+		MOVE	A:R4,A:R5
+		PUSH	A:R5				; (filler)
+		PUSH	A:R4				; (filler)
+		PUSH	A:R1				; pass bauble
+		PUSH	AA:XAD*				; pass translate rec
+		CRTN	Crtn:bauble_rotate
+		POP	A:R7				; get back new trans
+		POP	A:R6				; get back tool rot rec
+		POP	A:R1				; get back obj rot rec
+		POP	A:_Paused			; get back whether paused
+		POP	A:R4				; get back what to unpick
+		POP	A:R5				; get back whether
+;							; returned to xbar
+		WORLD	Const:WPrimary_world		; select main world
+		UNPICK	A:R4*				; unpick the snapped
+		ROTATE	A:_Rotated_stuff*,A:R1		; rotate the picked/world
+		ADDPROP	Prop:Selectable*,Prop:Nonselectable
+		UNSEL	Prop:Selectable*
+		WORLD	Const:WEnvironment_world	; go back to env.
+
+;	 	 Do the transformed translation that keeps xhair on bauble	
+		TRANS	Env:Crosshair_part,Const:Normaltranslate,A:R7
+		WIPE	A:XOP*				; kill xhair trans
+
+;		If paused, do appropriate thing to pause it...
+		BFALSE	A:_Paused,A:_Checkxbaractive&
+;		 if paused, put a counter in the pause counter and quit
+		MOVE	Const:I3,A:_Pause_counter
+;		JUMP	A:_End_bauble&
+
+
+_Checkxbaractive BFALSE	A:R5,A:_Rotateowner&		; went back to xbar?
+
+_Activate_xbar	OWNER	A:R2,Const:Motherevf		; send msg to xbar that
+		MAKEMSG	Msg:Activate			; contains bauble to
+		MAKEMSG	A:_Rotated_all
+		QMSG	A:R2*,Const:Prioritymsg		; turn itself on.
+		OWNER	A:R1,Const:Mothervfe
+		PUSH	A:R1
+		JSR	A:_Deactivatebubl&
+;		But turn off acceleration selection checks again!
+		PUSH	Const:TRUE
+		CRTN	Crtn:always_set_select
+		JUMP	A:_End_bauble&
+
+_Rotateowner	OWNER	A:R2,Const:Motherobj		; otherwise
+		ROTATE	A:R2*,A:R6			; rotate the tool about Z
+		JUMP	A:_End_bauble&
+
+_Check_transpk 	BNEQUAL	AA:XAS,Prop:Picked,A:_End_bauble&
+_Kill_transpk	WIPE	A:XOP*				; kill picked translate
+
+
+_End_bauble	RTS
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Subroutines
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Activatebauble	POP	A:R9
+		ADDPROP	A:R9*,Prop:Active		; mark the bauble in use
+;		Make sure to turn off acceleration selection checks.
+		PUSH	Const:TRUE
+		CRTN	Crtn:always_set_select
+;		Kill off all those stupid scaling boxes (who needs em?)
+		WORLD	Const:WPrimary_world
+;		MAKEMSG	Msg:Suicide
+;		QMSG	Prop:Scalebbox*,Const:Prioritymsg
+		WORLD	Const:WEnvironment_world
+		
+; 		 Cancel any pausing
+		MOVE	Const:I0,A:_Pause_counter
+		MOVE	Const:FALSE,A:_Paused
+
+		BFALSE	A:_Rotated_all,A:_Rotate_picked&
+		MOVE	Const:WPrimary_world,A:_Rotated_stuff
+		JUMP	A:_End_activate&
+
+_Rotate_picked	WORLD	Const:WPrimary_world
+		MOVE	Prop:Picked*,A:_Rotated_stuff
+		WORLD	Const:WEnvironment_world
+
+_End_activate	RTS
+
+_Deactivatebubl	POP	A:R9				; Yes, get bauble
+		REMPROP	A:R9*,Prop:Active		; unmark bauble usage
+
+;		Set world rotation to false for next go round of usual usage.
+		MOVE	Const:FALSE,A:_Rotated_all
+
+; 		 Cancel any pausing
+		MOVE	Const:I0,A:_Pause_counter
+		MOVE	Const:FALSE,A:_Paused
+
+;		Make sure to turn acceleration selection checks back on.
+		PUSH	Const:FALSE
+		CRTN	Crtn:always_set_select
+		WORLD	Const:WPrimary_world
+		REMPROP	Prop:Nonselectable*,Prop:Nonselectable
+		WORLD	Const:WEnvironment_world	; go back to env.
+
+		RTS
+
+
+; Some local vars; same as rotatexbar.cpl...
+
+_Rotated_all	CPLDATA
+_Rotated_stuff	CPLDATA
+_Paused		CPLDATA
+_Pause_counter	CPLDATA

@@ -1,0 +1,114 @@
+;
+;		CPL Private Code: Sizing features as part of the measureplate
+;		Date: February 10,1991, in the wee hours
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get textinput object
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check to see if someone has just sent me a number
+_Check_newvalue	BNEQUAL	A:R2,Msg:Incomingvalue,A:_Check_newsize&
+		UNQMSG	A:_New_size
+		PUSH	A:_New_size
+		CRTN	Crtn:world_2_inch
+		POP	A:R3
+		AUX2STR	A:R3*,A:_New_label
+		SETLABEL A:R1*,A:_New_label,Const:I1	; use the new label
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+		JUMP	A:_End_sizer&
+
+;		 Check to see if an object has sent me a size.
+_Check_newsize	BNEQUAL	A:R2,Msg:Incomingsize,A:_Check_setsize&
+		UNQMSG	A:_Sized_feature		; what sent me this msg.
+		PUSH	A:_Sized_feature
+		CRTN	Crtn:get_feature_size		; get feature size.
+		CRTN	Crtn:world_2_inch		; convert to inches.
+		POP	A:R3
+		AUX2STR	A:R3*,A:_New_label
+		SETLABEL A:R1*,A:_New_label,Const:I1	; use the new label
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+		JUMP	A:_End_sizer&
+
+_Check_setsize	BNEQUAL	A:R2,Msg:Incomingchar,A:_Check_getsize&
+		UNQMSG	A:R3				; get typed char.
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; is textinput active?
+		BFALSE	A:R2,A:_End_sizer&		; no, ignore char
+
+_CheckCR	BNEQUAL	A:R3,Const:A0x0D,A:_Putbackmsg&	; on CR, do sizing
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+
+		MAKEMSG	Msg:Createpacket		; Tell plate to generate
+		PARENT	A:R1*,A:R2			; a packet incl. this 
+		QMSG	A:R2*,Const:Prioritymsg		; field and sibs.
+		JUMP	A:_Send_accept&
+
+
+;
+; *************** D E F U N C T **************
+;
+;		 If something was already measured, size that.
+_Check4sized	BNEMPTY	A:_Sized_feature,A:_Finish_size&
+
+;		 If something picked, size that.
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Picked*,A:R4
+		WORLD	Const:WEnvironment_world
+		BEMPTY	A:R4,A:_End_sizer&
+		MOVE	A:R4,A:_Sized_feature
+
+_Finish_size	GETLABEL A:R1*,A:R2,Const:I1
+		STR2AUX	A:R2,A:_New_size
+		PUSH	A:_Sized_feature
+		PUSH	A:_New_size
+		CRTN	Crtn:inch_2_world		; convert to world coords
+		CRTN	Crtn:set_feature_size		; simple for now...
+		UPDATE	A:_Sized_feature*,Const:UAllupdateflags/when:Now
+;		 hack should just be Redrawflag
+		GLUPDATE Const:UAllupdateflags/when:Now
+
+		CLEAR	A:_Sized_feature
+
+_Send_accept	MAKEMSG	Msg:Acceptext			; tell textinput prop
+		QMSG	A:R1*,Const:Prioritymsg		; user's done w/input
+		JUMP	A:_End_sizer&
+
+_Putbackmsg	MAKEMSG	Msg:Incomingchar		; give it to textinput
+		MAKEMSG	A:R3				; prop!
+		QMSG	A:R1*,Const:Prioritymsg	
+		JUMP	A:_End_sizer&
+
+;		If the size in the field is requested, get it out of the label,
+;		convert it to float and world units, then leave it ON THE STACK.
+
+_Check_getsize	BNEQUAL	A:R2,Msg:Getsize,A:_Check_events&
+		GETLABEL A:R1*,A:R2,Const:I1
+		STR2AUX	A:R2,A:_New_size
+		PUSH	A:_New_size
+		CRTN	Crtn:inch_2_world
+		JUMP	A:_End_sizer&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	NOP
+_End_sizer	RTS					; totally eventless!
+
+; =-=-=-=-=-=-=-= Local vars =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 
+
+_New_label	CPLDATA
+_Sized_feature	CPLDATA
+_New_size	CPLDATA

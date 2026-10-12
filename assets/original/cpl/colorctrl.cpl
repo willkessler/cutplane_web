@@ -1,0 +1,60 @@
+
+;		CPL code for the Color Triangle
+;		Date: December 2,1990	
+;		Version: 1
+
+Color_triangle	ISWIPED	AA:XOP*,A:R2			; Event still active?
+		BNE	A:R2,A:_End_colorctrl&		; no, quit
+
+_Check_trans	AND	AA:XOP*,Opcd:TRANS,A:R2		; Event is a TRANSLATE?
+		BEQ	A:R2,A:_Check_pick&		; No: Check for release
+
+;		Check to see if we are dragging stuff.
+
+_Trans_picked	AND	AA:XAS,Prop:Picked,A:R2		; TRANSlating picked?
+		BEQ	A:R2,A:_Check_pick&		; No: check for pick
+		OWNER	A:R1,Const:Motherobj		; Get toolbox 
+
+_Do_coloring	HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; only if active
+		BEQ	A:R2,A:_End_colorctrl&
+
+		PUSH	A:R1				; call C code to color
+		WORLD	Const:WPrimary_world		; picked objects
+		PUSH	Prop:Picked*
+		WORLD	Const:WEnvironment_world
+		CRTN	Crtn:do_color
+
+		WIPE	A:XOP*				; no one sees a drag!
+		RTS
+
+; 	Handle a pick
+
+_Check_pick	AND	AA:XOP*,Opcd:PICK,A:R2		; Is event a pick?
+		BEQ	A:R2,A:_Check_release&		; no, check for release
+		AND	AA:XAS,Prop:Selectable,A:R2	; picking selectables?
+		BEQ	A:R2,A:_Check_release&		; no, check for release
+
+_Coloring_on	OWNER	A:R1,Const:Motherobj		; Get object
+		HASPROP	A:R1,Prop:Selectable,A:R2,Const:Self ; is it selectable?
+		BEQ	A:R2,A:_End_colorctrl&
+
+		ADDPROP	A:R1*,Prop:Active		; yes,start using it
+		WIPE	A:XOP*				; kill pick
+		JUMP	A:_End_colorctrl&
+
+;		Handle a release
+
+_Check_release	AND	AA:XOP*,Opcd:RELEAS,A:R2	; Is event a release?
+		BEQ	A:R2,A:_End_colorctrl&		; no, quit
+		AND	AA:XAS,Prop:Selectable,A:R2	; release selectables?
+		BEQ	A:R2,A:_End_colorctrl&		; no, quit
+
+		OWNER	A:R1,Const:Motherobj		; Get colorctrl
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; color ctrl in use?
+		BEQ	A:R2,A:_End_colorctrl&
+
+_Coloring_off	REMPROP	A:R1*,Prop:Active		; stop using it
+_Clear_release	WIPE	A:XOP*
+
+_End_colorctrl	RTS

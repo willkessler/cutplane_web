@@ -1,0 +1,419 @@
+
+;	CPL Main Memory Layout, Including Registers and ROM as well
+;				As Start of Main RAM
+
+
+
+; 	These registers must be here.  C pointers assume that they are
+;	here and nowhere else.
+
+COP		CPLPTR					; Pointers to current
+CAS		CPLPTR					; instruction sentence
+CAT		CPLPTR
+CAR		CPLPTR
+CAD		CPLPTR
+CNF		CPLPTR					; pointer to next
+;							; instruction
+
+XOP		CPLPTR					; Pointers to 
+XAS		CPLPTR					; examination sentence
+XAT		CPLPTR
+XAR		CPLPTR
+XAD		CPLPTR
+XNF		CPLPTR					; pointer to next
+;							; instruction
+
+;	These registers are used as temporary regs.
+
+
+R0		CPLDATA				; Generic Registers
+R1		CPLDATA
+R2		CPLDATA
+R3		CPLDATA
+R4		CPLDATA
+R5		CPLDATA
+R6		CPLDATA
+R7		CPLDATA
+R8		CPLDATA
+R9		CPLDATA
+
+
+; =-=-=-=-=-=-= Subroutines for normal primary world objects. -=-=-=-=-==-=-=-
+
+;=-=- Create a scalebbox around objs. -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Create_scaler	POP	A:R3
+
+		ANCEST	A:R3*,A:R4
+		HASPROP	A:R4*,Prop:Scalebbox,A:R3,Const:Self
+		BTRUE	A:R3,A:_Scalerdone&		; don't recreate scaler
+
+		HASPROP	A:R4*,Prop:Lockedgeometry,A:R5,Const:Self
+		BTRUE	A:R5,A:_Scalerdone&		; no scaler if locked.
+
+		DUP	Obj:Scalebbox,A:R5		; create scalebbox
+		WTRANS	A:R5*,Const:WPrimary_world
+		ADDPROP	A:R5*,Prop:Visible
+		ADDPROP	A:R5*,Prop:Noshadow
+		REMPROP	A:R5*,Prop:Dragonly
+		PUSH	A:R5
+		PUSH	A:R4
+		CRTN	Crtn:setup_scalebbox		; set the scales equal
+		PARENT	A:R4*,A:R6			; adopt scalebbox to
+;							; parent of ancest
+		ADOPT	A:R6*,A:R5*,Const:TRUE
+;	Adopt ancest to scalebbox
+		ADOPT	A:R5*,A:R4*,Const:FALSE
+		UPDATE	A:R5*,Const:UAllupdateflags/when:Now
+
+_Scalerdone	RTS
+
+;=-=- Destroy the scalebbox around objs. -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Destroy_scaler	POP	A:R2
+		ANCEST	A:R2*,A:R3
+		HASPROP	A:R3*,Prop:Scalebbox,A:R4,Const:Motherobj
+		BEMPTY	A:R4,A:_Destroydone&		; there is no scalebbox
+		PARENT	A:R4*,A:R5
+		CHLDRN	A:R4*,A:R6
+		ADOPT	A:R5*,A:R6*,Const:TRUE
+;	This delete could be done as a message... I dunno which i like more
+		CPDELETE	A:R4*				; kill the scalebbox
+
+_Destroydone	RTS
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+CPnormal	OWNER	A:R1,Const:Self			; Get feature
+
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_wiped&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check for adopting a new color message.
+_Check_colormsg	BNEQUAL	A:R2,Msg:Adoptcolor,A:_Check_pickmsg&
+		UNQMSG	A:R3
+		MOTHER	A:R1*,A:R2,Const:Motherobj
+		BNEQUAL	A:R1,A:R2,A:_Finish_color&
+
+;		ANCEST	A:R1*,A:R2			; color this motherobj
+		DESCEND	A:R1*,A:R4			; and all descendants
+		NOP
+		OR	A:R1*,A:R4,A:R5
+		MOVE	A:R5,A:R1
+
+_Finish_color	SETCOLOR A:R1*,A:R3*			
+		JUMP	A:_End_CPnormal&
+
+;		Check for a pick message. If it is one and this feature is a
+;		mother obj, also create the scaler object if needed.
+;		Then just pick the feature.
+
+_Check_pickmsg	BNEQUAL	A:R2,Msg:Pick,A:_Checkunpickmsg&
+		MOTHER	A:R1*,A:R4,Const:Motherobj
+		BNEQUAL	A:R1,A:R4,A:_Finish_pickmsg&
+		PUSH	A:R1
+		JSR	A:_Create_scaler&
+
+_Finish_pickmsg	PICK	A:R1*
+		JUMP	A:_End_CPnormal&
+
+;		Check for an unpick message.  Unpick this feature and delete
+;		any scalebboxes above it.
+
+_Checkunpickmsg	BNEQUAL	A:R2,Msg:Unpick,A:_Checkdeletemsg&
+		UNPICK	A:R1*
+		PUSH	A:R1
+		JSR	A:_Destroy_scaler&
+
+_Finish_unpickmsg JUMP	A:_End_CPnormal&
+
+_Checkdeletemsg	BNEQUAL	A:R2,Msg:Delete,A:_End_CPnormal&
+		MOTHER	A:R1*,A:R2,Const:Motherobj	; deleting the obj?
+		BNEQUAL	A:R1,A:R2,A:_Delete_feature&
+
+		PUSH	A:R1
+		JSR	A:_Destroy_scaler&
+		ANCEST	A:R1*,A:R2
+		DESCEND	A:R2*,A:R3
+		NOT	A:R3*,A:R1*,A:R2
+		CPDELETE	A:R2*				; commit sapuku
+;		JUMP	A:_Finish_deletemsg&
+
+_Delete_feature	CPDELETE	A:R1*				; feature commits sapuku
+		
+_Finish_deletemsg JUMP	A:_End_CPnormal&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_wiped	BWIPED	AA:XOP*,A:_End_CPnormal&	; Is event active?
+
+;		Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_MPICK&
+;		Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_CPnormal&	
+
+;		Make sure to turn off acceleration selection checks.
+		PUSH	Const:TRUE
+		CRTN	Crtn:always_set_select
+
+;		We check if owner is selectable because there are conditions
+;		other than selectability that this code could be called (e.g.
+;		Picked).
+
+		OWNER	A:R1,Const:Self			; Is owner selectable?
+		HASPROP	A:R1*,Prop:Selectable,A:R3,Const:Self
+		BFALSE	A:R3,A:_End_CPnormal&		; no, quit
+
+;	Next two lines commented out because they're worthless till i solve 
+; 	the problem discussed below...
+;		HASPROP	A:R1*,Prop:Picked,A:R3,Const:Self ;  Picked already?
+;		BFALSE	A:R3,A:_Pickit&
+		JUMP	A:_Pickit&
+
+;	this next line has to be smarter: unpick it if it is NOT dragged...
+;	needs to be marked... hmmm. 
+
+;		UNPICK	A:R1*				; yes, unpick it only
+		WIPE	A:XOP*
+		JUMP	A:_End_CPnormal&
+
+_Pickit		MOVE	Prop:Picked*,A:R2
+		PUSH	A:R2			      ; First unpick all
+		JSR	A:_Destroy_scaler&
+		UNPICK	A:R2*
+
+;		Decide whether we're dealing with an entire object or not.
+		UPDATE	A:R2*,Const:ULogerasebboxflag/when:Now
+		MOTHER	Prop:Selectable*,A:R3,Const:Motherobj
+		NOT	A:R3,Prop:Selectable*,A:R5
+		BEMPTY	A:R5,A:_Pickobjs&
+		PICK	Prop:Selectable*
+		ADDPROP	Prop:Picked*,Prop:Grabbed
+
+;	Send edges to the sizer
+		MOTHER	Prop:Selectable*,A:R3,Const:Motherevf
+		NOT	A:R3,Prop:Selectable*,A:R5
+		BNEMPTY	A:R5,A:_Finish_pick&
+
+;	until figured out....
+		MAKEMSG	Msg:Hideplates
+		QMSG	Obj:MeasurePad,Const:Noprioritymsg
+		MAKEMSG	Msg:Activate
+		QMSG	Obj:Length_Plate,Const:Noprioritymsg
+		MAKEMSG	Msg:Incomingsize
+		MAKEMSG	A:R1*
+		QMSG	Obj:Regular_length,Const:Noprioritymsg
+
+;		MAKEMSG	Msg:Incomingsize
+;		MAKEMSG	A:R1*
+;		QMSG	Obj:MeasurePad,Const:Prioritymsg
+;		CHLDRN	Obj:Measure_Plate,A:R6
+;		INDEX	A:R6,A:R7,Const:I8		; send msg to sizer
+;		NOP
+;		QMSG	Obj:Cube_length,Const:Prioritymsg
+		JUMP	A:_Finish_pick&
+
+;		If picking an entire object, then make sure to pick
+;		unlinked ancestor
+_Pickobjs	ANCEST	A:R3*,A:R4
+		PICK	A:R4*
+		HASPROP	Prop:Picked*,Prop:Primitive,A:R5,Const:Self
+		BFALSE	A:R5,A:_Setup_scaler&
+		GETPROP	Prop:Picked*,Prop:Primitive,A:R5
+		MAKEMSG	Msg:Incominginfo
+		MAKEMSG	A:R1*
+		MAKEMSG	A:R5				; pass info record to
+		QMSG	Obj:MeasurePad,Const:Prioritymsg ; measurepad's
+;							 ; private code
+
+_Setup_scaler	ADDPROP	Prop:Picked*,Prop:Grabbed
+		PUSH	A:R3
+		JSR	A:_Create_scaler&
+
+_Finish_pick	WIPE	A:XOP*				; then wipe this pick
+		JUMP	A:_End_CPnormal&
+
+;		Is event a multiple pick?
+_Check_MPICK	BNEQUAL	AA:XOP*,Opcd:MPICK,A:_Check_release& 
+;		Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_CPnormal&
+
+		OWNER	A:R1,Const:Self			; Is owner selectable?
+		HASPROP	A:R1*,Prop:Selectable,A:R3,Const:Self
+		BFALSE	A:R3,A:_End_CPnormal&		; no, quit
+
+;		if picked, unpick
+_MPickit	HASPROP	A:R1*,Prop:Picked,A:R3,Const:Self
+		BTRUE	A:R3,A:_Unpickit&		; otherwise,
+
+;		Decide whether we're dealing with an entire object or not.
+		UPDATE	A:R2*,Const:ULogerasebboxflag/when:Now ; redraw 'em, then
+		MOTHER	Prop:Selectable*,A:R3,Const:Motherobj
+		NOT	A:R3,Prop:Selectable*,A:R5
+		BEMPTY	A:R5,A:_MPickobjs&
+		PICK	Prop:Selectable*
+		ADDPROP	Prop:Picked*,Prop:Grabbed
+		MAKEMSG	Msg:Incominginfo
+		MAKEMSG	A:R1*
+		CLEAR	A:R2				; info rec is N/A 
+		MAKEMSG	A:R2				; on features
+		QMSG	Obj:MeasurePad,Const:Prioritymsg
+
+		JUMP	A:_Finish_MPick&
+
+_MPickobjs	PICK	A:R1*				; pick it.
+		ADDPROP	Prop:Picked*,Prop:Grabbed
+		PUSH	A:R1
+		JSR	A:_Create_scaler&
+
+		HASPROP	A:R1*,Prop:Primitive,A:R5,Const:Self
+		BFALSE	A:R5,A:_Finish_MPick&
+		GETPROP	A:R1*,Prop:Primitive,A:R5
+		MAKEMSG	Msg:Incominginfo
+		MAKEMSG	A:R1*
+		MAKEMSG	A:R5				; pass info record to
+		QMSG	Obj:MeasurePad,Const:Prioritymsg ; measurepad's
+;							 ; private code
+
+_Finish_MPick	WIPE	A:XOP*
+		JUMP	A:_End_CPnormal&
+
+_Unpickit	UPDATE	A:R2*,Const:ULogerasebboxflag/when:Now ; redraw 'em, then
+		MOTHER	Prop:Selectable*,A:R3,Const:Motherobj
+		NOT	A:R3,Prop:Selectable*,A:R5
+		BEMPTY	A:R5,A:_Pickobjs&
+		UNPICK	Prop:Selectable*
+		JUMP	A:_Finish_unpick&
+
+		ANCEST	A:R1*,A:R2
+		UNPICK	A:R2*
+		PUSH	A:R1
+		JSR	A:_Destroy_scaler&
+
+_Finish_unpick	WIPE	A:XOP*
+		JUMP	A:_End_CPnormal&
+
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_delete&
+;		Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_CPnormal&
+
+;		Make sure to turn acceleration selection checks back on.
+		PUSH	Const:FALSE
+		CRTN	Crtn:always_set_select
+
+;		 Make everything with the grabbed property lose that prop.
+		WORLD	Const:WPrimary_world
+		REMPROP	Prop:Grabbed*,Prop:Grabbed
+
+		WORLD	Const:WEnvironment_world
+		HASPROP	Prop:Selectable*,Prop:Toolbox,A:R2,Const:Self
+		BNEMPTY	A:R2,A:_Dunk_it&
+		WORLD	Const:WPrimary_world
+		JUMP	A:_End_CPnormal&
+
+;		Tell toolbox to dunk this primitive, stamp-style, after it
+;		is unpicked.
+_Dunk_it	UNPICK	A:R1*
+		PUSH	A:R2				; save selectable
+;							; toolboxes for later..
+		PUSH	A:R1
+		JSR	A:_Destroy_scaler&
+		MAKEMSG Msg:Dunkprim			; Tell toolbox to dunk
+		OWNER	A:R1,Const:Motherobj		; Is owner selectable?
+		MAKEMSG	A:R1*
+		POP	A:R2
+		QMSG	A:R2*,Const:Prioritymsg 	; Send message to boxes.
+		JSRAT	A:R2*,Code:Property_code	; Process message.
+		WORLD	Const:WPrimary_world
+		WIPE	A:XOP*
+		JUMP	A:_End_CPnormal&
+
+;		Is event a CPDELETE?
+_Check_delete	BNEQUAL	AA:XOP*,Opcd:CPDELETE,A:_End_CPnormal&
+
+		MOTHER	Prop:Picked*,A:R2,Const:Motherobj
+		BEMPTY	A:R2,A:_End_CPnormal&		; no objects picked
+
+		ANCEST	A:R2*,A:R3
+		DESCEND	A:R3*,A:R4
+		UNSEL	A:R4*
+		CPDELETE	A:R4*				; delete it: should be
+;							; done as msg to pencil!
+_End_CPnormal	BMSGS	A:R1,A:_Check_messages&
+		RTS
+
+;
+;	BEGINNING OF MAIN ROM LOOP THAT CALLS CODES OF ALL FEATURES WITH
+;	CERTAIN PROPERTIES ON ALL RAM CODES STARTING AT Ram_start BELOW.
+;	GOTTA LOVE ALL THESE BIG CAPITAL LETTERS.
+;
+;		Implicit assumption that things are only selectable, picked,
+;		etc, if their motherobj has the prop visible!!!
+
+ROM_start	WORLD	Const:WEnvironment_world
+
+		BEMPTY	Prop:Msgpending*,A:_Regularenv&
+
+		JSRAT	Prop:Msgpending*,Code:Private_code
+		JSRAT	Prop:Msgpending*,Code:Property_code
+
+;		Run the CPL code of Active tools
+_Regularenv	JSRAT	Prop:Active*,Code:Private_code
+		JSRAT	Prop:Active*,Code:Property_code
+
+		JSRAT	Prop:Picked*,Code:Private_code
+		JSRAT	Prop:Picked*,Code:Property_code
+
+		JSRAT	Prop:Selectable*,Code:Private_code
+		JSRAT	Prop:Selectable*,Code:Property_code
+
+;	Run codes of any background objects such as cursor, plane
+
+		JSRAT	Prop:Background*,Code:Private_code
+
+;	run pending again if any
+		BEMPTY	Prop:Msgpending*,A:_Regularprimary&
+
+		JSRAT	Prop:Msgpending*,Code:Private_code
+		JSRAT	Prop:Msgpending*,Code:Property_code
+
+
+;	Run codes of objects in the primary world now.
+
+_Regularprimary	WORLD	Const:WPrimary_world
+
+		JSRAT	Prop:Msgpending*,Code:Private_code
+		JSRAT	Prop:Msgpending*,Code:Property_code
+
+		JSRAT	Prop:Picked*,Code:Private_code
+		JSRAT	Prop:Picked*,Code:Property_code
+
+		JSRAT	Prop:Selectable*,Code:Private_code
+		JSRAT	Prop:Selectable*,Code:Property_code
+
+; Move examiner to next examination address given in XNF
+
+		MOVE	A:XNF,A:XOP
+
+; Use address of XOP ptr word to set the frame for XOP (note that A:XOP&
+; stores the address of XOP in this inst. word with the "address of" flag set.)
+
+		SETFR	A:XOP&			; NB: This assumes that
+;						      XAS,XAT,XAR,XAD are
+;						      contiguous words
+;                                                     immediately following XOP!
+
+;		If ROM has examined up to the ENDFR, now do the RAM code.
+
+		BNEQUAL	AA:XOP*,Opcd:ENDFR,A:ROM_start&
+
+
+
+RAM_start	ENDFR
+

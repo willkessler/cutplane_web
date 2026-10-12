@@ -1,0 +1,49 @@
+
+;		CPL code to allow object duplication.
+;		The duplicate is offset and is a child of the same motherworld
+;		Date: February 9,1990
+;		Private code for this single tool.
+;		Message processing ONLY...cannot be directly invoked by user.
+;		Version: 1
+
+_Dup_result	CPLDATA
+
+; =-=-=-=-=-=-=-=-= Subroutines start here. =-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-
+
+_Do_duplicate	POP	A:R9
+		DUP	A:R9*,A:_Dup_result
+		TRANS	A:_Dup_result*,Const:Normaltranslate,Const:V[100.0,100.0,0.0]
+		MAKEMSG	Msg:Unpick
+		QMSG 	A:R9*,Const:Noprioritymsg
+		MAKEMSG	Msg:Pick
+		QMSG	A:_Dup_result*,Const:Noprioritymsg
+		RTS
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get duplicator
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check for doing a duplicate.
+_Check_dupmsg	BNEQUAL	A:R2,Msg:Activate,A:_End_duplicate&
+;		If the message included a duplicatable set, get it. Otherwise
+;		dup picked objects in the primary world.
+		BNOMSGS	A:R1,A:_Dup_picked&
+		UNQMSG	A:R3				; get dupable set
+		JUMP	A:_Do_group&			; passed with message
+
+_Dup_picked	WORLD	Const:WPrimary_world
+		MOVE	Prop:Picked*,A:R3
+
+_Do_group	PUSH	A:R3
+		JSR	A:_Do_duplicate&
+
+_End_duplicate	BMSGS	A:R1,A:_Check_messages&
+		WORLD	Const:WEnvironment_world
+		RTS

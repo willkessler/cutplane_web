@@ -1,0 +1,113 @@
+;
+;		CPL Property Codes:Zoooooom
+;		Date: November 30,1990
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Zooming	DEFPROP					; indicates zoom in use
+;						; who's zoomin' who?
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main zoom code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Zoom		DEFPROP
+
+Zoom		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get zoomtool
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Check topmost msg
+		CHKMSG	A:R2
+; no msgs handled for now....
+		JUMP	A:_End_zoom&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_zoom&		; Event still active?
+
+;		 Is zoomtool Active?
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_zoom&		; no,quit
+
+;		Do zoom upon trans
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_pick&
+
+;		Check to see if we are zooming. If yes, then
+;		if translating picked, wipe it, if translating xhair, do zoom.
+
+_Check_zoom	HASPROP	A:R1*,Prop:Zooming,A:R2,Const:Self ; Are we zooming?
+		BFALSE	A:R2,A:_End_zoom&		; No: quit
+
+;		 Translating picked?
+_Trans_picked	BNEQUAL	AA:XAS,Prop:Picked,A:_Trans_xhair&
+
+		WIPE	A:XOP*
+		JUMP	A:_End_zoom&
+
+;		 Translating xhair?
+_Trans_xhair	BNEQUAL	AA:XAS,Env:Crosshair_part,A:_End_zoom& 
+
+		WIPE	A:XOP*				; no xhair movement !
+
+_Do_zoom	MOVE	AA:XAD,A:R1
+		WORLD	Const:WPrimary_world
+		PUSH	A:R1
+		CRTN	Crtn:do_zoom
+		POP	A:R1
+		WORLD	Const:WEnvironment_world
+		WIPE	A:XOP*				; no one see trans
+		JUMP	A:_End_zoom&
+
+;		 Is opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_zoom&
+
+;		Are there selectable toolpads?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_zoom&		; yes, let toolpad work
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_zoom&		; yes, let headpad work
+
+		ADDPROP	A:R1*,Prop:Zooming		; no,mark zoomtool
+
+		ADDPROP	A:R1*,Prop:Toolused		; let toolpad know
+;							; the zoomtool was used
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*,A:R2
+		WORLD	Const:WEnvironment_world
+;		SNAP	Env:Crosshair_part,A:R2*	; snap to selectables
+		WIPE	A:XOP*				; no one else sees it
+		JUMP	A:_End_zoom&
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_zoom&
+;		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_zoom&
+
+		HASPROP	A:R1*,Prop:Zooming,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_zoom&		; don't zoom first time
+
+		REMPROP	A:R1*,Prop:Zooming		; unmark zoomtool
+
+		MAKEMSG	Msg:Attachtool
+		MAKEMSG	A:R1*
+; 		 adopt me to any free toolpad
+		QMSG	Prop:Toolpadempty*,Const:Prioritymsg 
+
+;	hack may 29, 1991
+		WIPE	A:XOP*
+
+_End_zoom	RTS

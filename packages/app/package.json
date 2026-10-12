@@ -12,6 +12,7 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
+    "@cutplane/formats": "workspace:*",
     "@cutplane/kernel": "workspace:*",
     "three": "^0.186.1"
   },

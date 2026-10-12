@@ -1,0 +1,106 @@
+;
+;		CPL Group Tool Code
+;		Date: December 25,1990	
+;		Version: 1
+;
+
+Ungrouping	DEFPROP
+Group		DEFPROP
+Groupobject	DEFPROP
+
+Group		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get grouper
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+;		 Check to see if the marquee has sent me a set of objects
+_Check_inputmsg	BNEQUAL	A:R2,Msg:Marqueedset,A:_End_group&
+		UNQMSG	A:R3				; get groupable set
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; is grouper active?
+		BFALSE	A:R2,A:_End_group&		; no, ignore it
+
+;		 create a container for the objects...
+; BUG! if objects already all grouped, what should it do???-- not group?
+; if objects already grouped, should it ungroup
+		MAKE	Const:WPrimary_world,A:R4,Const:Motherobj
+		ADDPROP	A:R4*,Prop:Nonmanifold
+		ADDPROP	A:R4*,Prop:Visible
+		ADDPROP	A:R4*,Prop:Groupobject
+		MAKEMSG	Msg:Unpick
+		QMSG	A:R3*,Const:Prioritymsg
+		ADOPT	A:R4*,A:R3*,Const:FALSE		; adopt'em to container
+		JUMP	A:_End_group&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+
+_Check_events	BWIPED	AA:XOP*,A:_End_group&		; Event still active?
+
+;		Handle picks, mpicks
+
+;		 Is Opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_End_group&	
+;		 Picking selectable?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_group&
+
+;		Is there a selectable toolpad?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_group&		; yes, let toolpad work
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_group&		; yes, let headpad work
+
+		OWNER	A:R1,Const:Motherobj
+		ADDPROP	A:R1*,Prop:Toolused		; so tool don't flip
+
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*,A:R2		; if no objects
+		BEMPTY	A:R2,A:_Stop_group&		; are selectable, stop
+
+;		if selectable objects are already picked, quit
+		MOTHER	A:R2*,A:R3,Const:Motherobj
+		HASPROP	A:R3*,Prop:Picked,A:R4,Const:Self
+		BTRUE	A:R4,A:_End_group&
+
+		MOVE	Prop:Picked*,A:R2		; Get picked objs
+		MOTHER	A:R2*,A:R4,Const:Motherobj	; but not selectable.
+		BEMPTY	A:R4,A:_End_group&		; quit if nada picked
+
+;		If something is selectable and not picked, and something is
+;		picked already, then create a group metaobject, and adopt
+;		both the selectable and the picked as a child of the 
+;		metaobject.
+
+_Regular_adopt	MAKE	Const:WPrimary_world,A:R5,Const:Motherobj 
+		DIFF3D	A:R5*,A:R3*,A:R6			; put grouper
+		TRANS	A:R5*,Const:Normaltranslate,A:R6	; inside
+		ADOPT	A:R5*,A:R3*,Const:FALSE			
+		ADOPT	A:R5*,A:R4*,Const:FALSE
+		NOP
+		UPDATE	A:R5*,Const:UAllupdateflags/when:Now
+		MAKEMSG	Msg:Unpick
+		QMSG	A:R4*,Const:Prioritymsg
+		MAKEMSG	Msg:Pick
+		QMSG	A:R5*,Const:Noprioritymsg	; pick the grouper
+
+		WIPE	A:XOP*
+		JUMP	A:_End_group&
+
+_Stop_group	MAKEMSG	Msg:Attachtool
+		MAKEMSG	A:R1*
+; 		 adopt me to any free toolpad
+		QMSG	Prop:Toolpadempty*,Const:Noprioritymsg
+	
+
+_End_group	WORLD	Const:WEnvironment_world
+		RTS

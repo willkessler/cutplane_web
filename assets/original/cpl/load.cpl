@@ -1,0 +1,71 @@
+;
+;		CPL Private Code:Load objects from a 3Form file
+;		Date: February 10,1991
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get textinput object
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Check to see if the user has sent me a CR.
+_Check_inputmsg	BNEQUAL	A:R2,Msg:Incomingchar,A:_Check_doload&
+		UNQMSG	A:R3				; get typed char.
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; is textinput active?
+		BFALSE	A:R2,A:_End_load&		; no, ignore char
+
+_CheckCR	BNEQUAL	A:R3,Const:A0x0D,A:_Putitback&	; on CR, done with ok
+		UPDATE	A:R1*,Const:ULogerasebboxflag/when:Now
+
+; commented out for demo for AVI VC's only March 21 1991
+;		CPDELETE	Const:WPrimary_world
+
+		GETLABEL A:R1*,A:R2,Const:I1
+		PUSH	A:R2
+		WORLD	Const:WPrimary_world		; extra really
+_Do_Load	NOP
+		CRTN	Crtn:read_from_file		; stupid for now...
+		WORLD	Const:WEnvironment_world
+
+		MAKEMSG	Msg:Acceptext			; tell textinput prop
+		QMSG	A:R1*,Const:Prioritymsg		; user's done w/input
+		PARENT	A:R1*,A:R2
+		PARENT	A:R2*,A:R3
+		MAKEMSG	Msg:Closedialog			; make dialog box close
+		QMSG	A:R3*,Const:Prioritymsg		; 
+
+		JUMP	A:_End_load&
+
+_Putitback	MAKEMSG	Msg:Incomingchar		; give it to textinput
+		MAKEMSG	A:R3				; prop!
+		QMSG	A:R1*,Const:Prioritymsg	
+		JUMP	A:_End_load&
+
+;		 Check to see if somebody wants me to do my saving job.
+_Check_doload	BNEQUAL	A:R2,Msg:Loadfromfile,A:_End_load&
+
+		GETLABEL A:R1*,A:R2,Const:I1
+;		CPDELETE	Const:WPrimary_world
+
+		PUSH	A:R2
+		WORLD	Const:WPrimary_world		; extra really
+		CRTN	Crtn:read_from_file		; stupid for now...
+		WORLD	Const:WEnvironment_world
+		JUMP	A:_End_load&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	JUMP	A:_End_load&			; totally eventless!
+_End_load	RTS
+

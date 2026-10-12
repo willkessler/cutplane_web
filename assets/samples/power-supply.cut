@@ -1,0 +1,1798 @@
+** Start of file powersupply.cut **
+Contains:World
+World Name:Primary_world
+	Total Number of Objects In World:33
+
+
+	Object 1:
+Object Name:(none)
+ Object Transform:
+ [  -0.226157  -0.003065  -0.611405  0.000000  ]
+ [  -0.003065  0.651888  -0.002134  0.000000  ]
+ [  0.611407  0.002134  -0.226167  0.000000  ]
+ [  -131.867020  220.400162  16.101717  0.999997  ]
+ Object Inverse Transform:
+ [  -0.532168  -0.007212  1.438694  0.000000  ]
+ [  -0.007212  1.533952  0.005022  0.000000  ]
+ [  -1.438694  -0.005022  -0.532191  0.000000  ]
+ [  -45.419712  -338.954041  197.178040  0.999997  ]
+Object Parent:0
+Object Color:100 100 100
+Object has 4 properties:
+Forcedcpnormal
+Noshadow
+Grouper
+Nonmanifold
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 2:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -129.710114  65.317719  20.353176  0.999983  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005911  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -32.186813  -82.798378  161.546219  0.999985  ]
+Object Parent:1
+Object Color:100 100 100
+Object has 5 properties:
+Nonmanifold
+Grouper
+Noshadow
+Forcedcpnormal
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 3:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -171.523117  74.914177  197.023010  0.999985  ]
+ Object Inverse Transform:
+ [  -0.436138  -0.005911  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  157.940842  -94.382233  287.862366  0.999984  ]
+Object Parent:2
+Object Color:100 100 100
+Object has 5 properties:
+Nonmanifold
+Grouper
+Noshadow
+Forcedcpnormal
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 4:
+Object Name:(none)
+ Object Transform:
+ [  -0.172876  -0.002343  -0.467363  0.000000  ]
+ [  -0.002343  0.498303  -0.001631  0.000000  ]
+ [  0.467360  0.001631  -0.172884  0.000000  ]
+ [  93.262978  161.227173  166.393692  0.999961  ]
+ Object Inverse Transform:
+ [  -0.696195  -0.009434  1.882110  0.000000  ]
+ [  -0.009435  2.006712  0.006570  0.000000  ]
+ [  -1.882126  -0.006570  -0.696215  0.000000  ]
+ [  379.620056  -321.571381  -60.733147  0.999962  ]
+Object Parent:3
+Object Color:0 136 255
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:111.5 -170.9 -336.0
+Vertex 2:111.5 -234.7 -336.0
+Vertex 3:458.3 -234.7 -336.0
+Vertex 4:458.3 -170.9 -336.0
+Vertex 5:111.5 -234.7 -342.4
+Vertex 6:111.5 -170.9 -342.4
+Vertex 7:458.3 -170.9 -342.4
+Vertex 8:458.3 -234.7 -342.4
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):7 8 5 6 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):8 7 4 3 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 6 1 4 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):6 5 2 1 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):5 8 3 2 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):4 1 2 3 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 5:
+Object Name:(none)
+ Object Transform:
+ [  -0.172876  -0.002343  -0.467363  0.000000  ]
+ [  -0.002343  0.498303  -0.001631  0.000000  ]
+ [  0.467360  0.001631  -0.172884  0.000000  ]
+ [  93.263367  161.226562  166.393585  0.999959  ]
+ Object Inverse Transform:
+ [  -0.696195  -0.009434  1.882110  0.000000  ]
+ [  -0.009435  2.006712  0.006570  0.000000  ]
+ [  -1.882126  -0.006570  -0.696215  0.000000  ]
+ [  379.620056  -321.571381  -60.733147  0.999963  ]
+Object Parent:3
+Object Color:0 136 255
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:127.5 -170.9 -520.2
+Vertex 2:127.5 -234.7 -520.2
+Vertex 3:439.5 -170.9 -520.2
+Vertex 4:439.5 -234.7 -520.2
+Vertex 5:127.5 -170.9 -342.4
+Vertex 6:127.5 -234.7 -342.4
+Vertex 7:439.5 -170.9 -342.4
+Vertex 8:439.5 -234.7 -342.4
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):6 8 7 5 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):8 6 2 4 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):6 5 1 2 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):5 7 3 1 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):7 8 4 3 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):4 2 1 3 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 6:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -129.710114  65.317719  20.353176  0.999983  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005911  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -32.186813  -82.798378  161.546219  0.999985  ]
+Object Parent:2
+Object Color:100 100 100
+Object has 5 properties:
+Nonmanifold
+Grouper
+Noshadow
+Forcedcpnormal
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 7:
+Object Name:(none)
+ Object Transform:
+ [  0.378361  0.001276  -0.153573  0.000000  ]
+ [  -0.001513  0.321844  -0.001054  0.000000  ]
+ [  0.140191  0.001765  0.337916  0.000000  ]
+ [  67.501320  58.806999  272.226929  0.999957  ]
+ Object Inverse Transform:
+ [  2.262052  -0.014608  1.027998  0.000000  ]
+ [  0.007563  3.106936  0.013126  0.000000  ]
+ [  -0.938490  -0.010172  2.532809  0.000000  ]
+ [  102.359398  -178.966064  -759.649597  0.999967  ]
+Object Parent:6
+Object Color:244 72 53
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:16
+ VFE List:
+Vertex 1:-208.9 -30.4 -424.8
+Vertex 2:-208.9  41.5 -424.8
+Vertex 3:-245.9  41.1 -424.8
+Vertex 4:-245.9 -30.8 -424.8
+Vertex 5:-208.6 -30.4 -434.4
+Vertex 6:-208.6  41.5 -434.4
+Vertex 7:-245.6 -30.8 -434.4
+Vertex 8:-245.6  41.1 -434.4
+Vertex 9:-245.9 -12.7 -424.8
+Vertex 10:-224.2 -12.7 -424.8
+Vertex 11:-224.2  24.1 -424.8
+Vertex 12:-223.8 -12.7 -434.4
+Vertex 13:-223.8  24.1 -434.4
+Vertex 14:-245.9  24.1 -424.8
+Vertex 15:-245.6 -12.7 -434.4
+Vertex 16:-245.6  24.1 -434.4
+ Number of Faces:10
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (8 le's):11 10 9 4 1 2 3 14 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):15 7 4 9 
+Face:3 (1 bounds)
+	Bound 1 (8 le's):12 13 16 8 6 5 7 15 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):8 16 14 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):6 8 3 2 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):5 6 2 1 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):7 5 1 4 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):10 12 15 9 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):13 12 10 11 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):16 13 11 14 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 8:
+Object Name:(none)
+ Object Transform:
+ [  -0.141680  -0.001920  -0.383025  0.000000  ]
+ [  -0.001920  0.408381  -0.001337  0.000000  ]
+ [  0.383023  0.001337  -0.141686  0.000000  ]
+ [  -270.640411  145.430649  -10.622440  0.999975  ]
+ Object Inverse Transform:
+ [  -0.849484  -0.011512  2.296530  0.000000  ]
+ [  -0.011513  2.448578  0.008016  0.000000  ]
+ [  -2.296547  -0.008017  -0.849515  0.000000  ]
+ [  -252.621002  -359.306030  611.344604  0.999972  ]
+Object Parent:6
+Object Color:244 72 53
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:16
+ VFE List:
+Vertex 1:-189.9 -198.0 296.7
+Vertex 2:-189.9 -227.0 296.7
+Vertex 3:-190.6 -227.0 275.0
+Vertex 4:-190.6 -241.3 275.0
+Vertex 5:-189.5 -241.0 312.0
+Vertex 6:-189.5 -184.3 312.0
+Vertex 7:-190.6 -184.6 275.0
+Vertex 8:-190.6 -198.0 275.0
+Vertex 9:-181.3 -198.0 296.7
+Vertex 10:-181.3 -227.0 296.7
+Vertex 11:-182.0 -198.0 275.0
+Vertex 12:-182.0 -184.6 275.0
+Vertex 13:-180.9 -184.3 312.0
+Vertex 14:-180.9 -241.0 312.0
+Vertex 15:-182.0 -241.3 275.0
+Vertex 16:-182.0 -227.0 275.0
+ Number of Faces:10
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (8 le's):8 1 2 3 4 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):10 2 1 9 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):11 9 1 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):12 11 8 7 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):13 12 7 6 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):14 13 6 5 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):15 14 5 4 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):16 15 4 3 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):10 16 3 2 
+Face:10 (1 bounds)
+	Bound 1 (8 le's):16 10 9 11 12 13 14 15 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 9:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -35.818195  156.583862  -249.373413  0.999986  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -308.725128  -198.087631  -67.177078  0.999983  ]
+Object Parent:1
+Object Color:100 100 100
+Object has 5 properties:
+Forcedcpnormal
+Noshadow
+Grouper
+Nonmanifold
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:-274.5 -53.3 -228.7
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 10:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -35.818195  156.583862  -249.373413  0.999986  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -308.725128  -198.087631  -67.177078  0.999983  ]
+Object Parent:9
+Object Color:100 100 100
+Object has 5 properties:
+Forcedcpnormal
+Noshadow
+Grouper
+Nonmanifold
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:-464.7 -41.7 -355.0
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 11:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -35.818195  156.583862  -249.373413  0.999986  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -308.725128  -198.087631  -67.177078  0.999983  ]
+Object Parent:10
+Object Color:0 136 255
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:-257.4 -41.7 -243.6
+Vertex 2:-257.4 -81.6 -243.6
+Vertex 3:-474.7 -81.6 -243.6
+Vertex 4:-474.7 -41.7 -243.6
+Vertex 5:-257.4 -41.7 -239.6
+Vertex 6:-257.4 -81.6 -239.6
+Vertex 7:-474.7 -41.7 -239.6
+Vertex 8:-474.7 -81.6 -239.6
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):4 1 2 3 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):6 2 1 5 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 5 1 4 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):8 7 4 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):6 8 3 2 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):8 6 5 7 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 12:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -35.818195  156.583862  -249.373413  0.999986  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -308.725128  -198.087631  -67.177078  0.999983  ]
+Object Parent:10
+Object Color:0 136 255
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:-464.7 -81.6 -243.6
+Vertex 2:-269.2 -81.6 -243.6
+Vertex 3:-269.2 -41.7 -243.6
+Vertex 4:-464.7 -41.7 -243.6
+Vertex 5:-464.7 -81.6 -355.0
+Vertex 6:-269.2 -81.6 -355.0
+Vertex 7:-464.7 -41.7 -355.0
+Vertex 8:-269.2 -41.7 -355.0
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):4 1 2 3 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):6 2 1 5 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 5 1 4 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):8 7 4 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):6 8 3 2 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):8 6 5 7 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 13:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -35.818195  156.583862  -249.373413  0.999986  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -308.725128  -198.087631  -67.177078  0.999983  ]
+Object Parent:9
+Object Color:100 100 100
+Object has 5 properties:
+Forcedcpnormal
+Noshadow
+Grouper
+Nonmanifold
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:-274.5 -53.3 -228.7
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 14:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -35.818195  156.583862  -249.373413  0.999986  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -308.725128  -198.087631  -67.177078  0.999983  ]
+Object Parent:13
+Object Color:244 72 53
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:16
+ VFE List:
+Vertex 1:-465.9 -53.9 -228.7
+Vertex 2:-465.9 -68.8 -228.7
+Vertex 3:-466.2 -68.8 -239.9
+Vertex 4:-466.2 -76.1 -239.9
+Vertex 5:-465.6 -76.0 -220.9
+Vertex 6:-465.6 -46.9 -220.9
+Vertex 7:-466.2 -47.0 -239.9
+Vertex 8:-466.2 -53.9 -239.9
+Vertex 9:-461.4 -53.9 -228.7
+Vertex 10:-461.4 -68.8 -228.7
+Vertex 11:-461.8 -53.9 -239.9
+Vertex 12:-461.8 -47.0 -239.9
+Vertex 13:-461.2 -46.9 -220.9
+Vertex 14:-461.2 -76.0 -220.9
+Vertex 15:-461.8 -76.1 -239.9
+Vertex 16:-461.8 -68.8 -239.9
+ Number of Faces:10
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (8 le's):8 1 2 3 4 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):10 2 1 9 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):11 9 1 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):12 11 8 7 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):13 12 7 6 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):14 13 6 5 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):15 14 5 4 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):16 15 4 3 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):10 16 3 2 
+Face:10 (1 bounds)
+	Bound 1 (8 le's):16 10 9 11 12 13 14 15 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 15:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -35.818195  156.583862  -249.373413  0.999986  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -308.725128  -198.087631  -67.177078  0.999983  ]
+Object Parent:13
+Object Color:244 72 53
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:16
+ VFE List:
+Vertex 1:-274.9 -53.3 -239.9
+Vertex 2:-274.5 -53.3 -228.7
+Vertex 3:-274.5 -68.2 -228.7
+Vertex 4:-274.9 -68.2 -239.9
+Vertex 5:-274.9 -75.5 -239.9
+Vertex 6:-274.3 -75.3 -220.9
+Vertex 7:-274.3 -46.2 -220.9
+Vertex 8:-274.9 -46.4 -239.9
+Vertex 9:-270.5 -53.3 -239.9
+Vertex 10:-270.1 -53.3 -228.7
+Vertex 11:-270.5 -46.4 -239.9
+Vertex 12:-269.9 -46.2 -220.9
+Vertex 13:-269.9 -75.3 -220.9
+Vertex 14:-270.5 -75.5 -239.9
+Vertex 15:-270.5 -68.2 -239.9
+Vertex 16:-270.1 -68.2 -228.7
+ Number of Faces:10
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (8 le's):8 1 2 3 4 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):10 2 1 9 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):11 9 1 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):12 11 8 7 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):13 12 7 6 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):14 13 6 5 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):15 14 5 4 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):16 15 4 3 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):10 16 3 2 
+Face:10 (1 bounds)
+	Bound 1 (8 le's):16 10 9 11 12 13 14 15 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 16:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -8.378727  131.500504  -175.432831  0.999985  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -209.724548  -166.087753  -67.177078  0.999983  ]
+Object Parent:1
+Object Color:100 100 100
+Object has 5 properties:
+Nonmanifold
+Grouper
+Noshadow
+Forcedcpnormal
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:-174.5  46.7 -228.7
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 17:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -8.378727  131.500504  -175.432831  0.999985  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -209.724548  -166.087753  -67.177078  0.999983  ]
+Object Parent:16
+Object Color:100 100 100
+Object has 5 properties:
+Nonmanifold
+Grouper
+Noshadow
+Forcedcpnormal
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:-364.7  58.3 -355.0
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 18:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -8.378727  131.500504  -175.432831  0.999985  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -209.724548  -166.087753  -67.177078  0.999983  ]
+Object Parent:17
+Object Color:0 136 255
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:-374.7  58.3 -243.6
+Vertex 2:-157.4  58.3 -243.6
+Vertex 3:-157.4  18.4 -243.6
+Vertex 4:-374.7  18.4 -243.6
+Vertex 5:-374.7  58.3 -239.6
+Vertex 6:-157.4  58.3 -239.6
+Vertex 7:-374.7  18.4 -239.6
+Vertex 8:-157.4  18.4 -239.6
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):4 1 2 3 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):6 2 1 5 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 5 1 4 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):8 7 4 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):6 8 3 2 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):8 6 5 7 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 19:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -8.378727  131.500504  -175.432831  0.999985  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -209.724548  -166.087753  -67.177078  0.999983  ]
+Object Parent:17
+Object Color:0 136 255
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:-364.7  58.3 -243.6
+Vertex 2:-364.7  18.4 -243.6
+Vertex 3:-169.2  18.4 -243.6
+Vertex 4:-169.2  58.3 -243.6
+Vertex 5:-364.7  58.3 -355.0
+Vertex 6:-364.7  18.4 -355.0
+Vertex 7:-169.2  58.3 -355.0
+Vertex 8:-169.2  18.4 -355.0
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):4 1 2 3 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):6 2 1 5 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 5 1 4 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):8 7 4 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):6 8 3 2 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):8 6 5 7 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 20:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -8.378727  131.500504  -175.432831  0.999985  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -209.724548  -166.087753  -67.177078  0.999983  ]
+Object Parent:16
+Object Color:100 100 100
+Object has 5 properties:
+Nonmanifold
+Grouper
+Noshadow
+Forcedcpnormal
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:-174.5  46.7 -228.7
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 21:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -8.378727  131.500504  -175.432831  0.999985  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -209.724548  -166.087753  -67.177078  0.999983  ]
+Object Parent:20
+Object Color:244 72 53
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:16
+ VFE List:
+Vertex 1:-366.2  46.1 -239.9
+Vertex 2:-365.9  46.1 -228.7
+Vertex 3:-365.9  31.2 -228.7
+Vertex 4:-366.2  31.2 -239.9
+Vertex 5:-366.2  23.9 -239.9
+Vertex 6:-365.6  24.0 -220.9
+Vertex 7:-365.6  53.1 -220.9
+Vertex 8:-366.2  53.0 -239.9
+Vertex 9:-361.8  46.1 -239.9
+Vertex 10:-361.4  46.1 -228.7
+Vertex 11:-361.8  53.0 -239.9
+Vertex 12:-361.2  53.1 -220.9
+Vertex 13:-361.2  24.0 -220.9
+Vertex 14:-361.8  23.9 -239.9
+Vertex 15:-361.8  31.2 -239.9
+Vertex 16:-361.4  31.2 -228.7
+ Number of Faces:10
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (8 le's):8 1 2 3 4 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):10 2 1 9 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):11 9 1 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):12 11 8 7 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):13 12 7 6 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):14 13 6 5 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):15 14 5 4 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):16 15 4 3 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):10 16 3 2 
+Face:10 (1 bounds)
+	Bound 1 (8 le's):16 10 9 11 12 13 14 15 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 22:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -8.378727  131.500504  -175.432831  0.999985  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -209.724548  -166.087753  -67.177078  0.999983  ]
+Object Parent:20
+Object Color:244 72 53
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:16
+ VFE List:
+Vertex 1:-174.9  53.6 -239.9
+Vertex 2:-174.9  46.7 -239.9
+Vertex 3:-174.5  46.7 -228.7
+Vertex 4:-174.5  31.8 -228.7
+Vertex 5:-174.9  31.8 -239.9
+Vertex 6:-174.9  24.5 -239.9
+Vertex 7:-174.3  24.7 -220.9
+Vertex 8:-174.3  53.8 -220.9
+Vertex 9:-170.5  53.6 -239.9
+Vertex 10:-170.5  46.7 -239.9
+Vertex 11:-169.9  53.8 -220.9
+Vertex 12:-169.9  24.7 -220.9
+Vertex 13:-170.5  24.5 -239.9
+Vertex 14:-170.5  31.8 -239.9
+Vertex 15:-170.1  31.8 -228.7
+Vertex 16:-170.1  46.7 -228.7
+ Number of Faces:10
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (8 le's):8 1 2 3 4 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):10 2 1 9 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):11 9 1 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):12 11 8 7 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):13 12 7 6 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):14 13 6 5 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):15 14 5 4 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):16 15 4 3 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):10 16 3 2 
+Face:10 (1 bounds)
+	Bound 1 (8 le's):16 10 9 11 12 13 14 15 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 23:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -197.190964  226.397125  -74.687614  0.999989  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -172.724365  -286.087097  198.995102  0.999986  ]
+Object Parent:1
+Object Color:100 100 100
+Object has 5 properties:
+Forcedcpnormal
+Noshadow
+Grouper
+Nonmanifold
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:-135.5  -8.3  37.4
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 24:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -197.190964  226.397125  -74.687614  0.999989  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -172.724365  -286.087097  198.995102  0.999986  ]
+Object Parent:23
+Object Color:100 100 100
+Object has 5 properties:
+Forcedcpnormal
+Noshadow
+Grouper
+Nonmanifold
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:-325.7   3.3 -88.9
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 25:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -197.190964  226.397125  -74.687614  0.999989  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -172.724365  -286.087097  198.995102  0.999986  ]
+Object Parent:24
+Object Color:0 136 255
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:-335.7 -36.6  22.6
+Vertex 2:-335.7   3.3  22.6
+Vertex 3:-118.4   3.3  22.6
+Vertex 4:-118.4 -36.6  22.6
+Vertex 5:-335.7 -36.6  26.6
+Vertex 6:-335.7   3.3  26.6
+Vertex 7:-118.4 -36.6  26.6
+Vertex 8:-118.4   3.3  26.6
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):4 1 2 3 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):6 2 1 5 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 5 1 4 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):8 7 4 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):6 8 3 2 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):8 6 5 7 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 26:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -197.190964  226.397125  -74.687614  0.999989  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -172.724365  -286.087097  198.995102  0.999986  ]
+Object Parent:24
+Object Color:0 136 255
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:-130.2   3.3  22.6
+Vertex 2:-325.7   3.3  22.6
+Vertex 3:-325.7 -36.6  22.6
+Vertex 4:-130.2 -36.6  22.6
+Vertex 5:-130.2   3.3 -88.9
+Vertex 6:-325.7   3.3 -88.9
+Vertex 7:-130.2 -36.6 -88.9
+Vertex 8:-325.7 -36.6 -88.9
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):4 1 2 3 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):6 2 1 5 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 5 1 4 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):8 7 4 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):6 8 3 2 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):8 6 5 7 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 27:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -197.190964  226.397125  -74.687614  0.999989  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -172.724365  -286.087097  198.995102  0.999986  ]
+Object Parent:23
+Object Color:100 100 100
+Object has 5 properties:
+Forcedcpnormal
+Noshadow
+Grouper
+Nonmanifold
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:-135.5  -8.3  37.4
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 28:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -197.190964  226.397125  -74.687614  0.999989  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -172.724365  -286.087097  198.995102  0.999986  ]
+Object Parent:27
+Object Color:244 72 53
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:16
+ VFE List:
+Vertex 1:-327.2  -2.0  26.3
+Vertex 2:-327.2  -8.9  26.3
+Vertex 3:-326.9  -8.9  37.5
+Vertex 4:-326.9 -23.8  37.5
+Vertex 5:-327.2 -23.8  26.3
+Vertex 6:-327.2 -31.1  26.3
+Vertex 7:-326.6 -31.0  45.3
+Vertex 8:-326.6  -1.9  45.3
+Vertex 9:-322.8  -2.0  26.3
+Vertex 10:-322.8  -8.9  26.3
+Vertex 11:-322.2  -1.9  45.3
+Vertex 12:-322.2 -31.0  45.3
+Vertex 13:-322.8 -31.1  26.3
+Vertex 14:-322.8 -23.8  26.3
+Vertex 15:-322.4 -23.8  37.5
+Vertex 16:-322.4  -8.9  37.5
+ Number of Faces:10
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (8 le's):8 1 2 3 4 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):10 2 1 9 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):11 9 1 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):12 11 8 7 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):13 12 7 6 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):14 13 6 5 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):15 14 5 4 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):16 15 4 3 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):10 16 3 2 
+Face:10 (1 bounds)
+	Bound 1 (8 le's):16 10 9 11 12 13 14 15 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 29:
+Object Name:(none)
+ Object Transform:
+ [  -0.275955  -0.003740  -0.746032  0.000000  ]
+ [  -0.003740  0.795424  -0.002604  0.000000  ]
+ [  0.746033  0.002604  -0.275966  0.000000  ]
+ [  -197.190964  226.397125  -74.687614  0.999989  ]
+ Object Inverse Transform:
+ [  -0.436137  -0.005910  1.179073  0.000000  ]
+ [  -0.005911  1.257139  0.004116  0.000000  ]
+ [  -1.179077  -0.004116  -0.436154  0.000000  ]
+ [  -172.724365  -286.087097  198.995102  0.999986  ]
+Object Parent:27
+Object Color:244 72 53
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:16
+ VFE List:
+Vertex 1:-135.3  -1.2  45.3
+Vertex 2:-135.9  -1.4  26.3
+Vertex 3:-135.9  -8.3  26.3
+Vertex 4:-135.5  -8.3  37.4
+Vertex 5:-135.5 -23.2  37.4
+Vertex 6:-135.9 -23.2  26.3
+Vertex 7:-135.9 -30.5  26.3
+Vertex 8:-135.3 -30.3  45.3
+Vertex 9:-130.9  -1.2  45.3
+Vertex 10:-131.5  -1.4  26.3
+Vertex 11:-130.9 -30.3  45.3
+Vertex 12:-131.5 -30.5  26.3
+Vertex 13:-131.5 -23.2  26.3
+Vertex 14:-131.1 -23.2  37.4
+Vertex 15:-131.1  -8.3  37.4
+Vertex 16:-131.5  -8.3  26.3
+ Number of Faces:10
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (8 le's):8 1 2 3 4 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):10 2 1 9 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):11 9 1 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):12 11 8 7 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):13 12 7 6 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):14 13 6 5 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):15 14 5 4 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):16 15 4 3 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):10 16 3 2 
+Face:10 (1 bounds)
+	Bound 1 (8 le's):16 10 9 11 12 13 14 15 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 30:
+Object Name:(none)
+ Object Transform:
+ [  -0.225090  -0.003056  -0.611799  0.000000  ]
+ [  -0.003061  0.651887  -0.002130  0.000000  ]
+ [  0.611802  0.002138  -0.225100  0.000000  ]
+ [  -81.102257  -123.189194  197.328629  0.999996  ]
+ Object Inverse Transform:
+ [  -0.529656  -0.007203  1.439619  0.000000  ]
+ [  -0.007190  1.533948  0.005030  0.000000  ]
+ [  -1.439620  -0.005012  -0.529679  0.000000  ]
+ [  240.237122  189.371674  221.896851  0.999995  ]
+Object Parent:0
+Object Color:100 100 100
+Object has 4 properties:
+Forcedcpnormal
+Noshadow
+Grouper
+Nonmanifold
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 31:
+Object Name:(none)
+ Object Transform:
+ [  0.795443  0.000000  0.001390  0.000000  ]
+ [  0.000000  0.795437  0.000012  0.000000  ]
+ [  -0.000524  -0.000005  0.300500  0.000000  ]
+ [  -189.056778  381.424683  330.366943  0.999981  ]
+ Object Inverse Transform:
+ [  1.257179  0.000001  -0.005804  0.000000  ]
+ [  0.000000  1.257155  -0.000051  0.000000  ]
+ [  0.002191  0.000019  3.327780  0.000000  ]
+ [  236.953400  -479.520599  -1100.467163  0.999980  ]
+Object Parent:30
+Object Color:220 0 255
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:127.5 -176.2 -509.9
+Vertex 2:128.5 -438.7 -509.9
+Vertex 3:348.5 -438.7 -509.9
+Vertex 4:347.5 -176.2 -509.9
+Vertex 5:127.5 -176.2 -520.2
+Vertex 6:128.5 -438.7 -520.2
+Vertex 7:347.5 -176.2 -520.2
+Vertex 8:348.5 -438.7 -520.2
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):3 4 1 2 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):1 5 6 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):4 7 5 1 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):7 4 3 8 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):8 3 2 6 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):5 7 8 6 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 32:
+Object Name:(none)
+ Object Transform:
+ [  -0.396834  -0.005387  -1.078601  0.000000  ]
+ [  -0.007394  1.574492  -0.005144  0.000000  ]
+ [  0.746514  0.002608  -0.274663  0.000000  ]
+ [  83.227066  281.094177  352.465057  0.999979  ]
+ Object Inverse Transform:
+ [  -0.300432  -0.002982  1.179833  0.000000  ]
+ [  -0.004079  0.635096  0.004122  0.000000  ]
+ [  -0.816583  -0.002075  -0.434095  0.000000  ]
+ [  313.964905  -177.544586  53.652023  0.999977  ]
+Object Parent:30
+Object Color:255 268 0
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:16
+ VFE List:
+Vertex 1:177.7 -256.0 -128.2
+Vertex 2:373.7 -256.0 -128.2
+Vertex 3:373.7  -4.3 -128.2
+Vertex 4:177.7  -4.3 -128.2
+Vertex 5:177.7 -256.0 -337.5
+Vertex 6:373.7 -256.0 -337.5
+Vertex 7:177.7  -4.3 -337.5
+Vertex 8:373.7  -4.3 -337.5
+Vertex 9:352.9 -157.8 -128.2
+Vertex 10:352.9 -157.8 -337.5
+Vertex 11:198.6 -156.8 -128.2
+Vertex 12:198.6 -156.8 -337.5
+Vertex 13:198.6 -19.6 -128.2
+Vertex 14:198.6 -19.6 -337.5
+Vertex 15:352.9 -20.5 -128.2
+Vertex 16:352.9 -20.5 -337.5
+ Number of Faces:10
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (4 le's):8 6 5 7 
+	Bound 2 (4 le's):14 12 10 16 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):2 6 8 3 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):8 7 4 3 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):5 1 4 7 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):6 2 1 5 
+Face:6 (2 bounds)
+	Bound 1 (4 le's):4 1 2 3 
+	Bound 2 (4 le's):13 15 9 11 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):14 16 15 13 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):12 14 13 11 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):9 10 12 11 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):16 10 9 15 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 33:
+Object Name:(none)
+ Object Transform:
+ [  0.596019  0.005630  0.004159  0.000000  ]
+ [  -0.013831  1.464602  -0.000341  0.000000  ]
+ [  -0.004160  0.000099  0.596043  0.000000  ]
+ [  40.651234  273.646454  209.793015  0.999980  ]
+ Object Inverse Transform:
+ [  1.677584  -0.006447  -0.011709  0.000000  ]
+ [  0.015845  0.682707  0.000280  0.000000  ]
+ [  0.011705  -0.000159  1.677644  0.000000  ]
+ [  -74.988457  -186.527771  -351.565277  0.999982  ]
+Object Parent:0
+Object Color:244 72 53
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:16
+ VFE List:
+Vertex 1:-22.9 -83.7 -12.9
+Vertex 2:-22.9 -103.5 -12.9
+Vertex 3:-23.4 -103.5 -27.8
+Vertex 4:-23.4 -113.3 -27.8
+Vertex 5:-22.6 -113.1  -2.4
+Vertex 6:-22.6 -75.4  -2.4
+Vertex 7:-23.4 -75.6 -27.8
+Vertex 8:-23.4 -83.7 -27.8
+Vertex 9: -4.2 -84.2 -12.9
+Vertex 10: -4.2 -104.1 -12.9
+Vertex 11: -4.6 -84.2 -27.8
+Vertex 12: -4.6 -76.2 -27.8
+Vertex 13: -3.8 -76.0  -2.5
+Vertex 14: -3.8 -113.7  -2.5
+Vertex 15: -4.6 -113.9 -27.8
+Vertex 16: -4.6 -104.1 -27.8
+ Number of Faces:10
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (8 le's):8 1 2 3 4 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):2 1 9 10 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):1 8 11 9 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):11 8 7 12 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):7 6 13 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):6 5 14 13 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):5 4 15 14 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):4 3 16 15 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):3 2 10 16 
+Face:10 (1 bounds)
+	Bound 1 (8 le's):16 10 9 11 12 13 14 15 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+** End of file powersupply.cut **

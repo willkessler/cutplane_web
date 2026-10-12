@@ -1,0 +1,29 @@
+
+;		Handle Release
+
+_Check_release	AND	AA:XAS,Prop:Selectable,A:R2	; working on selectable?
+		BEQ	A:R2,A:_End_cursor&		; no, quit
+
+		AND	AA:XOP*,Opcd:RELEAS,A:R2	; is Opcode a RELEAS?
+		BEQ	A:R2,A:_Check_mrelease&		; no, check for shift-rel
+
+;	on RELEASE: Is something picked already?
+;		    If not, is there a marquee? If not do nothing.
+;		    If there is, is there something in it?
+;		    If not,
+group everything in the marquee under a new umbrella object
+;	if there is nothing else picked, or under the picked objects.
+
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Picked*,A:R2
+		WORLD	Const:WEnvironment_world
+
+		MOVE	Prop:Marquee*,A:R2
+		BEQ	A:R2,A:_Group_umbrella&		; no marquee available
+
+		JUMP	A:_Finish_marquee&
+
+;	on Shift_RELEASE, just do the marquee stuff if marqueeing
+
+_Check_mrelease	AND	AA:XOP*,Opcd:MRELEAS,A:R2	; is Opcode a shift rel?
+		BEQ	A:R2,A:_End_cursor&		; no, quit

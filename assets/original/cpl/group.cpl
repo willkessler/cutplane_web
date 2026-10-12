@@ -1,0 +1,146 @@
+;
+;		CPL Group Tool Code
+;		Date: February 10,1991
+;		Version: 2
+;
+;		*** Pushbutton-Style Interface ***
+;
+
+Grouper		DEFPROP
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Group subroutines 
+; WARNING: The following routines make extensive use of R6,R7,R8,R9... so
+; save 'em if you wan' 'em!
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Group_sub	POP	A:_Grouped_objs
+		MAKE	Const:WPrimary_world,A:_Grouper_obj,Const:Motherobj 
+		ADDPROP	A:_Grouper_obj*,Prop:Nonmanifold
+		ADDPROP	A:_Grouper_obj*,Prop:Grouper
+		ADDPROP	A:_Grouper_obj*,Prop:Noshadow
+		ADDPROP	A:_Grouper_obj*,Prop:Forcedcpnormal	; grouper uses
+;								; cpnormal!
+
+		DIFF3D	A:_Grouper_obj*,A:_Grouped_objs*,A:R7	; put grouper
+		TRANS	A:_Grouper_obj*,Const:Normaltranslate,A:R7 ; inside
+
+		MAKEMSG	Msg:Unpick				; unpick 
+		QMSG	A:_Grouped_objs*,Const:Prioritymsg	; grouped
+		JSRAT	A:_Grouped_objs*,Code:Property_code	; immediately
+;		BTRUE	A:_stopgroup,A:_doastop&
+;		MOVE	Const:TRUE,A:_stopgroup
+;		JUMP	A:_Coagulate&
+
+;_doastop	NOP
+
+_Coagulate	ANCEST	A:_Grouped_objs*,A:R9
+		ADOPT	A:_Grouper_obj*,A:R9*,Const:FALSE	; adopt ancests.
+		MAKEMSG	Msg:Pick				; Pick the
+		QMSG	A:_Grouper_obj*,Const:Noprioritymsg	; grouper.
+		UPDATE	A:_Grouper_obj*,Const:UAllupdateflags/when:Now
+		RTS
+
+; get whether dealing with picked objects or some other set...
+_Ungroup_sub	POP	A:_Grouped_objs					
+
+		MAKEMSG	Msg:Unpick				; unpick 
+		QMSG	A:_Grouped_objs*,Const:Prioritymsg	; targets
+		JSRAT	A:_Grouped_objs*,Code:Property_code	; immediately
+
+		ANCEST	A:_Grouped_objs*,A:R9
+
+;		 Only ungroup if ancestor is a grouper.
+		HASPROP	A:R9*,Prop:Grouper,A:R8,Const:Self
+		BEMPTY	A:R8,A:_End_ungroupsub&
+
+		PARENT	A:R9*,A:R8
+		CHLDRN	A:R9*,A:R7
+		GETLINK	A:R9*,A:R6
+		ADOPT	A:R8*,A:R7*,A:R6
+		MAKEMSG	Msg:Pick			; pick kids 
+		QMSG	A:R7*,Const:Prioritymsg 	; immediately after
+		JSRAT	A:R7*,Code:Property_code	
+
+_Ungroup_finish	CPDELETE	A:R9*				; kill grouper
+		
+_End_ungroupsub	RTS
+
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+Group		DEFPROP
+
+Group		STARTPROP
+
+		OWNER	A:R1,Const:Motherobj		; Get grouper
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Check topmost message
+		CHKMSG	A:R2
+
+;		Message jump table starts here.
+;		Check to see if somebody (e.g. the buttonpad) has told me
+;		to do a grouping
+
+_Check_groupmsg	BNEQUAL	A:R2,Msg:Activate,A:_End_group&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		If the message included a groupable set, get it. Otherwise
+;		group picked objects in the primary world.
+		BNOMSGS	A:R1,A:_Group_picked&
+		UNQMSG	A:R3				; get groupable set
+		MOVE	Const:FALSE,A:_Grouping_picked
+		JUMP	A:_Group_style&			; passed with message
+
+_Group_picked	WORLD	Const:WPrimary_world
+		MOVE	Prop:Picked*,A:R3
+		MOVE	Const:TRUE,A:_Grouping_picked
+		BEMPTY	A:R3,A:_End_group&		; do nada if nada
+;							; picked
+
+_Group_style	ANCEST	A:R3*,A:R4
+		COUNT	A:R4,A:R5
+		BEQUAL	A:R5,Const:I1,A:_Do_ungroup&	; ungroup if 
+;							; only one ancestor
+		PUSH	A:R3
+		JSR	A:_Group_sub&
+		JUMP	A:_End_group&
+
+_Do_ungroup	PUSH	A:R3
+		JSR	A:_Ungroup_sub&
+		JUMP	A:_End_group&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+
+_Check_events	BWIPED	AA:XOP*,A:_End_group&		; Event still active?
+
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_End_group& 
+;		 TRANSlating picked?
+	    	BNEQUAL	AA:XAS,Prop:Picked,A:_End_group&
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_group&
+
+;		TRANS	A:R1*,Const:Normaltranslate,AA:XAD
+;		WIPE	A:XOP*
+
+; NOTE on the following line I used to loop looking processing messages but
+; I turned this off because the grouper only can receive one message anyhow
+; and if that's not it (e.g it gets a Pick message) then you get stuck in 
+; an infinite loop trying to process it as an Activate message... this problem
+; will vanish with global message lists....
+;_End_group	BMSGS	A:R1,A:_Check_messages&
+_End_group	WORLD	Const:WEnvironment_world
+		RTS
+
+; =-=-=-=-=-=-=-= Local vars here =-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+_Grouping_picked CPLDATA
+_Grouper_obj	CPLDATA
+_Grouped_objs	CPLDATA
+_stopgroup	CPLDATA

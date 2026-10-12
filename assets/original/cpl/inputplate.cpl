@@ -1,0 +1,89 @@
+;
+;		CPL Property Code: Input Plates
+;		Date: May 26,1991
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Inputplate	DEFPROP
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Subroutines
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+_Activate_plate	POP	A:R8				; get plate
+		ADDPROP	A:R8*,Prop:Visible		; show plates
+		DESCEND	A:R8*,A:R9
+		ADDPROP	A:R9*,Prop:Visible		; show inputboxes
+		PARENT	A:R8*,A:R9
+		GETCONN	A:R9*,A:R8			; show anything else
+		ADDPROP	A:R8*,Prop:Visible		; associated... hack
+		DESCEND	A:R8*,A:R7
+		ADDPROP	A:R7*,Prop:Visible
+		RTS
+
+_Deactivate_plate POP	A:R8				; get plate
+		REMPROP	A:R8*,Prop:Visible		; hide it
+		DESCEND	A:R8*,A:R9
+		REMPROP	A:R9*,Prop:Visible		; hide inputboxes
+	       	UNSEL	A:R9*
+		PARENT	A:R8*,A:R9
+		GETCONN	A:R9*,A:R8			; hide anything else
+		REMPROP	A:R8*,Prop:Visible		; associated... hack
+	       	UNSEL	A:R8*
+		DESCEND	A:R8*,A:R7
+		REMPROP	A:R7*,Prop:Visible
+	       	UNSEL	A:R7*
+		RTS
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main inputplate code starts here			     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+Inputplate	STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+		OWNER	A:R1,Const:Motherobj		; Get inputplate
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		CHKMSG	A:R2
+
+;		 Message jump table starts here.
+
+_Check_activate	BNEQUAL	A:R2,Msg:Activate,A:_Check_deactivate&
+		UNQMSG	A:R2
+;		ADDPROP	A:R1*,Prop:Active
+;		HASPROP	Obj:Name_Plate,Prop:Visible,A:R2,Const:Self
+;		BFALSE	A:R2,A:_End_checkactive&
+		PUSH	A:R1
+		JSR	A:_Activate_plate&
+_End_checkactive JUMP	A:_End_inputplate&
+
+_Check_deactivate BNEQUAL A:R2,Msg:Deactivate,A:_Check_events&
+		UNQMSG	A:R2
+;		REMPROP	A:R1*,Prop:Active
+;		HASPROP	Obj:Name_Plate,Prop:Visible,A:R2,Const:Self
+;		BFALSE	A:R2,A:_End_checkdeactive&
+		PUSH	A:R1
+		JSR	A:_Deactivate_plate&
+_End_checkdeactive JUMP	A:_End_inputplate&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	NOP
+_End_inputplate	RTS					; totally eventless!
+
+; =-=-=-=-=-=-=-= Local vars =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 
+
+;	This is storage for the information rec passed in and back out to
+;	the primitive creation routines.
+
+_Newinfo	CPLDATA
+_Activepadname	CPLDATA

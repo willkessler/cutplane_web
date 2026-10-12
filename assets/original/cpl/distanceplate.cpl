@@ -1,0 +1,95 @@
+;
+;		CPL Private Code: The distance input plate
+;		Date: May 26,1991
+;		Version: 1
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+Distance_Plate	OWNER	A:R1,Const:Motherobj		; Get distance plate
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		CHKMSG	A:R2
+
+;		 Message jump table starts here.
+
+;		 Somebody wants us to remeasure distances... okie dokie.
+_Remeasure?	BNEQUAL A:R2,Msg:Remeasure,A:_Createpacket?&
+		UNQMSG	A:R2
+;		Get the two features whose distance we will measure
+		UNQMSG	A:_Feature1
+		UNQMSG	A:_Feature2
+;	Use a goddam C routine to do the measuring because CPL's not advanced
+;	enough yet...
+;		Another spirited HACK from the mind... of minolta
+		PUSH	A:_Feature1
+		PUSH	A:_Feature2
+		CRTN	Crtn:get_feature_dist
+		POP	A:_Hypotenuse
+		POP	A:_Xdist
+		POP	A:_Ydist
+		POP	A:_Zdist
+		MAKEMSG	Msg:Incomingvalue
+		MAKEMSG	A:_Hypotenuse
+		QMSG	Obj:Delta_distance,Const:Prioritymsg
+;		JSRAT	Obj:Delta_distance,Code:Private_code
+		MAKEMSG	Msg:Incomingvalue
+		MAKEMSG	A:_Xdist
+		QMSG	Obj:Delta_xdistance,Const:Prioritymsg
+;		JSRAT	Obj:Delta_xdistance,Code:Private_code
+		MAKEMSG	Msg:Incomingvalue
+		MAKEMSG	A:_Ydist
+		QMSG	Obj:Delta_ydistance,Const:Prioritymsg
+;		JSRAT	Obj:Delta_ydistance,Code:Private_code
+		MAKEMSG	Msg:Incomingvalue
+		MAKEMSG	A:_Zdist
+		QMSG	Obj:Delta_zdistance,Const:Prioritymsg
+;		JSRAT	Obj:Delta_zdistance,Code:Private_code
+
+;	world are picked... if so, call a distance routine on the first two,
+;	get an info packet back, and spread that out to the fields...
+;	Also, save the first two items picked
+
+		JUMP	A:_End_distplate&
+
+_Createpacket?	BNEQUAL	A:R2,Msg:Createpacket,A:_Check_events&
+		UNQMSG	A:R2
+		MAKEMSG	Msg:Getsize
+		QMSG	Obj:Delta_distance,Const:Prioritymsg
+		MAKEMSG	Msg:Getsize
+		QMSG	Obj:Delta_xdistance,Const:Prioritymsg
+		MAKEMSG	Msg:Getsize
+		QMSG	Obj:Delta_ydistance,Const:Prioritymsg
+		MAKEMSG	Msg:Getsize
+		QMSG	Obj:Delta_zdistance,Const:Prioritymsg
+		CHLDRN	A:R1*,A:R3
+		JSRAT	A:R3*,Code:Private_code
+		PUSH	A:_Feature2
+		PUSH	A:_Feature1
+		CRTN	Crtn:set_feature_dist
+		JUMP	A:_End_distplate&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	NOP
+_End_distplate	RTS				; totally eventless!
+
+; =-=-=-=-=-=-=-= Local vars =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 
+
+;	This is storage for the information pieces passed in and back out to
+;	the distance creation routines.
+
+_Feature1	CPLDATA
+_Feature2	CPLDATA
+_Hypotenuse	CPLDATA
+_Xdist		CPLDATA
+_Ydist		CPLDATA
+_Zdist		CPLDATA
+

@@ -1,0 +1,124 @@
+
+;		CPL Padhandle Property Codes
+;		Date: February 2, 1991
+;		Version: 1
+;	"Yep, way down below them Pecoes, you'd fine them pad-handlers workin'
+;	 them gold-mines, yessiree bob."
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Toolpadragged	DEFPROP					; Toolpad was dragged
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Padhandle variables
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Main padhandle code starts here
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; A pad handle must be attempt to adopt the pad to the toolbar upon a release,
+; or dunk the toolpad into a headpad upon release.
+
+Padhandle		DEFPROP
+
+Padhandle		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get padhandle
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+		JUMP	A:_End_padhandle&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_padhandle&	; Event still active?
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_pick&
+
+;		Check to see if we are dragging stuff.
+
+;		 TRANSlating picked?
+_Trans_picked	BNEQUAL	AA:XAS,Prop:Picked,A:_Check_pick&
+
+		OWNER	A:R1,Const:Motherobj		; Get object 
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; Is object picked?
+		BFALSE	A:R2,A:_Check_pick&		; No: check for pick
+
+_Transobject	WIPE	A:XOP*
+		JUMP	A:_End_padhandle&
+
+;		Handle a pick
+
+;		 Is event a pick?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_padhandle&
+
+_Pick_padhandle	OWNER	A:R1,Const:Motherobj		; Get padhandle
+		PICK	A:R1*
+;		Make it a child of the crosshair so it follows xhair around	
+		ADOPT	Env:Crosshair_part,A:R1*,Const:FALSE
+		WIPE	A:XOP*				; kill pick
+		JUMP	A:_End_padhandle&
+
+;		Handle a release
+
+;		 Is event a release?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_padhandle&
+;		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_padhandle&
+
+		OWNER	A:R1,Const:Motherobj		; Get padhandle
+
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self ;  Selectable?
+		BFALSE	A:R2,A:_End_padhandle&
+
+		HASPROP	A:R1*,Prop:Picked,A:R2,Const:Self ; if not picked,
+		BFALSE	A:R2,A:_End_padhandle&		; quit
+
+_Unpick_it	UNPICK	A:R1*				; yes, unpick it
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BEMPTY	A:R3,A:_Check_toolbar&		; no
+
+; 		Is toolbar visible?
+		HASPROP	Prop:Toolbar*,Prop:Visible,A:R2,Const:Self
+		BTRUE	A:R2,A:_Dunk_padhandle&
+		REMPROP	A:R1*,Prop:Visible		; no? hide pad
+
+_Dunk_padhandle	CHLDRN	A:R3*,A:R4			; get this toolbar
+		ADOPT	A:R4*,A:R1*,Const:TRUE		; Drop padhandle in
+		REMPROP	A:R1*,Prop:Visible
+		PUSH	A:R4				; arrange all prims
+		CRTN	Crtn:arrange_toolpads
+		JUMP	A:_Clear_release&
+
+_Check_toolbar	PUSH	A:R1*				; is this padhandle
+		AND	Prop:Visible*,Prop:Toolbar*,A:R2
+		PUSH	A:R2				; near a visible toolbar?
+		CRTN	Crtn:near_toolbar
+		POP	A:R2
+		BEMPTY	A:R2,A:_Floating_pad&		; near none so float it
+
+		ADOPT	A:R2*,A:R1*,Const:TRUE		; adopt to returned
+		PUSH	A:R2
+		CRTN	Crtn:arrange_toolpads
+		JUMP	A:_Clear_release&		; toolbar
+
+_Floating_pad	ADOPT	Env:Cutplane_part,A:R1*,Const:TRUE
+		JUMP	A:_Clear_release&
+
+_Clear_release	WIPE	A:XOP*
+
+_End_padhandle	RTS
+
