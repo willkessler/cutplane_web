@@ -19,7 +19,7 @@ describe('README demo script', () => {
     }
   });
 
-  it('pulls a face out and back, rolls the module and back, opens and closes a rail, clicks on nothing', () => {
+  it('pulls a face out and back, rolls the module and back, drills it, opens and closes a rail', () => {
     const dt = 1 / 30;
     type At = { x: number; y: number; depth: number };
     const holds: { from: At; to: At; reach: number }[] = [];
@@ -36,16 +36,21 @@ describe('README demo script', () => {
       }
       was = p.pressed;
     }
-    expect(holds).toHaveLength(5);
+    expect(holds).toHaveLength(7);
     expect(holds[0]!.reach).toBeGreaterThan(100);
     expect(holds[0]!.to).toEqual(holds[0]!.from);
     expect(holds[1]!.reach).toBeGreaterThan(50); // the roll along the rotate tool's bar...
     expect(holds[1]!.to).toEqual(holds[1]!.from); // ...and back
-    // Two clicks on the headpad (open its rail, close it), then one on nothing.
-    for (const h of holds.slice(2)) expect(h.reach).toBe(0);
-    expect(holds[2]!.from).toEqual(holds[3]!.from);
+    // Clicks on the headpad (open its rail) and the drill's pad; the drill's press and carry
+    // across the module; the headpad again (close it), then a click on nothing.
+    for (const i of [2, 3, 5, 6]) expect(holds[i]!.reach).toBe(0);
+    expect(holds[2]!.from).toEqual(holds[5]!.from);
+    expect(holds[3]!.from.y).toBeLessThan(holds[2]!.from.y); // the drill's pad, down the rail
+    expect(holds[4]!.reach).toBeGreaterThan(40);
     expect(demoPose(0).pressed).toBe(false);
-    // R twice: the tool comes and is put away again, so the loop starts with it docked.
+    // R twice: the tool comes and is put away again, so the loop starts with it docked;
+    // and one undo after the cut, so it starts with the module whole.
     expect(demoPose(DEMO_SECONDS - 1e-6).rotateKeys).toBe(2);
+    expect(demoPose(DEMO_SECONDS - 1e-6).undoKeys).toBe(1);
   });
 });

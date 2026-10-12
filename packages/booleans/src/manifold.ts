@@ -65,6 +65,8 @@ interface Tagged {
   local: (V3 | null)[];
   /** The original id its triangles' runs carry through operations. */
   run: number;
+  /** Faults it came with (a 1991 file's slightly bent faces): the result may keep them. */
+  faults: Set<string>;
 }
 
 const sub = (a: readonly number[], b: readonly number[]): V3 => [a[0]! - b[0]!, a[1]! - b[1]!, a[2]! - b[2]!]; // prettier-ignore
@@ -172,7 +174,12 @@ function toManifold(s: Solid, base: number, frame: Mat4 | null): Tagged | null {
   }
   // A mesh-made manifold reports no originalID(), but its triangles' run carries one.
   const runs = manifold.getMesh().runOriginalID;
-  return { manifold, faces, planes, points, local, run: runs[0] ?? -1 };
+  const faults = new Set(
+    validate(b)
+      .issues.map((i) => i.code)
+      .filter((c) => FAULTS.includes(c)),
+  );
+  return { manifold, faces, planes, points, local, run: runs[0] ?? -1, faults };
 }
 
 /** Exact positions of input vertices, found again by where the float32 mesh put them. */
@@ -516,21 +523,33 @@ function fromManifold(
     const out = fs.map((f) => ({ loops: f.loops.map((l) => l.map(idx)), source: f.source }));
     result.push({ positions: pts, faces: out, volume: shellVolume(pts, out) });
   }
-  for (const r of result) if (!sound(r)) throw new Unsound();
+  const allowed = new Set(ins.flatMap((t) => [...t.faults]));
+  for (const r of result) if (!sound(r, allowed)) throw new Unsound();
   return result;
 }
 
 /** A result that didn't come back as closed, valid shells: the operation is refused. */
 class Unsound extends Error {}
 
-/** Whether a shell builds into a closed B-rep the validator passes. */
-function sound(s: ResultShell): boolean {
+/** Faults a result mustn't gain (warnings the validator gives a closed shell). */
+const FAULTS = ['degenerate-face', 'zero-length-edge', 'nonplanar-face', 'nonmanifold-vertex'];
+
+/**
+ * Whether a shell builds into a closed B-rep the validator passes, with no fault
+ * the operands didn't already have.
+ */
+function sound(s: ResultShell, allowed: ReadonlySet<string>): boolean {
   if (s.faces.some((f) => f.loops.some((l) => l.length < 3))) return false;
   const b = new Brep();
   buildShell(b, { positions: s.positions, faces: s.faces.map((f) => f.loops) });
   const r = validate(b);
-  const bad = ['degenerate-face', 'zero-length-edge', 'nonplanar-face', 'nonmanifold-vertex'];
-  return r.ok && r.closedManifold && !r.issues.some((i) => i.severity === 'error' || bad.includes(i.code)); // prettier-ignore
+  return (
+    r.ok &&
+    r.closedManifold &&
+    !r.issues.some(
+      (i) => i.severity === 'error' || (FAULTS.includes(i.code) && !allowed.has(i.code)),
+    )
+  );
 }
 
 /** Runs a conversion back, or null if it wasn't sound. */

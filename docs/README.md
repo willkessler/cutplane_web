@@ -13,7 +13,7 @@ The user guide and architecture notes will grow here as each milestone lands. Sc
 | **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo    |
 | **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                 |
 | **M5** ✅ | CPL VM and environment: code stored in objects, live editing        |
-| M6        | Modeling operations: slice, booleans, drill, push/pull              |
+| **M6** 🚧 | Modeling operations: slice, booleans, drill, pencil, arrange tools  |
 | M7        | Formats: OBJ, STL, glTF, drag and drop, autosave                    |
 | M8        | Ship: user guide, help plate, deployment                            |
 | M9        | Acceptance: load and rebuild the stapler, fan and Discovery         |
@@ -59,6 +59,9 @@ lasts only while you hold the key or button.
 | F       | Start or stop working (full screen, pointer captured)     |
 | R       | Rotate tool to the crosshair (on its centre: put it away) |
 | D       | Duplicate what is picked                                  |
+| G       | Group what is picked (on one group: ungroup it)           |
+| \\      | Slice what is picked at the plane                         |
+| Z, P    | The magnifier, the pan tool, to the crosshair             |
 | ⌫       | Delete what is picked                                     |
 | ⌘Z, ⇧⌘Z | Undo, redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y elsewhere)     |
 
@@ -156,7 +159,7 @@ The room is laid out as in the 3Form photos. Everything in it runs on the origin
     plane. Click the pad again to put the tool back.
   - Drag a pad by its handle (the strip along its top) to pull it off the rail. Let it go
     anywhere to leave it floating, on another rail to hang it there, or on a headpad to drop it in.
-  - The tools themselves (pencil, saw, drill, magnifier, group, pan, magnet) do their work in M6.
+  - The tools on the pads do their work: see [Modeling](#modeling) below.
 - **Toolboxes** stand on the floor by the back wall, bottom right; Space takes the plane there.
   Click one to open it, and what it holds stacks up above it.
   - **Primitives box.** Pick a primitive (cube, cylinder, cone, sphere, pyramid) and a copy is
@@ -179,6 +182,37 @@ The room is laid out as in the 3Form photos. Everything in it runs on the origin
 ![The Load / Save plate, a name being typed into Load from:](images/env-plate.png)
 
 ![The camera out of its box, its slide showing the Discovery](images/goodies-camera.png)
+
+### Modeling
+
+Take a tool off its pad (it rides on the crosshair) and use it through the plane. A tool goes
+back to its pad by itself once it has done its work, or click its pad. Everything here is one
+undo away.
+
+![A cube cut in two by the saw, the halves pulled apart either side of the plane](images/m6-saw.png)
+
+- **Saw.** Click on something with it and it's cut in two at the plane. Each piece becomes an
+  object of its own, pulled 10 apart either side of the plane so the cut shows. **\\** does the
+  same to what is picked, without the saw.
+- **Drill.** Press on an object with it: a red copy of it, the **cutter**, comes away with the
+  drill. Carry it into another object (move the plane to carry it in depth) and let go, and the
+  cutter is taken out of that object. A cut that leaves pieces apart makes each piece an object.
+  The hole's faces are the object's colour, as in the original, not the cutter's.
+- **Pencil.** Press and draw in the plane. Let go and the stroke closes into a face and becomes a
+  solid 50 deep, straddling the plane. A stroke that crosses itself, or is too small, comes to
+  nothing.
+- **Magnet.** Press on a face (or edge) of one object and let go on a face of another: the first
+  moves so that its face lies on the second's.
+- **Grabber.** Picks whole objects, even where a plain click would take a face or an edge.
+- **Pan tool** (or **P**). Drag on empty space to move the whole world with the crosshair.
+- **Magnifier** (or **Z**). Drag up to zoom the world in about the crosshair, down to zoom out:
+  1% per unit.
+- **Group** (**G**). With several things picked, G puts them under a new group, which is then
+  picked and drags as one. G with one group picked takes it apart again.
+
+![The pencil's triangle, extruded into a prism through the plane](images/m6-pencil.png)
+
+![The drill's cutter, a copy of the cube, has cut a corner out of the cube](images/m6-drill.png)
 
 ### Code
 
@@ -237,6 +271,17 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
 - **Code in files, edited live.** Objects carry their CPL inline in `.cut` files. The original
   saved only the name of a code file, and only for vertices, edges and faces. The CPL editor is
   new, and so are Save and Open outside the Load/Save plate.
+- **The pencil tidies its stroke.** Steps too small to see and points along straight runs are
+  merged before the stroke is closed, and a stroke that crosses itself, or closes on less than
+  25 square units, is thrown away. The original kept every point and only refused a stroke that
+  wasn't flat, so a scribble could make a broken solid.
+- **Booleans and slicing go through manifold-3d.** The original's own boolean (`boolean.c`)
+  handled only an object's first shell and had known bugs. Here both operands become triangles
+  tagged by face, manifold-3d does the operation, and the result comes back as the original's
+  kind of polygon faces, holes included: faces from one face are joined again, coplanar faces of
+  the two objects merge, and vertices are exact (an input vertex keeps its position; a new one is
+  solved on the planes of its faces). An operation whose result wouldn't be a sound closed solid
+  is refused and changes nothing.
 - **Trackpad and two-button profiles.** The SGI had a three-button mouse (middle drags the
   plane, right turns the room). That layout is still a profile, alongside ⌥ / ⌘ quasimodes for
   trackpads and a two-button layout.
@@ -268,6 +313,14 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
 - **Saving through the Load/Save plate** keeps the world in the browser, under the typed name,
   and loading looks there first, then among the bundled samples. The original read and wrote
   files in its working directory.
+- **Property code runs in the original's order.** A feature's properties are read as
+  `read_feature_props` read them, each added to the front of its list, so the saw's `Slice`
+  code sees a click before its `Tool` code takes it. (In M5 the list was kept in file order,
+  which let `tool.cpl` swallow every tool's click.)
+- **Property files load when they're needed**, as `read_CPL_propfile` did: the grabber's,
+  magnet's and pan tool's code comes with the tool, not at startup.
+- **Zooming is undoable.** The magnifier scales the world's objects, as `zoom_world` did, so undo
+  takes a zoom back like any other change.
 - **Sections** always come out as closed loops, even through nearly flat faces that 1991 float32
   drift left slightly bent. The original warned "face crosses plane odd number of times" there.
 
@@ -294,7 +347,33 @@ older versions of the format are normalised to the latest one on save.
     scripts (those, `calipers.cpl`, `menu.cpl`, `toolbar.cpl` and `workgroup.cpl` are in an
     older CPL dialect that doesn't assemble).
 - **Not yet:** the measure pad (its name, size and distance plates need primitives that can be
-  resized, which come with M6) and the tools' own work (M6).
+  resized), drawing on a surface with the pencil (`draw_on_surface`), and pulling a face in or
+  out as a boolean.
+
+## Modeling operations (M6)
+
+- **`packages/booleans`** is the adapter to manifold-3d (WebAssembly, loaded at startup):
+  - Each face is triangulated (holes included) and tagged with its face, in the room's frame.
+  - After the operation, triangles are grouped by the face they came from, split into pieces
+    joined across shared edges. Each group's boundary is chained into loops: the outer loop winds
+    with the face and holes go inside it. Vertices left in the middle of a straight edge are
+    dropped.
+  - manifold's mesh is single precision, so positions are rebuilt: an input vertex found again
+    within 10⁻⁴ keeps its exact position (in the first operand's own frame), and a new vertex is
+    solved in double precision on the planes of the faces around it.
+  - Every result shell is built and validated; anything not closed and sound (a degenerate face,
+    a zero-length edge, a bent face, a non-manifold vertex) refuses the whole operation.
+  - Results are grouped into solids: each outward shell with the voids inside it.
+- **Property test.** 10,000 random chains of 2–6 unions, subtractions, intersections and slices
+  on cubes, cylinders, cones, pyramids and spheres, square to the room or at any angle, give no
+  corrupt model (`BOOL_CHAINS=10000`; CI runs 300). Two seeds: 31,338 and 31,320 operations,
+  54 and 47 of them refused (0.2%), every other result a sound solid.
+- **`packages/behaviors/src/modeling.ts`** is `do_boolean` and `slice_object` on objects:
+  `CPBOOLEAN` and `Crtn:slice_object` for the drill's and saw's scripts, and the `\` key. A
+  boolean leaves A as the result and B gone, as the C did. `tools/pencil.ts` is `start_draw`,
+  `extend_draw` and `end_draw`; `do_zoom` scales the world about the crosshair.
+- **The tools run on their original scripts** (`slice.cpl`, `drill.cpl`, `pencil.cpl`,
+  `magnetic.cpl`, `grabber.cpl`, `pan.cpl`, `zoom.cpl`, `group.cpl`), each tested off its pad.
 
 ## CPL and the environment (M5)
 

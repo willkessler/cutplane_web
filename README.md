@@ -6,14 +6,15 @@ A browser-native rebuild of **Cutplane / 3Form**, the late-1980s SGI 3D modeler 
 _moving section plane_. You push a plane through the room, and wherever it slices your solids you
 see their cross-sections. Vertices, edges and faces are picked and edited where they cross it.
 
-> **Status: M5 (CPL and the environment).** The animation shows the _Discovery_, modeled in
-> 3Form in April 1991 and loaded unchanged from its original `disc4.cut`. The cutplane is pushed
-> through it (the yellow line is the live section), and a face of the command module is taken hold
-> of through the section, pulled out and pushed back home. The rotate tool is brought to the lower
-> ship and a slide along its bar rolls the ship around and back. Last, a click on the toolpads'
-> headpad opens its rail. All of this now runs on the original CPL scripts (`rom.cpl`,
-> `cursor.cpl`, the tools' and pads' code) in a CPL virtual machine. Code is stored in objects and
-> can be edited while it runs. Modeling operations come next.
+> **Status: M6 (modeling operations).** The animation shows the _Discovery_, modeled in 3Form in
+> April 1991 and loaded unchanged from its original `disc4.cut`. The cutplane is pushed through it
+> (the yellow line is the live section), and a face of the command module is taken hold of through
+> the section, pulled out and pushed back home. The rotate tool rolls the lower ship and back.
+> Then the drill comes off its pad: pressed on the module it makes a red copy of it, and carried
+> across and let go, the copy takes a bite out of the module. Undo puts it back. All of this runs
+> on the original CPL scripts in a CPL virtual machine; the cutting is done by manifold-3d and
+> comes back as the original's kind of polygon faces. The saw, pencil, magnet, grabber, pan tool,
+> magnifier and group tool all work too.
 > See the [roadmap](docs/README.md#roadmap), the [controls](docs/README.md#using-cutplane) and
 > [how it differs from the original](docs/README.md#differences-from-the-original).
 

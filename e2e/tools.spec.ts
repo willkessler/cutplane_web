@@ -317,3 +317,39 @@ test('backslash slices the picked cube; G groups a duplicate with it and ungroup
   expect((await edit(page)).objects).toBe(2);
   expect(errors).toEqual([]);
 });
+
+test('the drill: a red cutter made from a copy of the cube cuts a corner out of it', async ({
+  page,
+  browserName,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  type P3 = [number, number, number];
+  const click = async (at: P3) => {
+    await set(page, { x: at[0], y: at[1] });
+    await press(page);
+    await release(page);
+  };
+  // A copy of the cube, up and to the right (D), to make the cutter from.
+  await click([0, 0, 0]);
+  await page.keyboard.press('KeyD');
+  await click([300, -250, 0]); // nothing picked
+  await click(await locate<P3>(page, 'toolpads'));
+  const [, , drill] = await locate<P3[]>(page, 'pads');
+  await click(drill!);
+  // Press on the copy where it stands clear of the cube: a red cutter comes with the drill.
+  await set(page, { x: 160, y: 160 });
+  await press(page);
+  for (let i = 1; i <= 10; i++) await set(page, { x: 160 - 5 * i, y: 160 - 5 * i });
+  await shot(page, 'drill-cutter', browserName);
+  await release(page);
+  // The cube is now an L-shaped block (8 faces); the copy is untouched; the cutter is gone.
+  const s = await edit(page);
+  expect(s.objects).toBe(2);
+  expect(s.faces).toBe(8 + 6);
+  await set(page, { yaw: -45, pitch: 30 });
+  await shot(page, 'drill-cut', browserName);
+  await page.keyboard.press('ControlOrMeta+KeyZ');
+  expect((await edit(page)).faces).toBe(12);
+  expect(errors).toEqual([]);
+});

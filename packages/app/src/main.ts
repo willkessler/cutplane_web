@@ -353,6 +353,7 @@ function zRange(): [number, number] {
 }
 
 let demoKeys = 0;
+let demoUndos = 0;
 function applyDemo(t: number): void {
   const p = demoPose(t);
   const [lo, hi] = zRange();
@@ -364,6 +365,8 @@ function applyDemo(t: number): void {
   control.pitch = p.pitch;
   if (p.rotateKeys < demoKeys) demoKeys = 0; // looped
   for (; demoKeys < p.rotateKeys; demoKeys++) controls.snapRotateTool();
+  if (p.undoKeys < demoUndos) demoUndos = 0;
+  for (; demoUndos < p.undoKeys; demoUndos++) rt.undo();
   if (p.pressed && !controls.pickHeld) pressPick(false);
   else if (!p.pressed && controls.pickHeld) releasePick();
 }
