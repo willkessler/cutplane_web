@@ -80,6 +80,7 @@ export type Command =
   | 'rotateTool'
   | 'group'
   | 'slice'
+  | 'union'
   | 'zoomTool'
   | 'panTool';
 
@@ -115,6 +116,9 @@ export function commandFor(code: string, h: Held): Command | undefined {
       return 'group';
     case 'Backslash':
       return 'slice';
+    // New here: B unions what is picked (the original's BOOLEANBUTTON, a test hook).
+    case 'KeyB':
+      return 'union';
     case 'KeyZ':
       return 'zoomTool';
     case 'KeyP':
@@ -142,6 +146,7 @@ export function bindingHints(profile: Profile): string[] {
     'D: duplicate',
     'G: group / ungroup',
     '\\: slice what is picked',
+    'B: union what is picked',
     'Z / P: magnifier / pan tool',
     '⌫: delete',
     '⌘Z / ⇧⌘Z: undo / redo',

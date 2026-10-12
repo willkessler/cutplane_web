@@ -1062,7 +1062,7 @@ export class Runtime implements Host {
     for (const s of this.features.known(o)) this.vm.props.forget(s);
     this.drags.delete(o);
     o.brep = brep;
-    this.selectables.set(o, NOTHING);
+    this.unselect(o); // its Selectable may be on the object itself, which outlives the reshape
     this.changed(o);
   }
 
@@ -1524,7 +1524,7 @@ export class Runtime implements Host {
       o.brep = before;
     }
     this.dropDeadFeatures(o);
-    this.selectables.set(o, NOTHING);
+    this.unselect(o);
     this.changed(o);
   }
 

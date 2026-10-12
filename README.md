@@ -1,8 +1,11 @@
 # Cutplane
 
-**[Try it in your browser →](https://willkessler.github.io/cutplane_web/)** Nothing to install.
+## ▶ [Try Cutplane in your browser](https://willkessler.github.io/cutplane_web/)
 
-![The Discovery, built in 3Form in 1991, loaded from its original .cut file](docs/images/demo.gif)
+**[willkessler.github.io/cutplane_web](https://willkessler.github.io/cutplane_web/)**: nothing to
+install or clone. It runs entirely in the page; press **F** to start working.
+
+[![The Discovery, built in 3Form in 1991, loaded from its original .cut file](docs/images/demo.gif)](https://willkessler.github.io/cutplane_web/)
 
 A browser-native rebuild of **Cutplane / 3Form**, the late-1980s SGI 3D modeler built around a
 _moving section plane_. You push a plane through the room, and wherever it slices your solids you

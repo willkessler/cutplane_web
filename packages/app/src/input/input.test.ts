@@ -57,6 +57,7 @@ describe('binding profiles', () => {
     expect(commandFor('KeyF', held({ meta: true }))).toBeUndefined();
     expect(commandFor('KeyG', held())).toBe('group');
     expect(commandFor('Backslash', held())).toBe('slice');
+    expect(commandFor('KeyB', held())).toBe('union');
     expect(commandFor('KeyZ', held())).toBe('zoomTool');
     expect(commandFor('KeyZ', held({ meta: true }))).toBe('undo');
     expect(commandFor('KeyW', held({ meta: true }))).toBeUndefined();

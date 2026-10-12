@@ -68,6 +68,25 @@ export function booleanObjects(rt: Runtime, a: CutObject, b: CutObject, op: numb
 }
 
 /**
+ * The B key (new here; the original's BOOLEANBUTTON was a test hook that
+ * subtracted): every picked object is unioned into one, which stays picked. Each
+ * keeps its faces' colours. Fewer than two objects picked does nothing.
+ */
+export function unionPicked(rt: Runtime): CutObject[] {
+  const objs = [...new Set(rt.picked().map(objectOf))].filter(
+    (o): o is CutObject => !!o && rt.worldOf(o) === rt.primary,
+  );
+  if (objs.length < 2) return [];
+  let out = [objs[0]!];
+  for (const b of objs.slice(1)) {
+    const r = booleanObjects(rt, out[0]!, b, BOOL_OP.Union);
+    if (r.length > 0) out = r;
+  }
+  for (const o of out) rt.pick(o);
+  return out;
+}
+
+/**
  * slice_object at the plane: every piece behind it and in front of it becomes
  * an object of its own (the first behind keeps the original). A plane that
  * misses, or a slice that would break the solid, leaves it as it was.

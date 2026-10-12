@@ -648,6 +648,7 @@ window.addEventListener('keydown', (e) => {
   else if (c === 'rotateTool') controls.snapRotateTool();
   else if (c === 'group') controls.group();
   else if (c === 'slice') controls.slice();
+  else if (c === 'union') controls.union();
   else if (c === 'zoomTool') controls.takeTool('Magnifier');
   else if (c === 'panTool') controls.takeTool('Pantool');
   else if (c === 'delete') controls.delete();

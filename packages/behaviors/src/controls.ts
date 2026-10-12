@@ -14,6 +14,7 @@ import {
   messageWord,
 } from '@cutplane/cpl';
 import type { Runtime, V3 } from './runtime.ts';
+import { unionPicked } from './modeling.ts';
 import { charstreamOf } from './tools/plates.ts';
 
 /**
@@ -192,6 +193,12 @@ export class Controls {
     this.vm.encodeInstruction(' TRANS A:R2*,Const:Normaltranslate,Const:V[0.0,0.0,-10.0]');
     this.vm.encodeInstruction(' POP A:R3');
     this.vm.encodeInstruction(' TRANS A:R3*,Const:Normaltranslate,Const:V[0.0,0.0,10.0]');
+  }
+
+  /** B: what is picked is unioned into one object (modeling.ts). */
+  union(): void {
+    this.events = true;
+    unionPicked(this.rt);
   }
 
   /** Z and P (ZTOOLBUTTON, PANTOOLBUTTON): the magnifier or pan tool comes to the crosshair. */

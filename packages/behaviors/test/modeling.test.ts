@@ -75,6 +75,39 @@ describe('booleans on objects (do_boolean)', () => {
   });
 });
 
+describe('the B key: union what is picked', () => {
+  it('two overlapping picked objects become one, still picked; one undo parts them', () => {
+    const w = setup();
+    const b = createObject(createCube(200, 200, 200), {
+      name: 'B',
+      xform: mat4.translation(0, 0, -100),
+    });
+    b.attrs.props = ['Visible'];
+    w.rt.importObjects(w.rt.primary, [b]);
+    w.rt.commit();
+    w.rt.pick(w.cube);
+    w.rt.pick(b);
+    w.controls.union();
+    w.frame();
+    expect(w.solids()).toHaveLength(1);
+    const [u] = w.solids();
+    expect(sound(u!)).toBe(true);
+    expect(volume(u!.brep)).toBeCloseTo(200 ** 3 * 2 - 100 * 100 * 200, 3);
+    expect(w.rt.picked()).toEqual([u]);
+    expect(w.rt.undo()).toBe(true);
+    expect(w.solids()).toHaveLength(2);
+  });
+
+  it('one object picked: nothing happens', () => {
+    const w = setup();
+    w.rt.pick(w.cube);
+    w.controls.union();
+    w.frame();
+    expect(w.solids()).toEqual([w.cube]);
+    expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3, 3);
+  });
+});
+
 describe('the saw (slice.cpl, slice_object)', () => {
   it('a click with the saw cuts what is under the crosshair in two at the plane', () => {
     const w = setup();
@@ -169,6 +202,37 @@ describe('the drill (drill.cpl, CPBOOLEAN)', () => {
     expect(w.rt.undo()).toBe(true);
     expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3, 3);
   });
+  it('after a cut, the drilled object is not left selectable from anywhere', () => {
+    const w = setup();
+    const bar = createObject(createCube(40, 40, 400), {
+      name: 'Bar',
+      xform: mat4.translation(-320, -20, -200),
+    });
+    bar.attrs.props = ['Visible'];
+    w.rt.importObjects(w.rt.primary, [bar]);
+    w.rt.commit();
+    w.take(2);
+    w.at(-300, 0, 0);
+    w.frame();
+    w.controls.pressPick(false);
+    w.frame();
+    w.move(150, 0);
+    w.move(150, 0);
+    w.controls.releasePick();
+    w.frame();
+    w.frame();
+    // A reshape used to leave the cube's Selectable on it, so a click on the bar
+    // picked the cube too, and the bar could not be picked again.
+    w.click([-300, 0]);
+    expect(w.rt.picked()).toEqual([bar]);
+    w.click([500, 300]);
+    expect(w.rt.picked()).toEqual([]);
+    w.click([-300, 0]);
+    expect(w.rt.picked()).toEqual([bar]);
+    w.click([80, 80]);
+    expect(w.rt.picked()).toEqual([w.cube]);
+  });
+
   it('pressing and releasing on one object leaves it whole', () => {
     const w = setup();
     w.take(2);

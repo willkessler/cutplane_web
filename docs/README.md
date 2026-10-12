@@ -61,6 +61,7 @@ lasts only while you hold the key or button.
 | D       | Duplicate what is picked                                  |
 | G       | Group what is picked (on one group: ungroup it)           |
 | \\      | Slice what is picked at the plane                         |
+| B       | Union what is picked into one object                      |
 | Z, P    | The magnifier, the pan tool, to the crosshair             |
 | ⌫       | Delete what is picked                                     |
 | ⌘Z, ⇧⌘Z | Undo, redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y elsewhere)     |
@@ -215,6 +216,8 @@ undo away.
   1% per unit.
 - **Group** (**G**). With several things picked, G puts them under a new group, which is then
   picked and drags as one. G with one group picked takes it apart again.
+- **Union** (**B**). With several objects picked (shift-click to add), B joins them into one
+  solid, the first picked; each part keeps its colours. The drill is the way to subtract.
 
 ![The pencil's triangle, extruded into a prism through the plane](images/m6-pencil.png)
 
@@ -286,6 +289,8 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   group a part belongs to, so the two moves cancelled and a grouped part's halves stayed
   together. A later Cutplane moved them apart; here `slice_object` moves a grouped part's
   pieces itself.
+- **B unions.** The original had no union tool; its `B` key (`BOOLEANBUTTON`, a test hook)
+  subtracted the second picked object from the first. Here `B` unions everything picked.
 - **A drill click does nothing.** Pressed and let go on one object, the drill's cutter is an
   exact copy of it, and `CPBOOLEAN` took the whole object away. A subtraction that would leave
   nothing now leaves the object as it was.

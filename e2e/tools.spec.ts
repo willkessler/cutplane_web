@@ -318,6 +318,24 @@ test('backslash slices the picked cube; G groups a duplicate with it and ungroup
   expect(errors).toEqual([]);
 });
 
+test('B unions the picked cube with an overlapping copy of it', async ({ page }) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  await press(page);
+  await release(page);
+  await page.keyboard.press('KeyD');
+  await set(page, { x: -80, y: -80 });
+  await page.evaluate(() => window.__cutplane!.press(true));
+  await release(page);
+  await page.keyboard.press('KeyB');
+  expect((await edit(page)).objects).toBe(1);
+  // The two squares' outlines merge into one of 8 sides: 8 walls, a top and a bottom.
+  expect((await edit(page)).faces).toBe(10);
+  await page.keyboard.press('ControlOrMeta+KeyZ');
+  expect((await edit(page)).objects).toBe(2);
+  expect(errors).toEqual([]);
+});
+
 test('the drill: a red cutter made from a copy of the cube cuts a corner out of it', async ({
   page,
   browserName,
