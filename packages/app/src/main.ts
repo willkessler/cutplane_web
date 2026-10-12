@@ -13,12 +13,15 @@ import {
   type Profile,
 } from './input/bindings.ts';
 import { Editor, type V3 } from './edit/editor.ts';
+import { ColorControl } from './edit/colorcontrol.ts';
 import { RotateTool } from './edit/rotatetool.ts';
+import { ScaleBoxes } from './edit/scalebox.ts';
 import { Controller } from './input/controller.ts';
 import { WorkMode } from './input/workmode.ts';
 import { Crosshair } from './render/crosshair.ts';
 import { Highlights } from './render/highlights.ts';
 import { RotateToolView } from './render/rotatetool.ts';
+import { ScaleBoxView } from './render/scalebox.ts';
 import { setLineResolution } from './render/lines.ts';
 import { ModelView } from './render/models.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
@@ -53,8 +56,15 @@ const section = new SectionLines();
 const crosshair = new Crosshair();
 const highlights = new Highlights();
 const toolView = new RotateToolView();
+const boxView = new ScaleBoxView();
+/** The environment: goodies that stand in the room but aren't part of the world being edited. */
+const envView = new ModelView();
+const envSection = new SectionLines();
 scene.add(
+  envView.object,
+  envSection.object,
   toolView.object,
+  boxView.object,
   createRoom(),
   models.object,
   plane.object,
@@ -111,16 +121,35 @@ const editor = new Editor({
 });
 const cursor = (): V3 => [control.x, control.y, control.z];
 const rotateTool = new RotateTool(editor);
+const scaleBoxes = new ScaleBoxes(editor, () => models.models);
+let envDirty = true;
+const colorControl = new ColorControl(editor, {
+  models: () => envView.models,
+  section: (m) => envSection.sections.get(m),
+  changed(objects) {
+    envView.rebuild(objects);
+    envDirty = true;
+  },
+  structureChanged() {
+    envView.sync(colorControl.roots);
+    envDirty = true;
+  },
+});
+envView.sync(colorControl.roots);
 
 /** The Pick button: the rotate tool takes it when it is under the crosshair, else the editor. */
 function pressPick(shift: boolean): void {
   control.resetConstrain();
   rotateTool.updateHover(cursor());
   if (rotateTool.hover) rotateTool.press(cursor());
+  else if (scaleBoxes.handleAt(cursor())) scaleBoxes.press(cursor());
+  else if (colorControl.partAt(cursor())) colorControl.press(cursor());
   else editor.press(cursor(), shift);
 }
 function releasePick(): void {
   rotateTool.release(cursor());
+  scaleBoxes.release();
+  colorControl.release(cursor());
   editor.release(cursor());
 }
 
@@ -159,6 +188,7 @@ function newCube(): CutDocument {
 async function loadModel(src: string): Promise<void> {
   editor.reset();
   rotateTool.putAway();
+  scaleBoxes.reset();
   let doc: CutDocument;
   if (src === NEW_CUBE) doc = newCube();
   else {
@@ -185,6 +215,7 @@ let lastKey = '';
 let lastHighlights = '';
 let lastHover = '';
 let lastTool = '';
+let lastBoxes = '';
 
 function resize(): void {
   const { clientWidth: w, clientHeight: h } = canvas;
@@ -216,7 +247,7 @@ function applyDemo(t: number): void {
   control.plane.set(front + (back - front) * p.depth);
   control.yaw = p.yaw;
   control.pitch = p.pitch;
-  const down = editor.pressed || rotateTool.pressed;
+  const down = editor.pressed || rotateTool.pressed || scaleBoxes.pressed || colorControl.pressed;
   if (p.pressed && !down) pressPick(false);
   else if (!p.pressed && down) releasePick();
 }
@@ -229,9 +260,16 @@ function render(): void {
   if (rotateTool.pressed) {
     const [x, y] = rotateTool.move(cursor());
     if (x !== control.x || y !== control.y) placeCrosshair(x, y);
-  } else editor.move(cursor());
+  } else if (scaleBoxes.pressed) scaleBoxes.move(cursor(), held.ctrl);
+  else if (colorControl.pressed) colorControl.move(cursor());
+  else editor.move(cursor());
+  scaleBoxes.sync();
   crosshair.place(control.x, control.y, control.z);
   const key = `${control.z}|${control.yaw}|${control.pitch}`;
+  if (envDirty || key !== lastKey) {
+    envSection.update(envView.models, control.z, camera.position);
+    envDirty = false;
+  }
   if (dirty || key !== lastKey) {
     section.update(models.models, control.z, camera.position);
     lastKey = key;
@@ -242,25 +280,50 @@ function render(): void {
       `room <b>${control.yaw.toFixed(0)}°</b> / <b>${control.pitch.toFixed(0)}°</b> · ` +
       `section <b>${s.loops}</b> loop${s.loops === 1 ? '' : 's'} in <b>${s.objects}</b> object${s.objects === 1 ? '' : 's'}`;
   }
-  const hoverKey = `${control.x}|${control.y}|${control.z}|${section.version}`;
+  const hoverKey = `${control.x}|${control.y}|${control.z}|${section.version}|${envSection.version}`;
   if (hoverKey !== lastHover) {
     // The tool lies over the models and wins the crosshair (its CPL ran first and ate the pick).
     rotateTool.updateHover(cursor());
+    scaleBoxes.updateHover(cursor());
+    colorControl.updateHover(cursor());
+    const chip = colorControl.pressed && !colorControl.hover; // carrying the chip to a target
     if (rotateTool.carrying) {
       /* the tool looks for a feature to land on itself */
-    } else if (rotateTool.busy) editor.clearHover();
+    } else if (
+      !chip &&
+      (rotateTool.busy ||
+        scaleBoxes.hover ||
+        scaleBoxes.pressed ||
+        colorControl.hover ||
+        colorControl.pressed)
+    )
+      editor.clearHover();
     else editor.updateHover(cursor());
     lastHover = hoverKey;
   }
-  const hkey = `${editor.version}|${section.version}|${key}`;
+  const hkey = `${editor.version}|${section.version}|${key}|${colorControl.version}`;
   if (hkey !== lastHighlights) {
-    highlights.update(editor, models.models, camera.position);
+    const part = colorControl.hover;
+    const outlined =
+      part && part.kind !== 'base'
+        ? envView.models.filter(
+            (m) =>
+              m.object ===
+              (part.kind === 'chip' ? colorControl.chip : colorControl.bars[part.index]),
+          )
+        : [];
+    highlights.update(editor, models.models, camera.position, outlined);
     lastHighlights = hkey;
   }
   const tkey = `${rotateTool.version}|${control.z}|${control.x}|${control.y}`;
   if (tkey !== lastTool) {
     toolView.update(rotateTool, control.z, [control.x, control.y]);
     lastTool = tkey;
+  }
+  const bkey = `${scaleBoxes.version}|${editor.version}|${control.z}`;
+  if (bkey !== lastBoxes) {
+    boxView.update(scaleBoxes, control.z);
+    lastBoxes = bkey;
   }
   renderer.render(scene, camera);
 }
@@ -345,7 +408,8 @@ canvas.addEventListener('pointermove', (e) => {
   }
 });
 canvas.addEventListener('pointerenter', () => {
-  if (!editor.pressed && !rotateTool.pressed) resync = true;
+  if (!editor.pressed && !rotateTool.pressed && !scaleBoxes.pressed && !colorControl.pressed)
+    resync = true;
 });
 canvas.addEventListener('pointerdown', (e) => {
   syncHeld(e);
@@ -422,6 +486,7 @@ declare global {
       press(shift?: boolean): void;
       release(): void;
       tool(): { center: number[]; hover: string | null; rotating: boolean };
+      color(): { rgb: number[]; hover: string | null };
       undo(): void;
       redo(): void;
       edit(): {
@@ -430,6 +495,7 @@ declare global {
         faces: number;
         vertices: number;
         marquee: boolean;
+        colors: number[][];
       };
       demoSeconds: number;
     };
@@ -515,6 +581,7 @@ async function start(): Promise<void> {
       releasePick();
       render();
     },
+    color: () => ({ rgb: [...colorControl.rgb], hover: colorControl.hover?.kind ?? null }),
     tool: () => ({
       center: [...rotateTool.center],
       hover: rotateTool.hover?.kind ?? null,
@@ -542,6 +609,7 @@ async function start(): Promise<void> {
         faces,
         vertices,
         marquee: editor.marquee !== undefined,
+        colors: roots.map((r) => [...r.color]),
       };
     },
     demoSeconds: DEMO_SECONDS,

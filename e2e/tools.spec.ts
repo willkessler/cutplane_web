@@ -95,3 +95,67 @@ test('D duplicates the picked cube; Backspace deletes; undo brings it back', asy
   await shot(page, 'corner-deleted', browserName);
   expect(errors).toEqual([]);
 });
+
+test('a picked cube gets a scale box; its edge handle stretches it', async ({
+  page,
+  browserName,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  await press(page);
+  await release(page);
+  await set(page, { x: 121, y: 121 });
+  expect((await edit(page)).hover).toBeNull(); // the handle, not the cube, has the crosshair
+  await shot(page, 'scalebox-hover', browserName);
+  await press(page);
+  for (let i = 1; i <= 10; i++) await set(page, { x: 121 + 8 * i, y: 121 + 4 * i });
+  await shot(page, 'scalebox-stretch', browserName);
+  await release(page);
+  const stats = await page.evaluate(() => window.__cutplane!.stats());
+  expect(stats.loops).toBe(1);
+  await page.evaluate(() => window.__cutplane!.undo());
+  expect(errors).toEqual([]);
+});
+
+test('the colour control by the back wall: a bar recolours the picked cube, the chip paints', async ({
+  page,
+  browserName,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  await press(page);
+  await release(page);
+  const color = () => page.evaluate(() => window.__cutplane!.color());
+
+  // Space: the plane jumps to the back wall, where the control stands.
+  await page.keyboard.press('Space');
+  await set(page, { x: 312, y: -230 });
+  expect((await color()).hover).toBe('bar');
+  await shot(page, 'color-hover', browserName);
+  const before = (await color()).rgb;
+  await press(page);
+  for (let y = -232; y >= -290; y -= 2) await set(page, { x: 312, y });
+  await release(page);
+  const after = (await color()).rgb;
+  expect(after[0]).toBeLessThan(before[0]!);
+  expect((await edit(page)).colors[0]).toEqual(after); // the picked cube took it as it went
+  await shot(page, 'color-bar', browserName);
+
+  // Turn the blue right down, then carry the chip to the cube and drop it there.
+  await set(page, { x: 392, y: -230 });
+  await press(page);
+  for (let y = -232; y >= -310; y -= 2) await set(page, { x: 392, y });
+  await release(page);
+  await page.evaluate(() => window.__cutplane!.undo()); // takes the cube's colour back...
+  const mix = (await color()).rgb; // ...but the control keeps its setting
+  await set(page, { z: -470, x: 442, y: -322 });
+  expect((await color()).hover).toBe('chip');
+  await press(page);
+  await set(page, { z: -300 });
+  await set(page, { z: 0, x: 200, y: 0 });
+  await set(page, { x: 0, y: 0 });
+  await shot(page, 'color-chip', browserName);
+  await release(page);
+  expect((await edit(page)).colors[0]).toEqual(mix);
+  expect(errors).toEqual([]);
+});

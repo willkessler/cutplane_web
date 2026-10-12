@@ -18,6 +18,7 @@ import {
   type Mat4,
   type ObjectSection,
   type Pick,
+  type Rgb,
 } from '@cutplane/kernel';
 import type { Model } from '../render/models.ts';
 
@@ -86,6 +87,7 @@ interface Snapshot {
   brep: Brep;
   xform: Mat4;
   invXform: Mat4;
+  color: Rgb;
 }
 
 interface Step {
@@ -93,6 +95,11 @@ interface Step {
   after: Snapshot[];
   /** The world's roots before and after, for steps that add or remove objects. */
   roots?: { before: CutObject[]; after: CutObject[] };
+}
+
+interface Paint {
+  targets: Feature[];
+  before: Snapshot[];
 }
 
 interface Transform {
@@ -123,13 +130,20 @@ interface Health {
 const rootOf = (o: CutObject): CutObject => (o.parent ? rootOf(o.parent) : o);
 
 function snapshot(o: CutObject): Snapshot {
-  return { object: o, brep: o.brep.clone(), xform: o.xform.slice(), invXform: o.invXform.slice() };
+  return {
+    object: o,
+    brep: o.brep.clone(),
+    xform: o.xform.slice(),
+    invXform: o.invXform.slice(),
+    color: [...o.color],
+  };
 }
 
 function restore(s: Snapshot): void {
   s.object.brep = s.brep.clone();
   s.object.xform = s.xform.slice();
   s.object.invXform = s.invXform.slice();
+  s.object.color = [...s.color];
 }
 
 function health(b: Brep): Health {
@@ -147,6 +161,16 @@ function toLocal(m: Mat4, d: V3): V3 {
     d[0] * m[1]! + d[1] * m[5]! + d[2] * m[9]!,
     d[0] * m[2]! + d[1] * m[6]! + d[2] * m[10]!,
   ];
+}
+
+/** Same colours throughout (an object's own, and its faces'). */
+function sameLook(a: Snapshot, b: Snapshot): boolean {
+  if (a.color.some((c, i) => c !== b.color[i])) return false;
+  const fa = a.brep.faceColors;
+  const fb = b.brep.faceColors;
+  if (fa.size !== fb.size) return false;
+  for (const [f, c] of fa) if (!fb.get(f)?.every((x, i) => x === c[i])) return false;
+  return true;
 }
 
 const sameFeature = (a: Feature, b: Feature) =>
@@ -167,6 +191,7 @@ export class Editor {
   /** Pressed (without shift) on something already picked: if no drag follows, pick just that. */
   private solo: Feature | undefined;
   private transform: Transform | undefined;
+  private paint: Paint | undefined;
   private readonly undoStack: Step[] = [];
   private readonly redoStack: Step[] = [];
 
@@ -461,6 +486,52 @@ export class Editor {
     this.push({ before: t.before, after: t.before.map((s) => snapshot(s.object)) });
     this.host.committed();
     this.version++;
+  }
+
+  // ---- colour (rom.cpl's _Check_colormsg) ----
+
+  /**
+   * Starts recolouring: `targets` (default: what is picked). An object takes the colour
+   * with all its descendants (faces with their own colour keep it); a face takes it alone.
+   */
+  beginPaint(targets: Feature[] = [...this.picked]): void {
+    const objects = new Set<CutObject>();
+    for (const t of targets)
+      if (t.kind === 'object') for (const o of subtree(t.object)) objects.add(o);
+      else if (t.kind === 'face') objects.add(t.model.object);
+    this.paint = { targets, before: [...objects].map(snapshot) };
+  }
+
+  setPaint(rgb: Rgb): void {
+    const p = this.paint;
+    if (!p) return;
+    for (const t of p.targets)
+      if (t.kind === 'object') for (const o of subtree(t.object)) o.color = [...rgb];
+      else if (t.kind === 'face' && t.model.object.brep.isFace(t.id))
+        t.model.object.brep.faceColors.set(t.id, [...rgb]);
+    this.host.changed(p.before.map((s) => s.object));
+    this.version++;
+  }
+
+  endPaint(): void {
+    const p = this.paint;
+    this.paint = undefined;
+    if (!p || p.before.length === 0) return;
+    const after = p.before.map((s) => snapshot(s.object));
+    if (after.every((a, i) => sameLook(a, p.before[i]!))) return;
+    this.push({ before: p.before, after });
+    this.host.committed();
+  }
+
+  /** What dropping something on the crosshair's spot would paint: an object or a face. */
+  paintTarget(): Feature | undefined {
+    const h = this.hover;
+    if (!h) return undefined;
+    if (h.pick.kind === 'object' || h.model.object.attrs.props.includes('Lockedgeometry'))
+      return { kind: 'object', object: h.model.object };
+    if (h.pick.kind === 'face' || h.pick.kind === 'inPlaneFace')
+      return { kind: 'face', model: h.model, id: h.pick.id };
+    return undefined;
   }
 
   // ---- dragging ----

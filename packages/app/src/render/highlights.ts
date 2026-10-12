@@ -98,9 +98,16 @@ export class Highlights {
     );
   }
 
-  update(editor: Editor, models: readonly Model[], eye: THREE.Vector3): void {
+  /** `outlined`: other things under the crosshair (a goodie's part) to outline as hovered. */
+  update(
+    editor: Editor,
+    models: readonly Model[],
+    eye: THREE.Vector3,
+    outlined: readonly Model[] = [],
+  ): void {
     const modelOf = new Map(models.map((m) => [m.object, m]));
     this.dot.visible = false;
+    for (const m of outlined) silhouette(m, eye, this.hover.pts);
 
     // Hover: white.
     const h = editor.hover;
