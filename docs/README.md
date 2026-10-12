@@ -137,7 +137,9 @@ Like everything else, the tools stand in the room and are used through the plane
   three bars, red, green and blue, on a base, and a white paint chip. Drag a bar's top up or down
   and what is picked takes the mixed colour as you go. Drag the chip and a copy comes away with
   the crosshair; carry it to a face or an object (move the plane with it) and let go to paint
-  it there. A face painted on its own keeps its colour when its object is recoloured.
+  it there. A face painted on its own keeps its colour when its object is recoloured. Drag the
+  **base** to bring the whole control along, up beside what you are colouring (move the plane
+  while holding it to carry it forward).
 
 All of these can be undone.
 
@@ -158,6 +160,67 @@ covers the room while you work: the toolbar and the status bar disappear.
 
 ![The flying hand (rsc/hand6.rsc) cut through the palm](images/section-hand6.png)
 
+## Differences from the original
+
+Cutplane follows what the 1990s 3Form actually did, read from its C and CPL sources rather than
+the papers. Where it differs, it's on purpose, and the differences are listed here.
+
+**New things**
+
+- **Undo and redo** (⌘Z / ⇧⌘Z). The original's U key did nothing.
+- **Broken drags are put back.** A drag that would leave a solid broken (an edge squashed to
+  nothing, a face folded flat) is undone on release, and a delete that would do the same is
+  refused. The original let both happen.
+- **Group drags.** Pressing on something already picked keeps the other picks, so several things
+  can be dragged together.
+- **Trackpad and two-button profiles.** The SGI had a three-button mouse (middle drags the
+  plane, right turns the room). That layout is still a profile, alongside ⌥ / ⌘ quasimodes for
+  trackpads and a two-button layout.
+- **Windowed mode.** Besides full-screen work mode, which captures the pointer the way the SGI
+  did, the app runs in a browser window with the crosshair following the hidden pointer.
+
+**Fixes to the original's behaviour**
+
+- **Picking.** Any vertex on the plane counts as a vertex. The original only counted one with
+  an edge lying in the plane, through a pointer comparison in `cursor_near_pt`. Only the single
+  best pick across all objects is taken, where the original picked one per object under the
+  crosshair.
+- **Rotate tool.**
+  - The face snap's 7.5° limit on a single move now tests the size of the angle. The original
+    let every negative angle through.
+  - The dial keeps fractional degrees. The original rounded each mouse event down to whole
+    degrees, so slow turns were lost.
+  - **R** over a vertex, or over a face lying in the plane, brings the tool there. The original
+    left it where it was.
+- **Scale boxes** keep every side at least 1 unit long. The original could scale a solid flat or
+  turn it inside out.
+- **Colour bars** all map their height to 0–255 the same way. In the original, the bar being
+  dragged used a different formula and could go past 255.
+- **Sections** always come out as closed loops, even through nearly flat faces that 1991 float32
+  drift left slightly bent. The original warned "face crosses plane odd number of times" there.
+
+**Timing by distance, not events.** The original counted mouse events for Ctrl's axis decision
+and for the rotate tool's brief stops (at perpendicular, and the dial at horizontal). Browsers
+send many more, smaller events, so these are measured as a distance or an angle instead. The
+amounts are the same: 5 units for Ctrl and the perpendicular stop, 3° for the dial.
+
+**Geometry.** Every coordinate snaps to a 1/256-unit grid, so repeated rotations can't build
+up error and coincident points are exactly equal. The original used floats. Files written by
+older versions of the format are normalised to the latest one on save.
+
+**Left out on purpose**
+
+- **No 15° rotation steps.** The plan promised 15° and 5° snapping, but `Rotatesnapangle 15` is
+  a dead constant in the original and Ctrl does nothing to rotation. The only snaps are the face
+  magnet and the two stops above.
+- **Code the original never ran isn't ported:**
+  - `do_sticking`;
+  - the z-pause while constraining (only `do_cursor_notifications` sent it, and nothing calls
+    that);
+  - `recombine_affected_coplanar_fves`;
+  - `duplicate.cpl`, `delete.cpl`, `colorctrl.cpl`, `sizebbox.cpl` and the `old*` rotate
+    scripts.
+
 ## Tools (M4)
 
 Ported from `rotatetool.c`, `rotateobj.c`, `scale.c`, `duplicate.c`, `topology.c`'s
@@ -169,17 +232,14 @@ Ported from `rotatetool.c`, `rotateobj.c`, `scale.c`, `duplicate.c`, `topology.c
   constant in the original and Ctrl does nothing to rotation. Its only snaps are the ones above:
   the 5° magnet that lays a face into the plane, the stop at perpendicular, and the dial's stop
   at horizontal.
-- **Deliberate fixes:** the face snap's 7.5° limit on a single move tests the size of the angle
-  (the original let every negative angle through); the dial keeps fractional degrees (the
-  original truncated each mouse event to whole degrees, so slow turns were lost); R over a vertex
-  or a face lying in the plane brings the tool there (the original left it where it was); the
-  brief stops last a distance or an angle instead of a number of mouse events; scale boxes keep
-  every side at least 1 unit long (the original could turn a solid inside out); and every colour
-  bar maps its height to 0–255 the same way (the original's dragged bar could go past 255).
+- **Deliberate fixes** are listed under
+  [Differences from the original](#differences-from-the-original).
+- **Goodies.** The colour control's base runs `goodies.cpl`, which every goodie runs: picked, it
+  drags the whole control. Its other half, freeing a goodie from its toolbox or dropping it back
+  in, waits for toolboxes in M5.
 - **Not ported yet:** toolboxes, tool pads and the goodies box are the CPL environment's (M5);
   until then the colour control stands where the goodies box would be, and the eraser end of the
-  pencil comes with the pencil. The original's `duplicate.cpl`, `delete.cpl`, `colorctrl.cpl`,
-  `sizebbox.cpl` and the `old*` rotate scripts were never attached to anything.
+  pencil comes with the pencil.
 - **Kernel.** `ops/delete.ts` follows `delete_vertex`: every face around the vertex is first cut
   so only a triangle touches it, then the triangles merge into one face across the neighbours,
   which is triangulated if bent. Earlier deletes can leave a vertex where two fans of faces meet;
@@ -193,21 +253,14 @@ they ran on (`select.c`, `translate.c`, `split.c`, `update.c`), not from the 198
 2017 JS port. Both of those moved faces along their normals; 3Form translates them in the plane.
 
 - **Picking** (`packages/kernel/src/select/pick.ts`) uses the original's square pick box
-  (`Pkboxsize`, 10 units) and priority order. Two changes: any vertex on the plane counts as a
-  vertex (the original only counted one with an edge lying in the plane, through a pointer
-  comparison in `cursor_near_pt`), and only the single best pick across all objects is taken,
-  where the original picked one per object under the crosshair.
+  (`Pkboxsize`, 10 units) and priority order.
 - **Planarize** (`packages/kernel/src/ops/planarize.ts`) runs before every step of a drag, as
   `planarize_affected_fves` did. Pieces of a face share a surface (`mothersurf`). On release they
   merge back if they are as flat as the face they came from, so slightly bent float32-era faces
   in old files merge back too. Faces that were separate to begin with never merge.
-- **Not ported, because the original never ran them:** `do_sticking`, the z-pause while
-  constraining (only `do_cursor_notifications` sent it, and nothing calls that), and
-  `recombine_affected_coplanar_fves`. The original's Ctrl axis detection counted mouse events;
-  browsers deliver many more, smaller events, so it decides by distance instead (the same 5
-  units).
-- **New:** undo and redo (the original's U key did nothing), rollback of drags that would break a
-  solid, and pressing on a picked feature keeping the other picks for a group drag.
+- **Departures** from the original (picking changes, Ctrl measured by distance, undo, rollback,
+  group drags, and the code it never ran) are listed under
+  [Differences from the original](#differences-from-the-original).
 - **Tests.** A property test drags random vertices, edges and faces of a cube and a cube with a
   hole and checks that the solid stays closed, consistent and flat, before and after recombining.
 

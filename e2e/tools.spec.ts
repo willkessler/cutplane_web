@@ -160,3 +160,25 @@ test('the colour control by the back wall: a bar recolours the picked cube, the 
   expect((await edit(page)).colors[0]).toEqual(mix);
   expect(errors).toEqual([]);
 });
+
+test('the colour control comes along when its base is dragged', async ({ page, browserName }) => {
+  test.setTimeout(60_000);
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  const color = () => page.evaluate(() => window.__cutplane!.color());
+  await page.keyboard.press('Space');
+  await set(page, { x: 300, y: -340 });
+  expect((await color()).hover).toBe('base');
+  const from = (await color()).base;
+  await press(page);
+  for (let i = 1; i <= 10; i++) await set(page, { x: 300 - 15 * i, y: -340 + 10 * i });
+  await set(page, { z: -300 }); // the plane carries it forward too
+  await release(page);
+  const to = (await color()).base;
+  expect(to[0]! - from[0]!).toBeCloseTo(-150);
+  expect(to[1]! - from[1]!).toBeCloseTo(100);
+  expect(to[2]! - from[2]!).toBeGreaterThan(150);
+  expect((await color()).hover).toBe('base'); // still under the crosshair
+  await shot(page, 'color-moved', browserName);
+  expect(errors).toEqual([]);
+});

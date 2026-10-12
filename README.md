@@ -11,7 +11,8 @@ see their cross-sections. Vertices, edges and faces are picked and edited where 
 > yellow line is the live section), a face of the command module is taken hold of through the
 > section, pulled out and pushed back home, and then the rotate tool is brought to the lower ship
 > and a slide along its bar rolls the ship around and back. The CPL environment comes next.
-> See the [roadmap](docs/README.md#roadmap) and the [controls](docs/README.md#using-cutplane).
+> See the [roadmap](docs/README.md#roadmap), the [controls](docs/README.md#using-cutplane) and
+> [how it differs from the original](docs/README.md#differences-from-the-original).
 
 ## Quick start
 

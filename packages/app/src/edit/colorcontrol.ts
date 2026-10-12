@@ -24,6 +24,8 @@ import type { Editor, V3 } from './editor.ts';
  *   is picked takes the mixed colour as you go, and so does the chip.
  * - Drag the chip: a copy comes away with the crosshair, and wherever it is
  *   let go, the face or object there takes its colour.
+ * - Drag the base (goodies.cpl, which every goodie runs): the whole control
+ *   comes along, so it can be brought up beside what is being coloured.
  *
  * The goodies toolbox itself (opening it, taking goodies out) is the CPL
  * environment's (M5); until then the control stands where the box would be.
@@ -53,6 +55,10 @@ interface BarDrag {
   fromY: number;
   height: number;
 }
+interface BaseDrag {
+  kind: 'base';
+  at: V3;
+}
 interface ChipDrag {
   kind: 'chip';
   copy: CutObject;
@@ -71,7 +77,7 @@ export class ColorControl {
   heights: [number, number, number] = [BAR_START, BAR_START, BAR_START];
   hover: ColorPart | undefined;
   version = 0;
-  private drag: BarDrag | ChipDrag | undefined;
+  private drag: BarDrag | ChipDrag | BaseDrag | undefined;
 
   constructor(
     private readonly editor: Editor,
@@ -147,9 +153,10 @@ export class ColorControl {
 
   press(cursor: V3): void {
     const p = this.partAt(cursor);
-    if (!p || p.kind === 'base') return;
+    if (!p) return;
     this.hover = p;
-    if (p.kind === 'bar') {
+    if (p.kind === 'base') this.drag = { kind: 'base', at: [...cursor] };
+    else if (p.kind === 'bar') {
       this.drag = { kind: 'bar', index: p.index, fromY: cursor[1], height: this.heights[p.index] };
       this.editor.beginPaint();
     } else {
@@ -171,6 +178,12 @@ export class ColorControl {
       if (h === this.heights[d.index]) return;
       this.setHeight(d.index, h);
       this.editor.setPaint(this.rgb);
+    } else if (d.kind === 'base') {
+      const [dx, dy, dz] = [0, 1, 2].map((i) => cursor[i]! - d.at[i]!);
+      if (!dx && !dy && !dz) return;
+      transformTree(this.base, mat4.translation(dx!, dy!, dz!));
+      d.at = [...cursor];
+      this.host.changed([this.base, this.chip, ...this.bars]);
     } else {
       const c = d.copy;
       c.xform = d.xform.slice();
@@ -186,7 +199,7 @@ export class ColorControl {
     if (!d) return;
     this.drag = undefined;
     if (d.kind === 'bar') this.editor.endPaint();
-    else {
+    else if (d.kind === 'chip') {
       this.roots.splice(this.roots.indexOf(d.copy), 1);
       this.host.structureChanged();
       this.editor.updateHover(cursor);

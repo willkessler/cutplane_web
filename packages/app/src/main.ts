@@ -307,14 +307,15 @@ function render(): void {
   const hkey = `${editor.version}|${section.version}|${key}|${colorControl.version}`;
   if (hkey !== lastHighlights) {
     const part = colorControl.hover;
-    const outlined =
-      part && part.kind !== 'base'
-        ? envView.models.filter(
-            (m) =>
-              m.object ===
+    // The part under the crosshair is outlined; on the base, the whole control (it moves as one).
+    const outlined = !part
+      ? []
+      : envView.models.filter((m) =>
+          part.kind === 'base'
+            ? m.object === colorControl.base || m.object.parent === colorControl.base
+            : m.object ===
               (part.kind === 'chip' ? colorControl.chip : colorControl.bars[part.index]),
-          )
-        : [];
+        );
     highlights.update(editor, models.models, camera.position, outlined);
     lastHighlights = hkey;
   }
@@ -491,7 +492,7 @@ declare global {
       press(shift?: boolean): void;
       release(): void;
       tool(): { center: number[]; hover: string | null; rotating: boolean };
-      color(): { rgb: number[]; hover: string | null };
+      color(): { rgb: number[]; hover: string | null; base: number[] };
       undo(): void;
       redo(): void;
       edit(): {
@@ -586,7 +587,11 @@ async function start(): Promise<void> {
       releasePick();
       render();
     },
-    color: () => ({ rgb: [...colorControl.rgb], hover: colorControl.hover?.kind ?? null }),
+    color: () => ({
+      rgb: [...colorControl.rgb],
+      hover: colorControl.hover?.kind ?? null,
+      base: [...colorControl.base.xform.slice(12, 15)],
+    }),
     tool: () => ({
       center: [...rotateTool.center],
       hover: rotateTool.hover?.kind ?? null,
