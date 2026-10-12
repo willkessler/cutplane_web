@@ -8,3 +8,5 @@ test-results/
 .env*
 # Local-only corpus of the original 1991-94 .cut archive (see docs); never committed.
 corpus/
+# Scratch screenshots from e2e runs (SHOTS=/work/.shots)
+.shots/
