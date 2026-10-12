@@ -164,6 +164,8 @@ export class Runtime implements Host {
   readonly vm: VM;
   readonly features = new FeatureIndex();
   readonly stage: Stage;
+  /** CPL source by file name. */
+  readonly source: (file: string) => string;
   readonly journal: Journal;
 
   readonly scratch: WorldFeature;
@@ -205,10 +207,13 @@ export class Runtime implements Host {
   private readonly drags = new Map<CutObject, DragPlan>();
   /** Vertices already moved by the instruction now running (each moves once per sentence). */
   private readonly movedNow = new Set<string>();
+  /** Groups already turned by the instruction now running. */
+  private readonly rotatedNow = new Set<CutObject>();
   private readonly crtnTable: Partial<Record<string, Crtn>>;
 
   constructor(opts: RuntimeOptions) {
     this.stage = opts.stage;
+    this.source = opts.source;
     this.crtnTable = opts.crtns ?? {};
     const world = (name: string): WorldFeature => {
       const root = createObject(new Brep(), { name: null, attrs: { props: [] } });
@@ -448,12 +453,28 @@ export class Runtime implements Host {
   }
 
   larger(f: Feature, type: number): Feature | null {
-    if (f.type === type) return f;
+    // find_largergrain: asking for a vertex gives back what you have (nothing is smaller).
+    if (f.type === type || type === T.Vfe) return f;
     if (type === T.World) return this.worldOf(f);
     if (isSub(f)) {
+      const b = f.object.brep;
+      // A vertex's mother edge and face are those of its starting half-edge (startle).
+      if (f.type === T.Vfe && (type === T.Evf || type === T.Fve)) {
+        const h = b.vertexHe(f.id);
+        if (h === NONE) return null;
+        if (type === T.Evf) {
+          const e = b.heEdge(h);
+          return e === NONE ? null : this.features.edge(f.object, e);
+        }
+        const face = b.heFace(h);
+        return face === NONE ? null : this.features.face(f.object, face);
+      }
+      if (f.type === T.Evf && type === T.Fve) {
+        const face = b.heFace(b.edgeHe1(f.id));
+        return face === NONE ? null : this.features.face(f.object, face);
+      }
       if (type === T.Obj) return f.object;
       if (type === T.Shell) {
-        const b = f.object.brep;
         const shell =
           f.type === T.Vfe
             ? b.vertexShell(f.id)
@@ -689,6 +710,9 @@ export class Runtime implements Host {
 
   rotateObject(obj: Feature, axis: Vec3, point: Vec3, tenths: number): void {
     const o = groupRoot(obj as CutObject);
+    // Several picked features of one group turn it once per sentence.
+    if (this.rotatedNow.has(o)) return;
+    this.rotatedNow.add(o);
     const [ax, ay, az] = [axis[0] ?? 0, axis[1] ?? 0, axis[2] ?? 0];
     const len = Math.hypot(ax, ay, az);
     if (len === 0 || tenths === 0) return;
@@ -1014,6 +1038,7 @@ export class Runtime implements Host {
 
   afterInstruction(): void {
     this.movedNow.clear();
+    this.rotatedNow.clear();
     this.processUpdates(this.environment, P.Quickupdate);
     this.processUpdates(this.vm.working, P.Quickupdate);
   }
