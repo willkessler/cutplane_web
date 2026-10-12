@@ -190,9 +190,11 @@ async function loadResources(): Promise<void> {
 async function loadCpl(): Promise<void> {
   // The originals are Latin-1 (and plain ASCII where it matters).
   const latin1 = new TextDecoder('latin1');
+  // cutplane_web's own versions (assets/cpl: rom.cpl) first, else the originals.
+  const ours = new Set(['rom.cpl']);
   await Promise.all(
     CPL_FILES.map(async (f) => {
-      const res = await fetch(`${base}original/cpl/${f}`);
+      const res = await fetch(`${base}${ours.has(f) ? 'cpl' : 'original/cpl'}/${f}`);
       if (!res.ok) throw new Error(`${f}: ${res.status}`);
       cpl.set(f, latin1.decode(await res.arrayBuffer()));
     }),

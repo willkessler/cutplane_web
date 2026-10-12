@@ -1,10 +1,14 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { ROOM, createCube, createObject, mat4 } from '@cutplane/kernel';
 import { Controls, Runtime, type Stage, type V3 } from '../src/index.ts';
 
-const CPL = resolve(import.meta.dirname, '../../../assets/original/cpl');
-export const source = (f: string) => readFileSync(join(CPL, f), 'latin1');
+const ASSETS = resolve(import.meta.dirname, '../../../assets');
+/** CPL by file name: cutplane_web's own versions (assets/cpl) first, else the originals. */
+export const source = (f: string) => {
+  const ours = join(ASSETS, 'cpl', f);
+  return readFileSync(existsSync(ours) ? ours : join(ASSETS, 'original', 'cpl', f), 'latin1');
+};
 
 /** A stage that just clamps to the room (no plane stops). */
 export class TestStage implements Stage {

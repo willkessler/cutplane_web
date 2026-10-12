@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { P, T } from '@cutplane/cpl';
-import { mat4 } from '@cutplane/kernel';
+import { createCube, createObject, mat4 } from '@cutplane/kernel';
 import { isObject, isSub, scaleBoxes } from '../src/index.ts';
 import { world } from './world.ts';
 
@@ -165,5 +165,41 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     void mat4;
     void isObject;
     void isSub;
+  });
+  it('pressing one of several picked things drags them all; a click picks it alone (our rom.cpl)', () => {
+    const { rt, cube, controls, frame, at, move } = world();
+    const other = createObject(createCube(100, 100, 100), {
+      name: 'Other',
+      xform: mat4.translation(250, -50, -50),
+    });
+    rt.importObjects(rt.primary, [other]);
+    const tap = (shift: boolean) => {
+      controls.pressPick(shift);
+      frame();
+      controls.releasePick();
+      frame();
+      frame();
+    };
+    at(0, 0, 0);
+    tap(false);
+    at(300, 0, 0);
+    tap(true); // Shift adds it
+    expect(new Set(rt.picked())).toEqual(new Set([cube, other]));
+    const x0 = [rt.bbox(cube)![0][0], rt.bbox(other)![0][0]];
+    at(0, 0, 0);
+    controls.pressPick(false);
+    frame();
+    move(40, 0);
+    move(40, 0);
+    controls.releasePick();
+    frame();
+    frame();
+    expect(rt.bbox(cube)![0][0]).toBeCloseTo(x0[0]! + 80);
+    expect(rt.bbox(other)![0][0]).toBeCloseTo(x0[1]! + 80);
+    expect(new Set(rt.picked())).toEqual(new Set([cube, other]));
+    // A click without a drag on one of them: just that one.
+    at(80, 0, 0);
+    tap(false);
+    expect(rt.picked()).toEqual([cube]);
   });
 });
