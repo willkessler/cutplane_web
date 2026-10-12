@@ -24,6 +24,8 @@ export const SCRIBBLE_DEPTH = 50;
 const MIN_STEP = 2;
 /** How far a point may be from the line through its neighbours and still be dropped. */
 const STRAIGHT = 0.75;
+/** How far off the stroke's starting depth a point may be and still count as flat. */
+const FLAT_TOL = 0.05;
 /** The smallest face a scribble may close into. */
 const MIN_AREA = 25;
 
@@ -99,7 +101,9 @@ export const PENCIL_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
 export function closeStroke(raw: readonly V3[]): Brep | null {
   if (raw.length < 3) return null;
   const z = raw[0]![2];
-  if (raw.some((p) => p[2] !== z)) return null; // end_draw: only finish if flat
+  // end_draw: only finish if flat. Each step comes through CPL's single-precision
+  // words, so off z = 0 the points drift a little off the plane they were drawn in.
+  if (raw.some((p) => Math.abs(p[2] - z) > FLAT_TOL)) return null;
   let pts = tidy(raw.map((p) => [snap(p[0]), snap(p[1]), z] as V3));
   if (pts.length < 3) return null;
   if (!simple(pts)) {

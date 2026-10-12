@@ -245,8 +245,13 @@ describe('the drill (drill.cpl, CPBOOLEAN)', () => {
 
 describe('the pencil (pencil.cpl, start_draw, extend_draw, end_draw)', () => {
   /** Draws a closed stroke through `pts` (offsets from the start) with the pencil down. */
-  const draw = (w: ReturnType<typeof setup>, at: [number, number], pts: [number, number][]) => {
-    w.at(at[0], at[1], 0);
+  const draw = (
+    w: ReturnType<typeof setup>,
+    at: [number, number],
+    pts: [number, number][],
+    z = 0,
+  ) => {
+    w.at(at[0], at[1], z);
     w.frame();
     w.controls.pressPick(false);
     w.frame();
@@ -280,6 +285,25 @@ describe('the pencil (pencil.cpl, start_draw, extend_draw, end_draw)', () => {
     expect(b[1][2]).toBeCloseTo(40, 6);
     expect(w.rt.undo()).toBe(true);
     expect(w.solids()).toEqual([w.cube]);
+  });
+
+  it('a stroke drawn off z = 0 is still flat (CPL words are single precision)', () => {
+    const w = setup();
+    w.take(0);
+    draw(
+      w,
+      [-300, -150],
+      [
+        [120, 0],
+        [60, 100],
+        [0, 0],
+      ],
+      34.9,
+    );
+    const made = w.solids().filter((o) => o !== w.cube);
+    expect(made).toHaveLength(1);
+    const b = w.rt.bbox(made[0]!)!;
+    expect(b[0][2]).toBeCloseTo(34.9 - 10, 1); // as at z = 0: from 10 behind to 40 in front
   });
 
   it('an open stroke is closed with a straight line, then made solid', () => {

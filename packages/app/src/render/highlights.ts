@@ -8,6 +8,9 @@ import type { Model } from './models.ts';
 const HOVER_VERTEX = 8;
 const PICKED_VERTEX = 12;
 const PICK_BOX = 10;
+/** How bright an edge turned away from the eye is drawn, against one facing it. */
+const BACK_DIM = 0.45;
+const dim = (c: readonly number[]) => c.map((k) => Math.round(k * BACK_DIM)) as [number, number, number]; // prettier-ignore
 
 /**
  * A highlight colour drawn twice, like the section: solid where it can be
@@ -72,6 +75,10 @@ export class Highlights {
   readonly object = new THREE.Group();
   private readonly hover = new Pen({ color: CLASSIC.white, width: 4, renderOrder: 31 });
   private readonly picked = new Pen({ color: CLASSIC.red, width: 3, renderOrder: 33 });
+  // New here: an edge on the far side of its object (its faces all turned away) is
+  // drawn dimmer, so it isn't taken for one on the near side.
+  private readonly hoverBack = new Pen({ color: dim(CLASSIC.white), width: 3, renderOrder: 30 });
+  private readonly pickedBack = new Pen({ color: dim(CLASSIC.red), width: 3, renderOrder: 32 });
   private readonly contour = new Pen({ color: CLASSIC.pickedContour, width: 3, renderOrder: 33 });
   private readonly boxShadow = new Lines({ color: CLASSIC.black, width: 2, renderOrder: 34 });
   private readonly box = new Lines({ color: CLASSIC.yellow, width: 2, renderOrder: 35 });
@@ -103,6 +110,8 @@ export class Highlights {
     this.object.add(
       this.hover.object,
       this.picked.object,
+      this.hoverBack.object,
+      this.pickedBack.object,
       this.contour.object,
       group(
         this.boxThrough,
@@ -138,8 +147,10 @@ export class Highlights {
         this.dot.position.set(...pick.at);
       } else if (pick.kind === 'object' || model.object.attrs.props.includes('Lockedgeometry'))
         silhouette(model, eye, this.hover.pts);
-      else
-        outline(model, pick.kind === 'inPlaneFace' ? 'face' : pick.kind, pick.id, this.hover.pts);
+      else {
+        const kind = pick.kind === 'inPlaneFace' ? 'face' : pick.kind;
+        outline(model, kind, pick.id, eye, this.hover.pts, this.hoverBack.pts);
+      }
       if (pick.kind !== 'inPlaneFace' && pick.kind !== 'object') {
         const [x, y, z] = pick.at;
         square(box, x, y, z, PICK_BOX);
@@ -147,6 +158,7 @@ export class Highlights {
       }
     }
     this.hover.flush();
+    this.hoverBack.flush();
     this.box.set(box);
     this.boxThrough.set(box);
     this.boxShadow.set(shadow);
@@ -161,9 +173,10 @@ export class Highlights {
       } else if (f.kind === 'vertex') {
         const g = f.model.world;
         square(this.picked.pts, g.x(f.id), g.y(f.id), g.z(f.id), PICKED_VERTEX);
-      } else outline(f.model, f.kind, f.id, this.picked.pts);
+      } else outline(f.model, f.kind, f.id, eye, this.picked.pts, this.pickedBack.pts);
     }
     this.picked.flush();
+    this.pickedBack.flush();
     this.contour.flush();
 
     // Marquee: a box between the press point and the crosshair, and its shadow on the floor.
@@ -211,28 +224,44 @@ function boundary(b: Brep, faces: readonly number[]): number[] {
   return [...out];
 }
 
-/** An edge, or a face's outline; a face or edge inside a surface shows the whole surface. */
-function outline(m: Model, kind: 'edge' | 'face', id: number, out: number[]): void {
+/**
+ * An edge, or a face's outline; a face or edge inside a surface shows the whole
+ * surface. Edges whose faces are all turned away from the eye go to `back`.
+ */
+function outline(
+  m: Model,
+  kind: 'edge' | 'face',
+  id: number,
+  eye: THREE.Vector3,
+  out: number[],
+  back: number[],
+): void {
   const b = m.object.brep;
-  let faces: number[];
+  const faces = facingFrom(m, eye);
+  const push = (e: number) => {
+    const h2 = b.edgeHe2(e);
+    const away = !faces(b.heFace(b.edgeHe1(e))) && (h2 === NONE || !faces(b.heFace(h2)));
+    pushEdge(m, e, away ? back : out);
+  };
+  let set: number[];
   if (kind === 'edge') {
     const s = b.faceSurface.get(b.heFace(b.edgeHe1(id)));
     const h2 = b.edgeHe2(id);
     if (s === undefined || h2 === NONE || b.faceSurface.get(b.heFace(h2)) !== s) {
-      pushEdge(m, id, out);
+      push(id);
       return;
     }
-    faces = b.surfaceFaces(b.heFace(h2));
-  } else faces = b.surfaceFaces(id);
-  for (const e of boundary(b, faces)) pushEdge(m, e, out);
+    set = b.surfaceFaces(b.heFace(h2));
+  } else set = b.surfaceFaces(id);
+  for (const e of boundary(b, set)) push(e);
 }
 
-/** grafx.c's contour: edges between a face turned toward the eye and one turned away. */
-function silhouette(m: Model, eye: THREE.Vector3, out: number[]): void {
+/** Whether each face of a model is turned toward the eye (memoised). */
+function facingFrom(m: Model, eye: THREE.Vector3): (f: number) => boolean {
   const b = m.object.brep;
   const g = m.world;
   const facing = new Map<number, boolean>();
-  const faces = (f: number) => {
+  return (f: number) => {
     let v = facing.get(f);
     if (v === undefined) {
       const [nx, ny, nz] = g.faceNormal(f);
@@ -242,6 +271,12 @@ function silhouette(m: Model, eye: THREE.Vector3, out: number[]): void {
     }
     return v;
   };
+}
+
+/** grafx.c's contour: edges between a face turned toward the eye and one turned away. */
+function silhouette(m: Model, eye: THREE.Vector3, out: number[]): void {
+  const b = m.object.brep;
+  const faces = facingFrom(m, eye);
   for (const e of b.edges()) {
     const h2 = b.edgeHe2(e);
     if (h2 === NONE || faces(b.heFace(b.edgeHe1(e))) !== faces(b.heFace(h2))) pushEdge(m, e, out);

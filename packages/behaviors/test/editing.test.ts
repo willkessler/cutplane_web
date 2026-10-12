@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { P, T } from '@cutplane/cpl';
-import { createCube, createObject, mat4 } from '@cutplane/kernel';
+import { createCube, createObject, mat4, validate, volume } from '@cutplane/kernel';
 import { GLIDE_MS, isObject, isSub, scaleBoxes } from '../src/index.ts';
 import { world } from './world.ts';
 
@@ -40,6 +40,67 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     expect(Math.max(...xs())).toBe(100);
     rt.redo();
     expect(Math.max(...xs())).toBe(123);
+  });
+
+  it('extrude mode: a face pulled out grows walls; pushed in, it stretches; undo restores', () => {
+    const { rt, cube, controls, frame, at, move } = world();
+    rt.faceDrag = 'extrude';
+    const sound = () => {
+      const r = validate(cube.brep);
+      return r.ok && r.closedManifold;
+    };
+    at(100, 0, 0);
+    controls.pressPick(false);
+    frame();
+    move(3, 0);
+    move(47, 0);
+    controls.releasePick();
+    frame();
+    // 6 faces + 4 walls, the old ones left as they were: 50 more of a 200 × 200 face.
+    expect(cube.brep.numFaces).toBe(10);
+    expect(sound()).toBe(true);
+    expect(volume(cube.brep)).toBeCloseTo(200 ** 3 + 50 * 200 * 200, 3);
+    rt.undo();
+    expect(cube.brep.numFaces).toBe(6);
+    expect(volume(cube.brep)).toBeCloseTo(200 ** 3, 3);
+
+    // Pushed in, it stretches as in the original.
+    at(100, 0, 0);
+    controls.pressPick(false);
+    frame();
+    move(-3, 0);
+    move(-47, 0);
+    controls.releasePick();
+    frame();
+    expect(cube.brep.numFaces).toBe(6);
+    expect(volume(cube.brep)).toBeCloseTo(200 ** 3 - 50 * 200 * 200, 3);
+    rt.undo();
+
+    // Pulled out and back again: the walls go, and nothing has changed.
+    at(100, 0, 0);
+    controls.pressPick(false);
+    frame();
+    move(3, 0);
+    move(47, 0);
+    move(-50, 0);
+    controls.releasePick();
+    frame();
+    expect(cube.brep.numFaces).toBe(6);
+    expect(sound()).toBe(true);
+    expect(volume(cube.brep)).toBeCloseTo(200 ** 3, 3);
+  });
+
+  it('stretch mode (the original): a face pulled out stretches the faces around it', () => {
+    const { cube, controls, frame, at, move } = world();
+    at(100, 0, 0);
+    controls.pressPick(false);
+    frame();
+    move(3, 0);
+    move(47, 0);
+    controls.releasePick();
+    frame();
+    expect(cube.brep.numFaces).toBe(6);
+    expect(volume(cube.brep)).toBeCloseTo(200 ** 3 + 50 * 200 * 200, 3);
   });
 
   it('pressing inside the section picks the whole object and drags it', () => {

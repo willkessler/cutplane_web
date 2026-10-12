@@ -95,6 +95,15 @@ the triangle at the moving corner, anything else is triangulated. The pieces sti
 face (they highlight and drag together), and **on release, pieces that are flat again merge
 back**. Pull a corner out and push it back, and the cube is a cube again.
 
+**Faces stretch or extrude**, as chosen in the toolbar. _Faces stretch_ is the original's way:
+a dragged face's vertices move, and the faces around it stretch to follow. _Faces extrude_ is new,
+to try out: a flat face pulled outward grows four (or more) walls of its own, so the faces
+around it keep their shape and the edges where the face was stay in the model. Pulled back to
+where it started, the walls go again; a face pushed inward stretches, as in the original.
+
+A highlighted edge on the far side of its object, its faces all turned away from you, is drawn
+dimmer than one on the near side, so the two can't be confused.
+
 - **Shift-click** adds to what is picked, or takes a picked feature or object away. Pressing on
   something already picked keeps the rest, so several things can be dragged together.
 - **Press on empty space** and drag out a **marquee**: a box in the plane, or a 3D box if you move
@@ -289,6 +298,11 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   group a part belongs to, so the two moves cancelled and a grouped part's halves stayed
   together. A later Cutplane moved them apart; here `slice_object` moves a grouped part's
   pieces itself.
+- **Faces can extrude.** The original only stretched a dragged face. A toolbar choice makes a
+  face pulled outward grow walls of its own instead (_Faces extrude_), at the cost of the extra
+  edges the SGI could not afford.
+- **Far edges are dimmer.** A highlighted edge whose faces are all turned away is drawn at about
+  half brightness.
 - **B unions.** The original had no union tool; its `B` key (`BOOLEANBUTTON`, a test hook)
   subtracted the second picked object from the first. Here `B` unions everything picked.
 - **A drill click does nothing.** Pressed and let go on one object, the drill's cutter is an
@@ -369,8 +383,7 @@ older versions of the format are normalised to the latest one on save.
     scripts (those, `calipers.cpl`, `menu.cpl`, `toolbar.cpl` and `workgroup.cpl` are in an
     older CPL dialect that doesn't assemble).
 - **Not yet:** the measure pad (its name, size and distance plates need primitives that can be
-  resized), drawing on a surface with the pencil (`draw_on_surface`), and pulling a face in or
-  out as a boolean.
+  resized) and drawing on a surface with the pencil (`draw_on_surface`).
 
 ## Modeling operations (M6)
 

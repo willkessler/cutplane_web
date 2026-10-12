@@ -22,6 +22,7 @@ import {
   deleteFace,
   deleteVertex,
   duplicateTree,
+  extrudeFace,
   groupRoot,
   mat4,
   mvfs,
@@ -129,7 +130,20 @@ interface DragPlan {
   /** How far, in world units, each vertex has been moved this gesture. */
   moved: Map<number, V3>;
   health: { closed: boolean; degenerate: number };
+  /** Extrude mode: the face pulled out on new walls, and its normal (world) at the start. */
+  extruded?: { face: number; normal: V3 };
 }
+
+/**
+ * How a dragged face moves its solid. 'stretch' is the original's: the face's vertices
+ * move, and the faces around it stretch. 'extrude' (new here, to experiment with): a flat
+ * face pulled outward first grows walls of its own, so the faces around it stay as they
+ * were; one pushed inward stretches as before.
+ */
+export type FaceDrag = 'stretch' | 'extrude';
+
+/** The least an extruded face must stand out of its old place for its walls to stay. */
+const EXTRUDE_MIN = 1;
 
 function healthOf(b: Brep) {
   const r = validate(b, { maxIssuesPerCode: 0 });
@@ -217,6 +231,8 @@ export class Runtime implements Host {
   shaded = true;
   /** set_hiddenedge: draw hidden edges while the plane or room is being moved. */
   hiddenEdges = false;
+  /** How a dragged face moves its solid. */
+  faceDrag: FaceDrag = 'stretch';
 
   private readonly worldOfRoot = new Map<CutObject, WorldFeature>();
   private readonly geometry = new Map<CutObject, WorldGeometry>();
@@ -830,8 +846,10 @@ export class Runtime implements Host {
     if (!this.features.alive(f)) return;
     if (this.worldOf(o) === this.primary) this.journal.touch(o);
     let plan = this.drags.get(o);
-    if (!plan)
+    if (!plan) {
       this.drags.set(o, (plan = { start: new Map(), moved: new Map(), health: healthOf(b) }));
+      if (this.faceDrag === 'extrude') this.startExtrude(o, f, d, plan);
+    }
     const key = (v: number) => `${this.idOf(o)}:${v}`;
     const verts = movingVertices(b, f.type, f.id).filter((v) => !this.movedNow.has(key(v)));
     if (verts.length === 0) return;
@@ -848,6 +866,19 @@ export class Runtime implements Host {
       b.setVertexPos(v, s[0] + t[0], s[1] + t[1], s[2] + t[2]);
     }
     this.changed(o);
+  }
+
+  /**
+   * Extrude mode, at a face drag's first move: a flat face (not part of a curved
+   * surface) moving outward is extruded by nothing, so the drag moves its new cap.
+   */
+  private startExtrude(o: CutObject, f: Sub, d: V3, plan: DragPlan): void {
+    const b = o.brep;
+    if (f.type !== T.Fve || b.faceSurface.has(f.id)) return;
+    const n = this.world(o).faceNormal(f.id);
+    if (n[0] * d[0] + n[1] * d[1] + n[2] * d[2] <= 0) return;
+    extrudeFace(b, f.id, 0, 0, 0);
+    plan.extruded = { face: f.id, normal: [n[0], n[1], n[2]] };
   }
 
   private readonly ids = new WeakMap<CutObject, number>();
@@ -1342,6 +1373,19 @@ export class Runtime implements Host {
     const plan = this.drags.get(o);
     if (!plan) return;
     this.drags.delete(o);
+    if (plan.extruded) {
+      // Pulled back to where it started, or further in: the walls would be flat or
+      // inside out, so the extrusion is taken back.
+      const [d] = plan.moved.values();
+      const n = plan.extruded.normal;
+      if (!d || n[0] * d[0] + n[1] * d[1] + n[2] * d[2] < EXTRUDE_MIN) {
+        const snap = this.journal.before(o);
+        if (snap) this.restore(snap);
+        this.dropDeadFeatures(o);
+        this.changed(o);
+        return;
+      }
+    }
     const keep = new Set<number>();
     for (const s of this.features.known(o))
       if (s.type === T.Fve && this.vm.props.has(s, P.Picked) && o.brep.isFace(s.id)) keep.add(s.id);

@@ -9,6 +9,7 @@ import {
   COLOR_CRTNS,
   Controls,
   Runtime,
+  type FaceDrag,
   installRotateTool,
   installToolboxes,
   bulbLightOf,
@@ -130,6 +131,8 @@ const initialProfile = (stored('profile') as Profile | null) ?? defaultProfile(n
 profileSelect.value = initialProfile;
 const styleSelect = $<HTMLSelectElement>('planeStyle');
 styleSelect.value = (stored('planeStyle') as PlaneStyle | null) ?? 'classic';
+const faceDragSelect = $<HTMLSelectElement>('faceDrag');
+faceDragSelect.value = (stored('faceDrag') as FaceDrag | null) ?? 'stretch';
 plane.style = styleSelect.value as PlaneStyle;
 
 const held: Held = { ...NOTHING_HELD };
@@ -228,6 +231,7 @@ function makeWorld(): void {
   stage = new AppStage(control);
   stage.z = control.z;
   rt = new Runtime({ stage, source });
+  rt.faceDrag = faceDragSelect.value as FaceDrag;
   rt.loadCode(source);
   rotateTool = installRotateTool(rt, source);
   rt.registerCrtns(COLOR_CRTNS);
@@ -270,6 +274,11 @@ styleSelect.addEventListener('change', () => {
   plane.style = styleSelect.value as PlaneStyle;
   store('planeStyle', styleSelect.value);
   styleSelect.blur();
+});
+faceDragSelect.addEventListener('change', () => {
+  rt.faceDrag = faceDragSelect.value as FaceDrag;
+  store('faceDrag', faceDragSelect.value);
+  faceDragSelect.blur();
 });
 
 // ---- models ----
