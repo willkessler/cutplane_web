@@ -109,6 +109,21 @@ export class ModelView {
     for (const m of this.models) this.build(m);
   }
 
+  /** Catches up with objects added to or removed from the world (duplicate, delete, undo). */
+  sync(roots: readonly CutObject[]): void {
+    const now = [...preorder(roots)].filter(isDrawn);
+    const keep = new Set(now);
+    for (const m of this.models) if (!keep.has(m.object)) this.drop(m);
+    const had = new Map(this.models.map((m) => [m.object, m]));
+    this.models = now.map((object) => {
+      const m = had.get(object);
+      if (m) return m;
+      const fresh: Model = { object, world: new WorldGeometry(object.brep, object.xform) };
+      this.build(fresh);
+      return fresh;
+    });
+  }
+
   /** Rebuilds what's drawn for objects whose geometry or placement changed. */
   rebuild(objects: Iterable<CutObject>): void {
     const set = new Set(objects);

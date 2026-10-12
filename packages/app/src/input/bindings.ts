@@ -73,7 +73,10 @@ export type Command =
   | 'resetView'
   | 'workMode'
   | 'undo'
-  | 'redo';
+  | 'redo'
+  | 'duplicate'
+  | 'delete'
+  | 'rotateTool';
 
 export function commandFor(code: string, h: Held): Command | undefined {
   // Undo and redo are new (the original's U key did nothing): ⌘Z / ⇧⌘Z, or Ctrl on other systems.
@@ -97,6 +100,13 @@ export function commandFor(code: string, h: Held): Command | undefined {
     case 'KeyF':
     case 'Enter':
       return 'workMode';
+    case 'KeyD':
+      return 'duplicate';
+    case 'KeyR':
+      return 'rotateTool';
+    case 'Backspace':
+    case 'Delete':
+      return 'delete';
     default:
       return undefined;
   }
@@ -113,6 +123,9 @@ export function bindingHints(profile: Profile): string[] {
     'Space: plane jump',
     '← → ↑ ↓: rotate 10°',
     '0: reset view',
+    'R: rotate tool here (again on it: put away)',
+    'D: duplicate',
+    '⌫: delete',
     '⌘Z / ⇧⌘Z: undo / redo',
   ];
   switch (profile) {

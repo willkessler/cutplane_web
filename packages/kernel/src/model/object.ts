@@ -1,4 +1,4 @@
-import { identity, invert, type Mat4 } from '../math/mat4.ts';
+import { identity, invert, multiply, type Mat4 } from '../math/mat4.ts';
 import { Brep, type FeatureAttrs, type Rgb } from '../topology/brep.ts';
 
 /** The original's cube record, saved with objects that have the Primitive property. */
@@ -70,4 +70,54 @@ export function* preorder(roots: readonly CutObject[]): IterableIterator<CutObje
     yield r;
     yield* preorder(r.children);
   }
+}
+
+/** An object and all its descendants, parents first. */
+export function* subtree(o: CutObject): IterableIterator<CutObject> {
+  yield o;
+  for (const c of o.children) yield* subtree(c);
+}
+
+/**
+ * Moves an object and its descendants by the world-space transform `m`
+ * (rotateobj.c's axis_rot_obj, scale.c's postmult_tree_by_xform). Every
+ * object's xform is its own local → world placement, so each one takes `m`
+ * after its xform.
+ */
+export function transformTree(o: CutObject, m: Mat4): void {
+  for (const x of subtree(o)) {
+    x.xform = multiply(x.xform, m);
+    x.invXform = invert(x.xform) ?? x.invXform;
+  }
+}
+
+/**
+ * duplicate.c's duplicate_obj_branch: a deep copy of an object and its
+ * descendants — topology, properties, colours and placement — with no
+ * parent. Private CPL code and the name stay with the original.
+ */
+export function duplicateTree(o: CutObject): CutObject {
+  const copy: CutObject = {
+    ...o,
+    name: null,
+    xform: o.xform.slice(),
+    invXform: o.invXform.slice(),
+    color: [...o.color],
+    attrs: {
+      props: [...o.attrs.props],
+      ...(o.attrs.decalFile ? { decalFile: o.attrs.decalFile } : {}),
+    },
+    brep: o.brep.clone(),
+    parent: null,
+    children: [],
+  };
+  if (o.primitive) copy.primitive = { ...o.primitive };
+  for (const map of [copy.brep.vertexAttrs, copy.brep.edgeAttrs, copy.brep.faceAttrs])
+    for (const a of map.values()) delete a.privateCode;
+  for (const c of o.children) {
+    const cc = duplicateTree(c);
+    cc.parent = copy;
+    copy.children.push(cc);
+  }
+  return copy;
 }

@@ -173,6 +173,9 @@ export class Controller {
       case 'workMode':
       case 'undo':
       case 'redo':
+      case 'duplicate':
+      case 'delete':
+      case 'rotateTool':
         break; // handled by the app
     }
   }

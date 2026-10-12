@@ -22,13 +22,27 @@ export type {
 export * from './ops/sweep.ts';
 export * from './primitives.ts';
 
-export { createObject, adopt, preorder, DEFAULT_TECHNIQUES } from './model/object.ts';
+export {
+  createObject,
+  adopt,
+  preorder,
+  subtree,
+  transformTree,
+  duplicateTree,
+  DEFAULT_TECHNIQUES,
+} from './model/object.ts';
 export type { CutObject, PrimitiveInfo } from './model/object.ts';
 
 export { computeSection, loopArea, WorldGeometry, ON_PLANE } from './section/section.ts';
 export type { ObjectSection, SectionLoop, SectionSegment } from './section/section.ts';
 export { PlaneSnapper, DEPTH_MERGE, MIN_SNAP_MOVE } from './section/planesnap.ts';
 
-export { planarizeFace, planarizeForMotion, recombineSurfaces } from './ops/planarize.ts';
+export {
+  flattenFace,
+  planarizeFace,
+  planarizeForMotion,
+  recombineSurfaces,
+} from './ops/planarize.ts';
+export { deleteVertex, deleteEdge, deleteFace, volume } from './ops/delete.ts';
 export { pickAt, betterPick, PICK_SIZE, ON_PLANE_PICK, PICK_PRIORITY } from './select/pick.ts';
 export type { Pick, PickKind } from './select/pick.ts';

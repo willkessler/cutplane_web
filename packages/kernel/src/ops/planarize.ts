@@ -233,6 +233,21 @@ export function planarizeFace(b: Brep, f: number, moving: ReadonlySet<number>): 
 }
 
 /**
+ * Splits face f into flat pieces if it is not flat to within `tolerance` (split.c's
+ * triangulate_face, used after a delete leaves a bent face). The pieces form a new
+ * surface that only merges back where they are truly coplanar. Returns the number
+ * of new faces.
+ */
+export function flattenFace(b: Brep, f: number, tolerance = COPLANAR): number {
+  if (flatness(b, [f]) <= tolerance) return 0;
+  const before = b.numFaces;
+  const p2 = projector(b, f);
+  b.surfaceSlack.set(surfaceOf(b, f), 0);
+  if (b.faceLoops(f).length === 1 || bridgeHoles(b, f, p2)) triangulate(b, f, p2);
+  return b.numFaces - before;
+}
+
+/**
  * planarize_affected_fves: before moving `moving` by `delta` (local units),
  * splits every face the motion would bend. Faces that move rigidly (all
  * their vertices move) or that the motion slides within their own plane are

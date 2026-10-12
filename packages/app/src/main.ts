@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { readCut } from '@cutplane/formats';
-import { ROOM, createCube, createObject, mat4 } from '@cutplane/kernel';
+import { ROOM, createCube, createObject, mat4, type CutObject } from '@cutplane/kernel';
 import type { CutDocument } from '@cutplane/formats';
 import { DEMO_SECONDS, demoPose } from './demo.ts';
 import {
@@ -13,10 +13,12 @@ import {
   type Profile,
 } from './input/bindings.ts';
 import { Editor, type V3 } from './edit/editor.ts';
+import { RotateTool } from './edit/rotatetool.ts';
 import { Controller } from './input/controller.ts';
 import { WorkMode } from './input/workmode.ts';
 import { Crosshair } from './render/crosshair.ts';
 import { Highlights } from './render/highlights.ts';
+import { RotateToolView } from './render/rotatetool.ts';
 import { setLineResolution } from './render/lines.ts';
 import { ModelView } from './render/models.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
@@ -50,7 +52,9 @@ const plane = new Cutplane();
 const section = new SectionLines();
 const crosshair = new Crosshair();
 const highlights = new Highlights();
+const toolView = new RotateToolView();
 scene.add(
+  toolView.object,
   createRoom(),
   models.object,
   plane.object,
@@ -85,9 +89,16 @@ plane.style = styleSelect.value as PlaneStyle;
 const held: Held = { ...NOTHING_HELD };
 const control = new Controller(profileSelect.value as Profile, held);
 const work = new WorkMode(app, canvas);
+/** The world being edited: its top-level objects. */
+const roots: CutObject[] = [];
 const editor = new Editor({
   get models() {
     return models.models;
+  },
+  roots,
+  structureChanged() {
+    models.sync(roots);
+    dirty = true;
   },
   section: (m) => section.sections.get(m),
   changed(objects) {
@@ -99,6 +110,19 @@ const editor = new Editor({
   },
 });
 const cursor = (): V3 => [control.x, control.y, control.z];
+const rotateTool = new RotateTool(editor);
+
+/** The Pick button: the rotate tool takes it when it is under the crosshair, else the editor. */
+function pressPick(shift: boolean): void {
+  control.resetConstrain();
+  rotateTool.updateHover(cursor());
+  if (rotateTool.hover) rotateTool.press(cursor());
+  else editor.press(cursor(), shift);
+}
+function releasePick(): void {
+  rotateTool.release(cursor());
+  editor.release(cursor());
+}
 
 profileSelect.addEventListener('change', () => {
   control.profile = profileSelect.value as Profile;
@@ -134,12 +158,16 @@ function newCube(): CutDocument {
 
 async function loadModel(src: string): Promise<void> {
   editor.reset();
-  if (src === NEW_CUBE) models.load(newCube());
+  rotateTool.putAway();
+  let doc: CutDocument;
+  if (src === NEW_CUBE) doc = newCube();
   else {
     const res = await fetch(`${base}${src}`);
     if (!res.ok) throw new Error(`${src}: ${res.status}`);
-    models.load(readCut(await res.text()).doc);
+    doc = readCut(await res.text()).doc;
   }
+  roots.splice(0, roots.length, ...doc.roots);
+  models.load(doc);
   control.plane.setDepths(models.depths());
   control.plane.set(ROOM.max[2]);
   dirty = true;
@@ -156,6 +184,7 @@ let dirty = true;
 let lastKey = '';
 let lastHighlights = '';
 let lastHover = '';
+let lastTool = '';
 
 function resize(): void {
   const { clientWidth: w, clientHeight: h } = canvas;
@@ -187,8 +216,9 @@ function applyDemo(t: number): void {
   control.plane.set(front + (back - front) * p.depth);
   control.yaw = p.yaw;
   control.pitch = p.pitch;
-  if (p.pressed && !editor.pressed) editor.press(cursor(), false);
-  else if (!p.pressed && editor.pressed) editor.release(cursor());
+  const down = editor.pressed || rotateTool.pressed;
+  if (p.pressed && !down) pressPick(false);
+  else if (!p.pressed && down) releasePick();
 }
 
 const readout = $<HTMLDivElement>('readout');
@@ -196,8 +226,11 @@ function render(): void {
   orbitCamera(camera, control.yaw, control.pitch);
   control.planeAxis = deeperOnScreen(camera);
   plane.z = control.z;
+  if (rotateTool.pressed) {
+    const [x, y] = rotateTool.move(cursor());
+    if (x !== control.x || y !== control.y) placeCrosshair(x, y);
+  } else editor.move(cursor());
   crosshair.place(control.x, control.y, control.z);
-  editor.move(cursor());
   const key = `${control.z}|${control.yaw}|${control.pitch}`;
   if (dirty || key !== lastKey) {
     section.update(models.models, control.z, camera.position);
@@ -211,13 +244,23 @@ function render(): void {
   }
   const hoverKey = `${control.x}|${control.y}|${control.z}|${section.version}`;
   if (hoverKey !== lastHover) {
-    editor.updateHover(cursor());
+    // The tool lies over the models and wins the crosshair (its CPL ran first and ate the pick).
+    rotateTool.updateHover(cursor());
+    if (rotateTool.carrying) {
+      /* the tool looks for a feature to land on itself */
+    } else if (rotateTool.busy) editor.clearHover();
+    else editor.updateHover(cursor());
     lastHover = hoverKey;
   }
   const hkey = `${editor.version}|${section.version}|${key}`;
   if (hkey !== lastHighlights) {
     highlights.update(editor, models.models, camera.position);
     lastHighlights = hkey;
+  }
+  const tkey = `${rotateTool.version}|${control.z}|${control.x}|${control.y}`;
+  if (tkey !== lastTool) {
+    toolView.update(rotateTool, control.z, [control.x, control.y]);
+    lastTool = tkey;
   }
   renderer.render(scene, camera);
 }
@@ -263,6 +306,16 @@ let grip: [number, number] = [0, 0];
 let regrip = false;
 let resync = true;
 let lastView = '';
+/** Where the pointer last met the plane (windowed mode). */
+let lastHit: [number, number] | undefined;
+
+/** Puts the crosshair somewhere else (a tool holds it to a bar or a circle). */
+function placeCrosshair(x: number, y: number): void {
+  control.setCursor(x, y);
+  // The pointer keeps hold of it there: the next move carries on from here.
+  aim = [control.x, control.y];
+  if (lastHit) grip = [aim[0] - lastHit[0], aim[1] - lastHit[1]];
+}
 
 function pointAt(e: PointerEvent): void {
   orbitCamera(camera, control.yaw, control.pitch);
@@ -274,6 +327,7 @@ function pointAt(e: PointerEvent): void {
   regrip = resync = false;
   lastView = view;
   if (!hit) return;
+  lastHit = [hit.x, hit.y];
   aim = [hit.x + grip[0], hit.y + grip[1]];
   control.pointTo(...aim);
 }
@@ -291,7 +345,7 @@ canvas.addEventListener('pointermove', (e) => {
   }
 });
 canvas.addEventListener('pointerenter', () => {
-  if (!editor.pressed) resync = true;
+  if (!editor.pressed && !rotateTool.pressed) resync = true;
 });
 canvas.addEventListener('pointerdown', (e) => {
   syncHeld(e);
@@ -302,13 +356,12 @@ canvas.addEventListener('pointerdown', (e) => {
   }
   if (demo || e.button !== 0) return;
   if (work.state === 'off') canvas.setPointerCapture(e.pointerId); // keep dragging past the edge
-  control.resetConstrain();
   aim = [control.x, control.y];
-  editor.press(cursor(), e.shiftKey);
+  pressPick(e.shiftKey);
 });
 canvas.addEventListener('pointerup', (e) => {
   syncHeld(e);
-  if (e.button === 0) editor.release(cursor());
+  if (e.button === 0) releasePick();
 });
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 canvas.addEventListener(
@@ -332,6 +385,9 @@ window.addEventListener('keydown', (e) => {
     else if (e.code === 'KeyF') work.exit(); // F toggles, like a video player's full screen
   } else if (c === 'undo') editor.undo();
   else if (c === 'redo') editor.redo();
+  else if (c === 'duplicate') editor.duplicate();
+  else if (c === 'rotateTool') rotateTool.snap(cursor());
+  else if (c === 'delete') editor.deletePicked();
   else control.command(c);
 });
 window.addEventListener('keyup', syncHeld);
@@ -344,7 +400,7 @@ $<HTMLButtonElement>('leave').addEventListener('click', () => work.exit());
 if (work.unsupported) $<HTMLButtonElement>('work').disabled = true;
 work.onChange((s) => {
   // Losing the pointer mid-drag finishes the drag where it is, never half-applied.
-  if (s !== 'on') editor.release(cursor());
+  if (s !== 'on') releasePick();
   // The crosshair moved by relative motion meanwhile; the windowed pointer takes it from there.
   aim = [control.x, control.y];
   regrip = true;
@@ -365,6 +421,7 @@ declare global {
       stats(): typeof section.stats;
       press(shift?: boolean): void;
       release(): void;
+      tool(): { center: number[]; hover: string | null; rotating: boolean };
       undo(): void;
       redo(): void;
       edit(): {
@@ -451,14 +508,18 @@ async function start(): Promise<void> {
     stats: () => section.stats,
     press(shift = false) {
       render();
-      control.resetConstrain();
-      editor.press(cursor(), shift);
+      pressPick(shift);
       render();
     },
     release() {
-      editor.release(cursor());
+      releasePick();
       render();
     },
+    tool: () => ({
+      center: [...rotateTool.center],
+      hover: rotateTool.hover?.kind ?? null,
+      rotating: rotateTool.rotating,
+    }),
     undo() {
       editor.undo();
       render();

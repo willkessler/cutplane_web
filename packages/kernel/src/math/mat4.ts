@@ -82,3 +82,43 @@ export function invert(m: Mat4): Mat4 | null {
   }
   return inv;
 }
+
+/**
+ * Right-handed rotation by `angle` radians about the line through `point` along the unit
+ * vector `axis` (counter-clockwise looking back down the axis), as a row-vector matrix.
+ */
+export function rotationAbout(
+  point: readonly [number, number, number],
+  axis: readonly [number, number, number],
+  angle: number,
+): Mat4 {
+  const [x, y, z] = axis;
+  const c = Math.cos(angle);
+  const s = Math.sin(angle);
+  const t = 1 - c;
+  // Column-vector Rodrigues matrix, transposed into rows.
+  const r = fromRows([
+    [t * x * x + c, t * x * y + s * z, t * x * z - s * y, 0],
+    [t * x * y - s * z, t * y * y + c, t * y * z + s * x, 0],
+    [t * x * z + s * y, t * y * z - s * x, t * z * z + c, 0],
+    [0, 0, 0, 1],
+  ]);
+  return about(point, r);
+}
+
+/** Per-axis scale about `origin`, as a row-vector matrix. */
+export function scaleAbout(
+  origin: readonly [number, number, number],
+  factors: readonly [number, number, number],
+): Mat4 {
+  const m = identity();
+  m[0] = factors[0];
+  m[5] = factors[1];
+  m[10] = factors[2];
+  return about(origin, m);
+}
+
+/** m applied about `point` instead of the origin: T(−p) · m · T(p). */
+function about(p: readonly [number, number, number], m: Mat4): Mat4 {
+  return multiply(multiply(translation(-p[0], -p[1], -p[2]), m), translation(p[0], p[1], p[2]));
+}

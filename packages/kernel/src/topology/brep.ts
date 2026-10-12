@@ -202,7 +202,11 @@ export class Brep {
   /** Loops of a face, outer loop first. */
   faceLoops(face: number): number[] {
     const out: number[] = [];
-    for (let l = this.faceLoop(face); l !== NONE; l = this.loopNext(l)) out.push(l);
+    for (let l = this.faceLoop(face); l !== NONE; l = this.loopNext(l)) {
+      out.push(l);
+      if (out.length > this.l.count)
+        throw new Error(`faceLoops: face ${face}'s loop list is a cycle`);
+    }
     return out;
   }
 

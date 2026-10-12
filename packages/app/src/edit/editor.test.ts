@@ -1,51 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  WorldGeometry,
-  computeSection,
-  createCube,
-  createObject,
-  mat4,
-  validate,
-  type CutObject,
-} from '@cutplane/kernel';
-import type { Model } from '../render/models.ts';
-import { DRAG_DEAD_ZONE, Editor, type V3 } from './editor.ts';
-
-/** A world of cubes (200 on a side, placed at `at`), with the plane at `z`. */
-function world(...at: V3[]) {
-  const models: Model[] = at.map((p) => {
-    const object = createObject(createCube(200, 200, 200), { xform: mat4.translation(...p) });
-    return { object, world: new WorldGeometry(object.brep, object.xform) };
-  });
-  const state = { z: 0, commits: 0 };
-  const editor = new Editor({
-    models,
-    section: (m) => computeSection(m.world, state.z),
-    changed(objects: Iterable<CutObject>) {
-      const set = new Set(objects);
-      for (const m of models)
-        if (set.has(m.object)) m.world = new WorldGeometry(m.object.brep, m.object.xform);
-    },
-    committed() {
-      state.commits++;
-    },
-  });
-  /** Press at a, move through the points, release at the last. */
-  const drag = (a: V3, ...path: V3[]) => {
-    state.z = a[2];
-    editor.press(a, false);
-    for (const p of path) {
-      state.z = p[2];
-      editor.move(p);
-    }
-    editor.release(path.at(-1) ?? a);
-  };
-  return { models, editor, state, drag };
-}
-
-const worldPos = (m: Model, v: number) => [m.world.x(v), m.world.y(v), m.world.z(v)];
-const vertexNear = (m: Model, p: V3) =>
-  m.object.brep.vertices().find((v) => worldPos(m, v).every((c, i) => Math.abs(c - p[i]!) < 1e-9))!;
+import { mat4, validate } from '@cutplane/kernel';
+import { DRAG_DEAD_ZONE } from './editor.ts';
+import { vertexNear, world, worldPos } from './testworld.ts';
 
 describe('Editor', () => {
   it('drags a corner vertex in the plane and keeps the solid sound', () => {
@@ -177,5 +133,82 @@ describe('Editor', () => {
     expect(m.object.brep.numFaces).toBe(6);
     expect(vertexNear(m, [100, 100, 100])).toBeDefined();
     expect(editor.canUndo).toBe(false);
+  });
+
+  it('duplicates the picked objects, offset, and picks the copies; undo takes them away', () => {
+    const { models, roots, editor, drag } = world([-100, -100, -100]);
+    drag([0, 0, 0]);
+    editor.duplicate();
+    expect(roots).toHaveLength(2);
+    const copy = roots[1]!;
+    expect([copy.xform[12], copy.xform[13], copy.xform[14]]).toEqual([0, 0, -100]);
+    expect(copy.brep).not.toBe(roots[0]!.brep);
+    expect(editor.picked).toEqual([{ kind: 'object', object: copy }]);
+    expect(models).toHaveLength(2);
+    editor.undo();
+    expect(roots).toHaveLength(1);
+    expect(models).toHaveLength(1);
+    editor.redo();
+    expect(roots[1]).toBe(copy);
+  });
+
+  it('duplicating a picked face copies its whole object', () => {
+    const { roots, editor, drag } = world([-100, -100, -100]);
+    drag([102, 0, 0]);
+    expect(editor.picked[0]!.kind).toBe('face');
+    editor.duplicate();
+    expect(roots).toHaveLength(2);
+    expect(roots[1]!.brep.numFaces).toBe(6);
+  });
+
+  it('deletes picked objects, and undo brings them back', () => {
+    const { models, roots, editor, drag } = world([-300, -100, -100], [100, -100, -100]);
+    drag([-200, 0, 0]);
+    const gone = roots[0]!;
+    editor.deletePicked();
+    expect(roots).toEqual([models[0]!.object]);
+    expect(roots).not.toContain(gone);
+    expect(editor.picked).toEqual([]);
+    editor.undo();
+    expect(roots[0]).toBe(gone);
+    expect(models).toHaveLength(2);
+  });
+
+  it('deletes a corner vertex, cutting the corner off', () => {
+    const { models, editor, drag } = world([-100, -100, -100]);
+    const m = models[0]!;
+    drag([100, 100, 100]);
+    expect(editor.picked[0]!.kind).toBe('vertex');
+    editor.deletePicked();
+    expect([m.object.brep.numVertices, m.object.brep.numFaces]).toEqual([7, 7]);
+    editor.undo();
+    expect(m.object.brep.numVertices).toBe(8);
+  });
+
+  it('refuses a delete that would flatten the solid', () => {
+    const { models, editor, state } = world([-100, -100, -100]);
+    const m = models[0]!;
+    // Pick the front face (in the plane at z = 100) and delete it: four corners gone, nothing left.
+    state.z = 100;
+    editor.press([0, 0, 100], false);
+    editor.release([0, 0, 100]);
+    expect(editor.picked[0]!.kind).toBe('face');
+    editor.deletePicked();
+    expect(m.object.brep.numFaces).toBe(6);
+    expect(editor.canUndo).toBe(false);
+  });
+
+  it('rotates the picked objects as one undoable transform', () => {
+    const { roots, editor, drag } = world([-100, -100, -100]);
+    drag([0, 0, 0]);
+    editor.beginTransform();
+    editor.setTransform(mat4.rotationAbout([0, 0, 0], [0, 0, 1], Math.PI / 4));
+    editor.setTransform(mat4.rotationAbout([0, 0, 0], [0, 0, 1], Math.PI / 2));
+    editor.endTransform();
+    const p = mat4.transformPoint(roots[0]!.xform, 0, 0, 0);
+    expect(p[0]).toBeCloseTo(100);
+    expect(p[1]).toBeCloseTo(-100);
+    editor.undo();
+    expect([...roots[0]!.xform.slice(12, 15)]).toEqual([-100, -100, -100]);
   });
 });

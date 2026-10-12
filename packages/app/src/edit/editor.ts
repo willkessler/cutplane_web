@@ -1,7 +1,14 @@
 import {
   NONE,
   betterPick,
+  deleteEdge,
+  deleteFace,
+  deleteVertex,
+  duplicateTree,
   mat4,
+  subtree,
+  transformTree,
+  volume,
   pickAt,
   planarizeForMotion,
   recombineSurfaces,
@@ -30,8 +37,12 @@ import type { Model } from '../render/models.ts';
  *   crosshair (3D if the plane moved); release picks the objects inside it.
  *   A click on nothing drops the picks.
  *
- * Every drag is one undoable step (the original had no undo). A drag that
- * would leave a solid broken is rolled back on release.
+ * Keys (controls.c): D duplicates what is picked (whole objects, moved
+ * (100, 100, 0), the copies picked); Backspace deletes it (whole objects with
+ * their descendants, or single vertices, edges and faces).
+ *
+ * Every edit is one undoable step (the original had no undo). A drag or a
+ * delete that would leave a solid broken is rolled back.
  */
 
 export type V3 = [number, number, number];
@@ -47,6 +58,10 @@ export interface Hover {
 
 export interface EditorHost {
   readonly models: readonly Model[];
+  /** The world's top-level objects; duplicate and delete add and remove them. */
+  readonly roots: CutObject[];
+  /** Objects were added to or removed from `roots`. */
+  structureChanged(): void;
   /** The section of a model at the current plane depth, if it has one. */
   section(m: Model): ObjectSection | undefined;
   /** Geometry or placement of these objects changed (rebuild what's drawn). */
@@ -61,6 +76,10 @@ export const DRAG_DEAD_ZONE = 5;
 const DEPTH_MOVED = 1e-3;
 /** The marquee's depth slack when it is flat (execute_WITHIN's ±1). */
 const MARQUEE_SLACK = 1;
+/** controls.c's DUPLICATEBUTTON: where a copy lands relative to its original. */
+export const DUPLICATE_OFFSET: V3 = [100, 100, 0];
+/** A delete that leaves less volume than this (cubic room units) has flattened the solid. */
+const MIN_VOLUME = 1e-3;
 
 interface Snapshot {
   object: CutObject;
@@ -72,6 +91,14 @@ interface Snapshot {
 interface Step {
   before: Snapshot[];
   after: Snapshot[];
+  /** The world's roots before and after, for steps that add or remove objects. */
+  roots?: { before: CutObject[]; after: CutObject[] };
+}
+
+interface Transform {
+  roots: CutObject[];
+  before: Snapshot[];
+  changed: boolean;
 }
 
 interface VertexPlan {
@@ -94,11 +121,6 @@ interface Health {
 }
 
 const rootOf = (o: CutObject): CutObject => (o.parent ? rootOf(o.parent) : o);
-
-function* subtree(o: CutObject): IterableIterator<CutObject> {
-  yield o;
-  for (const c of o.children) yield* subtree(c);
-}
 
 function snapshot(o: CutObject): Snapshot {
   return { object: o, brep: o.brep.clone(), xform: o.xform.slice(), invXform: o.invXform.slice() };
@@ -144,6 +166,7 @@ export class Editor {
   private drag: Drag | undefined;
   /** Pressed (without shift) on something already picked: if no drag follows, pick just that. */
   private solo: Feature | undefined;
+  private transform: Transform | undefined;
   private readonly undoStack: Step[] = [];
   private readonly redoStack: Step[] = [];
 
@@ -163,14 +186,14 @@ export class Editor {
   }
 
   /** Finds what the crosshair would pick now (select.c's set_selectables). */
-  updateHover(cursor: V3): void {
+  updateHover(cursor: V3, size?: number): void {
     let best: Hover | undefined;
     for (const model of this.host.models) {
       const p = model.object.attrs.props;
       if (p.includes('Nonselectable') || p.includes('Sectioninvisible')) continue;
       const s = this.host.section(model);
       if (!s) continue;
-      const pick = pickAt(model.world, s, cursor[0], cursor[1], cursor[2]);
+      const pick = pickAt(model.world, s, cursor[0], cursor[1], cursor[2], size);
       if (pick && (!best || betterPick(pick, best.pick))) best = { model, pick };
     }
     const same =
@@ -265,6 +288,7 @@ export class Editor {
     this.pressAt = undefined;
     this.drag = undefined;
     this.solo = undefined;
+    this.transform = undefined;
     this.undoStack.length = 0;
     this.redoStack.length = 0;
     this.version++;
@@ -279,14 +303,162 @@ export class Editor {
   }
 
   private step(from: Step[], to: Step[], side: 'before' | 'after'): void {
-    if (this.pressed) return;
+    if (this.pressed || this.transform) return;
     const s = from.pop();
     if (!s) return;
+    if (s.roots) {
+      this.host.roots.splice(0, this.host.roots.length, ...s.roots[side]);
+      this.host.structureChanged();
+    }
     for (const snap of s[side]) restore(snap);
     to.push(s);
     this.picked = [];
     this.hover = undefined;
     this.host.changed(s[side].map((x) => x.object));
+    this.host.committed();
+    this.version++;
+  }
+
+  private push(step: Step): void {
+    this.undoStack.push(step);
+    this.redoStack.length = 0;
+  }
+
+  /** Unpicks everything, then picks what the crosshair is over (rotatecircle.cpl's _Finish_snap). */
+  pickHover(): void {
+    this.picked = this.hover ? [this.featureOf(this.hover)] : [];
+    this.version++;
+  }
+
+  unpickAll(): void {
+    this.picked = [];
+    this.version++;
+  }
+
+  /** Forgets the hover (a tool in the room is under the crosshair instead). */
+  clearHover(): void {
+    if (!this.hover) return;
+    this.hover = undefined;
+    this.version++;
+  }
+
+  /** The group roots of everything picked: what rotating or duplicating moves. */
+  pickedRoots(): CutObject[] {
+    const out = new Set<CutObject>();
+    for (const p of this.picked) out.add(rootOf(p.kind === 'object' ? p.object : p.model.object));
+    return [...out];
+  }
+
+  // ---- duplicate and delete ----
+
+  /** D: copies the picked features' whole objects, offset, and picks the copies. */
+  duplicate(): void {
+    if (this.pressed || this.transform) return;
+    const originals = this.pickedRoots();
+    if (originals.length === 0) return;
+    const before = [...this.host.roots];
+    const copies = originals.map((o) => {
+      const c = duplicateTree(o);
+      transformTree(c, mat4.translation(...DUPLICATE_OFFSET));
+      return c;
+    });
+    this.host.roots.push(...copies);
+    this.push({ before: [], after: [], roots: { before, after: [...this.host.roots] } });
+    this.host.structureChanged();
+    this.picked = copies.map((object) => ({ kind: 'object', object }));
+    this.hover = undefined;
+    this.host.committed();
+    this.version++;
+  }
+
+  /** Backspace: deletes what is picked. A feature delete that would break its solid is refused. */
+  deletePicked(): void {
+    if (this.pressed || this.transform || this.picked.length === 0) return;
+    const rootsBefore = [...this.host.roots];
+    const gone = new Set(
+      this.picked.filter((p) => p.kind === 'object').map((p) => rootOf(p.object)),
+    );
+    const byModel = new Map<Model, Feature[]>();
+    for (const p of this.picked) {
+      if (p.kind === 'object' || gone.has(rootOf(p.model.object))) continue;
+      byModel.set(p.model, [...(byModel.get(p.model) ?? []), p]);
+    }
+    const before: Snapshot[] = [];
+    const after: Snapshot[] = [];
+    for (const [model, features] of byModel) {
+      const o = model.object;
+      const snap = snapshot(o);
+      const was = health(o.brep);
+      const vol = volume(o.brep);
+      try {
+        for (const f of features) {
+          const b = o.brep;
+          if (f.kind === 'vertex' && b.isVertex(f.id)) deleteVertex(b, f.id);
+          else if (f.kind === 'edge' && b.isEdge(f.id)) deleteEdge(b, f.id);
+          else if (f.kind === 'face' && b.isFace(f.id)) deleteFace(b, f.id);
+        }
+        const now = health(o.brep);
+        const v = volume(o.brep);
+        if ((was.closed && !now.closed) || now.degenerate > was.degenerate)
+          throw new Error('broken');
+        if (Math.sign(v) !== Math.sign(vol) || Math.abs(v) < MIN_VOLUME) throw new Error('flat');
+        before.push(snap);
+        after.push(snapshot(o));
+      } catch {
+        restore(snap);
+      }
+    }
+    if (gone.size > 0) {
+      const keep = this.host.roots.filter((r) => !gone.has(r));
+      this.host.roots.splice(0, this.host.roots.length, ...keep);
+    }
+    if (before.length === 0 && gone.size === 0) return;
+    this.push({
+      before,
+      after,
+      ...(gone.size > 0 ? { roots: { before: rootsBefore, after: [...this.host.roots] } } : {}),
+    });
+    if (gone.size > 0) this.host.structureChanged();
+    this.host.changed(before.map((s) => s.object));
+    this.picked = [];
+    this.hover = undefined;
+    this.host.committed();
+    this.version++;
+  }
+
+  // ---- rigid and scaling transforms of whole objects (rotate tool, scale box) ----
+
+  /** Starts moving `roots` (default: the picked roots) by world transforms. */
+  beginTransform(roots: CutObject[] = this.pickedRoots()): void {
+    const all = new Set<CutObject>();
+    for (const r of roots) for (const o of subtree(r)) all.add(o);
+    this.transform = { roots, before: [...all].map(snapshot), changed: false };
+  }
+
+  get transforming(): boolean {
+    return this.transform !== undefined;
+  }
+
+  /** Places the objects at their start placement followed by `m` (a world transform). */
+  setTransform(m: Mat4): void {
+    const t = this.transform;
+    if (!t) return;
+    for (const s of t.before) {
+      s.object.xform = s.xform.slice();
+      s.object.invXform = s.invXform.slice();
+    }
+    for (const r of t.roots) transformTree(r, m);
+    t.changed = true;
+    this.host.changed(t.before.map((s) => s.object));
+    this.version++;
+  }
+
+  /** Finishes the transform as one undoable step. */
+  endTransform(): void {
+    const t = this.transform;
+    this.transform = undefined;
+    if (!t || !t.changed) return;
+    this.push({ before: t.before, after: t.before.map((s) => snapshot(s.object)) });
     this.host.committed();
     this.version++;
   }
@@ -369,8 +541,7 @@ export class Editor {
       // put everything back where it was.
       for (const s of drag.before) restore(s);
     } else if (drag.last.some((c) => c !== 0)) {
-      this.undoStack.push({ before: drag.before, after: objects.map(snapshot) });
-      this.redoStack.length = 0;
+      this.push({ before: drag.before, after: objects.map(snapshot) });
     }
     this.dropDeadPicks();
     this.host.changed(objects);
