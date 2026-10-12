@@ -241,19 +241,39 @@ function syncHeld(e: MouseEvent | KeyboardEvent): void {
   if ('buttons' in e) held.buttons = e.buttons;
 }
 
-/** Windowed mode: the crosshair sits exactly under the pointer, on the plane. */
-function pointAt(e: PointerEvent): void {
+function planeUnder(clientX: number, clientY: number): THREE.Vector3 | null {
   const r = canvas.getBoundingClientRect();
-  pointerNdc.set(
-    ((e.clientX - r.left) / r.width) * 2 - 1,
-    -((e.clientY - r.top) / r.height) * 2 + 1,
-  );
+  pointerNdc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
   raycaster.setFromCamera(pointerNdc, camera);
-  const hit = raycaster.ray.intersectPlane(
+  return raycaster.ray.intersectPlane(
     new THREE.Plane(new THREE.Vector3(0, 0, 1), -control.z),
     planeHit,
   );
-  if (hit) control.pointTo(hit.x, hit.y);
+}
+
+/**
+ * Windowed mode: the crosshair sits under the pointer, on the plane. While a drag is held,
+ * turning the room or moving the plane changes which point is under the pointer; rather
+ * than let the crosshair (and what it holds) leap there, the pointer keeps hold of the
+ * crosshair at an offset until the button is let go.
+ */
+let lastPointer: { x: number; y: number; view: string } | undefined;
+let aim: [number, number] = [0, 0];
+let grip: [number, number] = [0, 0];
+
+function pointAt(e: PointerEvent): void {
+  orbitCamera(camera, control.yaw, control.pitch); // the room may have turned since the last frame
+  const view = `${control.yaw}|${control.pitch}|${control.z}`;
+  if (!editor.pressed) grip = [0, 0];
+  else if (lastPointer && lastPointer.view !== view) {
+    const was = planeUnder(lastPointer.x, lastPointer.y);
+    if (was) grip = [aim[0] - was.x, aim[1] - was.y];
+  }
+  lastPointer = { x: e.clientX, y: e.clientY, view };
+  const hit = planeUnder(e.clientX, e.clientY);
+  if (!hit) return;
+  aim = [hit.x + grip[0], hit.y + grip[1]];
+  control.pointTo(...aim);
 }
 
 canvas.addEventListener('pointermove', (e) => {
@@ -275,6 +295,7 @@ canvas.addEventListener('pointerdown', (e) => {
   if (demo || e.button !== 0) return;
   if (work.state === 'off') canvas.setPointerCapture(e.pointerId); // keep dragging past the edge
   control.resetConstrain();
+  aim = [control.x, control.y];
   editor.press(cursor(), e.shiftKey);
 });
 canvas.addEventListener('pointerup', (e) => {

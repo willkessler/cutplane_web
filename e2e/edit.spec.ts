@@ -106,3 +106,44 @@ test('a marquee picks the objects inside it', async ({ page, browserName }) => {
   await shot(page, 'picked-object', browserName);
   expect(errors).toEqual([]);
 });
+
+test('windowed: turning the room or moving the plane mid-drag does not make the drag jump', async ({
+  page,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { z: 0 });
+  const box = (await page.locator('#viewport').boundingBox())!;
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  const state = () => page.evaluate(() => window.__cutplane!.state());
+  const moved = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    Math.hypot(a.x - b.x, a.y - b.y);
+
+  await page.mouse.move(cx, cy);
+  expect((await edit(page)).hover).toBe('object');
+  await page.mouse.down();
+  await page.mouse.move(cx + 30, cy, { steps: 5 });
+  const before = await state();
+
+  // Turn the room while the button still holds the cube, then carry on moving.
+  for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowUp');
+  await page.mouse.move(cx + 31, cy);
+  const turned = await state();
+  expect(turned.yaw).toBe(40);
+  expect(moved(turned, before)).toBeLessThan(5);
+
+  // Carry it in depth with the wheel: the crosshair stays put across the room.
+  await page.mouse.wheel(0, -80);
+  await page.mouse.move(cx + 32, cy);
+  const carried = await state();
+  expect(carried.z).not.toBe(turned.z);
+  expect(moved(carried, turned)).toBeLessThan(5);
+
+  // After that the drag follows the pointer as usual.
+  await page.mouse.move(cx + 82, cy, { steps: 5 });
+  expect(moved(await state(), carried)).toBeGreaterThan(20);
+  await page.mouse.up();
+  expect((await edit(page)).picked).toEqual(['object']);
+  expect(errors).toEqual([]);
+});
