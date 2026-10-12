@@ -35,6 +35,19 @@ class Lines {
     if (!r) throw new CutParseError('unexpected end of file', this.line);
     return r.text.trim();
   }
+  /** `count` lines of inline code (each written behind a `|`), verbatim. */
+  code(count: number): string {
+    const out: string[] = [];
+    for (let k = 0; k < count; k++) {
+      const r = this.rows[this.i];
+      const at = r?.text.indexOf('|') ?? -1;
+      if (!r || at < 0 || r.text.slice(0, at).trim() !== '')
+        throw new CutParseError('expected a line of inline CPL code', this.line);
+      out.push(r.text.slice(at + 1));
+      this.i++;
+    }
+    return `${out.join('\n')}\n`;
+  }
   /** Consumes the next line if it matches; returns the match. */
   maybe(re: RegExp): RegExpMatchArray | null {
     const t = this.peek();
@@ -171,6 +184,8 @@ function readObject(L: Lines, warn: (m: string) => void): { object: CutObject; p
   if (draw) object.drawTechnique = rest(draw);
   const bbox = L.maybe(/^Object Screenbboxtechnique:(.*)$/);
   if (bbox) object.screenBBoxTechnique = rest(bbox);
+  const code = L.maybe(/^Object CPL private code:\s*(\d+)/);
+  if (code) object.attrs.privateSource = L.code(n(code));
 
   const nshells = n(L.expect(/^Number of Shells:\s*(\d+)/, 'Number of Shells:'));
   for (let s = 0; s < nshells; s++) readShell(L, brep, warn);
@@ -248,11 +263,16 @@ function readShell(L: Lines, b: Brep, warn: (m: string) => void): void {
     const m = L.maybe(new RegExp(`^${plural} with CPL private code:\\s*(\\d+)`));
     if (!m) continue;
     for (let i = 0; i < n(m); i++) {
-      const h = L.expect(new RegExp(`^${single}\\s+(\\d+):\\s*(\\S+)`), `${single} private code`);
+      const h = L.expect(
+        new RegExp(`^${single}\\s+(\\d+):\\s*(\\S+)(?:\\s+(\\d+))?`),
+        `${single} private code`,
+      );
+      const inline = h[2] === 'inline' && h[3] !== undefined ? L.code(n(h, 3)) : undefined;
       const id = at(ids as number[], n(h), single.toLowerCase());
       if (id === undefined) continue;
       const attrs = map.get(id) ?? { props: [] };
-      attrs.privateCode = h[2]!;
+      if (inline !== undefined) attrs.privateSource = inline;
+      else attrs.privateCode = h[2]!;
       map.set(id, attrs);
     }
   }

@@ -36,7 +36,9 @@ export function writeCut(doc: CutDocument): string {
 
   objects.forEach((o, i) => {
     const label = doc.contains === 'World' ? i + 1 : i;
-    const parent = o.parent ? index.get(o.parent)! + 1 : 0;
+    // A parent outside the document (a world's root, a scale box) makes a top-level object.
+    const at = o.parent ? index.get(o.parent) : undefined;
+    const parent = at === undefined ? 0 : at + 1;
     writeObject(w, o, label, parent);
   });
   w(`** End of file ${doc.title} **\n`);
@@ -55,6 +57,15 @@ function writeProps(w: (s: string) => void, a: FeatureAttrs): void {
   for (const p of a.props) w(`${p}\n`);
   if (a.props.includes('Hasdecal')) w(`Decal File:${a.decalFile ?? '***FILLMEIN!!***'}\n`);
 }
+
+/**
+ * Inline CPL (new): each line of the code behind a `|`, so blank lines and the
+ * label column survive the reader's trimming.
+ */
+function writeCode(w: (s: string) => void, code: string): void {
+  for (const line of code.replace(/\r?\n$/, '').split(/\r?\n/)) w(`|${line}\n`);
+}
+const codeLines = (code: string) => code.replace(/\r?\n$/, '').split(/\r?\n/).length;
 
 function writeObject(w: (s: string) => void, o: CutObject, label: number, parent: number): void {
   w(`\n\n\tObject ${label}:\n`);
@@ -76,6 +87,10 @@ function writeObject(w: (s: string) => void, o: CutObject, label: number, parent
   w(`Object Selectechnique:${o.selectTechnique}\n`);
   w(`Object Drawtechnique:${o.drawTechnique}\n`);
   w(`Object Screenbboxtechnique:${o.screenBBoxTechnique}\n`);
+  if (o.attrs.privateSource !== undefined) {
+    w(`Object CPL private code:${codeLines(o.attrs.privateSource)} lines\n`);
+    writeCode(w, o.attrs.privateSource);
+  }
   const shells = o.brep.shells();
   w(`\nNumber of Shells:${shells.length}\n`);
   shells.forEach((s, i) => writeShell(w, o.brep, s, i + 1));
@@ -126,9 +141,14 @@ function writeShell(w: (s: string) => void, b: Brep, shell: number, label: numbe
   }
   for (const [plural, single, ids, map] of sections) {
     const rows = ids
-      .map((id, i) => [i + 1, map.get(id)?.privateCode] as const)
-      .filter(([, c]) => c);
+      .map((id, i) => [i + 1, map.get(id)] as const)
+      .filter(([, a]) => a?.privateSource !== undefined || a?.privateCode);
     w(`${plural} with CPL private code:${rows.length}\n`);
-    for (const [i, c] of rows) w(`${single} ${i}: ${c}\n`);
+    for (const [i, a] of rows) {
+      if (a!.privateSource !== undefined) {
+        w(`${single} ${i}: inline ${codeLines(a!.privateSource)}\n`);
+        writeCode(w, a!.privateSource);
+      } else w(`${single} ${i}: ${a!.privateCode}\n`);
+    }
   }
 }

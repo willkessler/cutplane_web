@@ -14,7 +14,10 @@ export type Rgb = [number, number, number];
 export interface FeatureAttrs {
   props: string[];
   decalFile?: string;
+  /** The original's reference to a CPL file of private code (./cpl/rotatexbar.cpl). */
   privateCode?: string;
+  /** Private CPL code kept in the file itself (new: the original saved only references). */
+  privateSource?: string;
 }
 
 /** Growable struct-of-arrays pool. IDs are never reused, so they stay stable. */

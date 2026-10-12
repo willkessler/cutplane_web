@@ -119,6 +119,71 @@
       .demo #status {
         display: none;
       }
+      /* The CPL editor (outside work mode only). */
+      #code {
+        top: 64px;
+        right: 12px;
+        bottom: 84px;
+        width: min(560px, calc(100% - 48px));
+        display: none;
+        flex-direction: column;
+        gap: 6px;
+        -webkit-user-select: text;
+        user-select: text;
+      }
+      #code.shown {
+        display: flex;
+      }
+      .working #code,
+      .demo #code {
+        display: none !important;
+      }
+      #code .row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      #code select {
+        flex: 1;
+      }
+      #code select,
+      #code button {
+        font: inherit;
+        color: var(--ink);
+        background: #34363e;
+        border: 1px solid #4a4c55;
+        border-radius: 6px;
+        padding: 3px 8px;
+      }
+      #code .info {
+        color: var(--dim);
+      }
+      #code textarea {
+        flex: 1;
+        resize: none;
+        tab-size: 8;
+        font:
+          12px/1.35 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        color: var(--ink);
+        background: #121317;
+        border: 1px solid #4a4c55;
+        border-radius: 6px;
+        padding: 8px;
+        white-space: pre;
+      }
+      #code .errors {
+        white-space: pre-wrap;
+        color: #8fe08f;
+        min-height: 1.4em;
+        max-height: 6em;
+        overflow: auto;
+      }
+      #code .errors.bad {
+        color: #ff8a80;
+      }
     </style>
   </head>
   <body>
@@ -132,6 +197,12 @@
           <option value="classic">Stippled plane</option>
           <option value="modern">Translucent plane</option>
         </select>
+        <button id="open" title="Open a .cut file">Open…</button>
+        <button id="save" title="Save the world, with its objects' CPL, as a .cut file">
+          Save
+        </button>
+        <button id="codeButton" title="The CPL the world runs, live">Code</button>
+        <input id="file" type="file" accept=".cut,.rsc,.icon" hidden />
         <button id="work" class="primary" title="Full screen with the pointer captured (F)">
           Start working (F)
         </button>
@@ -139,6 +210,16 @@
       <div id="status" class="panel">
         <div id="readout"></div>
         <div id="hints"></div>
+      </div>
+      <div id="code" class="panel" aria-label="CPL editor">
+        <div class="row">
+          <select aria-label="Code to show"></select>
+          <button class="apply" title="Apply (⌘↵ / Ctrl+↵)">Apply</button>
+          <button class="close" title="Close">✕</button>
+        </div>
+        <div class="info"></div>
+        <textarea spellcheck="false" aria-label="CPL code"></textarea>
+        <div class="errors"></div>
       </div>
       <div id="pause" class="panel">
         <div>

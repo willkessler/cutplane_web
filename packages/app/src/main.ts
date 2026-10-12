@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { readCut } from '@cutplane/formats';
+import { readCut, writeCut } from '@cutplane/formats';
 import { ROOM, createCube, createObject, mat4, type CutObject } from '@cutplane/kernel';
 import type { CutDocument } from '@cutplane/formats';
 import { P, PROPERTY_FILES } from '@cutplane/cpl';
@@ -38,6 +38,7 @@ import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
 import { SectionLines } from './render/sectionlines.ts';
 import { createCamera, deeperOnScreen, fitFov, orbitCamera, unitsPerPixel } from './scene.ts';
 import { CLASSIC, rgb } from './viewer/palette.ts';
+import { CodePanel } from './ui/codepanel.ts';
 import { AppStage } from './world/stage.ts';
 import {
   boxDrawing,
@@ -262,6 +263,11 @@ async function loadModel(src: string): Promise<void> {
     if (!res.ok) throw new Error(`${src}: ${res.status}`);
     doc = readCut(await res.text()).doc;
   }
+  loadDocument(doc);
+}
+
+/** Puts a document's objects into the world being edited (their CPL comes with them). */
+function loadDocument(doc: CutDocument): void {
   if (controls.pickHeld) controls.releasePick();
   rt.clearWorld(rt.primary);
   rt.journal.clear();
@@ -273,6 +279,7 @@ async function loadModel(src: string): Promise<void> {
 }
 
 modelSelect.addEventListener('change', () => {
+  if (modelSelect.value.startsWith('file:')) return; // an opened file: it's loaded already
   store('model', modelSelect.value);
   void loadModel(modelSelect.value);
   modelSelect.blur();
@@ -409,6 +416,7 @@ function render(): void {
     );
     lastHighlights = hkey;
     padView.update(rt);
+    codePanel.show();
     const t = toolDrawing(rt, rotateTool);
     const ring = t.hover && t.hover.kind !== 'center';
     const tkey = `${JSON.stringify(t)}|${stage.z}|${ring ? `${stage.x}|${stage.y}` : ''}`;
@@ -537,7 +545,14 @@ canvas.addEventListener(
 );
 window.addEventListener('keydown', (e) => {
   syncHeld(e);
-  if (demo || !ready || e.target instanceof HTMLSelectElement) return;
+  if (
+    demo ||
+    !ready ||
+    e.target instanceof HTMLSelectElement ||
+    e.target instanceof HTMLTextAreaElement ||
+    e.target instanceof HTMLInputElement
+  )
+    return;
   const c = commandFor(e.code, held);
   if (!c) return;
   e.preventDefault();
@@ -559,6 +574,65 @@ window.addEventListener('keyup', syncHeld);
 window.addEventListener('blur', () => Object.assign(held, NOTHING_HELD));
 
 $<HTMLButtonElement>('work').addEventListener('click', () => void work.enter());
+
+// ---- files and code ----
+const codePanel = new CodePanel(() => rt, $<HTMLDivElement>('code'));
+$<HTMLButtonElement>('codeButton').addEventListener('click', (e) => {
+  codePanel.toggle();
+  (e.target as HTMLButtonElement).blur();
+});
+
+const worldTitle = () => modelSelect.selectedOptions[0]?.text.replace(/\s*\(.*$/, '') || 'world';
+/** The world being edited as a .cut file, with its objects' private code inline. */
+const worldText = () =>
+  writeCut({ title: worldTitle(), contains: 'World', name: null, roots: rt.documentRoots() });
+
+/** Saves the world being edited (File System Access where there is one, else a download). */
+async function saveWorld(): Promise<void> {
+  const title = worldTitle();
+  const text = worldText();
+  const name = `${title.replace(/[^\w-]+/g, '_').toLowerCase()}.cut`;
+  const picker = (window as { showSaveFilePicker?: (o: unknown) => Promise<FileSystemFileHandle> })
+    .showSaveFilePicker;
+  if (picker) {
+    try {
+      const handle = await picker({
+        suggestedName: name,
+        types: [{ description: 'Cutplane world', accept: { 'text/plain': ['.cut'] } }],
+      });
+      const out = await handle.createWritable();
+      await out.write(text);
+      await out.close();
+      return;
+    } catch (err) {
+      if ((err as DOMException).name === 'AbortError') return;
+    }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+$<HTMLButtonElement>('save').addEventListener('click', (e) => {
+  void saveWorld();
+  (e.target as HTMLButtonElement).blur();
+});
+const fileInput = $<HTMLInputElement>('file');
+$<HTMLButtonElement>('open').addEventListener('click', (e) => {
+  fileInput.click();
+  (e.target as HTMLButtonElement).blur();
+});
+fileInput.addEventListener('change', async () => {
+  const f = fileInput.files?.[0];
+  fileInput.value = '';
+  if (!f) return;
+  const latin1 = new TextDecoder('latin1');
+  loadDocument(readCut(latin1.decode(await f.arrayBuffer())).doc);
+  if (![...modelSelect.options].some((o) => o.value === `file:${f.name}`))
+    modelSelect.add(new Option(f.name, `file:${f.name}`));
+  modelSelect.value = `file:${f.name}`;
+});
 $<HTMLButtonElement>('resume').addEventListener('click', () => void work.resume());
 $<HTMLButtonElement>('leave').addEventListener('click', () => work.exit());
 if (work.unsupported) $<HTMLButtonElement>('work').disabled = true;
@@ -588,6 +662,8 @@ declare global {
       tool(): { center: number[]; hover: string | null; rotating: boolean };
       color(): { rgb: number[]; hover: string | null; base: number[] };
       locate(what: string): unknown;
+      saveText(): string;
+      openText(text: string): void;
       undo(): void;
       redo(): void;
       edit(): {
@@ -690,6 +766,11 @@ async function start(): Promise<void> {
       settle();
     },
     color: () => colorState(rt, colorControl),
+    saveText: () => worldText(),
+    openText(text) {
+      loadDocument(readCut(text).doc);
+      settle();
+    },
     locate(what) {
       // Centres of the environment's things, for scripted runs (tests, the README animation).
       const box = (o: CutObject | undefined) => {
@@ -704,6 +785,7 @@ async function start(): Promise<void> {
         base: () => box(cc.base),
         chip: () => box(cc.chip),
         bars: () => cc.bars.map((b) => ({ center: box(b), top: rt.bbox(b)![1][1] })),
+        picked: () => box(rt.pickedObjects()[0]),
       };
       return parts[what]?.() ?? null;
     },

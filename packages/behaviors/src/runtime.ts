@@ -1,5 +1,6 @@
 import {
   CRTN_NAMES,
+  CplAssemblyError,
   P,
   PROPERTY_FILES,
   T,
@@ -34,6 +35,7 @@ import {
   volume,
   WorldGeometry,
   type CutObject,
+  type FeatureAttrs,
   type ObjectSection,
   type Pick as KernelPick,
 } from '@cutplane/kernel';
@@ -368,6 +370,7 @@ export class Runtime implements Host {
   private register(o: CutObject): void {
     const names = [...o.attrs.props];
     for (const n of names.reverse()) this.addProp(o, n);
+    this.attachCode(o, o.attrs, o.name ?? 'object');
     const b = o.brep;
     for (const [type, map] of [
       [T.Vfe, b.vertexAttrs],
@@ -377,7 +380,103 @@ export class Runtime implements Host {
       for (const [id, a] of map) {
         const h = this.features.of(o, type, id);
         for (const n of [...a.props].reverse()) this.addProp(h, n);
+        this.attachCode(h, a, `${o.name ?? 'object'}:${id}`);
       }
+  }
+
+  /** Assembly errors in code that came with loaded objects, by feature. */
+  readonly codeErrors = new Map<Feature, CplAssemblyError>();
+
+  /**
+   * read_CPL_privatecode for a loaded feature: its inline code (new), else the file
+   * the original referred to. Code it already has (an undo putting it back) stays.
+   */
+  private attachCode(f: Feature, a: FeatureAttrs, name: string): void {
+    if (this.vm.privateCode(f)) return;
+    let text = a.privateSource;
+    let file = `${name}.cpl`;
+    if (text === undefined && a.privateCode) {
+      file = a.privateCode.replace(/^.*\//, '');
+      try {
+        text = this.source(file);
+      } catch {
+        return; // the original's file isn't among ours
+      }
+    }
+    if (text === undefined) return;
+    this.setPrivateCode(f, text, file);
+  }
+
+  /**
+   * Gives a feature new private code, live (the CPL editor, SETCODE, loading). On an
+   * assembly error the feature keeps the code it had; the error is returned.
+   */
+  setPrivateCode(f: Feature, text: string, file = 'private.cpl'): CplAssemblyError | null {
+    try {
+      this.vm.loadPrivateCode(f, text, file);
+      this.vm.resolveObjectRefs();
+      this.codeErrors.delete(f);
+      this.version++;
+      return null;
+    } catch (e) {
+      if (!(e instanceof CplAssemblyError)) throw e;
+      this.codeErrors.set(f, e);
+      return e;
+    }
+  }
+
+  /**
+   * Reassembles a property file (stamp.cpl) live: the property's code is the new code
+   * from the next frame on. On an assembly error nothing changes; the error is returned.
+   */
+  setPropertyCode(file: string, text: string): CplAssemblyError | null {
+    const property = PROPERTY_FILES.find((p) => `${p.toLowerCase()}.cpl` === file);
+    try {
+      this.vm.loadPropertyCode(text, file, property);
+      this.vm.resolveObjectRefs();
+      this.version++;
+      return null;
+    } catch (e) {
+      if (!(e instanceof CplAssemblyError)) throw e;
+      return e;
+    }
+  }
+
+  /** The code a property file runs now (as last loaded or edited). */
+  propertySource(file: string): string | undefined {
+    const property = PROPERTY_FILES.find((p) => `${p.toLowerCase()}.cpl` === file);
+    return property ? this.vm.propertySources.get(property) : undefined;
+  }
+
+  /**
+   * The primary world's objects, ready to save: scale boxes looked through, and each
+   * object's and feature's private code put into its attributes (inline CPL).
+   */
+  documentRoots(): CutObject[] {
+    const boxes = (o: CutObject) => this.vm.props.has(o, P.Scalebbox);
+    const roots = this.primary.root.children.flatMap((o) => (boxes(o) ? o.children : [o]));
+    for (const r of roots)
+      for (const o of subtree(r)) {
+        const src = this.vm.privateSources.get(o);
+        if (src !== undefined) o.attrs.privateSource = src;
+        for (const h of this.features.known(o)) {
+          const hs = this.vm.privateSources.get(h);
+          if (hs === undefined || !this.features.alive(h)) continue;
+          const map =
+            h.type === T.Vfe
+              ? o.brep.vertexAttrs
+              : h.type === T.Evf
+                ? o.brep.edgeAttrs
+                : h.type === T.Fve
+                  ? o.brep.faceAttrs
+                  : null;
+          if (!map) continue;
+          const a = map.get(h.id) ?? { props: [] };
+          a.privateSource = hs;
+          map.set(h.id, a);
+        }
+      }
+    return roots;
   }
 
   /** Empties a world (a new model is loaded). */
