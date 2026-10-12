@@ -205,6 +205,12 @@ importers:
 
   packages/app:
     dependencies:
+      '@cutplane/behaviors':
+        specifier: workspace:*
+        version: link:../behaviors
+      '@cutplane/cpl':
+        specifier: workspace:*
+        version: link:../cpl
       '@cutplane/formats':
         specifier: workspace:*
         version: link:../formats
@@ -219,7 +225,17 @@ importers:
         specifier: ^0.186.0
         version: 0.186.0
 
-  packages/behaviors: {}
+  packages/behaviors:
+    dependencies:
+      '@cutplane/cpl':
+        specifier: workspace:*
+        version: link:../cpl
+      '@cutplane/formats':
+        specifier: workspace:*
+        version: link:../formats
+      '@cutplane/kernel':
+        specifier: workspace:*
+        version: link:../kernel
 
   packages/booleans: {}
 

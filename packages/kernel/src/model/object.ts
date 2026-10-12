@@ -14,6 +14,8 @@ export interface PrimitiveInfo {
  * original's topology.h, minus the runtime-only fields.
  */
 export interface CutObject {
+  /** topology.h's Obj_type: objects are features to CPL, which tells them apart by this id. */
+  readonly type: typeof OBJ_TYPE;
   name: string | null;
   /** Local → world, row-vector convention (see mat4.ts). */
   xform: Mat4;
@@ -28,6 +30,21 @@ export interface CutObject {
   brep: Brep;
   parent: CutObject | null;
   children: CutObject[];
+  /**
+   * objtype's `linked`: true when the object is a group root (moves on its own), false
+   * when it moves with its parent. Unset means the original's defaults: an object at
+   * the top of its world is linked, a child read from a file is not.
+   */
+  linked?: boolean;
+}
+
+export const OBJ_TYPE = 14;
+
+/** get_unlinked_ancestor: the group root an object moves with. */
+export function groupRoot(o: CutObject): CutObject {
+  let x = o;
+  while (x.parent && !(x.linked ?? false)) x = x.parent;
+  return x;
 }
 
 export const DEFAULT_TECHNIQUES = {
@@ -39,6 +56,7 @@ export const DEFAULT_TECHNIQUES = {
 export function createObject(brep: Brep, init: Partial<Omit<CutObject, 'brep'>> = {}): CutObject {
   const xform = init.xform ?? identity();
   return {
+    type: OBJ_TYPE,
     name: null,
     color: [100, 100, 100],
     attrs: { props: ['Visible'] },

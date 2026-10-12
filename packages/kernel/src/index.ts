@@ -29,7 +29,9 @@ export {
   subtree,
   transformTree,
   duplicateTree,
+  groupRoot,
   DEFAULT_TECHNIQUES,
+  OBJ_TYPE,
 } from './model/object.ts';
 export type { CutObject, PrimitiveInfo } from './model/object.ts';
 

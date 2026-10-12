@@ -1,3 +1,6 @@
-// @cutplane/behaviors: Host API for the CPL VM: the C-routine (Crtn) equivalents.
-// Scaffold only; implementation starts in a later milestone (see PLAN.md §10).
-export {};
+// @cutplane/behaviors: the world the CPL VM runs in (the original's C host), on the kernel.
+export * from './features.ts';
+export * from './journal.ts';
+export * from './runtime.ts';
+export * from './controls.ts';
+export * from './crtns.ts';

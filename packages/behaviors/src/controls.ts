@@ -1,0 +1,228 @@
+import {
+  Env,
+  Op,
+  P,
+  boolWord,
+  envWord,
+  offsetWord,
+  opcodeWord,
+  propWord,
+  Aux,
+  setupAux,
+  Word,
+} from '@cutplane/cpl';
+import type { Runtime, V3 } from './runtime.ts';
+
+/**
+ * Input as CPL (controls.c): button presses, key commands and crosshair
+ * motion become instruction sentences in RAM, which the next frame's ROM
+ * pass examines and the features' code acts on.
+ */
+
+/** update.c's drag_valid: a press becomes a drag past Pkboxsize / 2 in x or y... */
+export const DRAG_DEAD_ZONE = 5;
+/** ...or once the plane has moved more than Onplanetol. */
+export const ON_PLANE_TOL = 1e-3;
+/** controls.c's DUPLICATEBUTTON offset. */
+export const DUPLICATE_OFFSET: V3 = [100, 100, 0];
+
+export class Controls {
+  /** Pick button held. */
+  pickHeld = false;
+  /** Plane-move button (quasimode) held. */
+  planeHeld = false;
+  constrainHeld = false;
+  /** Shift (Multipleselect) held at the last press. */
+  private multiple = false;
+  private dragOrigin: V3 | null = null;
+  private alreadyValidDrag = false;
+  private waitForGoodDrag = false;
+  /** Something happened this frame. */
+  private events = false;
+
+  constructor(private readonly rt: Runtime) {}
+
+  private get vm() {
+    return this.rt.vm;
+  }
+
+  // ---- buttons (encode_statechange) ----
+
+  pressPick(shift: boolean): void {
+    if (this.pickHeld) return;
+    this.pickHeld = true;
+    this.multiple = shift;
+    this.events = true;
+    // Selectables are found now, so the press acts on what is under the crosshair.
+    this.rt.setSelectables();
+    this.vm.storeInstruction(opcodeWord(shift ? Op.MPICK : Op.PICK), propWord(P.Selectable, true));
+    this.setDragOrigin();
+  }
+
+  releasePick(): void {
+    if (!this.pickHeld) return;
+    this.pickHeld = false;
+    this.events = true;
+    this.rt.setSelectables();
+    this.vm.storeInstruction(
+      opcodeWord(this.multiple ? Op.MRELEAS : Op.RELEAS),
+      propWord(P.Selectable, true),
+    );
+    this.dragOrigin = null;
+    this.alreadyValidDrag = false;
+  }
+
+  pressPlane(): void {
+    if (this.planeHeld) return;
+    this.planeHeld = true;
+    this.events = true;
+    this.vm.storeInstruction(opcodeWord(Op.PICK), envWord(Env.Cutplane_part));
+    this.vm.encodeInstruction(' MAKEMSG Msg:Canceljump');
+    this.vm.encodeInstruction(' QMSG Obj:Crosshair_Cursor,Const:Noprioritymsg');
+    this.vm.encodeInstruction(' PUSH Const:TRUE');
+    this.vm.encodeInstruction(' CRTN Crtn:set_hiddenedge');
+  }
+
+  releasePlane(): void {
+    if (!this.planeHeld) return;
+    this.planeHeld = false;
+    this.events = true;
+    this.vm.storeInstruction(opcodeWord(Op.RELEAS), envWord(Env.Cutplane_part));
+    this.vm.encodeInstruction(' PUSH Const:FALSE');
+    this.vm.encodeInstruction(' CRTN Crtn:set_hiddenedge');
+    this.vm.encodeInstruction(' GLUPDATE Const:URedrawflag/when:Now');
+  }
+
+  /** Ctrl (Constrain): cursor.cpl's Constraining message. */
+  setConstrain(on: boolean): void {
+    if (on === this.constrainHeld) return;
+    this.constrainHeld = on;
+    this.events = true;
+    this.vm.encodeInstruction(' WORLD Const:WEnvironment_world');
+    this.vm.encodeInstruction(' MAKEMSG Msg:Constraining');
+    this.vm.encodeInstruction(` MAKEMSG Const:${on ? 'TRUE' : 'FALSE'}`);
+    this.vm.encodeInstruction(' QMSG Obj:Crosshair_Cursor,Const:Prioritymsg');
+    this.vm.encodeInstruction(' WORLD Const:WPrimary_world');
+  }
+
+  // ---- keys (update_queued_buttons) ----
+
+  delete(): void {
+    this.events = true;
+    this.vm.encodeInstruction(' MAKEMSG Msg:Delete');
+    this.vm.encodeInstruction(' QMSG Prop:Picked*,Const:Noprioritymsg');
+  }
+
+  duplicate(): void {
+    this.events = true;
+    const [x, y, z] = DUPLICATE_OFFSET;
+    this.vm.encodeInstruction(' DUP Prop:Picked*,A:R3');
+    this.vm.encodeInstruction(
+      ` TRANS A:R3*,Const:Normaltranslate,Const:V[${x.toFixed(1)},${y.toFixed(1)},${z.toFixed(1)}]`,
+    );
+    this.vm.encodeInstruction(' MAKEMSG Msg:Unpick');
+    this.vm.encodeInstruction(' QMSG Prop:Picked*,Const:Noprioritymsg');
+    this.vm.encodeInstruction(' MAKEMSG Msg:Pick');
+    this.vm.encodeInstruction(' QMSG A:R3*,Const:Noprioritymsg');
+  }
+
+  planeJump(): void {
+    this.events = true;
+    this.vm.encodeInstruction(' MAKEMSG Msg:Jumplane');
+    this.vm.encodeInstruction(' QMSG Obj:Crosshair_Cursor,Const:Prioritymsg');
+  }
+
+  /** The R key: rotatecircle.cpl's Snaprotatetool message. */
+  snapRotateTool(): void {
+    this.events = true;
+    this.vm.encodeInstruction(' MAKEMSG Msg:Snaprotatetool');
+    this.vm.encodeInstruction(' QMSG Obj:Rotatetool_Innercircle,Const:Prioritymsg');
+  }
+
+  /** store_roomrot: the room turns by (dx, dy) tenths of a degree. */
+  rotateRoom(dx: number, dy: number): void {
+    const ad = new Word();
+    setupAux(ad, Aux.Rotate);
+    ad.vec = [dx, dy, 0, 0, 0, 0, 0];
+    this.vm.storeInstruction(opcodeWord(Op.ROTATE), envWord(Env.Room_part), ad);
+  }
+
+  // ---- motion (store_mouse_cursor_move, store_cursor_move) ----
+
+  private setDragOrigin(): void {
+    if (this.dragOrigin) return;
+    this.dragOrigin = this.rt.cursor();
+    this.alreadyValidDrag = false;
+    this.waitForGoodDrag = true;
+  }
+
+  private dragValid(to: V3): boolean {
+    const o = this.dragOrigin;
+    if (!o) return false;
+    if (!this.alreadyValidDrag)
+      this.alreadyValidDrag =
+        Math.abs(to[2] - o[2]) > ON_PLANE_TOL ||
+        Math.abs(to[0] - o[0]) > DRAG_DEAD_ZONE ||
+        Math.abs(to[1] - o[1]) > DRAG_DEAD_ZONE;
+    return this.alreadyValidDrag;
+  }
+
+  /**
+   * The crosshair (and, with the plane button, the plane) should move by `d`. `actual`
+   * says how far it really will (the room's limits, plane snapping): what is dragged
+   * moves by exactly that, so it stays with the crosshair.
+   */
+  moveCrosshair(d: V3, actual: (d: V3) => V3): void {
+    if (d[0] === 0 && d[1] === 0 && d[2] === 0) return;
+    const c = this.rt.cursor();
+    const real = actual(d);
+    const projected: V3 = [c[0] + real[0], c[1] + real[1], c[2] + real[2]];
+    if (this.pickHeld && this.dragValid(projected)) {
+      // The first drag step catches up with the crosshair from where the press was.
+      let drag = real;
+      if (this.waitForGoodDrag) {
+        this.waitForGoodDrag = false;
+        const o = this.dragOrigin!;
+        drag = [real[0] + c[0] - o[0], real[1] + c[1] - o[1], real[2] + c[2] - o[2]];
+      }
+      this.vm.storeInstruction(
+        opcodeWord(Op.TRANS),
+        propWord(P.Picked, true),
+        boolWord(true),
+        offsetWord(drag),
+      );
+    }
+    this.vm.storeInstruction(
+      opcodeWord(Op.TRANS),
+      envWord(Env.Crosshair_part),
+      boolWord(false),
+      offsetWord(d),
+    );
+  }
+
+  /** Is a press waiting to become a drag (inside the dead zone)? */
+  get pressedStill(): boolean {
+    return this.pickHeld && !this.alreadyValidDrag;
+  }
+
+  // ---- the frame (new_update_state) ----
+
+  /**
+   * One frame: CPL if anything is waiting, then updates, then selectables. A gesture
+   * ends (as one undoable step) once no button is held.
+   */
+  frame(): boolean {
+    // new_user_input: input events find selectables first (set_selectables_definite)...
+    if (this.events) this.rt.setSelectables();
+    this.events = false;
+    const ran = this.vm.step();
+    this.rt.endFrame();
+    if (!this.pickHeld && !this.planeHeld) {
+      this.rt.finishDrags();
+      this.rt.commit();
+    }
+    // ...and every frame finds them again before drawing, from where things are now.
+    this.rt.setSelectables();
+    return ran;
+  }
+}
