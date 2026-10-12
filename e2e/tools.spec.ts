@@ -251,3 +251,39 @@ test('the saw cuts the cube in two at the plane; undo puts it back', async ({
   expect((await edit(page)).faces).toBe(6);
   expect(errors).toEqual([]);
 });
+
+test('the pencil draws a closed shape in the plane, which becomes a solid', async ({
+  page,
+  browserName,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0 });
+  type P3 = [number, number, number];
+  const click = async (at: P3) => {
+    await set(page, { x: at[0], y: at[1] });
+    await press(page);
+    await release(page);
+  };
+  await click(await locate<P3>(page, 'toolpads'));
+  const [pencil] = await locate<P3[]>(page, 'pads');
+  await click(pencil!);
+  // A triangle beside the cube, drawn in steps as a hand would.
+  await set(page, { x: -300, y: -150 });
+  await press(page);
+  const corners: [number, number][] = [[-180, -150], [-240, -50], [-300, -150]]; // prettier-ignore
+  let [x, y] = [-300, -150];
+  for (const [cx, cy] of corners) {
+    for (let i = 1; i <= 20; i++)
+      await set(page, { x: x + ((cx - x) * i) / 20, y: y + ((cy - y) * i) / 20 });
+    [x, y] = [cx, cy];
+  }
+  // The stroke shows while it's drawn (draw_scribble_technique).
+  const sc = await page.evaluate(() => window.__cutplane!.scribble());
+  expect(sc.segments).toBeGreaterThan(20);
+  await shot(page, 'pencil-drawing', browserName);
+  await release(page);
+  expect((await edit(page)).faces).toBe(6 + 5);
+  await set(page, { yaw: -50, pitch: 25 });
+  await shot(page, 'pencil-solid', browserName);
+  expect(errors).toEqual([]);
+});

@@ -7,6 +7,8 @@ import { CLASSIC, rgb, shadeFace, type PointLight } from '../viewer/palette.ts';
 export function isDrawn(o: CutObject): boolean {
   // The marquee is drawn as its box (Highlights), never as an object with a section.
   if (o.drawTechnique === 'draw_marquee_technique') return false;
+  // A pencil stroke being drawn is a line (ScribbleView) until it closes into a solid.
+  if (o.drawTechnique === 'draw_scribble_technique') return false;
   const p = o.attrs.props;
   return (
     p.includes('Visible') &&

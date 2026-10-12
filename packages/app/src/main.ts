@@ -39,6 +39,7 @@ import { ScaleBoxView } from './render/scalebox.ts';
 import { setLineResolution } from './render/lines.ts';
 import { ModelView } from './render/models.ts';
 import { CameraSlide } from './render/cameraslide.ts';
+import { ScribbleView } from './render/scribbles.ts';
 import { LabelView } from './render/labels.ts';
 import { PadView } from './render/pads.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
@@ -90,7 +91,9 @@ const envSection = new SectionLines();
 const padView = new PadView();
 const labelView = new LabelView();
 const cameraSlide = new CameraSlide();
+const scribbles = new ScribbleView();
 scene.add(
+  scribbles.object,
   cameraSlide.object,
   padView.object,
   labelView.object,
@@ -464,6 +467,7 @@ function render(): void {
       outlinedParts(rt, envView.models),
     );
     lastHighlights = hkey;
+    scribbles.update(rt);
     padView.update(rt);
     labelView.update(rt);
     codePanel.show();
@@ -732,6 +736,7 @@ declare global {
       tool(): { center: number[]; hover: string | null; rotating: boolean };
       color(): { rgb: number[]; hover: string | null; base: number[] };
       locate(what: string): unknown;
+      scribble(): { segments: number; start: number[] };
       saveText(): string;
       openText(text: string): void;
       undo(): void;
@@ -869,6 +874,7 @@ async function start(): Promise<void> {
       };
       return parts[what]?.() ?? null;
     },
+    scribble: () => ({ segments: scribbles.segments, start: scribbles.start }),
     tool: () => {
       const t = toolDrawing(rt, rotateTool);
       return {

@@ -18,14 +18,18 @@ export interface LineStyle {
   /** Dash and gap length in room units. */
   dash?: number;
   depthTest?: boolean;
+  /** Lines in front of the plane write depth, or its stipple (drawn later) covers them. */
+  depthWrite?: boolean;
   renderOrder?: number;
 }
 
 const materials = new Set<LineMaterial>();
+const resolution = new THREE.Vector2(1, 1);
 
 /** Every line material needs the drawing-buffer size to turn pixel widths into clip space. */
 export function setLineResolution(width: number, height: number): void {
-  for (const m of materials) m.resolution.set(width, height);
+  resolution.set(width, height);
+  for (const m of materials) m.resolution.copy(resolution);
 }
 
 export function lineMaterial(style: LineStyle): LineMaterial {
@@ -36,8 +40,10 @@ export function lineMaterial(style: LineStyle): LineMaterial {
     dashSize: style.dash ?? 6,
     gapSize: style.dash ?? 6,
     depthTest: style.depthTest ?? true,
-    depthWrite: false,
+    depthWrite: style.depthWrite ?? false,
   });
+  // Lines made after the last resize (a pencil stroke, say) need the size too.
+  m.resolution.copy(resolution);
   materials.add(m);
   return m;
 }

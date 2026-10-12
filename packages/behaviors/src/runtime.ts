@@ -51,6 +51,7 @@ import {
 } from './tools/scalebox.ts';
 import { Journal, restoreTree, type ObjectSnapshot, type Step } from './journal.ts';
 import { MODELING_CRTNS, booleanObjects } from './modeling.ts';
+import { PENCIL_CRTNS } from './tools/pencil.ts';
 
 /**
  * The world the CPL VM runs in: the original's worlds, objects and
@@ -298,6 +299,7 @@ export class Runtime implements Host {
     this.scaleBoxTemplate = createScaleBoxTemplate(this);
     this.registerCrtns(SCALEBOX_CRTNS);
     this.registerCrtns(MODELING_CRTNS);
+    this.registerCrtns(PENCIL_CRTNS);
     this.selectTechniques['set_scalebbox_selectable'] = (o) => setScaleBoxSelectable(this, o);
     this.placeEnvironment();
   }

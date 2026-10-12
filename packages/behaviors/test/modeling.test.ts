@@ -149,3 +149,60 @@ describe('the drill (drill.cpl, CPBOOLEAN)', () => {
     expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3, 3);
   });
 });
+
+describe('the pencil (pencil.cpl, start_draw, extend_draw, end_draw)', () => {
+  /** Draws a closed stroke through `pts` (offsets from the start) with the pencil down. */
+  const draw = (w: ReturnType<typeof setup>, at: [number, number], pts: [number, number][]) => {
+    w.at(at[0], at[1], 0);
+    w.frame();
+    w.controls.pressPick(false);
+    w.frame();
+    let [x, y] = [0, 0];
+    for (const [px, py] of pts) {
+      // In small steps, as a hand moves.
+      const n = Math.ceil(Math.hypot(px - x, py - y) / 3);
+      for (let i = 1; i <= n; i++) w.move((px - x) / n, (py - y) / n);
+      [x, y] = [px, py];
+    }
+    w.controls.releasePick();
+    w.frame();
+    w.frame();
+  };
+
+  it('a closed stroke in the plane becomes a solid, extruded 50 and straddling the plane', () => {
+    const w = setup();
+    const { tool } = w.take(0);
+    expect(w.rt.hasProp(tool, 'Draw')).toBe(true);
+    const before = w.solids().length;
+    // A triangle beside the cube, drawn in the plane.
+    draw(w, [-400, -200], [[120, 0], [60, 100], [0, 0]]); // prettier-ignore
+    const made = w.solids().filter((o) => o !== w.cube);
+    expect(made).toHaveLength(before);
+    const o = made[0]!;
+    expect(sound(o)).toBe(true);
+    expect(o.brep.faces()).toHaveLength(5); // a triangular prism
+    expect(volume(o.brep) / (0.5 * 120 * 100 * 50)).toBeCloseTo(1, 2); // as drawn, near enough
+    const b = w.rt.bbox(o)!;
+    expect(b[0][2]).toBeCloseTo(-10, 6);
+    expect(b[1][2]).toBeCloseTo(40, 6);
+    expect(w.rt.undo()).toBe(true);
+    expect(w.solids()).toEqual([w.cube]);
+  });
+
+  it('a stroke that crosses itself is thrown away', () => {
+    const w = setup();
+    w.take(0);
+    draw(
+      w,
+      [-400, -200],
+      [
+        [100, 100],
+        [100, 0],
+        [0, 100],
+        [0, 0],
+      ],
+    ); // prettier-ignore (a bow tie)
+    expect(w.solids()).toEqual([w.cube]);
+    expect(w.rt.primary.root.children.filter((o) => o !== w.cube)).toEqual([]);
+  });
+});
