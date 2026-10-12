@@ -110,8 +110,8 @@ export class ModelView {
   }
 
   /** Catches up with objects added to or removed from the world (duplicate, delete, undo). */
-  sync(roots: readonly CutObject[]): void {
-    const now = [...preorder(roots)].filter(isDrawn);
+  sync(roots: readonly CutObject[], wanted: (o: CutObject) => boolean = () => true): void {
+    const now = [...preorder(roots)].filter((o) => isDrawn(o) && wanted(o));
     const keep = new Set(now);
     for (const m of this.models) if (!keep.has(m.object)) this.drop(m);
     const had = new Map(this.models.map((m) => [m.object, m]));

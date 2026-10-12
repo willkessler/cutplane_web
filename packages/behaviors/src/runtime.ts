@@ -1132,6 +1132,19 @@ export class Runtime implements Host {
     this.treeChanged();
   }
 
+  /** kill_obj_branch for things being built (no undo): the branch leaves the world. */
+  discard(o: CutObject): void {
+    const p = o.parent;
+    if (p) p.children.splice(p.children.indexOf(o), 1);
+    o.parent = null;
+    for (const x of subtree(o)) {
+      this.vm.props.forget(x);
+      for (const h of this.features.known(x)) this.vm.props.forget(h);
+      this.selectables.delete(x);
+    }
+    this.treeChanged();
+  }
+
   /** A scale box leaves the tree unrecorded; its children go to its parent, linked. */
   private dissolve(box: CutObject): void {
     const p = box.parent;

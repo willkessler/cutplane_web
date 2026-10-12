@@ -9,6 +9,8 @@ import {
   Runtime,
   createColorControl,
   installRotateTool,
+  installToolbars,
+  isPad,
   isObject,
   scaleBoxes as scaleBoxesIn,
   type V3,
@@ -31,6 +33,7 @@ import { RotateToolView } from './render/rotatetool.ts';
 import { ScaleBoxView } from './render/scalebox.ts';
 import { setLineResolution } from './render/lines.ts';
 import { ModelView } from './render/models.ts';
+import { PadView } from './render/pads.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
 import { SectionLines } from './render/sectionlines.ts';
 import { createCamera, deeperOnScreen, fitFov, orbitCamera, unitsPerPixel } from './scene.ts';
@@ -76,7 +79,9 @@ const boxView = new ScaleBoxView();
 /** The environment: goodies that stand in the room but aren't part of the world being edited. */
 const envView = new ModelView();
 const envSection = new SectionLines();
+const padView = new PadView();
 scene.add(
+  padView.object,
   envView.object,
   envSection.object,
   toolView.object,
@@ -132,6 +137,45 @@ const source = (f: string): string => {
   if (text === undefined) throw new Error(`${f}: not loaded`);
   return text;
 };
+/** The original's resources the environment is built from (rsc/ and icons/, by file name). */
+const TOOLBARS = ['toolpads.rsc', 'arrangepads.rsc'];
+const resources = new Map<string, string>();
+const resource = (f: string): string => {
+  const text = resources.get(f);
+  if (text === undefined) throw new Error(`${f}: not loaded`);
+  return text;
+};
+async function loadResources(): Promise<void> {
+  const latin1 = new TextDecoder('latin1');
+  const get = async (f: string) => {
+    for (const dir of ['rsc', 'icons']) {
+      const res = await fetch(`${base}original/${dir}/${f}`);
+      if (res.ok && !res.headers.get('content-type')?.includes('text/html')) {
+        resources.set(f, latin1.decode(await res.arrayBuffer()));
+        return;
+      }
+    }
+    throw new Error(`${f}: not found`);
+  };
+  await Promise.all([...TOOLBARS, 'padhandle.dcl', 'toolpad.dcl', 'toolbar.dcl'].map(get));
+  // Each toolbar names its icons (and the tools they become).
+  const icons = TOOLBARS.flatMap((f) => {
+    const lines = resource(f).split(/\r?\n/);
+    const head = lines
+      .find((l) => l.startsWith('Headpad Icon File:'))!
+      .split(':')[1]!
+      .trim();
+    const n = Number(lines.find((l) => l.startsWith('Number of Toolpads:'))!.split(':')[1]);
+    const at = lines.findIndex((l) => l.startsWith('Number of Toolpads:'));
+    const pads = lines
+      .slice(at + 1)
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('#'));
+    return [head, ...pads.slice(0, n)];
+  });
+  await Promise.all([...new Set(icons)].map(get));
+}
+
 async function loadCpl(): Promise<void> {
   // The originals are Latin-1 (and plain ASCII where it matters).
   const latin1 = new TextDecoder('latin1');
@@ -163,6 +207,7 @@ function makeWorld(): void {
   rotateTool = installRotateTool(rt, source);
   rt.registerCrtns(COLOR_CRTNS);
   colorControl = createColorControl(rt, COLOR_CORNER);
+  installToolbars(rt, resource, TOOLBARS);
   controls = new Controls(rt);
   ready = true;
 }
@@ -306,7 +351,7 @@ function syncModels(): void {
   if (rt.version !== lastWorld) {
     lastWorld = rt.version;
     models.sync(rt.primary.root.children);
-    envView.sync(rt.environment.root.children);
+    envView.sync(rt.environment.root.children, (o) => !isPad(o));
     dirty = envDirty = true;
   }
   const changed = rt.takeChanged();
@@ -362,6 +407,7 @@ function render(): void {
       outlinedParts(rt, envView.models),
     );
     lastHighlights = hkey;
+    padView.update(rt);
     const t = toolDrawing(rt, rotateTool);
     const ring = t.hover && t.hover.kind !== 'center';
     const tkey = `${JSON.stringify(t)}|${stage.z}|${ring ? `${stage.x}|${stage.y}` : ''}`;
@@ -559,7 +605,7 @@ async function start(): Promise<void> {
   resize();
   window.addEventListener('resize', resize);
   showHints();
-  await loadCpl();
+  await Promise.all([loadCpl(), loadResources()]);
   makeWorld();
 
   const index: Entry[] = await fetch(`${base}samples/index.json`)
