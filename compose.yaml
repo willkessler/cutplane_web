@@ -30,6 +30,7 @@ services:
     environment:
       CI: ${CI:-}
       RECORD: ${RECORD:-}
+      SHOTS: ${SHOTS:-}
     volumes: *node-modules
     ipc: host
     command: >

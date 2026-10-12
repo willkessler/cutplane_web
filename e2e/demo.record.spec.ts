@@ -10,18 +10,19 @@ test.skip(!process.env['RECORD'], 'set RECORD=1 to record the README animation')
 
 const W = 800;
 const H = 600;
-const FPS = 12;
-const SECONDS = 8;
+const FPS = 10;
 
 test('record README demo', async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'record once, in Chromium');
   test.setTimeout(10 * 60_000);
   await page.setViewportSize({ width: W, height: H });
-  await page.goto('/?sample=discovery&still=1');
+  await page.goto('/?sample=discovery&demo=1&still=1');
   await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
 
+  // The scripted session in packages/app/src/demo.ts: one action at a time, looping.
+  const seconds = await page.evaluate(() => window.__cutplane!.demoSeconds);
   const gif = GIFEncoder();
-  for (let i = 0; i < FPS * SECONDS; i++) {
+  for (let i = 0; i < Math.round(FPS * seconds); i++) {
     const t = i / FPS;
     const data = await page.evaluate((time) => {
       window.__cutplane!.renderFrame(time);

@@ -9,7 +9,7 @@ The user guide and architecture notes will grow here as each milestone lands. Sc
 | --------- | ------------------------------------------------------------------- |
 | **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI              |
 | **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation |
-| M2        | Room, plane, section and full-screen work mode                      |
+| **M2** ✅ | Room, plane, section and full-screen work mode                      |
 | M3        | Direct manipulation: selection hierarchy, drag, constrain, carry    |
 | M4        | Rotate tool and editing, undo                                       |
 | M5        | CPL VM and environment: code stored in objects, live editing        |
@@ -18,6 +18,78 @@ The user guide and architecture notes will grow here as each milestone lands. Sc
 | M8        | Ship: user guide, help plate, deployment                            |
 | M9        | Acceptance: load and rebuild the stapler, fan and Discovery         |
 | M10       | Language evolution (optional)                                       |
+
+## Using Cutplane
+
+![The Discovery cut at z = 0, room turned 25° to the left](images/section-discovery.png)
+
+The room is a box in front of you. The **cutplane** is always parallel to its front wall and
+moves only in depth, and the **crosshair** always lies in the plane. Wherever the plane slices a
+solid you see its **section**: medium yellow where the cut surface faces you, edged in black so it
+reads over any colour, dotted where geometry in front of the plane hides it, and bright yellow
+for edges lying exactly in the plane. Whatever is behind the plane shows through its stipple, so
+"behind" is visible at a glance. Shadows fall straight down onto the floor.
+
+As the plane moves it **clicks onto vertex depths**: when a move would carry it past a vertex, it
+stops there until pushed 5 more units (the original's `do_sticking`). That is how faces and edges
+come to lie in the plane, ready to grab. Hold **Ctrl** to move slowly and freely.
+
+### Controls
+
+Pick a profile in the toolbar (Macs default to the trackpad). Every mode is **spring-loaded**: it
+lasts only while you hold the key or button, and a small glyph beside the crosshair shows which
+one is active.
+
+| Action          | Trackpad / one button | Three-button mouse | Two-button mouse     |
+| --------------- | --------------------- | ------------------ | -------------------- |
+| Move crosshair  | move                  | move               | move                 |
+| Plane depth     | hold ⌥ + move, scroll | middle-drag, wheel | hold ⌥ + move, wheel |
+| Rotate the room | hold ⌘ + move         | right-drag         | right-drag           |
+| Fine, no snaps  | hold Ctrl             | hold Ctrl          | hold Ctrl            |
+
+| Key     | Command                                                   |
+| ------- | --------------------------------------------------------- |
+| Space   | Plane jump: to the back wall, and back again              |
+| ← → ↑ ↓ | Rotate the room 10° (±90° side to side, 0–90° from above) |
+| 0       | Reset the view                                            |
+| Enter   | Start working (full screen, pointer captured)             |
+
+Pushing away (up the screen, or scrolling away) sends the plane deeper into the room.
+
+### Work mode
+
+**Start working** (or Enter) goes full screen and captures the pointer, like the SGI: the cursor
+can't leave the window, and the plane and room can be pushed as far as you like without hitting a
+screen edge. Input is raw relative motion, unaccelerated where the browser allows.
+
+- **Leaving:** hold Esc in Chromium (the Keyboard Lock API lets a single tap reach the app), or
+  tap Esc in Firefox and Safari.
+- **Pausing:** if the pointer is released (Esc, ⌘-Tab, a notification), everything stays where
+  it was, and a click resumes.
+- **Without work mode** the app runs windowed: the crosshair sits exactly under the hidden
+  pointer, and all the bindings above still work.
+
+![The flying hand (rsc/hand6.rsc) cut through the palm](images/section-hand6.png)
+
+## Sections (M2)
+
+- **Algorithm.** `packages/kernel/src/section/section.ts` rewrites the original's `intersect.c`,
+  which made per-face segments but never chained them into loops. Each vertex is classified once
+  as in front of, behind or on the plane. On-plane vertices count as "just in front" (a symbolic
+  perturbation), so every edge either crosses or doesn't, and the degenerate cases (a corner
+  touching the plane, an edge or a whole face lying in it) are limits of the generic one. Each
+  crossing is keyed by its edge, which both of the edge's faces share, so segments chain into
+  loops by edge ID alone, with no point matching and no epsilon. Loops run counter-clockwise
+  around material and clockwise around holes, and each segment records its face and edges, for
+  selection in M3.
+- **Tested on real models.** Every closed shell in the bundled samples, the original resources
+  and the 1991–94 archive gives only closed loops, cut at 15 depths and exactly at sampled vertex
+  depths. That includes nearly flat faces left slightly non-planar by 1991 float32 drift, the case
+  the original warned about ("face crosses plane odd number of times").
+- **Rendering** follows `grafx.c`: the SGI's 50% polygon stipple for the plane (one cell per CSS
+  pixel), `shade.c`'s ambient light plus two lights fixed to the room, the plus-shaped 3Form
+  crosshair (`cursor.c`), and the room's black edges over background-coloured halos. Colours are
+  the original 8-bit values, written to the screen unconverted.
 
 ## Geometry kernel and files (M1)
 
@@ -54,5 +126,9 @@ The user guide and architecture notes will grow here as each milestone lands. Sc
   original resources. `node packages/formats/scripts/report.ts corpus/cut` (in the dev
   container) prints a fidelity report.
 - **README animation.** `docs/images/demo.gif` is recorded from the running app:
-  `RECORD=1 docker compose run --rm e2e`. Re-record it whenever a milestone changes what the
-  app looks like.
+  `RECORD=1 docker compose run --rm e2e`. It plays the scripted session in
+  `packages/app/src/demo.ts`, which does one thing at a time the way a person would (turn the
+  room a little, push the plane, turn again); a unit test keeps it that way. Re-record it
+  whenever a milestone changes what the app looks like.
+- **Screenshots.** `SHOTS=.shots docker compose run --rm e2e` saves the E2E screenshots used in
+  these docs (copy them into `docs/images/`).

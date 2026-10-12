@@ -6,10 +6,10 @@ A browser-native rebuild of **Cutplane / 3Form**, the late-1980s SGI 3D modeler 
 _moving section plane_. You push a plane through the room, and wherever it slices your solids you
 see their cross-sections. Vertices, edges and faces are picked and edited where they cross it.
 
-> **Status: M1 (geometry kernel and `.cut` files).** The animation shows the _Discovery_,
-> modeled in 3Form in April 1991 and loaded unchanged from its original `disc4.cut`, in a
-> preview renderer. Sectioning, editing and tools come next. See the
-> [roadmap](docs/README.md#roadmap).
+> **Status: M2 (room, plane, section, work mode).** The animation shows the _Discovery_,
+> modeled in 3Form in April 1991 and loaded unchanged from its original `disc4.cut`, with the
+> cutplane pushed through it: the yellow line is the live section. Editing and tools come next.
+> See the [roadmap](docs/README.md#roadmap) and the [controls](docs/README.md#using-cutplane).
 
 ## Quick start
 

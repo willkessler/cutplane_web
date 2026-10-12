@@ -24,3 +24,7 @@ export * from './primitives.ts';
 
 export { createObject, adopt, preorder, DEFAULT_TECHNIQUES } from './model/object.ts';
 export type { CutObject, PrimitiveInfo } from './model/object.ts';
+
+export { computeSection, loopArea, WorldGeometry, ON_PLANE } from './section/section.ts';
+export type { ObjectSection, SectionLoop, SectionSegment } from './section/section.ts';
+export { PlaneSnapper, DEPTH_MERGE, PLANE_FREEDOM } from './section/planesnap.ts';
