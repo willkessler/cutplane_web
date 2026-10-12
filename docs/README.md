@@ -11,7 +11,7 @@ The user guide and architecture notes will grow here as each milestone lands. Sc
 | **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation |
 | **M2** ✅ | Room, plane, section and full-screen work mode                      |
 | **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo    |
-| M4        | Rotate tool and editing, undo                                       |
+| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                 |
 | M5        | CPL VM and environment: code stored in objects, live editing        |
 | M6        | Modeling operations: slice, booleans, drill, push/pull              |
 | M7        | Formats: OBJ, STL, glTF, drag and drop, autosave                    |
@@ -57,6 +57,9 @@ lasts only while you hold the key or button.
 | ← → ↑ ↓ | Rotate the room 10° (±90° side to side, 0–90° from above) |
 | 0       | Reset the view                                            |
 | F       | Start or stop working (full screen, pointer captured)     |
+| R       | Rotate tool to the crosshair (on its centre: put it away) |
+| D       | Duplicate what is picked                                  |
+| ⌫       | Delete what is picked                                     |
 | ⌘Z, ⇧⌘Z | Undo, redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y elsewhere)     |
 
 Dragging the plane follows the plane on screen: you push it the way it visibly travels as it goes
@@ -98,6 +101,46 @@ back**. Pull a corner out and push it back, and the cube is a cube again.
   solid broken (an edge squashed to nothing, a face folded flat) is put back on release.
 - **New cube** in the model menu starts from a plain cube, to shape from scratch.
 
+### Tools
+
+![The rotate tool set on a cube in the plane, rolling it](images/tool-rolled.png)
+
+Like everything else, the tools stand in the room and are used through the plane.
+
+- **The rotate tool** always lies in the cutplane, parked in the upper right corner: a centre
+  ring, two crossbars with a bauble at each end, and a dial circle. **R** brings it to the
+  crosshair and picks what is there on its own. Over a vertex, edge or face it lines up with
+  the feature: along an edge lying in the plane, across a face's section line, or, on an edge
+  piercing the plane, ready to spin about that edge. **R** on the tool's centre parks it again,
+  and the centre can also be dragged and dropped onto a feature.
+  - **Slide along a bar** to roll what is picked about the axis in the plane across the bar,
+    through the centre: 1° per unit. The crosshair stays on the bar.
+  - **Off the end of a bar**, or from a **bauble**, the drag turns the dial: the crosshair rides
+    the circle and what is picked spins about the plane's normal (or about the piercing edge),
+    the bars turning with it. It pauses briefly at horizontal.
+  - **Set on a face's section line**, rolling stops briefly when the face stands straight across
+    the plane, and within 5° of lying in the plane it **snaps the face exactly into the plane**;
+    the rotation ends there and everything is let go.
+  - Rotation always turns whole objects (with their group).
+- **Scale boxes.** A picked object shows the handles of a box 20 units outside it: grey squares
+  where the box's edges pierce the plane, white ones at corners the plane is near. Drag an edge
+  handle to stretch the object across that edge, away from the opposite one; move the plane
+  while holding it to slide the handle along its edge to a corner. Drag a corner to scale about
+  the opposite corner, each axis on its own (carrying it in depth scales in depth). **Ctrl**
+  scales evenly about the middle.
+- **D** duplicates what is picked: each picked thing's whole object, 100 units right and up, and
+  the copies are picked. **⌫** deletes it: whole objects, or single vertices, edges and faces.
+  Deleting a vertex cuts it off, the faces around it becoming one face across its neighbours;
+  an edge between two faces lying flat merges them, any other edge goes with both its ends; a
+  face goes with all its corners. A delete that would leave the solid broken or flat is refused.
+- **The colour control** stands by the back wall, bottom right (the plane jump takes you there):
+  three bars, red, green and blue, on a base, and a white paint chip. Drag a bar's top up or down
+  and what is picked takes the mixed colour as you go. Drag the chip and a copy comes away with
+  the crosshair; carry it to a face or an object (move the plane with it) and let go to paint
+  it there. A face painted on its own keeps its colour when its object is recoloured.
+
+All of these can be undone.
+
 ### Work mode
 
 **Start working** (or F) goes full screen and captures the pointer, like the SGI: the cursor
@@ -114,6 +157,34 @@ covers the room while you work: the toolbar and the status bar disappear.
   (it never jumps); it lines up with the pointer again when the pointer re-enters the window.
 
 ![The flying hand (rsc/hand6.rsc) cut through the palm](images/section-hand6.png)
+
+## Tools (M4)
+
+Ported from `rotatetool.c`, `rotateobj.c`, `scale.c`, `duplicate.c`, `topology.c`'s
+`delete_vertex` family and `tools.c`'s `create_color_control`, and the CPL that drove them
+(`rotatecircle.cpl`, `rotatexbar.cpl`, `rotatebauble.cpl`, `scalebbox.cpl`, `colorbar.cpl`,
+`paint.cpl`, `rom.cpl`).
+
+- **No 15° steps.** The plan promised 15° and 5° snapping, but `Rotatesnapangle 15` is a dead
+  constant in the original and Ctrl does nothing to rotation. Its only snaps are the ones above:
+  the 5° magnet that lays a face into the plane, the stop at perpendicular, and the dial's stop
+  at horizontal.
+- **Deliberate fixes:** the face snap's 7.5° limit on a single move tests the size of the angle
+  (the original let every negative angle through); the dial keeps fractional degrees (the
+  original truncated each mouse event to whole degrees, so slow turns were lost); R over a vertex
+  or a face lying in the plane brings the tool there (the original left it where it was); the
+  brief stops last a distance or an angle instead of a number of mouse events; scale boxes keep
+  every side at least 1 unit long (the original could turn a solid inside out); and every colour
+  bar maps its height to 0–255 the same way (the original's dragged bar could go past 255).
+- **Not ported yet:** toolboxes, tool pads and the goodies box are the CPL environment's (M5);
+  until then the colour control stands where the goodies box would be, and the eraser end of the
+  pencil comes with the pencil. The original's `duplicate.cpl`, `delete.cpl`, `colorctrl.cpl`,
+  `sizebbox.cpl` and the `old*` rotate scripts were never attached to anything.
+- **Kernel.** `ops/delete.ts` follows `delete_vertex`: every face around the vertex is first cut
+  so only a triangle touches it, then the triangles merge into one face across the neighbours,
+  which is triangulated if bent. Earlier deletes can leave a vertex where two fans of faces meet;
+  deleting one of those is refused. A property test runs random chains of deletes on a cube, a
+  holed cube and a sphere and checks the B-rep stays consistent.
 
 ## Direct manipulation (M3)
 

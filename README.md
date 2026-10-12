@@ -6,10 +6,11 @@ A browser-native rebuild of **Cutplane / 3Form**, the late-1980s SGI 3D modeler 
 _moving section plane_. You push a plane through the room, and wherever it slices your solids you
 see their cross-sections. Vertices, edges and faces are picked and edited where they cross it.
 
-> **Status: M3 (direct manipulation).** The animation shows the _Discovery_, modeled in 3Form in
-> April 1991 and loaded unchanged from its original `disc4.cut`. The cutplane is pushed through
-> it (the yellow line is the live section), then a face of the command module is taken hold of
-> through the section, pulled out and pushed back home. The rotate tool and editing come next.
+> **Status: M4 (tools).** The animation shows the _Discovery_, modeled in 3Form in April 1991
+> and loaded unchanged from its original `disc4.cut`. The cutplane is pushed through it (the
+> yellow line is the live section), a face of the command module is taken hold of through the
+> section, pulled out and pushed back home, and then the rotate tool is brought to the lower ship
+> and a slide along its bar rolls the ship around and back. The CPL environment comes next.
 > See the [roadmap](docs/README.md#roadmap) and the [controls](docs/README.md#using-cutplane).
 
 ## Quick start

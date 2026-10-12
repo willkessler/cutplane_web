@@ -10,7 +10,7 @@ test.skip(!process.env['RECORD'], 'set RECORD=1 to record the README animation')
 
 const W = 800;
 const H = 600;
-const FPS = 10;
+const FPS = 8;
 
 test('record README demo', async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'record once, in Chromium');

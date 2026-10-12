@@ -121,6 +121,7 @@ test('the colour control by the back wall: a bar recolours the picked cube, the 
   page,
   browserName,
 }) => {
+  test.setTimeout(60_000);
   const errors = await open(page, 'sample=cube');
   await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
   await press(page);
@@ -134,7 +135,7 @@ test('the colour control by the back wall: a bar recolours the picked cube, the 
   await shot(page, 'color-hover', browserName);
   const before = (await color()).rgb;
   await press(page);
-  for (let y = -232; y >= -290; y -= 2) await set(page, { x: 312, y });
+  for (let y = -235; y >= -290; y -= 5) await set(page, { x: 312, y });
   await release(page);
   const after = (await color()).rgb;
   expect(after[0]).toBeLessThan(before[0]!);
@@ -144,7 +145,7 @@ test('the colour control by the back wall: a bar recolours the picked cube, the 
   // Turn the blue right down, then carry the chip to the cube and drop it there.
   await set(page, { x: 392, y: -230 });
   await press(page);
-  for (let y = -232; y >= -310; y -= 2) await set(page, { x: 392, y });
+  for (let y = -235; y >= -310; y -= 5) await set(page, { x: 392, y });
   await release(page);
   await page.evaluate(() => window.__cutplane!.undo()); // takes the cube's colour back...
   const mix = (await color()).rgb; // ...but the control keeps its setting

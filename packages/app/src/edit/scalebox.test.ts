@@ -100,4 +100,21 @@ describe('scale boxes', () => {
     editor.undo();
     expect(span(models[0]!)[0]).toEqual([-50, 150]);
   });
+
+  it('an edge handle slides along its edge with the plane, then its corner takes over', () => {
+    const { boxes, models } = picked();
+    boxes.press([120, 120, 0]);
+    // The plane moves toward the viewer while held: the handle slides, nothing scales...
+    boxes.move([120, 120, 50], false);
+    expect(span(models[0]!)[2]).toEqual([-100, 100]);
+    expect(boxes.dragged?.kind).toBe('edge');
+    // ...until it reaches the front corner, which then scales in depth.
+    boxes.move([120, 120, 115], false);
+    expect(boxes.dragged).toMatchObject({ kind: 'corner', corner: 7 });
+    boxes.move([120, 120, 235], false);
+    boxes.release();
+    const [x, , z] = span(models[0]!);
+    expect(x).toEqual([-100, 100]);
+    expect(z[1]).toBeGreaterThan(150);
+  });
 });

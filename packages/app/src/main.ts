@@ -238,6 +238,7 @@ function zRange(): [number, number] {
   return Number.isFinite(lo) ? [lo, hi] : [ROOM.min[2], ROOM.max[2]];
 }
 
+let demoKeys = 0;
 function applyDemo(t: number): void {
   const p = demoPose(t);
   const [lo, hi] = zRange();
@@ -247,6 +248,8 @@ function applyDemo(t: number): void {
   control.plane.set(front + (back - front) * p.depth);
   control.yaw = p.yaw;
   control.pitch = p.pitch;
+  if (p.rotateKeys < demoKeys) demoKeys = 0; // looped
+  for (; demoKeys < p.rotateKeys; demoKeys++) rotateTool.snap(cursor());
   const down = editor.pressed || rotateTool.pressed || scaleBoxes.pressed || colorControl.pressed;
   if (p.pressed && !down) pressPick(false);
   else if (!p.pressed && down) releasePick();
@@ -315,7 +318,9 @@ function render(): void {
     highlights.update(editor, models.models, camera.position, outlined);
     lastHighlights = hkey;
   }
-  const tkey = `${rotateTool.version}|${control.z}|${control.x}|${control.y}`;
+  // The tool only follows the crosshair while it shows the grab ring there (over a bar or bauble).
+  const ring = rotateTool.hover && rotateTool.hover.kind !== 'center';
+  const tkey = `${rotateTool.version}|${control.z}|${ring ? `${control.x}|${control.y}` : ''}`;
   if (tkey !== lastTool) {
     toolView.update(rotateTool, control.z, [control.x, control.y]);
     lastTool = tkey;
