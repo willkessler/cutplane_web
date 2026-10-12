@@ -77,8 +77,8 @@ test('picks and moves a whole object of the Discovery', async ({ page, browserNa
   await set(page, { z: 0, yaw: -25, pitch: 12 });
   // Find a point inside some section.
   const inside = await page.evaluate(() => {
-    for (let x = -300; x <= 300; x += 10)
-      for (let y = -200; y <= 200; y += 10) {
+    for (let x = -300; x <= 300; x += 20)
+      for (let y = -200; y <= 200; y += 20) {
         window.__cutplane!.set({ x, y });
         if (window.__cutplane!.edit().hover === 'object') return { x, y };
       }

@@ -417,8 +417,15 @@ let lastLight = '';
  */
 function settle(): void {
   render();
-  const waiting = () => rt.worlds.some((w) => rt.vm.props.features(w, P.Msgpending).length > 0);
-  for (let i = 0; i < 8 && waiting(); i++) render();
+  for (let i = 0; i < 8 && messagesWaiting(); i++) render();
+}
+const messagesWaiting = () =>
+  rt.worlds.some((w) => rt.vm.props.features(w, P.Msgpending).length > 0);
+
+/** Settles only if the world is behind the steering or has messages waiting (for reads). */
+function catchUp(): void {
+  if (control.x !== stage.x || control.y !== stage.y || control.z !== stage.z || messagesWaiting())
+    settle();
 }
 
 const readout = $<HTMLDivElement>('readout');
@@ -792,7 +799,7 @@ async function start(): Promise<void> {
       return `${w}x${h}:${btoa(s)}`;
     },
     state() {
-      settle(); // the world catches up with the pointer first
+      catchUp(); // the world catches up with the pointer first
       return {
         x: stage.x,
         y: stage.y,
@@ -867,7 +874,7 @@ async function start(): Promise<void> {
       render();
     },
     edit() {
-      settle(); // the world catches up with the pointer first
+      catchUp(); // the world catches up with the pointer first
       const h = highlightState(rt, models.models);
       let faces = 0;
       let vertices = 0;
