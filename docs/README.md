@@ -1,7 +1,8 @@
 # Cutplane documentation
 
-The user guide and architecture notes will grow here as each milestone lands. Screenshots go in
-`docs/images/`.
+**New to Cutplane? Start with the [user guide](GUIDE.md).** This page is the reference: the
+roadmap, every control, how Cutplane differs from the 1991 original, and notes for developers.
+Screenshots go in `docs/images/`.
 
 ## Roadmap
 
@@ -14,8 +15,8 @@ The user guide and architecture notes will grow here as each milestone lands. Sc
 | **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                 |
 | **M5** ✅ | CPL VM and environment: code stored in objects, live editing        |
 | **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools  |
-| **M7** 🚧 | Formats: OBJ, STL, glTF, drag and drop, autosave                    |
-| M8        | Ship: user guide, help plate, deployment                            |
+| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                    |
+| **M8** 🚧 | Ship: user guide, help plate, measure pad, live on GitHub Pages     |
 | M9        | Acceptance: load and rebuild the stapler, fan and Discovery         |
 | M10       | Language evolution (optional)                                       |
 
@@ -49,6 +50,7 @@ lasts only while you hold the key or button.
 | Pick, drag      | click, press and drag        | left               | left                 |
 | Carry in depth  | drag, then hold ⌥            | left + middle      | drag, then hold ⌥    |
 | Add or remove   | shift-click                  | shift-click        | shift-click          |
+| Pick everything | ⌘A                           | Ctrl+A             | Ctrl+A               |
 | One axis        | hold Ctrl                    | hold Ctrl          | hold Ctrl            |
 
 | Key     | Command                                                   |
@@ -63,6 +65,7 @@ lasts only while you hold the key or button.
 | \\      | Slice what is picked at the plane                         |
 | B       | Union what is picked into one object                      |
 | Z, H, P | The magnifier, the pan tool, the pencil, to the crosshair |
+| M       | The ruler: the measure pad comes out (again: put it away) |
 | ⌫       | Delete what is picked                                     |
 | ⌘Z, ⇧⌘Z | Undo, redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y elsewhere)     |
 
@@ -104,6 +107,7 @@ where it started, the walls go again; a face pushed inward stretches, as in the 
 A highlighted edge on the far side of its object, its faces all turned away from you, is drawn
 dimmer than one on the near side, so the two can't be confused.
 
+- **⌘A** (Ctrl+A) picks every object in the world; ⌫ then clears it.
 - **Shift-click** adds to what is picked, or takes a picked feature or object away. Pressing on
   something already picked keeps the rest, so several things can be dragged together.
 - **Press on empty space** and drag out a **marquee**: a box in the plane, or a 3D box if you move
@@ -164,9 +168,10 @@ All of these can be undone.
 The room is laid out as in the 3Form photos. Everything in it runs on the original CPL scripts.
 
 - **Toolbars** ride in the plane, top left: a **headpad** with its icon (the hammer for the tools
-  that hammer out changes to objects; a white box, for now, for the tools that look at and arrange
+  that hammer out changes to objects; three bars in a row for the tools that look at and arrange
   them), and under it a rail of **toolpads**, each with its tool's picture.
-  Click a headpad to open or close its rail.
+  Click a headpad to open or close its rail. The arranging rail's headpad shows three bars in a
+  row; its pads hold the magnifier, group tool, pan tool, magnet, grabber and ruler.
   - Click a toolpad and its tool comes off it and rides on the crosshair, just in front of the
     plane. Click the pad again to put the tool back. Click another pad (or call up a tool by
     key) and the tool you hold goes back to its own pad.
@@ -191,6 +196,21 @@ The room is laid out as in the 3Form photos. Everything in it runs on the origin
   - Return on **Save to:** keeps the world in this browser under that name.
   - Return on **Load from:** brings in a world you saved, or a bundled sample (`disc4`,
     `stapler`...).
+  - In any field, the first key you type replaces what it said (the text is outlined until
+    then); Backspace clears it; an arrow key first lets you edit it in place.
+- **The ? pad** (bottom right, in the plane) opens the **help plate**: the controls for the
+  input profile you have chosen, in the room's own lettering. Click ? again to put it away.
+- **The measure pad** comes out with the **ruler** (the last pad on the arranging rail, or
+  **M**), bottom left beside the floppy, and goes when the ruler is put away. While it's out:
+  - pick an object and the cube plate above it shows its **length** (front to back), **width**
+    and **height**, in inches (10 room units to the inch, as the original had it), and the name
+    plate its name. Type a size and Return, and the object is resized to it from its low corner
+    (one undo); type a name and Return to rename it;
+  - pick two things (shift-click the second) and the distance plate shows how far the second is
+    from the first, overall and along x, y and z. Type a distance and Return to move the second;
+  - pick an edge and the length plate shows how long it is;
+  - drag out a marquee and the cube plate shows its size as it grows, its depth too if you move
+    the plane while dragging.
 
 ![The Load / Save plate, a name being typed into Load from:](images/env-plate.png)
 
@@ -217,6 +237,11 @@ undo away.
   back to where it started, and becomes a solid 50 deep, straddling the plane. A stroke that
   crosses itself keeps the largest region it encloses. Only a scrap too small to be a face comes
   to nothing.
+  - **On a surface:** press on a vertex or edge where the plane cuts an object (a corner of its
+    section, or an edge lying in the plane). A white line follows the crosshair. Press on another
+    vertex or edge of the same face and the face is split in two along the line, ready to pull
+    out (with _Faces extrude_) or recolour. Press anywhere else to give it up. A line between
+    points with no face in common, or one that would leave the face, draws nothing.
 - **Magnet.** Press on a face of one object (where the plane cuts it: its outline in the plane)
   and let go on a face of another. The first object turns and moves so its face lies flush on
   the second's, facing it. An edge snaps to an edge the same way. Pressing inside an object, not
@@ -372,10 +397,37 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   the two green blocks as its picture); its `B` key (`BOOLEANBUTTON`, a test hook) subtracted
   the second picked object from the first. Here the green blocks are the union tool, on the
   tools' rail (`assets/cpl/union.cpl`, after `drill.cpl`), and `B` unions everything picked. The
-  grabber has a new picture, a claw, and the arranging rail's headpad is a plain white box until
-  it gets one of its own. The rails are `assets/rsc/toolpads.rsc` and `arrangepads.rsc`, the new
+  grabber has a new picture, a claw, and the arranging rail's headpad three bars in a row. The rails are `assets/rsc/toolpads.rsc` and `arrangepads.rsc`, the new
   pictures in `assets/icons/`.
-- **H is the pan tool, P the pencil.** The original's P brought the pan tool.
+- **H is the pan tool, P the pencil, M the ruler.** The original's P brought the pan tool.
+- **⌘A picks everything** (as `cursor.cpl`'s marquee release does, over the whole world).
+- **A help plate.** The ? pad opens a plate of the controls in the plane, a Dialog as the
+  storage pad is (`behaviors/src/tools/help.ts`). The original had none.
+- **The measure pad comes with a ruler.** The original's pad (`create_measure_pad`, with
+  `measurepad.cpl`, `cubeplate.cpl`, `distanceplate.cpl`, `sizer.cpl` and `namer.cpl`) was always
+  there, and a click on it opened or shut all its plates at once. Here it comes out with the
+  ruler, a new tool (`assets/icons/ruler.icon`, its `Measure` property letting picks through in
+  `assets/cpl/tool.cpl`), which isn't drawn on the crosshair, and the pad takes no clicks.
+  Further:
+  - every object is measured, by its box. The original measured only primitives that carried a
+    record, though `generate_info_rec` already fell back on the box (`assets/cpl/rom.cpl` sends
+    every pick; `assets/cpl/measurepad.cpl` asks the new `measure_info_rec`);
+  - a new size scales the object in place, its parts and links kept; `remake_prim` rebuilt
+    cubes only, as a new object;
+  - two whole objects get their full distance, centre to centre, and any two features their
+    vector; the original gave objects zero and most pairs only a length. Typing moves the second
+    pick; the original's `set_feature_dist` moved the first;
+  - marquees are measured while they're dragged.
+- **Typing replaces a field's text.** `textinput.cpl` marked a just-clicked field and had the
+  lines to clear it commented out; `assets/cpl/textinput.cpl` clears it on the first key (or
+  Backspace), and an arrow first edits it in place. The text to be replaced is outlined, and
+  the I-beam is drawn three strokes thick.
+- **The pencil draws on surfaces, from the later `draw.cpl`.** `cplpropfiles.rsc` loaded
+  `pencil.cpl`; `draw.cpl`, a later pencil, adds drawing across a face (`draw_on_surface`) and a
+  flip to the eraser. `assets/cpl/pencil.cpl` is `pencil.cpl` with the surface drawing added;
+  the eraser is left out, and pressed on a face or an object the pencil scribbles, where
+  `draw.cpl` did nothing. The original broke the first edge even when the line couldn't be
+  drawn; here nothing changes unless it is.
 - **Each tool goes back to its own pad.** In the original, clicking a pad while holding a tool
   swapped the held tool onto that pad, and a tool put away after use (or by a key) went to the
   first empty pad, so tools wandered from pad to pad. Here `toolpad.cpl` connects a tool to the
@@ -419,7 +471,13 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
 - **Colour bars** all map their height to 0–255 the same way. In the original, the bar being
   dragged used a different formula and could go past 255.
 - **Toolboxes, pads and plates.** The storage pad starts in the plane, bottom left. The
-  original left it by the back wall, and only a drag brought it into the plane.
+  original left it by the back wall, and only a drag brought it into the plane. A plate's offset
+  is taken from its pad, so a plate with no depth offset lies on its pad, not in the plane
+  (where it flickered against the plane's stipple). Headpad pictures keep a margin inside the
+  pad.
+- **A face's "mother edge".** `find_largergrain(face, edge)` returned an unset pointer, and
+  `rom.cpl`'s test for an edge pick relied on getting something other than the face back; here
+  it is the face's first edge.
 - **The camera's view** is a slide standing in the room above the camera. The original opened a
   second window. The **light bulb** adds a point light in its colour to the face shading, as
   `setup_light_source(2, ...)` did.
@@ -460,8 +518,25 @@ older versions of the format are normalised to the latest one on save.
   - `duplicate.cpl`, `delete.cpl`, `colorctrl.cpl`, `sizebbox.cpl` and the `old*` rotate
     scripts (those, `calipers.cpl`, `menu.cpl`, `toolbar.cpl` and `workgroup.cpl` are in an
     older CPL dialect that doesn't assemble).
-- **Not yet:** the measure pad (its name, size and distance plates need primitives that can be
-  resized) and drawing on a surface with the pencil (`draw_on_surface`).
+- **Not yet:** the pencil's eraser (`draw.cpl`'s flip, `erase.cpl`) and the pie chart plate.
+
+## Shipping (M8)
+
+- **The site** is the static build on GitHub Pages (`.github/workflows/pages.yml`), rebuilt on
+  every push to `main`. The Render and Railway configs stay in the repo, unused for now.
+- **Help, measure and text:** `behaviors/src/tools/help.ts` (the ? pad: a Dialog with a plate
+  built in code from `helpLines` in `app/src/input/bindings.ts`), `tools/measure.ts` (the measure
+  pad, its plates from the original resources, and the C routines its CPL calls; a frame hook
+  shows it while the ruler is held), and `clear_label` for `textinput.cpl`.
+- **Kernel:** `ops/split.ts` (`splitEdge`, `drawAcrossFace`) for the pencil on a surface;
+  `Brep.fingerprint()` (a hash of every array and map) lets the renderer and the `.cut` writer
+  keep what they made for a B-rep that hasn't changed; `facesByShell` / `verticesByShell` replace
+  per-shell scans (a model of many shells cost shells × faces).
+- **Speed:** a click on a 6,000-face import takes 3 to 25 ms (it took up to 200 ms in Firefox and
+  WebKit): an object only told it changed keeps its meshes, one only moved has them shifted,
+  sections are kept per geometry, and autosave rewrites only changed objects.
+- **Screenshots:** `docker compose run --rm -e GUIDE=1 e2e` retakes the user guide's
+  (`e2e/guide.record.spec.ts`); `-e RECORD=1` records the README animation.
 
 ## Formats (M7)
 

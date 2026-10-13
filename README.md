@@ -11,17 +11,21 @@ A browser-native rebuild of **Cutplane / 3Form**, the late-1980s SGI 3D modeler 
 _moving section plane_. You push a plane through the room, and wherever it slices your solids you
 see their cross-sections. Vertices, edges and faces are picked and edited where they cross it.
 
-> **Status: M7 (formats).** The animation shows the _Discovery_, modeled in 3Form in
-> April 1991 and loaded unchanged from its original `disc4.cut`. The cutplane is pushed through it
-> (the yellow line is the live section), and a face of the command module is taken hold of through
-> the section, pulled out and pushed back home. The rotate tool rolls the lower ship and back.
-> Then the drill comes off its pad: pressed on the module it makes a red copy of it, and carried
-> across and let go, the copy takes a bite out of the module. Undo puts it back. All of this runs
-> on the original CPL scripts in a CPL virtual machine; the cutting is done by manifold-3d and
-> comes back as the original's kind of polygon faces. The saw, pencil, union tool, magnet, grabber,
-> pan tool, magnifier and group tool all work too. OBJ, STL and glTF models can be dropped on
-> the page and exported (a GLB opens in Blender), and every change is autosaved in the browser.
-> See the [roadmap](docs/README.md#roadmap), the [controls](docs/README.md#using-cutplane) and
+> **Status: M8 (ship).** The animation shows the _Discovery_, modeled in 3Form in April 1991
+> and loaded unchanged from its original `disc4.cut`. The cutplane is pushed through it (the
+> yellow line is the live section), and a face of the command module is taken hold of through the
+> section, pulled out and pushed back home. The rotate tool rolls the lower ship and back. Then
+> the drill comes off its pad: pressed on the module it makes a red copy of it, and carried across
+> and let go, the copy takes a bite out of the module. Undo puts it back. All of this runs on the
+> original CPL scripts in a CPL virtual machine; the cutting is done by manifold-3d and comes back
+> as the original's kind of polygon faces. The saw, pencil (in the plane or across a face), union
+> tool, magnet, grabber, pan tool, magnifier, group tool and the measure pad all work too, and a
+> **?** in the room shows the controls. Models in glTF, OBJ, STL, Open Inventor, VRML and DXF can
+> be dropped on the page, the world exports to glTF (it opens in Blender), OBJ and STL, and every
+> change is autosaved in the browser with its undo history.
+>
+> **New here? Read the [user guide](docs/GUIDE.md).** Then the
+> [controls](docs/README.md#using-cutplane), the [roadmap](docs/README.md#roadmap) and
 > [how it differs from the original](docs/README.md#differences-from-the-original).
 
 ## Quick start
