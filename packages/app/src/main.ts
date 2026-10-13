@@ -255,6 +255,7 @@ async function loadCpl(): Promise<void> {
     'union.cpl',
     'pencil.cpl',
     'measurepad.cpl',
+    'textinput.cpl',
   ]);
   await Promise.all(
     CPL_FILES.map(async (f) => {
@@ -762,6 +763,7 @@ window.addEventListener('keydown', (e) => {
   else if (c === 'zoomTool') controls.takeTool('Magnifier');
   else if (c === 'panTool') controls.takeTool('Pantool');
   else if (c === 'pencilTool') controls.takeTool('Pencil');
+  else if (c === 'measureTool') controls.takeTool('Ruler');
   else if (c === 'delete') controls.delete();
   else if (c === 'selectAll') controls.selectAll();
   else if (c === 'planeJump')

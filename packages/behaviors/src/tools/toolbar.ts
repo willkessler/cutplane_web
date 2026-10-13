@@ -220,7 +220,9 @@ export function createToolbar(
 
   const icon = readDataFile(rt, headpad, read(cfg.iconFile));
   if (icon) {
-    applyFrontDecal(rt, icon, headpad, DECAL_THICKNESS * 2, DECAL_GAP, 0);
+    // A margin (new): at no margin and twice the depth, the picture overhung the pad's
+    // edges in perspective.
+    applyFrontDecal(rt, icon, headpad, DECAL_THICKNESS * 2, DECAL_GAP, HEADPAD_SQUARE / 5);
     rt.discard(icon);
   }
 

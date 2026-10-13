@@ -29,14 +29,14 @@ Number of Shells:1
 Shell 1:
  Number of Vertices:8
  VFE List:
-Vertex 1: 0.0 0.0 0.0
-Vertex 2: 10.0 0.0 0.0
-Vertex 3: 10.0 16.0 0.0
-Vertex 4: 0.0 16.0 0.0
-Vertex 5: 0.0 0.0 10.0
-Vertex 6: 10.0 0.0 10.0
-Vertex 7: 10.0 16.0 10.0
-Vertex 8: 0.0 16.0 10.0
+Vertex 1: 0.0 10.0 0.0
+Vertex 2: 9.0 10.0 0.0
+Vertex 3: 9.0 24.0 0.0
+Vertex 4: 0.0 24.0 0.0
+Vertex 5: 0.0 10.0 10.0
+Vertex 6: 9.0 10.0 10.0
+Vertex 7: 9.0 24.0 10.0
+Vertex 8: 0.0 24.0 10.0
  Number of Faces:6
  FVE List:
 Face:1 (1 bounds)
@@ -85,14 +85,14 @@ Number of Shells:1
 Shell 1:
  Number of Vertices:8
  VFE List:
-Vertex 1: 17.0 0.0 0.0
-Vertex 2: 27.0 0.0 0.0
-Vertex 3: 27.0 30.0 0.0
-Vertex 4: 17.0 30.0 0.0
-Vertex 5: 17.0 0.0 10.0
-Vertex 6: 27.0 0.0 10.0
-Vertex 7: 27.0 30.0 10.0
-Vertex 8: 17.0 30.0 10.0
+Vertex 1: 18.0 5.0 0.0
+Vertex 2: 27.0 5.0 0.0
+Vertex 3: 27.0 29.0 0.0
+Vertex 4: 18.0 29.0 0.0
+Vertex 5: 18.0 5.0 10.0
+Vertex 6: 27.0 5.0 10.0
+Vertex 7: 27.0 29.0 10.0
+Vertex 8: 18.0 29.0 10.0
  Number of Faces:6
  FVE List:
 Face:1 (1 bounds)
@@ -141,14 +141,14 @@ Number of Shells:1
 Shell 1:
  Number of Vertices:8
  VFE List:
-Vertex 1: 34.0 0.0 0.0
-Vertex 2: 44.0 0.0 0.0
-Vertex 3: 44.0 44.0 0.0
-Vertex 4: 34.0 44.0 0.0
-Vertex 5: 34.0 0.0 10.0
-Vertex 6: 44.0 0.0 10.0
-Vertex 7: 44.0 44.0 10.0
-Vertex 8: 34.0 44.0 10.0
+Vertex 1: 36.0 0.0 0.0
+Vertex 2: 45.0 0.0 0.0
+Vertex 3: 45.0 34.0 0.0
+Vertex 4: 36.0 34.0 0.0
+Vertex 5: 36.0 0.0 10.0
+Vertex 6: 45.0 0.0 10.0
+Vertex 7: 45.0 34.0 10.0
+Vertex 8: 36.0 34.0 10.0
  Number of Faces:6
  FVE List:
 Face:1 (1 bounds)

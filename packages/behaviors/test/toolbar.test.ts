@@ -49,7 +49,7 @@ describe('toolbars through headpad, toolpad, padhandle and tool.cpl', () => {
     const bar = w.tools.children[0]!;
     expect(w.rt.hasProp(bar, 'Toolbar')).toBe(true);
     expect(bar.children).toHaveLength(4); // pencil, saw, drill, union
-    expect(w.arrangers.children[0]!.children).toHaveLength(5);
+    expect(w.arrangers.children[0]!.children).toHaveLength(6); // ... magnet, grabber, ruler
     expect(visible(w, bar)).toBe(false);
     // Each pad holds its tool, unseen, its picture on the pad.
     const pad = bar.children[0]!.children[0]!;
@@ -162,7 +162,7 @@ describe('toolbars through headpad, toolpad, padhandle and tool.cpl', () => {
     w.frame();
     w.frame();
     expect(handle.parent).toBe(w.rt.cutplane);
-    expect(bar.children).toHaveLength(4);
+    expect(bar.children).toHaveLength(5);
     expect(w.center(handle)[0]).toBeCloseTo(x + 250, 0);
   });
 });

@@ -184,7 +184,14 @@ export function readPlate(
     rt.translate(pad, t.offset);
     rt.adopt(plate, pad, false);
   }
-  rt.translate(plate, spec.offset);
+  // The offset is from the pad (which stands off the plane): a plate with no z
+  // offset lies on its pad, never in the plane itself.
+  const at = parent.xform;
+  rt.translate(plate, [
+    spec.offset[0] + at[12]!,
+    spec.offset[1] + at[13]!,
+    spec.offset[2] + at[14]!,
+  ]);
   rt.adopt(parent, plate, false);
   for (const o of subtree(plate)) if (rt.vm.props.has(o, P.Visible)) rt.vm.props.del(o, P.Visible);
   if (spec.code !== '<none>')
@@ -280,6 +287,15 @@ const width = (s: string, xscale: number) =>
 /** Who is listening to the keyboard (obj_charstream_list). */
 const streams = new WeakMap<Runtime, Feature[]>();
 export const charstreamOf = (rt: Runtime): readonly Feature[] => streams.get(rt) ?? [];
+/** `f` stops listening to the keyboard (its plate was put away). */
+export function leaveCharstream(rt: Runtime, f: Feature): void {
+  const l = streams.get(rt);
+  if (l?.includes(f))
+    streams.set(
+      rt,
+      l.filter((x) => x !== f),
+    );
+}
 
 /** The text inputs' routines (any plate with fields needs them). */
 export const TEXT_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>> = {
@@ -348,6 +364,14 @@ export const TEXT_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>> 
         item.text = item.text.slice(0, at) + c + item.text.slice(at);
         item.insertion = at + 1;
       }
+    }
+    rt.version++;
+  },
+  /** cutplane_web: (objects) — their labels emptied, the I-beam at the start. */
+  clear_label(rt, vm) {
+    for (const [, item] of firstItems(rt, vm.pop().list)) {
+      item.text = null;
+      item.insertion = 0;
     }
     rt.version++;
   },

@@ -84,7 +84,8 @@ export type Command =
   | 'union'
   | 'zoomTool'
   | 'panTool'
-  | 'pencilTool';
+  | 'pencilTool'
+  | 'measureTool';
 
 export function commandFor(code: string, h: Held): Command | undefined {
   // Undo and redo are new (the original's U key did nothing): ⌘Z / ⇧⌘Z, or Ctrl on other systems.
@@ -130,6 +131,9 @@ export function commandFor(code: string, h: Held): Command | undefined {
       return 'panTool';
     case 'KeyP':
       return 'pencilTool';
+    // New: M brings the ruler (the measure pad comes with it).
+    case 'KeyM':
+      return 'measureTool';
     case 'Backspace':
     case 'Delete':
       return 'delete';
@@ -144,6 +148,7 @@ export function bindingHints(profile: Profile): string[] {
     'Click: pick',
     'Drag: move what is picked',
     'Shift-click: add or remove',
+    '⌘A: pick everything',
     'Ctrl: one axis',
     'Scroll: plane depth',
     'Space: plane jump',
@@ -154,7 +159,7 @@ export function bindingHints(profile: Profile): string[] {
     'G: group / ungroup',
     '\\: slice what is picked',
     'B: union what is picked',
-    'Z / H / P: magnifier / pan tool / pencil',
+    'Z / H / P / M: magnifier / pan tool / pencil / ruler',
     '⌫: delete',
     '⌘Z / ⇧⌘Z: undo / redo',
   ];
@@ -217,7 +222,7 @@ export function helpLines(profile: Profile, mac: boolean): { text: string; headi
     { text: 'Tools (the orange rails, top left: click one open, click a pad)', heading: true },
     { text: 'Pencil: draw a shape in the plane, or edge to edge across a face' },
     { text: 'Saw: cut in two at the plane    Drill: drop a cutter through' },
-    { text: 'Magnifier (Z), group, pan (H), magnet, grabber    P: the pencil' },
+    { text: 'Magnifier (Z), group, pan (H), magnet, grabber, ruler (M): measure' },
     { text: 'Files', heading: true },
     { text: 'The floppy: load and save by name    Open, Save, Export: the top bar' },
   ];

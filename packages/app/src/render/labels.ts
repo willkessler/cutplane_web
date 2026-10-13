@@ -52,9 +52,31 @@ export class LabelView {
           let x = 0;
           for (let i = 0; i < item.insertion && i < text.length; i++)
             x += charWidth(text.charCodeAt(i));
-          const at = (y: number) => place(o, ox + x * item.xscale, oy + y * item.yscale, oz);
-          pos.push(...at(DESCENDER), ...at(X_HEIGHT));
-          col.push(1, 0, 0, 1, 0, 0);
+          // A red I-beam, three strokes thick with its serifs, so it reads on any field.
+          const at = (dx: number, y: number) =>
+            place(o, ox + x * item.xscale + dx, oy + y * item.yscale, oz);
+          const serif = 2.5 * item.xscale;
+          for (const dx of [-0.6, 0, 0.6]) {
+            pos.push(...at(dx, DESCENDER), ...at(dx, X_HEIGHT));
+            col.push(1, 0, 0, 1, 0, 0);
+          }
+          for (const y of [DESCENDER, X_HEIGHT]) {
+            pos.push(...at(-serif, y), ...at(serif, y));
+            col.push(1, 0, 0, 1, 0, 0);
+          }
+          // Just clicked: what it says is outlined, as the next key replaces it.
+          if (rt.hasProp(o, 'Startextinput') && text) {
+            let w = 0;
+            for (const ch of text) w += charWidth(ch.charCodeAt(0));
+            const corner = (cx: number, cy: number) =>
+              place(o, ox + cx * item.xscale, oy + cy * item.yscale, oz);
+            const [x0, x1, y0, y1] = [-2, w + 2, DESCENDER - 1, X_HEIGHT + 3];
+            const box = [corner(x0, y0), corner(x1, y0), corner(x1, y1), corner(x0, y1)];
+            for (let i = 0; i < 4; i++) {
+              pos.push(...box[i]!, ...box[(i + 1) % 4]!);
+              col.push(1, 1, 0, 1, 1, 0);
+            }
+          }
         }
       }
     }

@@ -651,6 +651,13 @@ export class Runtime implements Host {
         const face = b.heFace(b.edgeHe1(f.id));
         return face === NONE ? null : this.features.face(f.object, face);
       }
+      // A face's "mother edge" was never set in find_largergrain (an uninitialised
+      // pointer, not Nil): rom.cpl's edge test relies on getting something other
+      // than the face back. Its first edge stands in.
+      if (f.type === T.Fve && type === T.Evf) {
+        const e = b.heEdge(b.loopHe(b.faceLoop(f.id)));
+        return e === NONE ? null : this.features.edge(f.object, e);
+      }
       if (type === T.Obj) return f.object;
       if (type === T.Shell) {
         const shell =
@@ -1499,7 +1506,11 @@ export class Runtime implements Host {
   }
 
   /** The end of a frame: regular updates, then global ones. */
+  /** Called at the end of every frame (things that follow the world, like the measure pad). */
+  readonly frameHooks: (() => void)[] = [];
+
   endFrame(): void {
+    for (const hook of this.frameHooks) hook();
     this.processUpdates(this.environment, P.Quickupdate);
     this.processUpdates(this.environment, P.Regularupdate);
     this.processUpdates(this.vm.working, P.Quickupdate);

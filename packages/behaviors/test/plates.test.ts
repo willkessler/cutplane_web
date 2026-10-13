@@ -6,6 +6,7 @@ import { writeCut } from '@cutplane/formats';
 import { createCube, createObject, mat4, type CutObject } from '@cutplane/kernel';
 import {
   charstreamOf,
+  decalOf,
   installHelpPad,
   installStoragePad,
   setHelpText,
@@ -83,7 +84,14 @@ describe('the storage pad through dialog.cpl, textinput.cpl, load.cpl and save.c
     expect(w.controls.typing).toBe(true);
     const item = w.rt.labelItems(load)[0]!;
     expect(item.insertion).toBe(5); // at the end of "disc5"
-    w.type([BS, '4']);
+    // Just clicked, the first key replaces it all (Backspace clears it)...
+    w.type(['s']);
+    expect(item.text).toBe('s');
+    w.type([ESC]);
+    expect(item.text).toBe('disc5');
+    w.click(load);
+    // ...unless an arrow comes first: then it is edited in place.
+    w.type([0x06, BS, '4']);
     expect(item.text).toBe('disc4');
     w.type([0x02, 0x02, 'X']); // left twice, then type
     expect(item.text).toBe('disXc4');
@@ -134,7 +142,7 @@ describe('the help pad (new): a Dialog like the storage pad', () => {
     const help = installHelpPad(w.rt, [{ text: 'Moving', heading: true }, { text: 'Move: the crosshair' }]); // prettier-ignore
     w.frame();
     const plate = help.children.find((c) => c.name === 'Help_Plate')!;
-    expect(w.rt.label(help, 1)).toBe('?');
+    expect(decalOf(w.rt, help)?.length).toBe(2); // the ? in solid: its hook and its dot
     expect(w.rt.vm.props.has(plate, P.Visible)).toBe(false);
     // At the bottom right, in the plane.
     expect(help.parent).toBe(w.rt.cutplane);

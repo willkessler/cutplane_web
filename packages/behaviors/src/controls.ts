@@ -212,7 +212,7 @@ export class Controls {
   }
 
   /** Z, H and P (ZTOOLBUTTON, PANTOOLBUTTON; P new here): the magnifier, pan tool or pencil comes to the crosshair. */
-  takeTool(name: 'Magnifier' | 'Pantool' | 'Pencil'): void {
+  takeTool(name: 'Magnifier' | 'Pantool' | 'Pencil' | 'Ruler'): void {
     this.events = true;
     this.vm.encodeInstruction(' MAKEMSG Msg:Activatetool');
     this.vm.encodeInstruction(` QMSG Obj:${name},Const:Prioritymsg`);

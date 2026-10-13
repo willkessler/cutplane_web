@@ -61,6 +61,8 @@ export const CRTN_NAMES = [
   'breakup_dist_value',
   // cutplane_web's own, after the original's: an object's box as a primitive record.
   'measure_info_rec',
+  // cutplane_web: a text input's label emptied (textinput.cpl's first key).
+  'clear_label',
 ] as const;
 
 export type CrtnName = (typeof CRTN_NAMES)[number];

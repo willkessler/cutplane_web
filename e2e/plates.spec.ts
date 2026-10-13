@@ -116,6 +116,7 @@ test('the measure pad shows the size of what is picked; typing a height resizes 
       return window.__cutplane!.locate('measure') as Measure;
     });
   expect((await measure()).shown).toEqual([]);
+  await page.keyboard.press('KeyM'); // the ruler, and its measure pad
   await click(page, 0, 0);
   expect((await measure()).shown).toContain('Cube_Plate');
   await expect.poll(async () => (await measure()).fields['Cube_height']).toBe('20.00');
@@ -128,8 +129,7 @@ test('the measure pad shows the size of what is picked; typing a height resizes 
   });
   expect(at).not.toBeNull();
   await click(page, at![0]!, at![1]!);
-  for (let i = 0; i < 6; i++) await page.keyboard.press('Backspace');
-  await page.keyboard.type('35');
+  await page.keyboard.type('35'); // the first key replaces what it said
   await page.keyboard.press('Enter');
   await expect.poll(async () => (await measure()).fields['Cube_height']).toBe('35.00');
   if (process.env['SHOTS'] && browserName === 'chromium')

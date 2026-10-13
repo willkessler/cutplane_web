@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { P } from '@cutplane/cpl';
 import { createCube, createObject, mat4, type CutObject } from '@cutplane/kernel';
-import { installMeasurePad } from '../src/index.ts';
+import { installMeasurePad, installToolbars } from '../src/index.ts';
 import { source, world } from './world.ts';
 
 const ASSETS = resolve(import.meta.dirname, '../../../assets');
@@ -15,11 +15,17 @@ const read = (f: string) => {
   throw new Error(`${f}: not found`);
 };
 
-function setup() {
+function setup(ruler = true) {
   const w = world();
+  installToolbars(w.rt, read, ['arrangepads.rsc']);
   const pad = installMeasurePad(w.rt, read, source);
   w.at(0, 0, 0);
   w.frame();
+  // The ruler (M), and the measure pad with it.
+  if (ruler) {
+    w.controls.takeTool('Ruler');
+    for (let i = 0; i < 4; i++) w.frame();
+  }
   const find = (name: string) => w.rt.findObject(name)!;
   const shown = (name: string) => w.rt.vm.props.has(find(name), P.Visible);
   const label = (name: string) => w.rt.label(find(name), 1);
@@ -48,6 +54,44 @@ function setup() {
 }
 
 describe('the measure pad (measurepad.cpl, cubeplate.cpl, distanceplate.cpl, sizer.cpl)', () => {
+  it('comes out with the ruler (M) and goes when it is put away', () => {
+    const w = setup(false);
+    expect(w.rt.vm.props.has(w.pad, P.Visible)).toBe(false);
+    w.click(0, 0);
+    expect(w.shown('Cube_Plate')).toBe(false); // no ruler: nothing measured
+    w.controls.takeTool('Ruler');
+    w.settle();
+    expect(w.find('Ruler').parent).toBe(w.rt.cursorObj);
+    expect(w.rt.vm.props.has(w.pad, P.Visible)).toBe(true);
+    // The cube was picked already: it is measured at once.
+    expect(w.shown('Cube_Plate')).toBe(true);
+    expect(w.label('Cube_length')).toBe('20.00');
+    w.controls.takeTool('Ruler'); // again: put away
+    w.settle();
+    expect(w.rt.vm.props.has(w.pad, P.Visible)).toBe(false);
+    expect(w.shown('Cube_Plate')).toBe(false);
+  });
+
+  it('the ruler is not shown on the crosshair; a marquee is measured as it is dragged', () => {
+    const w = setup();
+    expect(w.rt.vm.props.has(w.find('Ruler'), P.Visible)).toBe(false);
+    // A marquee from empty space, 300 across and 150 up, then 100 deeper.
+    w.at(-400, -300, 0);
+    w.frame();
+    w.controls.pressPick(false);
+    w.frame();
+    for (let i = 0; i < 10; i++) w.move(30, 15);
+    w.controls.moveCrosshair([0, 0, -100], (d) => w.stage.preview(...d));
+    w.frame();
+    expect(w.shown('Cube_Plate')).toBe(true);
+    expect(w.label('Cube_width')).toBe('30.00');
+    expect(w.label('Cube_height')).toBe('15.00');
+    expect(w.label('Cube_length')).toBe('10.00');
+    expect(w.label('Name_Field')).toBe('Marquee');
+    w.controls.releasePick();
+    w.settle();
+  });
+
   it('sits bottom left in the plane, its plates hidden', () => {
     const w = setup();
     expect(w.pad.parent).toBe(w.rt.cutplane);
@@ -69,8 +113,7 @@ describe('the measure pad (measurepad.cpl, cubeplate.cpl, distanceplate.cpl, siz
     // Click the width field, clear it, type 30 and Return.
     w.click(...w.center(w.find('Cube_width')));
     expect(w.rt.picked()).toEqual([w.cube]); // the field took the click, the cube stays picked
-    for (let i = 0; i < 6; i++) w.type('\b');
-    w.type('30\r');
+    w.type('30\r'); // the first key replaces what it said
     const b = w.rt.bbox(w.cube)!;
     expect(b[1][0] - b[0][0]).toBeCloseTo(300, 3);
     expect(b[0][0]).toBeCloseTo(-100, 3); // grown from its low corner
@@ -102,15 +145,20 @@ describe('the measure pad (measurepad.cpl, cubeplate.cpl, distanceplate.cpl, siz
     expect(w.label('Delta_xdistance')).toBe('30.00');
     expect(w.label('Delta_ydistance')).toBe('0.00');
     w.click(...w.center(w.find('Delta_xdistance')));
-    for (let i = 0; i < 6; i++) w.type('\b');
-    w.type('40\r');
+    w.type('4');
+    w.type('\x02'); // ← : now it edits in place
+    w.type('\x06'); // →
+    w.type('0\r');
     expect(w.rt.bbox(other)![0][0]).toBeCloseTo(350, 3); // the second picked moved
     expect(w.rt.bbox(w.cube)![0][0]).toBeCloseTo(-100, 3);
     expect(w.label('Delta_xdistance')).toBe('40');
   });
 
-  it('picking an edge shows its length', () => {
+  it('picking an edge shows its length; a face shows nothing', () => {
     const w = setup();
+    w.click(100, 0); // the cube's right face, through its section line
+    expect(w.shown('Length_Plate')).toBe(false);
+    expect(w.shown('Cube_Plate')).toBe(false);
     w.click(100, 100); // where the plane crosses one of the cube's z edges
     expect(w.shown('Length_Plate')).toBe(true);
     expect(w.label('Regular_length')).toBe('20.00');

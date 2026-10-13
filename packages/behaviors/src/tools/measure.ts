@@ -9,12 +9,13 @@ import {
   setupWord,
   Word,
   type Feature,
+  messageWord as msgWord,
   type VM,
 } from '@cutplane/cpl';
 import { createCube, createObject, preorder, subtree, type CutObject } from '@cutplane/kernel';
 import { isObject, isSub } from '../features.ts';
 import type { Runtime, V3 } from '../runtime.ts';
-import { TEXT_CRTNS, parsePlateRsc, readPlate } from './plates.ts';
+import { TEXT_CRTNS, leaveCharstream, parsePlateRsc, readPlate } from './plates.ts';
 import { fitScaleBox, isScaleBox } from './scalebox.ts';
 import { DECAL_GAP, DECAL_THICKNESS, applyFrontDecal, registerPadTechniques } from './toolbar.ts';
 
@@ -26,7 +27,12 @@ import { DECAL_GAP, DECAL_THICKNESS, applyFrontDecal, registerPadTechniques } fr
  * breakup_info_rec, remake_prim, get_feature_size, get_feature_dist,
  * set_feature_dist).
  *
- * An orange pad with a ruler on it, bottom left in the plane. Picking an
+ * New here: the pad is the ruler's (the ruler tool on the arrange rail, or M).
+ * While the ruler is held the pad shows, bottom left in the plane; put it away
+ * and the pad and its plates go. (The original's pad was always there, and a
+ * click on it opened or shut all its plates at once.)
+ *
+ * An orange pad with a ruler on it. Picking an
  * object shows its length, width and height on the cube plate above it, in
  * inches (10 room units to the inch, as world_2_inch had it), and its name on
  * the name plate beside it; type a new size and Return resizes it. Two things
@@ -98,10 +104,101 @@ export function installMeasurePad(
   // A Dialog, as the original's was: its property code, not ROM's CPnormal (which
   // takes unread messages off), runs on it, so the plates' messages wait for it.
   rt.addProp(pad, 'Dialog');
+  // Not clicked: it opens with the ruler, its plates with what is picked.
+  rt.addProp(pad, 'Nonselectable');
   for (const o of subtree(pad)) rt.addProp(o, 'Lockedgeometry');
   rt.vm.resolveObjectRefs();
+  let held = false;
+  hide(rt, pad);
+  rt.frameHooks.push(() => {
+    const ruler = rt.findObject('Ruler');
+    const now = !!ruler && ruler.parent === rt.cursorObj;
+    if (now && !held) {
+      rt.vm.props.add(pad, P.Visible);
+      // What is picked already is measured at once.
+      const picked = rt.picked().find((f) => isObject(f) && !isScaleBox(rt, f));
+      if (picked) {
+        rt.vm.enterMessage(messageWord(rt.vm, 'Incominginfo'));
+        rt.vm.enterMessage(featuresWord(picked));
+        rt.vm.enterMessage(new Word());
+        rt.vm.queueMessage(pad, true);
+        rt.vm.messageBlockReset();
+      }
+      rt.changed(pad);
+    } else if (!now) hide(rt, pad);
+    held = now;
+    if (!now || !ruler) return;
+    // The ruler itself isn't shown on the crosshair: the pad is what it brings.
+    for (const o of subtree(ruler))
+      if (rt.vm.props.has(o, P.Visible)) {
+        rt.vm.props.del(o, P.Visible);
+        rt.changed(o);
+      }
+    showMarquee(rt);
+  });
   return pad;
 }
+
+/**
+ * A marquee being dragged out is measured as it grows: its box's length (z),
+ * width (x) and height (y) on the cube plate, so a 3D marquee has a length too.
+ */
+function showMarquee(rt: Runtime): void {
+  const marquee = rt.worlds
+    .flatMap((w) => [...preorder(w.root.children)])
+    .find((o) => o.drawTechnique === 'draw_marquee_technique');
+  if (!marquee) return;
+  const box = rt.bbox(marquee);
+  const plate = rt.findObject('Cube_Plate');
+  if (!box || !plate) return;
+  const inches = (v: number) => (v / rt.totalZoom / UNITS_PER_INCH).toFixed(2);
+  const sizes: Record<string, number> = {
+    Cube_length: box[1][2] - box[0][2],
+    Cube_width: box[1][0] - box[0][0],
+    Cube_height: box[1][1] - box[0][1],
+  };
+  for (const p of rt.findObject('MeasurePad')?.children ?? []) {
+    const show = p === plate || p.name === 'Name_Plate';
+    for (const o of subtree(p))
+      if (rt.vm.props.has(o, P.Visible) !== show) {
+        if (show) rt.vm.props.add(o, P.Visible);
+        else rt.vm.props.del(o, P.Visible);
+        rt.changed(o);
+      }
+  }
+  for (const f of plate.children) {
+    const item = rt.labelItems(f)[0];
+    const v = f.name ? sizes[f.name] : undefined;
+    if (item && v !== undefined && item.text !== inches(v)) {
+      item.text = inches(v);
+      rt.version++;
+    }
+  }
+  const name = rt.findObject('Name_Field');
+  const item = name ? rt.labelItems(name)[0] : undefined;
+  if (item && item.text !== 'Marquee') {
+    item.text = 'Marquee';
+    rt.version++;
+  }
+}
+
+/** The pad and everything on it out of sight, its fields no longer listening. */
+function hide(rt: Runtime, pad: CutObject): void {
+  for (const o of subtree(pad)) {
+    if (rt.vm.props.has(o, P.Visible)) {
+      rt.vm.props.del(o, P.Visible);
+      rt.changed(o);
+    }
+    if (rt.vm.props.has(o, P.Active)) rt.vm.props.del(o, P.Active);
+    leaveCharstream(rt, o);
+  }
+}
+
+const messageWord = (vm: VM, name: string): Word => {
+  let i = vm.messages.indexOf(name);
+  if (i < 0) i = vm.messages.push(name) - 1;
+  return msgWord(i);
+};
 
 // ---- what is measured ----
 
