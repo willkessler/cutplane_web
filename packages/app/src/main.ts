@@ -677,18 +677,26 @@ function pointAt(e: PointerEvent): void {
   control.pointTo(...aim);
 }
 
+/**
+ * Where the pointer last was (windowed mode). Its motion is taken from that, not
+ * movementX/Y: WebKit leaves those 0 without pointer lock, so ⌘ and ⌥ moved nothing.
+ */
+let lastClient: [number, number] | undefined;
 canvas.addEventListener('pointermove', (e) => {
   if (demo || work.state === 'paused') return;
   syncHeld(e);
   const upp = unitsPerPixel(camera, canvas.clientHeight, control.z);
+  const [dx, dy] = lastClient ? [e.clientX - lastClient[0], e.clientY - lastClient[1]] : [0, 0];
+  lastClient = [e.clientX, e.clientY];
   if (work.state === 'on') {
     if (work.accept(e.movementX, e.movementY)) control.move(e.movementX, e.movementY, upp);
   } else if (control.motion === 'point') pointAt(e);
   else {
     regrip = true;
-    control.move(e.movementX, e.movementY, upp);
+    control.move(dx, dy, upp);
   }
 });
+canvas.addEventListener('pointerleave', () => (lastClient = undefined));
 canvas.addEventListener('pointerenter', () => {
   if (ready && !controls.pickHeld) resync = true;
 });
