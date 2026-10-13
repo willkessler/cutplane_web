@@ -9,10 +9,11 @@ import { world } from './world.ts';
 
 beforeAll(() => initBooleans());
 
-const ORIGINAL = resolve(import.meta.dirname, '../../../assets/original');
+const ASSETS = resolve(import.meta.dirname, '../../../assets');
 const read = (f: string) => {
-  for (const dir of ['rsc', 'icons']) {
-    const p = join(ORIGINAL, dir, f);
+  // cutplane_web's own (the rails with the union pad) first, else the original's.
+  for (const dir of ['rsc', 'icons', 'original/rsc', 'original/icons']) {
+    const p = join(ASSETS, dir, f);
     if (existsSync(p)) return readFileSync(p, 'latin1');
   }
   throw new Error(`${f}: not found`);
@@ -240,6 +241,67 @@ describe('the drill (drill.cpl, CPBOOLEAN)', () => {
     expect(sound(w.cube)).toBe(true);
     expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3, 3);
     expect(w.solids()).toEqual([w.cube]);
+  });
+});
+
+describe('the union tool (union.cpl, CPBOOLEAN)', () => {
+  const addBar = (w: ReturnType<typeof setup>) => {
+    const bar = createObject(createCube(40, 40, 400), {
+      name: 'Bar',
+      xform: mat4.translation(-320, -20, -200),
+    });
+    bar.attrs.props = ['Visible'];
+    w.rt.importObjects(w.rt.primary, [bar]);
+    w.rt.commit();
+    return bar;
+  };
+
+  it('pressing on a bar picks it up; let go through the cube, the two become one', () => {
+    const w = setup();
+    const bar = addBar(w);
+    const { pad, tool } = w.take(3);
+    expect(w.rt.hasProp(tool, 'Union')).toBe(true);
+    w.at(-300, 0, 0);
+    w.frame();
+    w.controls.pressPick(false);
+    w.frame();
+    // The bar itself rides with the tool (no copy left behind).
+    expect(bar.parent).toBe(tool);
+    expect(w.solids()).toEqual([w.cube]);
+    w.move(150, 0);
+    w.move(150, 0);
+    w.controls.releasePick();
+    w.frame();
+    w.frame();
+    expect(w.solids()).toEqual([w.cube]);
+    expect(sound(w.cube)).toBe(true);
+    expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3 + 40 * 40 * 200, 3);
+    expect(tool.parent).toBe(pad);
+    // One undo parts them, the bar back where it started.
+    expect(w.rt.undo()).toBe(true);
+    w.frame();
+    expect(w.solids()).toHaveLength(2);
+    expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3, 3);
+    const back = w.solids().find((o) => o.name === 'Bar')!;
+    expect(w.rt.bbox(back)![0][0]).toBeCloseTo(-320);
+  });
+
+  it('let go over nothing, what it carried is just put down', () => {
+    const w = setup();
+    const bar = addBar(w);
+    w.take(3);
+    w.at(-300, 0, 0);
+    w.frame();
+    w.controls.pressPick(false);
+    w.frame();
+    w.move(0, 150);
+    w.controls.releasePick();
+    w.frame();
+    w.frame();
+    expect(bar.parent).toBe(w.rt.primary.root);
+    expect(volume(bar.brep)).toBeCloseTo(40 * 40 * 400, 3);
+    expect(w.rt.bbox(bar)![0][1]).toBeCloseTo(130);
+    expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3, 3);
   });
 });
 

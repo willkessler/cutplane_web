@@ -56,3 +56,26 @@ test('typing a name into Save to: keeps the world; Load from: brings it back aft
   await expect.poll(async () => (await edit(page)).faces).toBe(18);
   expect(errors).toEqual([]);
 });
+
+test('Save keeps a copy in the browser; the model menu brings it back after a reload', async ({
+  page,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: 0, pitch: 0, z: 0 });
+  await click(page, 0, 0);
+  await page.keyboard.press('KeyD'); // two cubes
+  // No file dialog in a test: Save falls back to a download.
+  await page.evaluate(() => delete (window as { showSaveFilePicker?: unknown }).showSaveFilePicker);
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save' }).click();
+  expect((await download).suggestedFilename()).toBe('new_cube.cut');
+  const menu = page.getByLabel('Model');
+  await expect(menu).toHaveValue('saved:new_cube.cut');
+
+  await page.goto('/?still=1&sample=cube');
+  await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+  expect((await edit(page)).faces).toBe(6);
+  await menu.selectOption('saved:new_cube.cut');
+  await expect.poll(async () => (await edit(page)).faces).toBe(12);
+  expect(errors).toEqual([]);
+});

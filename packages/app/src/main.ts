@@ -156,6 +156,7 @@ const CPL_FILES = [
   'grabber.cpl',
   'magnetic.cpl',
   'pan.cpl',
+  'union.cpl',
 ];
 const cpl = new Map<string, string>();
 const source = (f: string): string => {
@@ -163,7 +164,11 @@ const source = (f: string): string => {
   if (text === undefined) throw new Error(`${f}: not loaded`);
   return text;
 };
-/** The original's resources the environment is built from (rsc/ and icons/, by file name). */
+/**
+ * The resources the environment is built from (rsc/ and icons/, by file name):
+ * cutplane_web's own (assets/rsc, assets/icons: the rails with the union pad) first,
+ * else the original's.
+ */
 const TOOLBARS = ['toolpads.rsc', 'arrangepads.rsc'];
 const resources = new Map<string, string>();
 const resource = (f: string): string => {
@@ -174,8 +179,8 @@ const resource = (f: string): string => {
 async function loadResources(): Promise<void> {
   const latin1 = new TextDecoder('latin1');
   const get = async (f: string) => {
-    for (const dir of ['rsc', 'icons']) {
-      const res = await fetch(`${base}original/${dir}/${f}`);
+    for (const dir of ['rsc', 'icons', 'original/rsc', 'original/icons']) {
+      const res = await fetch(`${base}${dir}/${f}`);
       if (res.ok && !res.headers.get('content-type')?.includes('text/html')) {
         resources.set(f, latin1.decode(await res.arrayBuffer()));
         return;
@@ -207,8 +212,8 @@ async function loadResources(): Promise<void> {
 async function loadCpl(): Promise<void> {
   // The originals are Latin-1 (and plain ASCII where it matters).
   const latin1 = new TextDecoder('latin1');
-  // cutplane_web's own versions (assets/cpl: rom.cpl, cursor.cpl) first, else the originals.
-  const ours = new Set(['rom.cpl', 'cursor.cpl']);
+  // cutplane_web's own versions (assets/cpl) first, else the originals.
+  const ours = new Set(['rom.cpl', 'cursor.cpl', 'union.cpl']);
   await Promise.all(
     CPL_FILES.map(async (f) => {
       const res = await fetch(`${base}${ours.has(f) ? 'cpl' : 'original/cpl'}/${f}`);
@@ -247,7 +252,7 @@ function makeWorld(): void {
       return res.ok && !res.headers.get('content-type')?.includes('text/html') ? res.text() : null;
     },
     write(name, text) {
-      store(`world.${name}`, text);
+      keep(name, text);
     },
   });
   controls = new Controls(rt);
@@ -300,10 +305,49 @@ function newCube(): CutDocument {
   return { title: 'New cube', contains: 'World', name: null, roots: [object] };
 }
 
+/** Worlds kept in this browser (Save, and the storage pad's "Save to:"), by name. */
+const SAVED = 'saved:';
+function savedNames(): string[] {
+  const names: string[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k?.startsWith('cutplane.world.')) names.push(k.slice('cutplane.world.'.length));
+    }
+  } catch {
+    /* private mode */
+  }
+  return names.sort();
+}
+/** Keeps a world in this browser and lists it in the model menu. */
+function keep(name: string, text: string): void {
+  store(`world.${name}`, text);
+  listSaved();
+}
+/** The model menu's "Saved in this browser" group, rebuilt from what is kept. */
+function listSaved(): void {
+  const value = modelSelect.value;
+  modelSelect.querySelector('optgroup.saved')?.remove();
+  const names = savedNames();
+  if (names.length > 0) {
+    const group = document.createElement('optgroup');
+    group.className = 'saved';
+    group.label = 'Saved in this browser';
+    for (const n of names)
+      group.append(new Option(`${n.replace(/\.cut$/, '')} (saved here)`, `${SAVED}${n}`));
+    modelSelect.append(group);
+  }
+  if (value) modelSelect.value = value;
+}
+
 async function loadModel(src: string): Promise<void> {
   let doc: CutDocument;
   if (src === NEW_CUBE) doc = newCube();
-  else {
+  else if (src.startsWith(SAVED)) {
+    const text = stored(`world.${src.slice(SAVED.length)}`);
+    if (text === null) throw new Error(`${src}: not kept in this browser`);
+    doc = readCut(text).doc;
+  } else {
     const res = await fetch(`${base}${src}`);
     if (!res.ok) throw new Error(`${src}: ${res.status}`);
     doc = readCut(await res.text()).doc;
@@ -660,6 +704,7 @@ window.addEventListener('keydown', (e) => {
   else if (c === 'union') controls.union();
   else if (c === 'zoomTool') controls.takeTool('Magnifier');
   else if (c === 'panTool') controls.takeTool('Pantool');
+  else if (c === 'pencilTool') controls.takeTool('Pencil');
   else if (c === 'delete') controls.delete();
   else if (c === 'planeJump')
     controls.planeJump(); // cursor.cpl's Jumplane
@@ -684,11 +729,17 @@ const worldTitle = () => modelSelect.selectedOptions[0]?.text.replace(/\s*\(.*$/
 const worldText = () =>
   writeCut({ title: worldTitle(), contains: 'World', name: null, roots: rt.documentRoots() });
 
-/** Saves the world being edited (File System Access where there is one, else a download). */
+/**
+ * Saves the world being edited (File System Access where there is one, else a
+ * download), and keeps a copy in this browser, listed in the model menu.
+ */
 async function saveWorld(): Promise<void> {
   const title = worldTitle();
   const text = worldText();
   const name = `${title.replace(/[^\w-]+/g, '_').toLowerCase()}.cut`;
+  keep(name, text);
+  modelSelect.value = `${SAVED}${name}`;
+  store('model', modelSelect.value);
   const picker = (window as { showSaveFilePicker?: (o: unknown) => Promise<FileSystemFileHandle> })
     .showSaveFilePicker;
   if (picker) {
@@ -796,6 +847,7 @@ async function start(): Promise<void> {
     ...EXTRA,
   ];
   for (const e of entries) modelSelect.add(new Option(e.title, e.file));
+  listSaved();
   const sample = params.get('sample');
   const src =
     params.get('src') ??
@@ -804,7 +856,7 @@ async function start(): Promise<void> {
       : sample
         ? `samples/${sample}.cut`
         : (stored('model') ?? 'samples/discovery.cut'));
-  if (!entries.some((e) => e.file === src)) modelSelect.add(new Option(src, src));
+  if (![...modelSelect.options].some((o) => o.value === src)) modelSelect.add(new Option(src, src));
   modelSelect.value = src;
   try {
     await loadModel(src);

@@ -9,10 +9,11 @@ import { world } from './world.ts';
 
 beforeAll(() => initBooleans());
 
-const ORIGINAL = resolve(import.meta.dirname, '../../../assets/original');
+const ASSETS = resolve(import.meta.dirname, '../../../assets');
 const read = (f: string) => {
-  for (const dir of ['rsc', 'icons']) {
-    const p = join(ORIGINAL, dir, f);
+  // cutplane_web's own (the rails with the union pad) first, else the original's.
+  for (const dir of ['rsc', 'icons', 'original/rsc', 'original/icons']) {
+    const p = join(ASSETS, dir, f);
     if (existsSync(p)) return readFileSync(p, 'latin1');
   }
   throw new Error(`${f}: not found`);

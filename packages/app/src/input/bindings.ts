@@ -82,7 +82,8 @@ export type Command =
   | 'slice'
   | 'union'
   | 'zoomTool'
-  | 'panTool';
+  | 'panTool'
+  | 'pencilTool';
 
 export function commandFor(code: string, h: Held): Command | undefined {
   // Undo and redo are new (the original's U key did nothing): ⌘Z / ⇧⌘Z, or Ctrl on other systems.
@@ -110,8 +111,9 @@ export function commandFor(code: string, h: Held): Command | undefined {
       return 'duplicate';
     case 'KeyR':
       return 'rotateTool';
-    // controls.h: G groups (or ungroups), \ slices what is picked, Z and P bring the
-    // magnifier and the pan tool to the crosshair.
+    // controls.h: G groups (or ungroups), \ slices what is picked, Z brings the
+    // magnifier to the crosshair. New here: H brings the pan tool (the hand; P
+    // there), P the pencil.
     case 'KeyG':
       return 'group';
     case 'Backslash':
@@ -121,8 +123,10 @@ export function commandFor(code: string, h: Held): Command | undefined {
       return 'union';
     case 'KeyZ':
       return 'zoomTool';
-    case 'KeyP':
+    case 'KeyH':
       return 'panTool';
+    case 'KeyP':
+      return 'pencilTool';
     case 'Backspace':
     case 'Delete':
       return 'delete';
@@ -147,7 +151,7 @@ export function bindingHints(profile: Profile): string[] {
     'G: group / ungroup',
     '\\: slice what is picked',
     'B: union what is picked',
-    'Z / P: magnifier / pan tool',
+    'Z / H / P: magnifier / pan tool / pencil',
     '⌫: delete',
     '⌘Z / ⇧⌘Z: undo / redo',
   ];

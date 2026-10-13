@@ -201,8 +201,8 @@ export class Controls {
     unionPicked(this.rt);
   }
 
-  /** Z and P (ZTOOLBUTTON, PANTOOLBUTTON): the magnifier or pan tool comes to the crosshair. */
-  takeTool(name: 'Magnifier' | 'Pantool'): void {
+  /** Z, H and P (ZTOOLBUTTON, PANTOOLBUTTON; P new here): the magnifier, pan tool or pencil comes to the crosshair. */
+  takeTool(name: 'Magnifier' | 'Pantool' | 'Pencil'): void {
     this.events = true;
     this.vm.encodeInstruction(' MAKEMSG Msg:Activatetool');
     this.vm.encodeInstruction(` QMSG Obj:${name},Const:Prioritymsg`);

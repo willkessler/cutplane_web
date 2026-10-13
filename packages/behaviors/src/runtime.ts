@@ -693,6 +693,8 @@ export class Runtime implements Host {
     const from = this.worldOf(child);
     const to = this.worldOf(parent);
     if (from === this.primary || to === this.primary) this.journal.touchTree();
+    // Carried off by a tool (the union tool): an undo puts it back where it was picked up.
+    if (from === this.primary && to !== this.primary) this.journal.touch(child);
     if (child.parent) {
       const i = child.parent.children.indexOf(child);
       if (i >= 0) child.parent.children.splice(i, 1);

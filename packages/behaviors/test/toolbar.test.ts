@@ -6,11 +6,12 @@ import type { CutObject } from '@cutplane/kernel';
 import { decalOf, installToolbars } from '../src/index.ts';
 import { world } from './world.ts';
 
-const ORIGINAL = resolve(import.meta.dirname, '../../../assets/original');
+const ASSETS = resolve(import.meta.dirname, '../../../assets');
 /** Resources by name, as the original's working directory had them (rsc/, icons/). */
 const read = (f: string) => {
-  for (const dir of ['rsc', 'icons']) {
-    const p = join(ORIGINAL, dir, f);
+  // cutplane_web's own (the rails with the union pad) first, else the original's.
+  for (const dir of ['rsc', 'icons', 'original/rsc', 'original/icons']) {
+    const p = join(ASSETS, dir, f);
     if (existsSync(p)) return readFileSync(p, 'latin1');
   }
   throw new Error(`${f}: not found`);
@@ -47,7 +48,7 @@ describe('toolbars through headpad, toolpad, padhandle and tool.cpl', () => {
     expect(decalOf(w.rt, w.tools)?.length).toBeGreaterThan(0);
     const bar = w.tools.children[0]!;
     expect(w.rt.hasProp(bar, 'Toolbar')).toBe(true);
-    expect(bar.children).toHaveLength(3); // pencil, saw, drill
+    expect(bar.children).toHaveLength(4); // pencil, saw, drill, union
     expect(w.arrangers.children[0]!.children).toHaveLength(5);
     expect(visible(w, bar)).toBe(false);
     // Each pad holds its tool, unseen, its picture on the pad.

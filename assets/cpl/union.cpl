@@ -1,0 +1,131 @@
+;
+;		CPL Property Codes:Union (Boolean Union)
+;		cutplane_web, after drill.cpl (January 20,1991)
+;
+;	The drill's twin: pressing on a selectable object picks it up with the
+;	tool (the object itself, not a copy); letting go fuses it into whatever is
+;	selectable there. Let go over nothing and it is simply put down.
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Union		DEFPROP
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;  Union subroutines
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+; Pick up whatever's selectable by adopting it to the union tool; on RELEASE
+; we'll put it back into the world and fuse it into other selectables.
+
+_Pick_up	POP	A:R8
+		OWNER	A:R1,Const:Motherobj		; get union tool
+		ADOPT	A:R1,A:R8*,Const:FALSE		; make a child of the tool
+		MOVE	A:R8,A:_Carried_store		; save it for later use
+		RTS
+
+; Fuse what you carry into whatever is passed in, e.g. selectables
+
+_Put_down	POP	A:R8				; get what we will fuse into
+		ADOPT	Const:WPrimary_world,A:_Carried_store*,Const:TRUE
+		BEMPTY	A:R8*,A:_End_put_down&		; nothing there: just put it down
+		CPBOOLEAN	A:R8*,A:_Carried_store*,A:R9,Const:Boolunion
+
+_End_put_down	CLEAR	A:_Carried_store
+		RTS
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main union code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+Union		STARTPROP
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get union tool
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Check topmost message
+		CHKMSG	A:R2
+
+;		 Message jump table starts here.
+_Check_inputmsg	BNEQUAL	A:R2,Msg:Marqueedset,A:_End_union&
+;		 Get topmost message
+		UNQMSG	A:R2
+		UNQMSG	A:R3
+		JUMP	A:_End_union&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_union&		; Is event still active?
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_union&		; no,quit
+
+
+;		 Picking selectables?
+_Check_usage	BNEQUAL	AA:XAS,Prop:Selectable,A:_End_union&
+
+;		Are there selectable toolpads?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_union&		; yes, let toolpad work
+
+;		Is the headpad selectable?
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_union&		; yes, let headpad work
+
+;		 Is Opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+
+		ADDPROP	A:R1*,Prop:Toolused		; let toolpad know
+;							; the tool was used
+
+		WORLD	Const:WPrimary_world
+		MAKEMSG	Msg:Unpick
+		QMSG	Prop:Picked*,Const:Noprioritymsg
+		MOVE	Prop:Selectable*,A:R2		; if no objects
+		BEMPTY	A:R2,A:_End_union&		; are selectable, quit
+
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*, A:R2
+		WORLD	Const:WEnvironment_world
+		PUSH	A:R2
+
+		JSR	A:_Pick_up&
+		WIPE	A:XOP*				; no picking please!
+		JUMP	A:_End_union&
+
+
+;		 Is Opcode a RELEAS?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_union&
+
+		BEMPTY	A:_Carried_store,A:_End_union&
+
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*, A:R2
+		WORLD	Const:WEnvironment_world
+		PUSH	A:R2
+
+		JSR	A:_Put_down&			; fuse!
+		WIPE	A:XOP*				; no picking please!
+		MAKEMSG	Msg:Attachtool
+		MAKEMSG	A:R1*
+; 		 adopt me to any free toolpad
+		QMSG	Prop:Toolpadempty*,Const:Prioritymsg
+		JUMP	A:_End_union&
+
+_End_union	WORLD	Const:WEnvironment_world
+		RTS
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Union variables
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+; variable to hold what is carried
+
+_Carried_store	CPLDATA

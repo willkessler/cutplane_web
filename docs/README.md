@@ -62,7 +62,7 @@ lasts only while you hold the key or button.
 | G       | Group what is picked (on one group: ungroup it)           |
 | \\      | Slice what is picked at the plane                         |
 | B       | Union what is picked into one object                      |
-| Z, P    | The magnifier, the pan tool, to the crosshair             |
+| Z, H, P | The magnifier, the pan tool, the pencil, to the crosshair |
 | ⌫       | Delete what is picked                                     |
 | ⌘Z, ⇧⌘Z | Undo, redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y elsewhere)     |
 
@@ -163,8 +163,9 @@ All of these can be undone.
 
 The room is laid out as in the 3Form photos. Everything in it runs on the original CPL scripts.
 
-- **Toolbars** ride in the plane, top left: a **headpad** with its icon (the hammer for tools,
-  the grabber for arranging), and under it a rail of **toolpads**, each with its tool's picture.
+- **Toolbars** ride in the plane, top left: a **headpad** with its icon (the hammer for the tools
+  that hammer out changes to objects; a white box, for now, for the tools that look at and arrange
+  them), and under it a rail of **toolpads**, each with its tool's picture.
   Click a headpad to open or close its rail.
   - Click a toolpad and its tool comes off it and rides on the crosshair, just in front of the
     plane. Click the pad again to put the tool back.
@@ -219,14 +220,22 @@ undo away.
   and let go on a face of another. The first object turns and moves so its face lies flush on
   the second's, facing it. An edge snaps to an edge the same way. Pressing inside an object, not
   on its outline, does nothing, as in the original.
-- **Grabber.** Picks whole objects, even where a plain click would take a face or an edge.
-- **Pan tool** (or **P**). Drag on empty space to move the whole world with the crosshair.
+- **Union** (the two green blocks, on the tools' rail). The drill's twin: press on an object
+  with it and the object itself comes away with the tool. Carry it into another and let go, and
+  the two become one solid, each part keeping its colours. Let go over nothing and it's just put
+  down where it is. One undo parts them, the carried one back where it was picked up.
+- **Grabber** (a claw holding a green block). Picks whole objects, even where a plain click
+  would take a face or an edge.
+- **Pan tool** (or **H**). Drag on empty space to move the whole world with the crosshair.
 - **Magnifier** (or **Z**). Drag up to zoom the world in about the crosshair, down to zoom out:
   1% per unit.
 - **Group** (**G**). With several things picked, G puts them under a new group, which is then
   picked and drags as one. G with one group picked takes it apart again.
-- **Union** (**B**). With several objects picked (shift-click to add), B joins them into one
-  solid, the first picked; each part keeps its colours. The drill is the way to subtract.
+- **Union what is picked** (**B**). With several objects picked (shift-click to add), B joins
+  them into one solid, the first picked; each part keeps its colours. The drill is the way to
+  subtract. (Group, G, is the other way to put parts together: they stay separate solids under
+  one object, as the Discovery is built.)
+- **Pencil** (or **P**) comes to the crosshair, as the magnifier does with Z.
 
 ![The pencil's triangle, extruded into a prism through the plane](images/m6-pencil.png)
 
@@ -247,7 +256,9 @@ covers the room while you work).
   with nothing restarted: change `stamp.cpl` and the next stamp behaves differently. A broken edit
   is refused, its errors listed, and the old code keeps running.
 - **Save** writes the world as a `.cut` file, and each object's private code goes into the file
-  with it. **Open…** reads one back, and the code comes too.
+  with it. It also keeps a copy in this browser: the model menu lists it under _Saved in this
+  browser_ (with what the storage pad's _Save to:_ kept), and choosing it brings it back.
+  **Open…** reads a file back, and the code comes too.
 
 ### Work mode
 
@@ -284,8 +295,8 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   second, eased, instead of in one frame, so the room doesn't jump under you. Whatever is picked
   or held still travels with it. `assets/cpl/cursor.cpl` is `cursor.cpl` with this change
   (marked "cutplane_web"): `Jumplane` works out the jump, and a new `Glideplane` message moves
-  each frame's share. These two are the only changes to the original's CPL; every other script
-  runs as it was.
+  each frame's share. These two are the only changes to the original's CPL (the union tool's
+  `union.cpl` is new); every other script runs as it was.
 - **Code in files, edited live.** Objects carry their CPL inline in `.cut` files. The original
   saved only the name of a code file, and only for vertices, edges and faces. The CPL editor is
   new, and so are Save and Open outside the Load/Save plate.
@@ -303,8 +314,14 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   edges the SGI could not afford.
 - **Far edges are dimmer.** A highlighted edge whose faces are all turned away is drawn at about
   half brightness.
-- **B unions.** The original had no union tool; its `B` key (`BOOLEANBUTTON`, a test hook)
-  subtracted the second picked object from the first. Here `B` unions everything picked.
+- **A union tool, and B unions.** The 1991 rails had no union tool (a later Cutplane did, with
+  the two green blocks as its picture); its `B` key (`BOOLEANBUTTON`, a test hook) subtracted
+  the second picked object from the first. Here the green blocks are the union tool, on the
+  tools' rail (`assets/cpl/union.cpl`, after `drill.cpl`), and `B` unions everything picked. The
+  grabber has a new picture, a claw, and the arranging rail's headpad is a plain white box until
+  it gets one of its own. The rails are `assets/rsc/toolpads.rsc` and `arrangepads.rsc`, the new
+  pictures in `assets/icons/`.
+- **H is the pan tool, P the pencil.** The original's P brought the pan tool.
 - **A drill click does nothing.** Pressed and let go on one object, the drill's cutter is an
   exact copy of it, and `CPBOOLEAN` took the whole object away. A subtraction that would leave
   nothing now leaves the object as it was.
@@ -347,7 +364,8 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   second window. The **light bulb** adds a point light in its colour to the face shading, as
   `setup_light_source(2, ...)` did.
 - **Saving through the Load/Save plate** keeps the world in the browser, under the typed name,
-  and loading looks there first, then among the bundled samples. The original read and wrote
+  and loading looks there first, then among the bundled samples. The model menu lists what is
+  kept. The original read and wrote
   files in its working directory.
 - **Property code runs in the original's order.** A feature's properties are read as
   `read_feature_props` read them, each added to the front of its list, so the saw's `Slice`

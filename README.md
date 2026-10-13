@@ -18,8 +18,8 @@ see their cross-sections. Vertices, edges and faces are picked and edited where 
 > Then the drill comes off its pad: pressed on the module it makes a red copy of it, and carried
 > across and let go, the copy takes a bite out of the module. Undo puts it back. All of this runs
 > on the original CPL scripts in a CPL virtual machine; the cutting is done by manifold-3d and
-> comes back as the original's kind of polygon faces. The saw, pencil, magnet, grabber, pan tool,
-> magnifier and group tool all work too.
+> comes back as the original's kind of polygon faces. The saw, pencil, union tool, magnet, grabber,
+> pan tool, magnifier and group tool all work too.
 > See the [roadmap](docs/README.md#roadmap), the [controls](docs/README.md#using-cutplane) and
 > [how it differs from the original](docs/README.md#differences-from-the-original).
 
