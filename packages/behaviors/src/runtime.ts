@@ -429,6 +429,15 @@ export class Runtime implements Host {
     this.vm.resolveObjectRefs();
   }
 
+  /** Objects brought in from a file (OBJ, STL, glTF) put into the world being edited: one undoable step. */
+  addObjects(roots: readonly CutObject[]): void {
+    this.journal.touchTree();
+    this.importObjects(this.primary, roots);
+    // The step keeps them with their properties, so a redo brings them back whole.
+    for (const r of roots) for (const o of subtree(r)) this.journal.touch(o);
+    this.commit();
+  }
+
   /**
    * Gives CPL an object's properties as read_feature_props did: added in the file's
    * order, each to the front of the list, so the list (and the order JSRAT runs their

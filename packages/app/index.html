@@ -92,6 +92,26 @@
         font-weight: 600;
         font-variant-numeric: tabular-nums;
       }
+      #notice {
+        color: var(--accent);
+      }
+      #notice.error {
+        color: #ff8a80;
+      }
+      /* Files dragged over the page: it will take them. */
+      #app.dropping::after {
+        content: 'Drop to open: .cut worlds, or OBJ, STL and glTF models to add';
+        position: absolute;
+        inset: 12px;
+        display: grid;
+        place-items: center;
+        border: 2px dashed var(--accent);
+        border-radius: 12px;
+        color: var(--accent);
+        font-size: 18px;
+        background: rgba(0, 0, 0, 0.35);
+        pointer-events: none;
+      }
       #hints span + span::before {
         content: ' · ';
       }
@@ -201,21 +221,30 @@
           <option value="stretch">Faces stretch</option>
           <option value="extrude">Faces extrude</option>
         </select>
-        <button id="open" title="Open a .cut file">Open…</button>
+        <button
+          id="open"
+          title="Open a .cut world, or add OBJ, STL or glTF models to this one (or drop files on the page)"
+        >
+          Open…
+        </button>
         <button
           id="save"
           title="Save the world, with its objects' CPL, as a .cut file (a copy stays in this browser, in the model menu)"
         >
           Save
         </button>
+        <select id="export" aria-label="Export" title="The world's objects as a mesh file">
+          <option value="">Export…</option>
+        </select>
         <button id="codeButton" title="The CPL the world runs, live">Code</button>
-        <input id="file" type="file" accept=".cut,.rsc,.icon" hidden />
+        <input id="file" type="file" multiple hidden />
         <button id="work" class="primary" title="Full screen with the pointer captured (F)">
           Start working (F)
         </button>
       </div>
       <div id="status" class="panel">
         <div id="readout"></div>
+        <div id="notice" role="status"></div>
         <div id="hints"></div>
       </div>
       <div id="code" class="panel" aria-label="CPL editor">

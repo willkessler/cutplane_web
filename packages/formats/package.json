@@ -12,6 +12,11 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
-    "@cutplane/kernel": "workspace:*"
+    "@cutplane/kernel": "workspace:*",
+    "@gltf-transform/core": "^4.5.1",
+    "earcut": "^3.2.4"
+  },
+  "devDependencies": {
+    "gltf-validator": "2.0.0-dev.3.10"
   }
 }

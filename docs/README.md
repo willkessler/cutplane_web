@@ -13,8 +13,8 @@ The user guide and architecture notes will grow here as each milestone lands. Sc
 | **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo    |
 | **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                 |
 | **M5** ✅ | CPL VM and environment: code stored in objects, live editing        |
-| **M6** 🚧 | Modeling operations: slice, booleans, drill, pencil, arrange tools  |
-| M7        | Formats: OBJ, STL, glTF, drag and drop, autosave                    |
+| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools  |
+| **M7** 🚧 | Formats: OBJ, STL, glTF, drag and drop, autosave                    |
 | M8        | Ship: user guide, help plate, deployment                            |
 | M9        | Acceptance: load and rebuild the stapler, fan and Discovery         |
 | M10       | Language evolution (optional)                                       |
@@ -257,9 +257,36 @@ covers the room while you work).
   with nothing restarted: change `stamp.cpl` and the next stamp behaves differently. A broken edit
   is refused, its errors listed, and the old code keeps running.
 - **Save** writes the world as a `.cut` file, and each object's private code goes into the file
-  with it. It also keeps a copy in this browser: the model menu lists it under _Saved in this
-  browser_ (with what the storage pad's _Save to:_ kept), and choosing it brings it back.
-  **Open…** reads a file back, and the code comes too.
+  with it; **Open…** reads it back, code and all (see [Files](#files)).
+
+### Files
+
+- **Save** writes the world as a `.cut` file (through the browser's file dialog where it has one,
+  else as a download). It also keeps a copy in this browser: the model menu lists it under _Saved
+  in this browser_ (with what the storage pad's _Save to:_ kept), and choosing it brings it back.
+- **Open…**, or **dropping files anywhere on the page**:
+  - a `.cut` world (or a `.rsc` or `.icon`) becomes the world being edited;
+  - **OBJ, STL and glTF** models (`.obj`, `.stl`, `.glb`, `.gltf`) are **added** to the world, as
+    one step that undo takes back out. Drop an OBJ's `.mtl`, or a `.gltf`'s `.bin`, along with it.
+  - Triangles that lie in one plane come back as one face, holes and all, so an imported box
+    has six faces to grab, not twelve triangles. Colours come from the materials.
+  - A room unit is a millimetre. A model that doesn't fit the room (a building) or is too small
+    to see (one in metres) is scaled to fill most of it and set in the middle; the status line
+    says by how much. One that fits stays where it is.
+  - A glTF node with no mesh that holds others comes in as a group, as the group tool would make
+    it: pick one part and you pick the group.
+- **Export…** writes the world's objects as:
+  - **glTF binary (`.glb`)**: the world's tree as nodes (groups stay groups), in metres, flat
+    shaded, a material per colour. It opens in Blender (checked with Blender 4.3) and passes the
+    Khronos glTF validator.
+  - **Wavefront OBJ**: an `o` per object, polygon faces (a face with a hole goes as triangles),
+    colours named `color_rrggbb`, which Cutplane reads back without an `.mtl`.
+  - **STL** (binary): every triangle, for printing.
+- **Autosave.** Every change (an undo too) is kept in this browser a moment later. Reload, close
+  the tab or crash, and the next visit opens the world as you left it. The model menu's
+  _Unsaved changes_ entry brings it back as well; choosing a model from the menu starts that
+  model afresh. There's one autosave: changes to another model replace it, so **Save** anything
+  you want to keep.
 
 ### Work mode
 
@@ -301,6 +328,9 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
 - **Code in files, edited live.** Objects carry their CPL inline in `.cut` files. The original
   saved only the name of a code file, and only for vertices, edges and faces. The CPL editor is
   new, and so are Save and Open outside the Load/Save plate.
+- **Mesh files, drag and drop, autosave.** The original read and wrote only its own `.cut`
+  format. Cutplane also adds OBJ, STL and glTF models to a world, exports to them, takes files
+  dropped on the page, and keeps every change in the browser as it's made.
 - **The pencil tidies its stroke.** Steps too small to see and points along straight runs are
   merged before the stroke is closed. A stroke that crosses itself becomes the largest region it
   encloses, and one that closes on less than 25 square units is thrown away. The original kept
@@ -409,6 +439,38 @@ older versions of the format are normalised to the latest one on save.
     older CPL dialect that doesn't assemble).
 - **Not yet:** the measure pad (its name, size and distance plates need primitives that can be
   resized) and drawing on a surface with the pencil (`draw_on_surface`).
+
+## Formats (M7)
+
+- **`packages/formats/src/mesh`** holds the mesh formats: plain TypeScript, no DOM.
+  - **Out:** `faces.ts` turns each face into room-space loops and triangles (earcut, holes cut
+    out, wound with the face). `writeObj`, `writeStl` and `writeGlb` (built with
+    `@gltf-transform/core`) write from those.
+  - **In:** `readObj`, `readStl` (binary or ASCII) and `readGltf` (.glb, or .gltf with its
+    buffers) hand `polygonize` a mesh. It welds equal positions, joins neighbours that lie in one
+    plane (normals within about 0.06°) and share a colour, and chains each group's boundary into
+    an outer loop and holes. A boundary that pinches leaves its triangles as they were. Each
+    connected piece becomes a shell; the commonest colour is the object's, the rest are painted
+    on faces.
+  - **glTF placement:** a node whose world matrix is a rotation (times a uniform scale) keeps it
+    as the object's xform; a sheared or mirrored one is baked into the positions. Nodes are
+    written at their object's origin, unturned, under their parent.
+  - **Faces through glTF:** each vertex carries `_FACE`, its face's number (glTF allows
+    application attributes with a leading underscore). Reading a Cutplane GLB joins triangles by
+    it rather than by plane, so the 1991 models' slightly bent faces come back whole.
+  - **`fitToRoom`** scales and centres imports that don't fit or are tiny, then snaps vertices to
+    the 1/256 grid, as every committed vertex is.
+- **The app:** `ui/files.ts` sorts files by extension, reads models and exports. `Runtime.addObjects`
+  makes an import one undoable step. The journal counts edits (`edits`); the app autosaves
+  800 ms after it changes, and at once when the page is hidden.
+- **Tests:** `formats/test/mesh.test.ts` round-trips a cube, a holed face and five samples
+  through each format. It checks points (within the grid), volume (within 10⁻⁴), face counts
+  (the same through glTF, never more through OBJ except holed bent faces), colours and nesting.
+  It reads glTF turned, scaled and sheared by other tools, and runs the Khronos validator on a
+  GLB. `e2e/files.spec.ts` drops an STL, exports and re-opens a GLB, downloads OBJ and STL,
+  reloads into an autosave, and refuses a broken file.
+- **Blender:** the Discovery, stapler and floor fan GLBs open in Blender 4.3.2 (headless, in
+  Docker). The Discovery is 34 meshes under 3 group empties, with 6 materials.
 
 ## Modeling operations (M6)
 

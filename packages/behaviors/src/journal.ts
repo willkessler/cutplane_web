@@ -119,6 +119,8 @@ export class Journal {
   private readonly undoStack: Step[] = [];
   private readonly redoStack: Step[] = [];
   private open: OpenStep | null = null;
+  /** Counts edits made, undone and redone: it changes whenever the world does (autosave watches it). */
+  edits = 0;
 
   constructor(
     private readonly root: () => CutObject,
@@ -172,6 +174,7 @@ export class Journal {
     };
     this.undoStack.push(step);
     this.redoStack.length = 0;
+    this.edits++;
     return step;
   }
 
@@ -192,12 +195,14 @@ export class Journal {
   undo(): Step | undefined {
     const s = this.undoStack.pop();
     if (s) this.redoStack.push(s);
+    if (s) this.edits++;
     return s;
   }
 
   redo(): Step | undefined {
     const s = this.redoStack.pop();
     if (s) this.undoStack.push(s);
+    if (s) this.edits++;
     return s;
   }
 

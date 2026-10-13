@@ -48,6 +48,16 @@ import { SectionLines } from './render/sectionlines.ts';
 import { createCamera, deeperOnScreen, fitFov, orbitCamera, unitsPerPixel } from './scene.ts';
 import { CLASSIC, rgb } from './viewer/palette.ts';
 import { CodePanel } from './ui/codepanel.ts';
+import {
+  ACCEPT,
+  EXPORTS,
+  exportWorld,
+  fileName,
+  kindOf,
+  readMeshFiles,
+  saveFile,
+  type ExportFormat,
+} from './ui/files.ts';
 import { AppStage } from './world/stage.ts';
 import {
   boxDrawing,
@@ -343,7 +353,11 @@ function listSaved(): void {
 async function loadModel(src: string): Promise<void> {
   let doc: CutDocument;
   if (src === NEW_CUBE) doc = newCube();
-  else if (src.startsWith(SAVED)) {
+  else if (src === AUTOSAVE) {
+    const a = autosaved();
+    if (!a) throw new Error('nothing autosaved');
+    doc = readCut(a.text).doc;
+  } else if (src.startsWith(SAVED)) {
     const text = stored(`world.${src.slice(SAVED.length)}`);
     if (text === null) throw new Error(`${src}: not kept in this browser`);
     doc = readCut(text).doc;
@@ -365,6 +379,7 @@ function loadDocument(doc: CutDocument): void {
   control.plane.setDepths(models.depths());
   control.plane.set(ROOM.max[2]);
   dirty = true;
+  editsSaved = rt.journal.edits; // a world just loaded has nothing to autosave yet
 }
 
 modelSelect.addEventListener('change', () => {
@@ -498,6 +513,7 @@ const readout = $<HTMLDivElement>('readout');
 function render(): void {
   step();
   syncModels();
+  autosaveTick();
   orbitCamera(camera, control.yaw, control.pitch);
   control.planeAxis = deeperOnScreen(camera);
   plane.z = stage.z;
@@ -724,7 +740,10 @@ $<HTMLButtonElement>('codeButton').addEventListener('click', (e) => {
   (e.target as HTMLButtonElement).blur();
 });
 
-const worldTitle = () => modelSelect.selectedOptions[0]?.text.replace(/\s*\(.*$/, '') || 'world';
+const worldTitle = () =>
+  (modelSelect.value === AUTOSAVE
+    ? autosaved()?.title
+    : modelSelect.selectedOptions[0]?.text.replace(/\s*\(.*$/, '')) || 'world';
 /** The world being edited as a .cut file, with its objects' private code inline. */
 const worldText = () =>
   writeCut({ title: worldTitle(), contains: 'World', name: null, roots: rt.documentRoots() });
@@ -736,31 +755,11 @@ const worldText = () =>
 async function saveWorld(): Promise<void> {
   const title = worldTitle();
   const text = worldText();
-  const name = `${title.replace(/[^\w-]+/g, '_').toLowerCase()}.cut`;
+  const name = fileName(title, 'cut');
   keep(name, text);
   modelSelect.value = `${SAVED}${name}`;
   store('model', modelSelect.value);
-  const picker = (window as { showSaveFilePicker?: (o: unknown) => Promise<FileSystemFileHandle> })
-    .showSaveFilePicker;
-  if (picker) {
-    try {
-      const handle = await picker({
-        suggestedName: name,
-        types: [{ description: 'Cutplane world', accept: { 'text/plain': ['.cut'] } }],
-      });
-      const out = await handle.createWritable();
-      await out.write(text);
-      await out.close();
-      return;
-    } catch (err) {
-      if ((err as DOMException).name === 'AbortError') return;
-    }
-  }
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  await saveFile(name, new Blob([text], { type: 'text/plain' }), 'Cutplane world');
 }
 $<HTMLButtonElement>('save').addEventListener('click', (e) => {
   void saveWorld();
@@ -771,16 +770,155 @@ $<HTMLButtonElement>('open').addEventListener('click', (e) => {
   fileInput.click();
   (e.target as HTMLButtonElement).blur();
 });
-fileInput.addEventListener('change', async () => {
-  const f = fileInput.files?.[0];
+fileInput.accept = ACCEPT;
+fileInput.addEventListener('change', () => {
+  const files = [...(fileInput.files ?? [])];
   fileInput.value = '';
-  if (!f) return;
-  const latin1 = new TextDecoder('latin1');
-  loadDocument(readCut(latin1.decode(await f.arrayBuffer())).doc);
-  if (![...modelSelect.options].some((o) => o.value === `file:${f.name}`))
-    modelSelect.add(new Option(f.name, `file:${f.name}`));
-  modelSelect.value = `file:${f.name}`;
+  void openFiles(files);
 });
+
+/** A line in the status bar for a few seconds (what an import did, or why it couldn't). */
+let noticeTimer = 0;
+function notify(text: string, error = false): void {
+  const el = $<HTMLDivElement>('notice');
+  el.textContent = text;
+  el.classList.toggle('error', error);
+  clearTimeout(noticeTimer);
+  noticeTimer = window.setTimeout(() => (el.textContent = ''), error ? 10000 : 6000);
+}
+
+/**
+ * Opened or dropped files: a .cut becomes the world being edited (as Open
+ * always did); OBJ, STL and glTF models are added to it, fitted into the room,
+ * as one undoable step.
+ */
+async function openFiles(files: File[]): Promise<void> {
+  const cut = files.find((f) => kindOf(f.name) === 'cut');
+  const meshes = files.filter((f) => ['obj', 'stl', 'glb', 'gltf'].includes(kindOf(f.name)));
+  if (!cut && meshes.length === 0) {
+    if (files.length) notify(`Cutplane can't open ${files.map((f) => f.name).join(', ')}`, true);
+    return;
+  }
+  try {
+    if (cut) {
+      loadDocument(readCut(new TextDecoder('latin1').decode(await cut.arrayBuffer())).doc);
+      if (![...modelSelect.options].some((o) => o.value === `file:${cut.name}`))
+        modelSelect.add(new Option(cut.name, `file:${cut.name}`));
+      modelSelect.value = `file:${cut.name}`;
+    }
+    if (meshes.length === 0) return;
+    if (controls.pickHeld) controls.releasePick();
+    const got = await readMeshFiles(files);
+    rt.addObjects(got.objects);
+    const n = got.objects.length;
+    const scaled =
+      got.scale === 1 ? '' : `, scaled ×${Number(got.scale.toPrecision(3))} to fit the room`;
+    notify(
+      `Added ${n} object${n === 1 ? '' : 's'} from ${got.names.join(', ')}${scaled} (undo takes ${n === 1 ? 'it' : 'them'} out)`,
+    );
+  } catch (err) {
+    console.warn(err);
+    notify(`Couldn't open ${(err as Error).message}`, true);
+  }
+}
+
+// Drag and drop: files dropped anywhere on the page open as Open does.
+let dragDepth = 0;
+const hasFiles = (e: DragEvent) => [...(e.dataTransfer?.types ?? [])].includes('Files');
+window.addEventListener('dragenter', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  dragDepth++;
+  app.classList.add('dropping');
+});
+window.addEventListener('dragover', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  e.dataTransfer!.dropEffect = 'copy';
+});
+window.addEventListener('dragleave', () => {
+  if (--dragDepth <= 0) {
+    dragDepth = 0;
+    app.classList.remove('dropping');
+  }
+});
+window.addEventListener('drop', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  app.classList.remove('dropping');
+  void openFiles([...(e.dataTransfer?.files ?? [])]);
+});
+
+// Export: the world's objects as glTF, OBJ or STL.
+const exportSelect = $<HTMLSelectElement>('export');
+for (const [k, v] of Object.entries(EXPORTS)) exportSelect.add(new Option(v.label, k));
+exportSelect.addEventListener('change', async () => {
+  const format = exportSelect.value as ExportFormat;
+  exportSelect.value = '';
+  exportSelect.blur();
+  if (!format) return;
+  const title = worldTitle();
+  const blob = await exportWorld(format, rt.documentRoots(), title);
+  await saveFile(fileName(title, format), blob, EXPORTS[format].description);
+});
+
+// ---- autosave ----
+/**
+ * Every edit (and undo and redo) is kept in this browser a moment later, so
+ * closing the tab or a crash loses nothing: the model menu's "Unsaved changes"
+ * brings it back, and the next visit opens it.
+ */
+const AUTOSAVE = 'autosave:';
+const AUTOSAVE_DELAY = 800;
+interface Autosave {
+  title: string;
+  text: string;
+  at: number;
+}
+function autosaved(): Autosave | null {
+  try {
+    const a = JSON.parse(stored('autosave') ?? 'null') as Autosave | null;
+    return a && typeof a.text === 'string' ? a : null;
+  } catch {
+    return null;
+  }
+}
+let editsSaved = 0;
+let autosaveAt = 0;
+function listAutosave(): void {
+  modelSelect.querySelector(`option[value="${AUTOSAVE}"]`)?.remove();
+  const a = autosaved();
+  if (!a) return;
+  const time = new Date(a.at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+  const o = new Option(`Unsaved changes: ${a.title} (autosaved ${time})`, AUTOSAVE);
+  modelSelect.insertBefore(o, modelSelect.firstChild);
+}
+function autosave(): void {
+  autosaveAt = 0;
+  const value = modelSelect.value;
+  store('autosave', JSON.stringify({ title: worldTitle(), text: worldText(), at: Date.now() }));
+  // The next visit opens it, whatever the menu says now.
+  store('model', AUTOSAVE);
+  listAutosave();
+  modelSelect.value = value;
+}
+/** Called every frame: an edit since the last autosave is kept once things settle. */
+function autosaveTick(): void {
+  if (rt.journal.edits !== editsSaved) {
+    editsSaved = rt.journal.edits;
+    autosaveAt = performance.now() + AUTOSAVE_DELAY;
+  }
+  if (autosaveAt && performance.now() >= autosaveAt && !controls.pickHeld) autosave();
+}
+// Leaving the page with an edit not yet kept keeps it now.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && autosaveAt) autosave();
+});
+window.addEventListener('pagehide', () => {
+  if (autosaveAt) autosave();
+});
+
 $<HTMLButtonElement>('resume').addEventListener('click', () => void work.resume());
 $<HTMLButtonElement>('leave').addEventListener('click', () => work.exit());
 if (work.unsupported) $<HTMLButtonElement>('work').disabled = true;
@@ -848,6 +986,7 @@ async function start(): Promise<void> {
   ];
   for (const e of entries) modelSelect.add(new Option(e.title, e.file));
   listSaved();
+  listAutosave();
   const sample = params.get('sample');
   const src =
     params.get('src') ??
