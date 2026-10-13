@@ -102,11 +102,49 @@ describe('toolbars through headpad, toolpad, padhandle and tool.cpl', () => {
     expect(tool.parent).toBe(pad);
     expect(visible(w, tool)).toBe(false);
     expect(decalOf(w.rt, pad)?.length).toBeGreaterThan(0);
-    // (toolpad.cpl leaves it marked Toolpadempty here, as the original did: the pad
-    // had no tool when it was clicked.) It hands the tool over again all the same.
+    // (The original left it marked Toolpadempty here: the pad had no tool when it
+    // was clicked. Here the tool going back on its own pad fills it.)
+    expect(w.rt.hasProp(pad, 'Toolpadempty')).toBe(false);
     w.click(pad);
     expect(tool.parent).toBe(w.rt.cursorObj);
     expect(visible(w, tool)).toBe(true);
+  });
+
+  it('holding a tool, clicking another pad: the held tool goes back to its own pad', () => {
+    const w = setup();
+    w.click(w.tools);
+    const pads = w.tools.children[0]!.children.map((h) => h.children[0]!);
+    const [pencil, saw] = [pads[0]!.children[0]!, pads[1]!.children[0]!];
+    w.click(pads[0]!);
+    expect(pencil.parent).toBe(w.rt.cursorObj);
+    // The original swapped the pencil onto the saw's pad.
+    w.click(pads[1]!);
+    expect(saw.parent).toBe(w.rt.cursorObj);
+    expect(pencil.parent).toBe(pads[0]);
+    expect(w.rt.hasProp(pads[0]!, 'Toolpadempty')).toBe(false);
+    expect(w.rt.hasProp(pads[1]!, 'Toolpadempty')).toBe(true);
+    expect(decalOf(w.rt, pads[1]!)).toBeUndefined();
+    // And the saw goes home too, from the pencil's pad or its own.
+    w.click(pads[0]!);
+    expect(pencil.parent).toBe(w.rt.cursorObj);
+    expect(saw.parent).toBe(pads[1]);
+    w.click(pads[0]!);
+    expect(pencil.parent).toBe(pads[0]);
+    expect(pads.every((p) => p.children[0]!.parent === p)).toBe(true);
+  });
+
+  it('a tool summoned by key sends the held one to its own pad, not the first empty one', () => {
+    const w = setup();
+    w.click(w.tools);
+    const pads = w.tools.children[0]!.children.map((h) => h.children[0]!);
+    const [pencil, union] = [pads[0]!.children[0]!, pads[3]!.children[0]!];
+    w.click(pads[3]!);
+    expect(union.parent).toBe(w.rt.cursorObj);
+    w.controls.takeTool('Pencil');
+    for (let i = 0; i < 4; i++) w.frame(); // a message to the pencil, then to its pad
+    expect(pencil.parent).toBe(w.rt.cursorObj);
+    expect(union.parent).toBe(pads[3]);
+    expect(w.rt.hasProp(pads[0]!, 'Toolpadempty')).toBe(true);
   });
 
   it('a padhandle pulled off the rail floats where it is let go', () => {

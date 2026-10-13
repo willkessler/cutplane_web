@@ -213,7 +213,7 @@ async function loadCpl(): Promise<void> {
   // The originals are Latin-1 (and plain ASCII where it matters).
   const latin1 = new TextDecoder('latin1');
   // cutplane_web's own versions (assets/cpl) first, else the originals.
-  const ours = new Set(['rom.cpl', 'cursor.cpl', 'union.cpl']);
+  const ours = new Set(['rom.cpl', 'cursor.cpl', 'tool.cpl', 'toolpad.cpl', 'union.cpl']);
   await Promise.all(
     CPL_FILES.map(async (f) => {
       const res = await fetch(`${base}${ours.has(f) ? 'cpl' : 'original/cpl'}/${f}`);

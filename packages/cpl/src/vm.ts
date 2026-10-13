@@ -1755,6 +1755,21 @@ const OPS: Partial<Record<number, OpFn>> = {
 
   [Op.CPSHADE]: (vm) => vm.host.toggleShade(),
 
+  /**
+   * CONNECT: the object in AS is connected to the object in AT (its Connection,
+   * which GETCONN reads back). New here: the original's execute_CONNECT was an
+   * empty stub; toolpad.cpl uses it to give each tool its own pad.
+   */
+  [Op.CONNECT]: (vm) => {
+    const { AS, AT } = vm;
+    if (AS.type !== W.Features || AT.type !== W.Features) return;
+    const f = first(AS);
+    const t = first(AT);
+    const obj = f ? vm.mother(f) : null;
+    const to = t ? vm.mother(t) : null;
+    if (obj && to) vm.props.set(obj, P.Connection, to);
+  },
+
   [Op.GETCONN]: (vm) => {
     const { AS, AR } = vm;
     const f = AS.type === W.Features ? first(AS) : null;

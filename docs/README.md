@@ -168,7 +168,8 @@ The room is laid out as in the 3Form photos. Everything in it runs on the origin
   them), and under it a rail of **toolpads**, each with its tool's picture.
   Click a headpad to open or close its rail.
   - Click a toolpad and its tool comes off it and rides on the crosshair, just in front of the
-    plane. Click the pad again to put the tool back.
+    plane. Click the pad again to put the tool back. Click another pad (or call up a tool by
+    key) and the tool you hold goes back to its own pad.
   - Drag a pad by its handle (the strip along its top) to pull it off the rail. Let it go
     anywhere to leave it floating, on another rail to hang it there, or on a headpad to drop it in.
   - The tools on the pads do their work: see [Modeling](#modeling) below.
@@ -295,8 +296,8 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   second, eased, instead of in one frame, so the room doesn't jump under you. Whatever is picked
   or held still travels with it. `assets/cpl/cursor.cpl` is `cursor.cpl` with this change
   (marked "cutplane_web"): `Jumplane` works out the jump, and a new `Glideplane` message moves
-  each frame's share. These two are the only changes to the original's CPL (the union tool's
-  `union.cpl` is new); every other script runs as it was.
+  each frame's share. These two, and the tools' own pads (below), are the only changes to the
+  original's CPL (the union tool's `union.cpl` is new); every other script runs as it was.
 - **Code in files, edited live.** Objects carry their CPL inline in `.cut` files. The original
   saved only the name of a code file, and only for vertices, edges and faces. The CPL editor is
   new, and so are Save and Open outside the Load/Save plate.
@@ -322,6 +323,12 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   it gets one of its own. The rails are `assets/rsc/toolpads.rsc` and `arrangepads.rsc`, the new
   pictures in `assets/icons/`.
 - **H is the pan tool, P the pencil.** The original's P brought the pan tool.
+- **Each tool goes back to its own pad.** In the original, clicking a pad while holding a tool
+  swapped the held tool onto that pad, and a tool put away after use (or by a key) went to the
+  first empty pad, so tools wandered from pad to pad. Here `toolpad.cpl` connects a tool to the
+  pad that gives it out (`CONNECT`, an empty stub in the original, now does what its comment
+  says) and takes back only its own; `tool.cpl` puts a tool away on its own pad
+  (`assets/cpl/tool.cpl`, `toolpad.cpl`, marked "cutplane_web").
 - **A drill click does nothing.** Pressed and let go on one object, the drill's cutter is an
   exact copy of it, and `CPBOOLEAN` took the whole object away. A subtraction that would leave
   nothing now leaves the object as it was.
