@@ -9,7 +9,6 @@ import {
   decalOf,
   installHelpPad,
   installStoragePad,
-  setHelpText,
   type PlateFiles,
 } from '../src/index.ts';
 import { source, world } from './world.ts';
@@ -151,8 +150,6 @@ describe('the help pad (new): a Dialog like the storage pad', () => {
     expect(w.rt.vm.props.has(plate, P.Visible)).toBe(true);
     expect(w.rt.labelItems(plate).map((l) => l.text)).toEqual(['Moving', 'Move: the crosshair']);
     expect(w.rt.labelItems(plate)[0]!.color).toEqual([255, 255, 0]);
-    setHelpText(w.rt, help, [{ text: 'Other', heading: true }, { text: 'Lines' }]);
-    expect(w.rt.labelItems(plate).map((l) => l.text)).toEqual(['Other', 'Lines']);
     w.click(help);
     expect(w.rt.vm.props.has(plate, P.Visible)).toBe(false);
     // Nothing in the world was picked or changed by it.

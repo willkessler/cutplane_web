@@ -92,9 +92,6 @@ test('the ? pad opens a help plate in the plane, and closes it', async ({ page, 
   expect((await help()).open).toBe(true);
   if (process.env['SHOTS'] && browserName === 'chromium')
     await page.screenshot({ path: `${process.env['SHOTS']}/help-plate.png` });
-  // Changing the profile rewrites it (Option, Cmd, buttons).
-  await page.getByLabel('Input profile').selectOption('three-button');
-  expect((await help()).open).toBe(true);
   await click(page, pad[0]!, pad[1]!);
   expect((await help()).open).toBe(false);
   const after = await edit(page);

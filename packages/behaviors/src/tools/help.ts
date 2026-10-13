@@ -143,18 +143,3 @@ export function installHelpPad(rt: Runtime, lines: readonly HelpLine[]): CutObje
   rt.vm.resolveObjectRefs();
   return pad;
 }
-
-/** New help text (another input profile): the plate's lines are rewritten in place. */
-export function setHelpText(rt: Runtime, pad: CutObject, lines: readonly HelpLine[]): void {
-  const plate = pad.children.find((c) => c.name === 'Help_Plate');
-  if (!plate) return;
-  const items = rt.labelItems(plate);
-  items.length = 0;
-  for (const l of plateSpec(lines).labels)
-    rt.addLabelItem(plate, l.text, l.offset, {
-      color: [...l.color],
-      penWidth: l.pen,
-      xscale: l.scale[0],
-      yscale: l.scale[1],
-    });
-}

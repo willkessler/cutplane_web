@@ -20,24 +20,23 @@ Nothing to install. It works in Chrome, Edge, Firefox and Safari on a desktop or
 - Around the edges of the plane ride the tools: the **toolbars** top left (orange headpads with a
   hammer and with three bars), the **rotate tool** top right, the **floppy disk** and the **?**
   along the bottom. They move with the plane, so they're always within reach.
-- Above the room is the **top bar** (models, input profile, files) and below it a **status
+- Above the room is the **top bar** (models, plane style, files) and below it a **status
   line** with the controls. Both disappear when you start working (section 2).
 
-The first time, choose your **input profile** in the top bar: _Trackpad_ (the default on a Mac),
-_Two-button mouse_ or _Three-button mouse_. The examples below use the trackpad and two-button
-mouse, where the plane is moved with ⌥ (Option, Alt). Every held key is
-**spring-loaded**: it lasts only while you hold it.
+A trackpad, a two-button mouse and the SGI's three-button mouse all work as they are, with
+nothing to set up: hold ⌘ or right-drag to turn the room, hold ⌥ (Option, Alt) or middle-drag to
+move the plane. Every held key or button is **spring-loaded**: it lasts only while you hold it.
 
 ## 2. Looking around
 
-| To...                   | Do this                                                          |
-| ----------------------- | ---------------------------------------------------------------- |
-| move the crosshair      | move the pointer                                                 |
-| move the plane in depth | hold ⌥ and move (or scroll); middle-drag on a three-button mouse |
-| turn the room           | right-drag (or hold ⌘ and move on a trackpad), or the arrow keys |
-| face the room again     | 0                                                                |
-| jump to the back wall   | Space (Space again comes back)                                   |
-| work full screen        | **F**, or _Start working_; Esc leaves                            |
+| To...                   | Do this                                        |
+| ----------------------- | ---------------------------------------------- |
+| move the crosshair      | move the pointer                               |
+| move the plane in depth | hold ⌥ and move, middle-drag, or scroll        |
+| turn the room           | hold ⌘ and move, right-drag, or the arrow keys |
+| face the room again     | 0                                              |
+| jump to the back wall   | Space (Space again comes back)                 |
+| work full screen        | **F**, or _Start working_; Esc leaves          |
 
 Push the plane slowly through a model and watch the section change. Moving slowly, the plane
 **clicks onto the depths of vertices**, so a face or an edge comes to lie exactly in the plane,
@@ -155,8 +154,7 @@ comes out, bottom left beside the floppy. Put the ruler away and it goes.
 
 ![The help plate, opened from the ? pad](images/guide-help.png)
 
-Click the **?** pad (bottom right) for a plate of the controls in the plane, written for the input
-profile you chose. Click ? again to put it away.
+Click the **?** pad (bottom right) for a plate of the controls in the plane. Click ? again to put it away.
 
 ## 9. If something doesn't work
 

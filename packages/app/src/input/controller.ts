@@ -1,5 +1,5 @@
 import { PlaneSnapper, ROOM } from '@cutplane/kernel';
-import { motionFor, type Command, type Held, type Motion, type Profile } from './bindings.ts';
+import { motionFor, type Command, type Held, type Motion } from './bindings.ts';
 
 /** user.h's room rotation limits, in degrees (the original kept tenths). */
 export const YAW_LIMIT = 90;
@@ -41,7 +41,6 @@ export class Controller {
   readonly plane = new PlaneSnapper(ROOM.max[2]);
   yaw = 0;
   pitch = 0;
-  profile: Profile;
   held: Held;
   /**
    * Where a point moving deeper into the room goes on screen, as (right, up) with length
@@ -57,8 +56,7 @@ export class Controller {
   private anchor: [number, number] | undefined;
   private axis: 'x' | 'y' | undefined;
 
-  constructor(profile: Profile, held: Held) {
-    this.profile = profile;
+  constructor(held: Held) {
     this.held = held;
   }
 
@@ -67,7 +65,7 @@ export class Controller {
   }
 
   get motion(): Motion {
-    return motionFor(this.profile, this.held);
+    return motionFor(this.held);
   }
 
   /** Relative pointer motion (pointer-locked, or during a quasimode in windowed mode). */
@@ -97,13 +95,13 @@ export class Controller {
   }
 
   /**
-   * Scroll / wheel: plane depth in every profile. A mouse wheel rolled up (away from you)
+   * Scroll / wheel: plane depth. A mouse wheel rolled up (away from you)
    * pushes the plane away, deeper into the room. A trackpad's two-finger swipe is read the
    * way ⌥ + move is: along the plane's on-screen depth direction, so with the room turned
    * the swipe follows the plane sideways too. `notched` marks a mouse wheel (see
    * isMouseWheel), which always drives depth directly.
    */
-  wheel(deltaY: number, deltaX = 0, notched = this.profile !== 'trackpad'): void {
+  wheel(deltaY: number, deltaX = 0, notched = false): void {
     const slow = this.held.ctrl ? CONSTRAIN_SLOW : 1;
     if (notched) {
       // Rolled up gives deltaY < 0: deeper.

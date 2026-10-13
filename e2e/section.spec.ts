@@ -110,8 +110,22 @@ test('scroll pushes the plane and the crosshair follows the pointer', async ({ p
   s = await page.evaluate(() => window.__cutplane!.state());
   expect(s.x).toBeGreaterThan(100);
   const z0 = s.z;
-  // The wheel rolled up (away from you) pushes the plane away.
-  await page.mouse.wheel(0, -200);
+  // A mouse wheel rolled up (away from you) pushes the plane away. Sent as a real wheel
+  // reports itself, in lines: Playwright's own wheel events look like a trackpad's swipe.
+  await page.evaluate(
+    ([x, y]) =>
+      document.getElementById('viewport')!.dispatchEvent(
+        new WheelEvent('wheel', {
+          deltaY: -3,
+          deltaMode: 1,
+          clientX: x,
+          clientY: y,
+          bubbles: true,
+          cancelable: true,
+        }),
+      ),
+    [box.x + box.width * 0.75, box.y + box.height / 2],
+  );
   await expect
     .poll(async () => (await page.evaluate(() => window.__cutplane!.state())).z)
     .toBeLessThan(z0);

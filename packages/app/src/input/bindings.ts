@@ -1,17 +1,11 @@
 /**
  * Physical input → the original's logical actions (controls.h), so nothing
- * downstream sees devices. Each profile is a pure mapping from what is
- * held (buttons, modifier keys) to the active quasimode; quasimodes are
- * spring-loaded, lasting exactly as long as the key or button is held.
+ * downstream sees devices. A pure mapping from what is held (buttons, modifier
+ * keys) to the active quasimode; quasimodes are spring-loaded, lasting exactly
+ * as long as the key or button is held. One mapping serves a trackpad, a
+ * two-button and a three-button mouse alike (a browser can't tell them apart):
+ * none of their bindings conflict.
  */
-
-export type Profile = 'trackpad' | 'three-button' | 'two-button';
-
-export const PROFILES: { id: Profile; label: string }[] = [
-  { id: 'trackpad', label: 'Trackpad / one button' },
-  { id: 'three-button', label: 'Three-button mouse' },
-  { id: 'two-button', label: 'Two-button mouse' },
-];
 
 /** DOM `buttons` bits. */
 export const LEFT = 1;
@@ -37,31 +31,13 @@ export const NOTHING_HELD: Held = {
 /** What pointer motion does right now. */
 export type Motion = 'point' | 'plane' | 'rotate';
 
-export function motionFor(profile: Profile, h: Held): Motion {
-  switch (profile) {
-    case 'trackpad':
-      // ⌘ + move rotates the room, ⌥ + move pushes the plane; no click needed under pointer lock.
-      // A mouse's right button (or a two-finger click held) rotates the room here too.
-      if (h.meta || h.buttons & RIGHT) return 'rotate';
-      if (h.alt) return 'plane';
-      return 'point';
-    case 'three-button':
-      // The SGI bindings: middle drags the plane, right rotates the room.
-      if (h.buttons & RIGHT) return 'rotate';
-      // Middle with left held is the carry chord: the plane moves and takes the drag with it.
-      if (h.buttons & MIDDLE) return 'plane';
-      if (h.alt) return 'plane';
-      return 'point';
-    case 'two-button':
-      if (h.buttons & RIGHT) return 'rotate';
-      if (h.alt) return 'plane';
-      return 'point';
-  }
-}
-
-/** Default profile for a platform: Macs get the trackpad bindings. */
-export function defaultProfile(platform: string): Profile {
-  return /mac/i.test(platform) ? 'trackpad' : 'two-button';
+export function motionFor(h: Held): Motion {
+  // ⌘ + move (a trackpad needs no click under pointer lock), or the right button: the room.
+  if (h.meta || h.buttons & RIGHT) return 'rotate';
+  // ⌥ + move, or the SGI's middle button: the plane. Middle with left held is the carry
+  // chord: the plane moves and takes the drag with it.
+  if (h.alt || h.buttons & MIDDLE) return 'plane';
+  return 'point';
 }
 
 /** The keyboard commands live in M2 (controls.c's, restored), plus the work-mode toggle. */
@@ -143,8 +119,11 @@ export function commandFor(code: string, h: Held): Command | undefined {
 }
 
 /** Human-readable bindings for the help line. */
-export function bindingHints(profile: Profile): string[] {
-  const common = [
+export function bindingHints(mac: boolean): string[] {
+  return [
+    'Move: crosshair',
+    `Hold ${mac ? '⌥' : 'Alt'} + move, or middle-drag: plane depth`,
+    mac ? 'Hold ⌘ + move, or right-drag: rotate room' : 'Right-drag: rotate room',
     'Click: pick',
     'Drag: move what is picked',
     'Shift-click: add or remove',
@@ -163,53 +142,17 @@ export function bindingHints(profile: Profile): string[] {
     '⌫: delete',
     '⌘Z / ⇧⌘Z: undo / redo',
   ];
-  switch (profile) {
-    case 'trackpad':
-      return [
-        'Move: crosshair',
-        'Hold ⌥ + move: plane depth',
-        'Hold ⌘ + move, or right-drag: rotate room',
-        ...common,
-      ];
-    case 'three-button':
-      return ['Move: crosshair', 'Middle-drag: plane depth', 'Right-drag: rotate room', ...common];
-    case 'two-button':
-      return [
-        'Move: crosshair',
-        'Hold ⌥ + move: plane depth',
-        'Right-drag: rotate room',
-        ...common,
-      ];
-  }
 }
 
-/**
- * The help plate's lines (in the room, so in the Hershey font's plain ASCII). The
- * same number for every profile, so the plate keeps its size when the profile changes.
- */
-export function helpLines(profile: Profile, mac: boolean): { text: string; heading?: boolean }[] {
+/** The help plate's lines (in the room, so in the Hershey font's plain ASCII). */
+export function helpLines(mac: boolean): { text: string; heading?: boolean }[] {
   const cmd = mac ? 'Cmd' : 'Ctrl';
-  const moving: Record<Profile, string[]> = {
-    trackpad: [
-      'Move: the crosshair',
-      'Hold Option and move: the plane, in depth',
-      'Hold Cmd and move, or right-drag: turn the room',
-    ],
-    'three-button': [
-      'Move: the crosshair',
-      'Middle-drag: the plane, in depth',
-      'Right-drag: turn the room',
-    ],
-    'two-button': [
-      'Move: the crosshair',
-      'Hold Option (Alt) and move: the plane, in depth',
-      'Right-drag: turn the room',
-    ],
-  };
   return [
     { text: 'The plane cuts what it passes through.  Click ? again to close.', heading: true },
     { text: 'Moving', heading: true },
-    ...moving[profile].map((text) => ({ text })),
+    { text: 'Move: the crosshair' },
+    { text: `Hold ${mac ? 'Option' : 'Alt'} and move, or middle-drag: the plane, in depth` },
+    { text: mac ? 'Hold Cmd and move, or right-drag: turn the room' : 'Right-drag: turn the room' },
     { text: 'Scroll: the plane    Space: jump to the back wall and back' },
     { text: 'Arrow keys: turn the room 10 degrees    0: face it again' },
     { text: 'Ctrl held: keep to one axis    F: full screen    Esc: leave it' },

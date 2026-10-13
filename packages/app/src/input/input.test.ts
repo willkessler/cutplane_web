@@ -7,7 +7,6 @@ import {
   NOTHING_HELD,
   RIGHT,
   commandFor,
-  defaultProfile,
   helpLines,
   motionFor,
   type Held,
@@ -25,31 +24,20 @@ import {
 
 const held = (h: Partial<Held> = {}): Held => ({ ...NOTHING_HELD, ...h });
 
-describe('binding profiles', () => {
-  it('trackpad: ⌥ pushes the plane, ⌘ rotates, no buttons needed', () => {
-    expect(motionFor('trackpad', held())).toBe('point');
-    expect(motionFor('trackpad', held({ alt: true }))).toBe('plane');
-    expect(motionFor('trackpad', held({ meta: true }))).toBe('rotate');
-    expect(motionFor('trackpad', held({ buttons: LEFT }))).toBe('point');
-    // A mouse on a Mac: the right button rotates the room.
-    expect(motionFor('trackpad', held({ buttons: RIGHT }))).toBe('rotate');
+describe('bindings (one set for a trackpad and either mouse)', () => {
+  it('a trackpad: ⌥ pushes the plane, ⌘ rotates, no buttons needed', () => {
+    expect(motionFor(held())).toBe('point');
+    expect(motionFor(held({ alt: true }))).toBe('plane');
+    expect(motionFor(held({ meta: true }))).toBe('rotate');
+    expect(motionFor(held({ buttons: LEFT }))).toBe('point');
   });
 
-  it('three-button: the SGI layout', () => {
-    expect(motionFor('three-button', held({ buttons: MIDDLE }))).toBe('plane');
-    expect(motionFor('three-button', held({ buttons: RIGHT }))).toBe('rotate');
+  it('a mouse: right-drag rotates; middle-drag (the SGI layout) or ⌥ pushes the plane', () => {
+    expect(motionFor(held({ buttons: RIGHT }))).toBe('rotate');
+    expect(motionFor(held({ buttons: MIDDLE }))).toBe('plane');
     // Left + middle is the carry chord: the plane moves, taking the drag with it.
-    expect(motionFor('three-button', held({ buttons: LEFT | MIDDLE }))).toBe('plane');
-  });
-
-  it('two-button: right-drag rotates, ⌥ pushes the plane', () => {
-    expect(motionFor('two-button', held({ buttons: RIGHT }))).toBe('rotate');
-    expect(motionFor('two-button', held({ alt: true }))).toBe('plane');
-  });
-
-  it('defaults to the trackpad profile on a Mac', () => {
-    expect(defaultProfile('MacIntel')).toBe('trackpad');
-    expect(defaultProfile('Win32')).toBe('two-button');
+    expect(motionFor(held({ buttons: LEFT | MIDDLE }))).toBe('plane');
+    expect(motionFor(held({ buttons: LEFT, alt: true }))).toBe('plane');
   });
 
   it('maps keys to commands and leaves ⌘ combinations to the browser', () => {
@@ -77,7 +65,7 @@ describe('binding profiles', () => {
 describe('Controller', () => {
   it('moves the crosshair in the plane, clamped to the room', () => {
     const h = held();
-    const c = new Controller('trackpad', h);
+    const c = new Controller(h);
     c.move(10, 20, 2);
     expect([c.x, c.y]).toEqual([20, -40]);
     c.move(10000, -10000, 1);
@@ -86,7 +74,7 @@ describe('Controller', () => {
 
   it('pushes the plane with ⌥ + move: up the screen goes deeper when facing the room', () => {
     const h = held({ alt: true });
-    const c = new Controller('trackpad', h);
+    const c = new Controller(h);
     c.move(0, -100, 1);
     expect(c.z).toBeCloseTo(ROOM.max[2] - 100 * PLANE_GAIN);
     expect(c.x).toBe(0);
@@ -95,7 +83,7 @@ describe('Controller', () => {
   });
 
   it('pushes the plane the way it travels on screen once the room is turned', () => {
-    const c = new Controller('trackpad', held({ alt: true }));
+    const c = new Controller(held({ alt: true }));
     c.planeAxis = [1, 0]; // room turned 90°: deeper is to the right
     c.move(100, 0, 1);
     const z1 = c.z;
@@ -106,7 +94,7 @@ describe('Controller', () => {
 
   it('snaps the plane at vertex depths on slow moves unless Constrain is held', () => {
     const h = held({ alt: true });
-    const c = new Controller('trackpad', h);
+    const c = new Controller(h);
     c.plane.setDepths([496]);
     c.move(0, -4, 1);
     expect(c.z).toBe(496);
@@ -117,7 +105,7 @@ describe('Controller', () => {
 
   it('Ctrl locks the crosshair to the axis it is pushed along', () => {
     const h = held({ ctrl: true });
-    const c = new Controller('trackpad', h);
+    const c = new Controller(h);
     c.move(3, 2, 1); // inside the deciding distance: holds still
     expect([c.x, c.y]).toEqual([0, 0]);
     c.move(4, 1, 1); // now 7 right, 3 down: x wins
@@ -130,7 +118,7 @@ describe('Controller', () => {
   });
 
   it('Ctrl locks windowed (absolute) pointing too', () => {
-    const c = new Controller('two-button', held({ ctrl: true }));
+    const c = new Controller(held({ ctrl: true }));
     c.pointTo(1, 30);
     expect([c.x, c.y]).toEqual([0, 30]);
     c.pointTo(50, 60);
@@ -143,7 +131,7 @@ describe('Controller', () => {
 
   it('rotates the room with ⌘ + move inside the original limits', () => {
     const h = held({ meta: true });
-    const c = new Controller('trackpad', h);
+    const c = new Controller(h);
     c.move(-40, 40, 1);
     expect(c.yaw).toBeCloseTo(40 * ROTATE_PER_PX);
     expect(c.pitch).toBeCloseTo(40 * ROTATE_PER_PX);
@@ -153,14 +141,10 @@ describe('Controller', () => {
     expect([c.yaw, c.pitch]).toEqual([-YAW_LIMIT, PITCH_MAX]);
   });
 
-  it('wheel moves the plane in every profile: rolled up (away) goes deeper', () => {
-    const c = new Controller('three-button', held());
-    c.wheel(-100);
+  it('a mouse wheel moves the plane: rolled up (away) goes deeper', () => {
+    const c = new Controller(held());
+    c.wheel(-100, 0, true);
     expect(c.z).toBe(ROOM.max[2] - 50);
-    // A mouse wheel on a Mac (the trackpad profile) too.
-    const t = new Controller('trackpad', held());
-    t.wheel(-100, 0, true);
-    expect(t.z).toBe(ROOM.max[2] - 50);
   });
 
   it('tells a mouse wheel from a trackpad', () => {
@@ -172,12 +156,12 @@ describe('Controller', () => {
 
   it('a trackpad swipe follows the plane on screen, as ⌥ + move does', () => {
     // Facing the room: a swipe up (deltaY > 0, natural scrolling) goes deeper, as before.
-    const c = new Controller('trackpad', held());
+    const c = new Controller(held());
     c.wheel(100);
     expect(c.z).toBeCloseTo(ROOM.max[2] - 50);
     // The room turned so the plane goes deeper to the right on screen: a swipe right
     // (deltaX < 0) goes deeper, and one straight up barely moves it.
-    const t = new Controller('trackpad', held());
+    const t = new Controller(held());
     t.planeAxis = [1, -PLANE_UP_BIAS];
     t.wheel(0, -100);
     expect(t.z).toBeCloseTo(ROOM.max[2] - 50);
@@ -187,7 +171,7 @@ describe('Controller', () => {
   });
 
   it('plane jump goes to the back wall and returns', () => {
-    const c = new Controller('trackpad', held());
+    const c = new Controller(held());
     c.plane.set(120);
     c.command('planeJump');
     expect(c.z).toBe(ROOM.min[2]);
@@ -196,7 +180,7 @@ describe('Controller', () => {
   });
 
   it('arrow keys rotate in 10° steps; 0 resets', () => {
-    const c = new Controller('trackpad', held());
+    const c = new Controller(held());
     c.command('rotateLeft');
     c.command('rotateUp');
     expect([c.yaw, c.pitch]).toEqual([KEY_STEP, KEY_STEP]);
@@ -206,17 +190,11 @@ describe('Controller', () => {
 });
 
 describe('the help plate', () => {
-  it('every line fits the plate, and each profile has as many lines', () => {
-    const counts = new Set<number>();
-    for (const p of ['trackpad', 'three-button', 'two-button'] as const)
-      for (const mac of [true, false]) {
-        const lines = helpLines(p, mac);
-        counts.add(lines.length);
-        for (const l of lines) {
-          expect(l.text).toMatch(/^[\x20-\x7e]*$/); // the Hershey font's ASCII
-          expect(helpLineWidth(l)).toBeLessThan(HELP_WIDTH - 40);
-        }
+  it('every line fits the plate', () => {
+    for (const mac of [true, false])
+      for (const l of helpLines(mac)) {
+        expect(l.text).toMatch(/^[\x20-\x7e]*$/); // the Hershey font's ASCII
+        expect(helpLineWidth(l)).toBeLessThan(HELP_WIDTH - 40);
       }
-    expect(counts.size).toBe(1);
   });
 });

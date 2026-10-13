@@ -148,13 +148,8 @@ test('windowed: turning the room or moving the plane mid-drag does not make the 
   expect(errors).toEqual([]);
 });
 
-test('windowed trackpad: moving with ⌘ or ⌥ held mid-drag does not make the drag jump', async ({
-  page,
-}) => {
+test('windowed: moving with ⌘ or ⌥ held mid-drag does not make the drag jump', async ({ page }) => {
   const errors = await open(page, 'sample=cube');
-  await page.evaluate(() => localStorage.setItem('cutplane.profile', 'trackpad'));
-  await page.reload();
-  await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
   await set(page, { z: 0 });
   const box = (await page.locator('#viewport').boundingBox())!;
   const cx = box.x + box.width / 2;

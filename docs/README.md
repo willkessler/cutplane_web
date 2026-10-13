@@ -39,19 +39,23 @@ snapping.
 
 ### Controls
 
-Pick a profile in the toolbar (Macs default to the trackpad). Every mode is **spring-loaded**: it
-lasts only while you hold the key or button.
+A trackpad, a two-button mouse and a three-button mouse all work with the same bindings, with
+nothing to choose (a browser can't tell them apart, and none of their bindings conflict). Every
+mode is **spring-loaded**: it lasts only while you hold the key or button.
 
-| Action          | Trackpad / one button        | Three-button mouse | Two-button mouse     |
-| --------------- | ---------------------------- | ------------------ | -------------------- |
-| Move crosshair  | move                         | move               | move                 |
-| Plane depth     | hold ⌥ + move, scroll        | middle-drag, wheel | hold ⌥ + move, wheel |
-| Rotate the room | hold ⌘ + move, or right-drag | right-drag         | right-drag           |
-| Pick, drag      | click, press and drag        | left               | left                 |
-| Carry in depth  | drag, then hold ⌥            | left + middle      | drag, then hold ⌥    |
-| Add or remove   | shift-click                  | shift-click        | shift-click          |
-| Pick everything | ⌘A                           | Ctrl+A             | Ctrl+A               |
-| One axis        | hold Ctrl                    | hold Ctrl          | hold Ctrl            |
+| Action          | Trackpad              | Mouse                              |
+| --------------- | --------------------- | ---------------------------------- |
+| Move crosshair  | move                  | move                               |
+| Plane depth     | hold ⌥ + move, scroll | middle-drag, hold ⌥ + move, wheel  |
+| Rotate the room | hold ⌘ + move         | right-drag (or hold ⌘ + move)      |
+| Pick, drag      | click, press and drag | left                               |
+| Carry in depth  | drag, then hold ⌥     | left + middle, or drag then hold ⌥ |
+| Add or remove   | shift-click           | shift-click                        |
+| Pick everything | ⌘A (Ctrl+A off a Mac) | ⌘A (Ctrl+A off a Mac)              |
+| One axis        | hold Ctrl             | hold Ctrl                          |
+
+A scroll is told apart per event: a wheel's notches move the plane straight in depth, a
+trackpad's swipe follows the plane's direction on screen.
 
 | Key     | Command                                                   |
 | ------- | --------------------------------------------------------- |
@@ -198,8 +202,8 @@ The room is laid out as in the 3Form photos. Everything in it runs on the origin
     `stapler`...).
   - In any field, the first key you type replaces what it said (the text is outlined until
     then); Backspace clears it; an arrow key first lets you edit it in place.
-- **The ? pad** (bottom right, in the plane) opens the **help plate**: the controls for the
-  input profile you have chosen, in the room's own lettering. Click ? again to put it away.
+- **The ? pad** (bottom right, in the plane) opens the **help plate**: the controls, in the
+  room's own lettering. Click ? again to put it away.
 - **The measure pad** comes out with the **ruler** (the last pad on the arranging rail, or
   **M**), bottom left beside the floppy, and goes when the ruler is put away. While it's out:
   - pick an object and the cube plate above it shows its **length** (front to back), **width**
@@ -452,9 +456,9 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   the two objects merge, and vertices are exact (an input vertex keeps its position; a new one is
   solved on the planes of its faces). An operation whose result wouldn't be a sound closed solid
   is refused and changes nothing.
-- **Trackpad and two-button profiles.** The SGI had a three-button mouse (middle drags the
-  plane, right turns the room). That layout is still a profile, alongside ⌥ / ⌘ quasimodes for
-  trackpads and a two-button layout.
+- **Trackpads and two-button mice.** The SGI had a three-button mouse (middle drags the
+  plane, right turns the room). That layout still works, and so do ⌥ / ⌘ quasimodes for
+  trackpads and two-button mice, all at once with nothing to set.
 - **Windowed mode.** Besides full-screen work mode, which captures the pointer the way the SGI
   did, the app runs in a browser window with the crosshair following the hidden pointer.
 

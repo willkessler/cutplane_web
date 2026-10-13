@@ -17,7 +17,6 @@ import {
   installStoragePad,
   installHelpPad,
   installMeasurePad,
-  setHelpText,
   installToolbars,
   isPad,
   isObject,
@@ -29,16 +28,7 @@ import {
   type V3,
 } from '@cutplane/behaviors';
 import { DEMO_SECONDS, demoPose } from './demo.ts';
-import {
-  NOTHING_HELD,
-  PROFILES,
-  bindingHints,
-  helpLines,
-  commandFor,
-  defaultProfile,
-  type Held,
-  type Profile,
-} from './input/bindings.ts';
+import { NOTHING_HELD, bindingHints, helpLines, commandFor, type Held } from './input/bindings.ts';
 import { Controller, isMouseWheel } from './input/controller.ts';
 import { WorkMode } from './input/workmode.ts';
 import { Crosshair } from './render/crosshair.ts';
@@ -144,10 +134,6 @@ const store = (k: string, v: string) => {
     /* private mode */
   }
 };
-const profileSelect = $<HTMLSelectElement>('profile');
-for (const p of PROFILES) profileSelect.add(new Option(p.label, p.id));
-const initialProfile = (stored('profile') as Profile | null) ?? defaultProfile(navigator.platform);
-profileSelect.value = initialProfile;
 const styleSelect = $<HTMLSelectElement>('planeStyle');
 styleSelect.value = (stored('planeStyle') as PlaneStyle | null) ?? 'classic';
 const faceDragSelect = $<HTMLSelectElement>('faceDrag');
@@ -155,7 +141,8 @@ faceDragSelect.value = (stored('faceDrag') as FaceDrag | null) ?? 'stretch';
 plane.style = styleSelect.value as PlaneStyle;
 
 const held: Held = { ...NOTHING_HELD };
-const control = new Controller(profileSelect.value as Profile, held);
+const MAC = /mac/i.test(navigator.platform);
+const control = new Controller(held);
 const work = new WorkMode(app, canvas);
 const base = import.meta.env.BASE_URL;
 
@@ -300,12 +287,10 @@ function makeWorld(): void {
     },
   });
   installMeasurePad(rt, resource, source);
-  helpPad = installHelpPad(rt, helpLines(control.profile, MAC));
+  installHelpPad(rt, helpLines(MAC));
   controls = new Controls(rt);
   ready = true;
 }
-const MAC = /mac/i.test(navigator.platform);
-let helpPad: CutObject | undefined;
 
 function pressPick(shift: boolean): void {
   if (!ready) return;
@@ -317,13 +302,6 @@ function releasePick(): void {
   controls.releasePick();
 }
 
-profileSelect.addEventListener('change', () => {
-  control.profile = profileSelect.value as Profile;
-  store('profile', control.profile);
-  showHints();
-  if (helpPad) setHelpText(rt, helpPad, helpLines(control.profile, MAC));
-  profileSelect.blur();
-});
 styleSelect.addEventListener('change', () => {
   plane.style = styleSelect.value as PlaneStyle;
   store('planeStyle', styleSelect.value);
@@ -611,7 +589,7 @@ function render(): void {
 }
 
 function showHints(): void {
-  $<HTMLDivElement>('hints').innerHTML = bindingHints(control.profile)
+  $<HTMLDivElement>('hints').innerHTML = bindingHints(MAC)
     .map((h) => `<span>${h}</span>`)
     .join('');
 }
@@ -723,8 +701,8 @@ canvas.addEventListener(
     e.preventDefault(); // also stops pinch-zooming the page
     if (demo) return;
     const scale = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? canvas.clientHeight : 1;
-    const mouse =
-      control.profile !== 'trackpad' || isMouseWheel(e as WheelEvent & { wheelDeltaY?: number });
+    // A wheel's notches or a trackpad's swipe, told apart per event (no setting for it).
+    const mouse = isMouseWheel(e as WheelEvent & { wheelDeltaY?: number });
     control.wheel(e.deltaY * scale, e.deltaX * scale, mouse);
   },
   { passive: false },
