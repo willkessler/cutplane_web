@@ -15,7 +15,7 @@ export const PLANE_GAIN = 1.5;
  * has no screen direction) pushing up still means deeper, and the axis turns smoothly.
  */
 export const PLANE_UP_BIAS = 0.3;
-/** Room units of plane depth per pixel of wheel/scroll delta. */
+/** Room units of plane depth per pixel of a mouse wheel's delta. */
 export const PLANE_PER_WHEEL = 0.5;
 /** Arrow keys rotate the room in 10° steps. */
 export const KEY_STEP = 10;
@@ -98,10 +98,10 @@ export class Controller {
    * Scroll / wheel: plane depth. A mouse wheel rolled up (away from you)
    * pushes the plane away, deeper into the room. A trackpad's two-finger swipe is read the
    * way ⌥ + move is: along the plane's on-screen depth direction, so with the room turned
-   * the swipe follows the plane sideways too. `notched` marks a mouse wheel (see
-   * isMouseWheel), which always drives depth directly.
+   * the swipe follows the plane sideways too, and as fast (`unitsPerPx`, as for move).
+   * `notched` marks a mouse wheel (see isMouseWheel), which always drives depth directly.
    */
-  wheel(deltaY: number, deltaX = 0, notched = false): void {
+  wheel(deltaY: number, deltaX = 0, notched = false, unitsPerPx = 1): void {
     const slow = this.held.ctrl ? CONSTRAIN_SLOW : 1;
     if (notched) {
       // Rolled up gives deltaY < 0: deeper.
@@ -112,7 +112,7 @@ export class Controller {
     const ax = this.planeAxis[0];
     const ay = this.planeAxis[1] + PLANE_UP_BIAS;
     const deeper = (-deltaX * ax + deltaY * ay) / Math.hypot(ax, ay);
-    this.pushPlane(-deeper * PLANE_PER_WHEEL * slow);
+    this.pushPlane(-deeper * unitsPerPx * PLANE_GAIN * slow);
   }
 
   pushPlane(dz: number): void {

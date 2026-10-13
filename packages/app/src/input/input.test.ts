@@ -154,17 +154,21 @@ describe('Controller', () => {
     expect(isMouseWheel({ deltaMode: 0, deltaX: 0, deltaY: -40, wheelDeltaY: 0 })).toBe(false);
   });
 
-  it('a trackpad swipe follows the plane on screen, as ⌥ + move does', () => {
+  it('a trackpad swipe follows the plane on screen, as fast as ⌥ + move does', () => {
     // Facing the room: a swipe up (deltaY > 0, natural scrolling) goes deeper, as before.
     const c = new Controller(held());
-    c.wheel(100);
-    expect(c.z).toBeCloseTo(ROOM.max[2] - 50);
+    c.wheel(100, 0, false, 2);
+    expect(c.z).toBeCloseTo(ROOM.max[2] - 200 * PLANE_GAIN);
+    // Just as far as ⌥ + moving up as many pixels.
+    const m = new Controller(held({ alt: true }));
+    m.move(0, -100, 2);
+    expect(m.z).toBeCloseTo(c.z);
     // The room turned so the plane goes deeper to the right on screen: a swipe right
     // (deltaX < 0) goes deeper, and one straight up barely moves it.
     const t = new Controller(held());
     t.planeAxis = [1, -PLANE_UP_BIAS];
     t.wheel(0, -100);
-    expect(t.z).toBeCloseTo(ROOM.max[2] - 50);
+    expect(t.z).toBeCloseTo(ROOM.max[2] - 100 * PLANE_GAIN);
     const z = t.z;
     t.wheel(100, 0);
     expect(Math.abs(t.z - z)).toBeLessThan(1);

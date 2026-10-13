@@ -703,7 +703,8 @@ canvas.addEventListener(
     const scale = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? canvas.clientHeight : 1;
     // A wheel's notches or a trackpad's swipe, told apart per event (no setting for it).
     const mouse = isMouseWheel(e as WheelEvent & { wheelDeltaY?: number });
-    control.wheel(e.deltaY * scale, e.deltaX * scale, mouse);
+    const upp = unitsPerPixel(camera, canvas.clientHeight, control.z);
+    control.wheel(e.deltaY * scale, e.deltaX * scale, mouse, upp);
   },
   { passive: false },
 );
