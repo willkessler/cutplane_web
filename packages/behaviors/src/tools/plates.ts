@@ -281,89 +281,94 @@ const width = (s: string, xscale: number) =>
 const streams = new WeakMap<Runtime, Feature[]>();
 export const charstreamOf = (rt: Runtime): readonly Feature[] => streams.get(rt) ?? [];
 
+/** The text inputs' routines (any plate with fields needs them). */
+export const TEXT_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>> = {
+  add_obj_charstream(rt, vm) {
+    const f = first(vm.pop());
+    if (!f) return;
+    const l = streams.get(rt) ?? [];
+    if (!l.includes(f)) l.push(f);
+    streams.set(rt, l);
+  },
+  rem_obj_charstream(rt, vm) {
+    const f = first(vm.pop());
+    const l = streams.get(rt);
+    if (f && l)
+      streams.set(
+        rt,
+        l.filter((x) => x !== f),
+      );
+  },
+  /** (insertion point, objects): -1 hides the I-beam, 10000 puts it at the end. */
+  set_insertion_pt(rt, vm) {
+    const rec = vm.pop();
+    const at = vm.pop().int;
+    for (const [, item] of firstItems(rt, rec.list))
+      item.insertion = at === 10000 ? (item.text?.length ?? 0) : at;
+    rt.version++;
+  },
+  move_insertion_pt(rt, vm) {
+    const rec = vm.pop();
+    const by = vm.pop().int;
+    for (const [, item] of firstItems(rt, rec.list)) {
+      const len = item.text?.length ?? 0;
+      item.insertion =
+        item.text === null && by > 0 ? 0 : Math.max(0, Math.min(len, item.insertion + by));
+    }
+    rt.version++;
+  },
+  /** (set, char) → whether the char is in the set. */
+  filter_char(_rt, vm) {
+    const c = vm.pop().char;
+    const set = vm.pop().str ?? '';
+    vm.push(boolWord(set.includes(String.fromCharCode(c))));
+  },
+  /** (char, objects) → whether one more char still fits on the pad. */
+  label_fits(rt, vm) {
+    const rec = vm.pop();
+    const c = String.fromCharCode(vm.pop().char);
+    let fits = true;
+    for (const [o, item] of firstItems(rt, rec.list)) {
+      if (item.text === null) continue;
+      const bb = rt.bbox(o);
+      const w = width(item.text, item.xscale) + width(c, item.xscale) + item.offset[0];
+      if (bb && w > bb[1][0] - bb[0][0]) fits = false;
+    }
+    vm.push(boolWord(fits));
+  },
+  add_to_label(rt, vm) {
+    const rec = vm.pop();
+    const c = String.fromCharCode(vm.pop().char);
+    for (const [, item] of firstItems(rt, rec.list)) {
+      if (item.text === null) {
+        item.text = c;
+        item.insertion = 1;
+      } else {
+        const at = Math.max(0, Math.min(item.text.length, item.insertion));
+        item.text = item.text.slice(0, at) + c + item.text.slice(at);
+        item.insertion = at + 1;
+      }
+    }
+    rt.version++;
+  },
+  backspace_label(rt, vm) {
+    const rec = vm.pop();
+    for (const [, item] of firstItems(rt, rec.list)) {
+      if (item.text === null) continue;
+      if (item.text.length === 1) item.text = null;
+      else if (item.insertion > 0)
+        item.text = item.text.slice(0, item.insertion - 1) + item.text.slice(item.insertion);
+      item.insertion = Math.max(0, item.insertion - 1);
+    }
+    rt.version++;
+  },
+};
+
 export function plateCrtns(
   files: PlateFiles,
 ): Partial<Record<string, (rt: Runtime, vm: VM) => void>> {
   return {
-    add_obj_charstream(rt, vm) {
-      const f = first(vm.pop());
-      if (!f) return;
-      const l = streams.get(rt) ?? [];
-      if (!l.includes(f)) l.push(f);
-      streams.set(rt, l);
-    },
-    rem_obj_charstream(rt, vm) {
-      const f = first(vm.pop());
-      const l = streams.get(rt);
-      if (f && l)
-        streams.set(
-          rt,
-          l.filter((x) => x !== f),
-        );
-    },
-    /** (insertion point, objects): -1 hides the I-beam, 10000 puts it at the end. */
-    set_insertion_pt(rt, vm) {
-      const rec = vm.pop();
-      const at = vm.pop().int;
-      for (const [, item] of firstItems(rt, rec.list))
-        item.insertion = at === 10000 ? (item.text?.length ?? 0) : at;
-      rt.version++;
-    },
-    move_insertion_pt(rt, vm) {
-      const rec = vm.pop();
-      const by = vm.pop().int;
-      for (const [, item] of firstItems(rt, rec.list)) {
-        const len = item.text?.length ?? 0;
-        item.insertion =
-          item.text === null && by > 0 ? 0 : Math.max(0, Math.min(len, item.insertion + by));
-      }
-      rt.version++;
-    },
-    /** (set, char) → whether the char is in the set. */
-    filter_char(_rt, vm) {
-      const c = vm.pop().char;
-      const set = vm.pop().str ?? '';
-      vm.push(boolWord(set.includes(String.fromCharCode(c))));
-    },
-    /** (char, objects) → whether one more char still fits on the pad. */
-    label_fits(rt, vm) {
-      const rec = vm.pop();
-      const c = String.fromCharCode(vm.pop().char);
-      let fits = true;
-      for (const [o, item] of firstItems(rt, rec.list)) {
-        if (item.text === null) continue;
-        const bb = rt.bbox(o);
-        const w = width(item.text, item.xscale) + width(c, item.xscale) + item.offset[0];
-        if (bb && w > bb[1][0] - bb[0][0]) fits = false;
-      }
-      vm.push(boolWord(fits));
-    },
-    add_to_label(rt, vm) {
-      const rec = vm.pop();
-      const c = String.fromCharCode(vm.pop().char);
-      for (const [, item] of firstItems(rt, rec.list)) {
-        if (item.text === null) {
-          item.text = c;
-          item.insertion = 1;
-        } else {
-          const at = Math.max(0, Math.min(item.text.length, item.insertion));
-          item.text = item.text.slice(0, at) + c + item.text.slice(at);
-          item.insertion = at + 1;
-        }
-      }
-      rt.version++;
-    },
-    backspace_label(rt, vm) {
-      const rec = vm.pop();
-      for (const [, item] of firstItems(rt, rec.list)) {
-        if (item.text === null) continue;
-        if (item.text.length === 1) item.text = null;
-        else if (item.insertion > 0)
-          item.text = item.text.slice(0, item.insertion - 1) + item.text.slice(item.insertion);
-        item.insertion = Math.max(0, item.insertion - 1);
-      }
-      rt.version++;
-    },
+    ...TEXT_CRTNS,
     /** (name) → the world or file of that name is read into the world being edited. */
     read_from_file(rt, vm) {
       const name = vm.pop().str;

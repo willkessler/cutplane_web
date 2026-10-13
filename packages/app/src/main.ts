@@ -15,6 +15,9 @@ import {
   bulbLightOf,
   cameraViewOf,
   installStoragePad,
+  installHelpPad,
+  installMeasurePad,
+  setHelpText,
   installToolbars,
   isPad,
   isObject,
@@ -30,6 +33,7 @@ import {
   NOTHING_HELD,
   PROFILES,
   bindingHints,
+  helpLines,
   commandFor,
   defaultProfile,
   type Held,
@@ -166,6 +170,12 @@ const CPL_FILES = [
   'lens.cpl',
   'save.cpl',
   'load.cpl',
+  // The measure pad's, and its plates' and fields'.
+  'measurepad.cpl',
+  'cubeplate.cpl',
+  'distanceplate.cpl',
+  'sizer.cpl',
+  'namer.cpl',
   ...PROPERTY_FILES.map((p) => `${p.toLowerCase()}.cpl`),
   // Read when a tool with the property is read (read_feature_props' read_CPL_propfile).
   'grabber.cpl',
@@ -185,6 +195,8 @@ const source = (f: string): string => {
  * else the original's.
  */
 const TOOLBARS = ['toolpads.rsc', 'arrangepads.rsc'];
+/** The measure pad's plates (create_measure_pad). */
+const MEASURE_PLATES = ['nameplate.rsc', 'cubeplate.rsc', 'lengthplate.rsc', 'distanceplate.rsc'];
 const resources = new Map<string, string>();
 const resource = (f: string): string => {
   const text = resources.get(f);
@@ -204,7 +216,14 @@ async function loadResources(): Promise<void> {
     throw new Error(`${f}: not found`);
   };
   await Promise.all(
-    [...TOOLBARS, 'padhandle.dcl', 'toolpad.dcl', 'toolbar.dcl', 'storageplate.rsc'].map(get),
+    [
+      ...TOOLBARS,
+      'padhandle.dcl',
+      'toolpad.dcl',
+      'toolbar.dcl',
+      'storageplate.rsc',
+      ...MEASURE_PLATES,
+    ].map(get),
   );
   // Each toolbar names its icons (and the tools they become).
   const icons = TOOLBARS.flatMap((f) => {
@@ -235,6 +254,7 @@ async function loadCpl(): Promise<void> {
     'toolpad.cpl',
     'union.cpl',
     'pencil.cpl',
+    'measurepad.cpl',
   ]);
   await Promise.all(
     CPL_FILES.map(async (f) => {
@@ -277,9 +297,13 @@ function makeWorld(): void {
       keep(name, text);
     },
   });
+  installMeasurePad(rt, resource, source);
+  helpPad = installHelpPad(rt, helpLines(control.profile, MAC));
   controls = new Controls(rt);
   ready = true;
 }
+const MAC = /mac/i.test(navigator.platform);
+let helpPad: CutObject | undefined;
 
 function pressPick(shift: boolean): void {
   if (!ready) return;
@@ -295,6 +319,7 @@ profileSelect.addEventListener('change', () => {
   control.profile = profileSelect.value as Profile;
   store('profile', control.profile);
   showHints();
+  if (helpPad) setHelpText(rt, helpPad, helpLines(control.profile, MAC));
   profileSelect.blur();
 });
 styleSelect.addEventListener('change', () => {
@@ -1146,7 +1171,29 @@ async function start(): Promise<void> {
         arrangepads: () => box(rt.findObject('Arrangepads') ?? undefined),
         pads: () => padsOf('Toolpads'),
         arrangers: () => padsOf('Arrangepads'),
+        // The measure pad: which of its plates show, and what its fields say.
+        measure: () => {
+          const pad = rt.findObject('MeasurePad');
+          const plates = pad?.children ?? [];
+          return {
+            pad: box(pad ?? undefined),
+            shown: plates.filter((p) => rt.vm.props.has(p, P.Visible)).map((p) => p.name),
+            fields: Object.fromEntries(
+              plates.flatMap((p) => p.children).map((f) => [f.name, rt.label(f, 1)]),
+            ),
+          };
+        },
+        // The help pad, and whether its plate is open.
+        help: () => {
+          const plate = rt.findObject('Help_Plate');
+          return {
+            pad: box(rt.findObject('HelpPad') ?? undefined),
+            open: !!plate && rt.vm.props.has(plate, P.Visible),
+          };
+        },
       };
+      // A measure pad field's centre, by name ("measurefield:Cube_height").
+      if (what.startsWith('measurefield:')) return box(rt.findObject(what.slice(13)) ?? undefined);
       return parts[what]?.() ?? null;
     },
     scribble: () => ({

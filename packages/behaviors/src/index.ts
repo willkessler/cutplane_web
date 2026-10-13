@@ -11,6 +11,8 @@ export * from './tools/rotatetool.ts';
 export * from './tools/toolbar.ts';
 export * from './tools/toolbox.ts';
 export * from './tools/plates.ts';
+export * from './tools/help.ts';
+export * from './tools/measure.ts';
 export * from './tools/pencil.ts';
 export * from './text/hershey.ts';
 export * from './modeling.ts';

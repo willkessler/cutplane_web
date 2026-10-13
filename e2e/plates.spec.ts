@@ -79,3 +79,61 @@ test('Save keeps a copy in the browser; the model menu brings it back after a re
   await expect.poll(async () => (await edit(page)).faces).toBe(12);
   expect(errors).toEqual([]);
 });
+
+test('the ? pad opens a help plate in the plane, and closes it', async ({ page, browserName }) => {
+  const errors = await open(page, 'sample=discovery');
+  await set(page, { yaw: 0, pitch: 0, z: 0 });
+  const help = () =>
+    page.evaluate(() => window.__cutplane!.locate('help') as { pad: number[]; open: boolean });
+  const { pad, open: shown } = await help();
+  expect(shown).toBe(false);
+  const before = (await edit(page)).objects;
+  await click(page, pad[0]!, pad[1]!);
+  expect((await help()).open).toBe(true);
+  if (process.env['SHOTS'] && browserName === 'chromium')
+    await page.screenshot({ path: `${process.env['SHOTS']}/help-plate.png` });
+  // Changing the profile rewrites it (Option, Cmd, buttons).
+  await page.getByLabel('Input profile').selectOption('three-button');
+  expect((await help()).open).toBe(true);
+  await click(page, pad[0]!, pad[1]!);
+  expect((await help()).open).toBe(false);
+  const after = await edit(page);
+  expect(after.objects).toBe(before);
+  expect(after.picked).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test('the measure pad shows the size of what is picked; typing a height resizes it', async ({
+  page,
+  browserName,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -20, pitch: 15, z: 0 });
+  type Measure = { pad: number[]; shown: string[]; fields: Record<string, string | null> };
+  const measure = () =>
+    page.evaluate(() => {
+      window.__cutplane!.renderFrame(0); // the fields hear by message, a frame on
+      return window.__cutplane!.locate('measure') as Measure;
+    });
+  expect((await measure()).shown).toEqual([]);
+  await click(page, 0, 0);
+  expect((await measure()).shown).toContain('Cube_Plate');
+  await expect.poll(async () => (await measure()).fields['Cube_height']).toBe('20.00');
+  if (process.env['SHOTS'] && browserName === 'chromium')
+    await page.screenshot({ path: `${process.env['SHOTS']}/measure-cube.png` });
+  // The height field, cleared, 35 and Return: the cube is 350 tall.
+  const at = await page.evaluate(() => {
+    const f = window.__cutplane!.locate('measurefield:Cube_height');
+    return f as number[] | null;
+  });
+  expect(at).not.toBeNull();
+  await click(page, at![0]!, at![1]!);
+  for (let i = 0; i < 6; i++) await page.keyboard.press('Backspace');
+  await page.keyboard.type('35');
+  await page.keyboard.press('Enter');
+  await expect.poll(async () => (await measure()).fields['Cube_height']).toBe('35.00');
+  if (process.env['SHOTS'] && browserName === 'chromium')
+    await page.screenshot({ path: `${process.env['SHOTS']}/measure-resized.png` });
+  await page.keyboard.press('ControlOrMeta+KeyZ');
+  expect(errors).toEqual([]);
+});

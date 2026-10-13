@@ -146,6 +146,43 @@ function scaleBranch(rt: Runtime, box: CutObject, origin: V3, f: V3, handle: V3)
 const otherCorner = (lo: V3, hi: V3, c: V3): V3 =>
   [0, 1, 2].map((k) => (Math.abs(c[k]! - lo[k]!) < 1e-9 ? hi[k]! : lo[k]!)) as V3;
 
+/** setup_scalebbox's work: `box` fits the branch at `root`, outdented (again, after a resize). */
+export function fitScaleBox(rt: Runtime, box: CutObject, root: CutObject): void {
+  const lo: V3 = [Infinity, Infinity, Infinity];
+  const hi: V3 = [-Infinity, -Infinity, -Infinity];
+  for (const o of subtree(root)) {
+    if (o === box) continue;
+    const g = rt.world(o);
+    for (const v of o.brep.vertices()) {
+      const p = [g.x(v), g.y(v), g.z(v)];
+      for (let k = 0; k < 3; k++) {
+        lo[k] = Math.min(lo[k]!, p[k]!);
+        hi[k] = Math.max(hi[k]!, p[k]!);
+      }
+    }
+  }
+  if (!Number.isFinite(lo[0])) return;
+  for (let k = 0; k < 3; k++) {
+    lo[k] = lo[k]! - BOX_OUTDENT;
+    hi[k] = hi[k]! + BOX_OUTDENT;
+  }
+  // The box's Brep becomes the sized box, its frame the world's at `lo`.
+  const [blo, bhi] = localBox(box);
+  const b = box.brep;
+  for (const v of b.vertices()) {
+    const p = b.vertexPos(v);
+    const q = [0, 1, 2].map((k) => {
+      const span = bhi[k]! - blo[k]!;
+      const t = span === 0 ? 0 : (p[k]! - blo[k]!) / span;
+      return t * (hi[k]! - lo[k]!);
+    });
+    b.setVertexPos(v, q[0]!, q[1]!, q[2]!);
+  }
+  box.xform = mat4.translation(...lo);
+  box.invXform = mat4.translation(-lo[0], -lo[1], -lo[2]);
+  rt.changed(box);
+}
+
 /** CPL_scalebbox_trans's memory: the edge a corner drag started on. */
 let storedEdge: V3 | null = null;
 
@@ -155,39 +192,7 @@ export const SCALEBOX_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => voi
     const root = first(vm.pop());
     const box = first(vm.pop());
     if (!isObject(root) || !isObject(box) || !isScaleBox(rt, box)) return;
-    const lo: V3 = [Infinity, Infinity, Infinity];
-    const hi: V3 = [-Infinity, -Infinity, -Infinity];
-    for (const o of subtree(root)) {
-      if (o === box) continue;
-      const g = rt.world(o);
-      for (const v of o.brep.vertices()) {
-        const p = [g.x(v), g.y(v), g.z(v)];
-        for (let k = 0; k < 3; k++) {
-          lo[k] = Math.min(lo[k]!, p[k]!);
-          hi[k] = Math.max(hi[k]!, p[k]!);
-        }
-      }
-    }
-    if (!Number.isFinite(lo[0])) return;
-    for (let k = 0; k < 3; k++) {
-      lo[k] = lo[k]! - BOX_OUTDENT;
-      hi[k] = hi[k]! + BOX_OUTDENT;
-    }
-    // The box's Brep becomes the sized box, its frame the world's at `lo`.
-    const [blo, bhi] = localBox(box);
-    const b = box.brep;
-    for (const v of b.vertices()) {
-      const p = b.vertexPos(v);
-      const q = [0, 1, 2].map((k) => {
-        const span = bhi[k]! - blo[k]!;
-        const t = span === 0 ? 0 : (p[k]! - blo[k]!) / span;
-        return t * (hi[k]! - lo[k]!);
-      });
-      b.setVertexPos(v, q[0]!, q[1]!, q[2]!);
-    }
-    box.xform = mat4.translation(...lo);
-    box.invXform = mat4.translation(-lo[0], -lo[1], -lo[2]);
-    rt.changed(box);
+    fitScaleBox(rt, box, root);
   },
 
   /**

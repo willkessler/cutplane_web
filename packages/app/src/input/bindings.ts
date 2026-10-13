@@ -177,3 +177,48 @@ export function bindingHints(profile: Profile): string[] {
       ];
   }
 }
+
+/**
+ * The help plate's lines (in the room, so in the Hershey font's plain ASCII). The
+ * same number for every profile, so the plate keeps its size when the profile changes.
+ */
+export function helpLines(profile: Profile, mac: boolean): { text: string; heading?: boolean }[] {
+  const cmd = mac ? 'Cmd' : 'Ctrl';
+  const moving: Record<Profile, string[]> = {
+    trackpad: [
+      'Move: the crosshair',
+      'Hold Option and move: the plane, in depth',
+      'Hold Cmd and move, or right-drag: turn the room',
+    ],
+    'three-button': [
+      'Move: the crosshair',
+      'Middle-drag: the plane, in depth',
+      'Right-drag: turn the room',
+    ],
+    'two-button': [
+      'Move: the crosshair',
+      'Hold Option (Alt) and move: the plane, in depth',
+      'Right-drag: turn the room',
+    ],
+  };
+  return [
+    { text: 'The plane cuts what it passes through.  Click ? again to close.', heading: true },
+    { text: 'Moving', heading: true },
+    ...moving[profile].map((text) => ({ text })),
+    { text: 'Scroll: the plane    Space: jump to the back wall and back' },
+    { text: 'Arrow keys: turn the room 10 degrees    0: face it again' },
+    { text: 'Ctrl held: keep to one axis    F: full screen    Esc: leave it' },
+    { text: 'Picking and changing', heading: true },
+    { text: 'Click: pick a vertex, edge, face or object    Shift-click: add or remove' },
+    { text: 'Drag: move what is picked (faces stretch or extrude: see the top bar)' },
+    { text: `${cmd}-A: pick everything    D: duplicate    Backspace: delete` },
+    { text: 'G: group or ungroup    B: union    \\: slice at the plane' },
+    { text: `R: the rotate tool (R on it again puts it away)    ${cmd}-Z: undo` },
+    { text: 'Tools (the orange rails, top left: click one open, click a pad)', heading: true },
+    { text: 'Pencil: draw a shape in the plane, or edge to edge across a face' },
+    { text: 'Saw: cut in two at the plane    Drill: drop a cutter through' },
+    { text: 'Magnifier (Z), group, pan (H), magnet, grabber    P: the pencil' },
+    { text: 'Files', heading: true },
+    { text: 'The floppy: load and save by name    Open, Save, Export: the top bar' },
+  ];
+}

@@ -927,6 +927,14 @@ export class Runtime implements Host {
     for (const x of subtree(o)) this.changed(x);
   }
 
+  /** A branch scaled along x, y and z by `s` about `about` (the measure pad's resizing). */
+  scaleBranch(root: CutObject, about: V3, s: V3): void {
+    const m = mat4.scaleAbout(about, s);
+    for (const x of subtree(root)) if (this.worldOf(x) === this.primary) this.journal.touch(x);
+    transformTree(root, m);
+    for (const x of subtree(root)) this.changed(x);
+  }
+
   scaleObject(obj: Feature, factor: number): void {
     const o = obj as CutObject;
     const g = this.world(o);

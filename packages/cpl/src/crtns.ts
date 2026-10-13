@@ -59,6 +59,8 @@ export const CRTN_NAMES = [
   'generate_info_rec',
   'breakup_info_rec',
   'breakup_dist_value',
+  // cutplane_web's own, after the original's: an object's box as a primitive record.
+  'measure_info_rec',
 ] as const;
 
 export type CrtnName = (typeof CRTN_NAMES)[number];

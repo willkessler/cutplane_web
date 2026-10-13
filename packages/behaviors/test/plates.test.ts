@@ -4,7 +4,13 @@ import { describe, expect, it } from 'vitest';
 import { P } from '@cutplane/cpl';
 import { writeCut } from '@cutplane/formats';
 import { createCube, createObject, mat4, type CutObject } from '@cutplane/kernel';
-import { charstreamOf, installStoragePad, type PlateFiles } from '../src/index.ts';
+import {
+  charstreamOf,
+  installHelpPad,
+  installStoragePad,
+  setHelpText,
+  type PlateFiles,
+} from '../src/index.ts';
 import { source, world } from './world.ts';
 
 const ASSETS = resolve(import.meta.dirname, '../../../assets');
@@ -119,5 +125,29 @@ describe('the storage pad through dialog.cpl, textinput.cpl, load.cpl and save.c
     expect(w.rt.primary.root.children.length).toBe(before + 1);
     expect(w.rt.primary.root.children.some((o) => o.name === 'Other')).toBe(true);
     expect(w.rt.canUndo).toBe(true);
+  });
+});
+
+describe('the help pad (new): a Dialog like the storage pad', () => {
+  it('a click opens its plate of help lines in the plane; another puts it away', () => {
+    const w = setup();
+    const help = installHelpPad(w.rt, [{ text: 'Moving', heading: true }, { text: 'Move: the crosshair' }]); // prettier-ignore
+    w.frame();
+    const plate = help.children.find((c) => c.name === 'Help_Plate')!;
+    expect(w.rt.label(help, 1)).toBe('?');
+    expect(w.rt.vm.props.has(plate, P.Visible)).toBe(false);
+    // At the bottom right, in the plane.
+    expect(help.parent).toBe(w.rt.cutplane);
+    expect(w.rt.bbox(help)![0][0]).toBeGreaterThan(400);
+    w.click(help);
+    expect(w.rt.vm.props.has(plate, P.Visible)).toBe(true);
+    expect(w.rt.labelItems(plate).map((l) => l.text)).toEqual(['Moving', 'Move: the crosshair']);
+    expect(w.rt.labelItems(plate)[0]!.color).toEqual([255, 255, 0]);
+    setHelpText(w.rt, help, [{ text: 'Other', heading: true }, { text: 'Lines' }]);
+    expect(w.rt.labelItems(plate).map((l) => l.text)).toEqual(['Other', 'Lines']);
+    w.click(help);
+    expect(w.rt.vm.props.has(plate, P.Visible)).toBe(false);
+    // Nothing in the world was picked or changed by it.
+    expect(w.rt.picked()).toEqual([]);
   });
 });

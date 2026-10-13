@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROOM } from '@cutplane/kernel';
+import { HELP_WIDTH, helpLineWidth } from '@cutplane/behaviors';
 import {
   LEFT,
   MIDDLE,
@@ -7,6 +8,7 @@ import {
   RIGHT,
   commandFor,
   defaultProfile,
+  helpLines,
   motionFor,
   type Held,
 } from './bindings.ts';
@@ -200,5 +202,21 @@ describe('Controller', () => {
     expect([c.yaw, c.pitch]).toEqual([KEY_STEP, KEY_STEP]);
     c.command('resetView');
     expect([c.yaw, c.pitch]).toEqual([0, 0]);
+  });
+});
+
+describe('the help plate', () => {
+  it('every line fits the plate, and each profile has as many lines', () => {
+    const counts = new Set<number>();
+    for (const p of ['trackpad', 'three-button', 'two-button'] as const)
+      for (const mac of [true, false]) {
+        const lines = helpLines(p, mac);
+        counts.add(lines.length);
+        for (const l of lines) {
+          expect(l.text).toMatch(/^[\x20-\x7e]*$/); // the Hershey font's ASCII
+          expect(helpLineWidth(l)).toBeLessThan(HELP_WIDTH - 40);
+        }
+      }
+    expect(counts.size).toBe(1);
   });
 });
