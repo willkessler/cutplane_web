@@ -854,6 +854,14 @@ export class Runtime implements Host {
     }
   }
 
+  /** One object moved by `d`, without its children (a group's root moved apart from its parts). */
+  moveOne(o: CutObject, d: V3): void {
+    if (this.worldOf(o) === this.primary) this.journal.touch(o);
+    o.xform = mat4.multiply(o.xform, mat4.translation(...d));
+    o.invXform = mat4.invert(o.xform) ?? o.invXform;
+    this.changed(o);
+  }
+
   translate(f: Feature, offset: Vec3): void {
     const d: V3 = [offset[0] ?? 0, offset[1] ?? 0, offset[2] ?? 0];
     if (isObject(f) || (isSub(f) && f.type === T.Shell)) {

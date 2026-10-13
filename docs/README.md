@@ -226,8 +226,9 @@ undo away.
 
 - **Saw.** Click on something with it and it's cut in two at the plane. Each piece becomes an
   object of its own, pulled 10 apart either side of the plane so the cut shows, even when what
-  was cut is a part of a group (the Discovery's module, say). **\\** does the same to what is
-  picked, without the saw.
+  was cut is a part of a group (the Discovery's module, say). Taking the saw keeps what is
+  picked, and a click on something picked cuts all of it: pick the whole Discovery, take the saw,
+  click on it, and every part is cut. **\\** does the same to what is picked, without the saw.
 - **Drill.** Press on an object with it: a red copy of it, the **cutter**, comes away with the
   drill. Carry it into another object (move the plane to carry it in depth) and let go, and the
   cutter is taken out of that object. A cut that leaves pieces apart makes each piece an object.
@@ -388,6 +389,10 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   group a part belongs to, so the two moves cancelled and a grouped part's halves stayed
   together. A later Cutplane moved them apart; here `slice_object` moves a grouped part's
   pieces itself.
+- **The saw cuts what is picked.** The original's saw cut only what was under it, and taking it
+  (like any click on a pad) unpicked everything, so a group was cut one part at a time. Here a
+  click on a pad, plate or tool leaves the pick alone, and the saw on something picked cuts
+  everything picked, groups whole.
 - **Faces can extrude.** The original only stretched a dragged face. A toolbar choice makes a
   face pulled outward grow walls of its own instead (_Faces extrude_), at the cost of the extra
   edges the SGI could not afford.

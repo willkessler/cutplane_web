@@ -71,6 +71,18 @@ describe('computeSection', () => {
     expect(s.inPlaneEdges).toHaveLength(4);
   });
 
+  it('takes a face a little out of flat (old files drift) as lying in the plane', () => {
+    // The 1991 Discovery's faces are up to 0.09 off flat; the original's Tolerance is 0.5.
+    const warped = createCube(200, 200, 200);
+    const top = warped.vertices().filter((v) => warped.vz(v) === 200);
+    top.forEach((v, i) => warped.setVertexPos(v, warped.vx(v), warped.vy(v), 200 + [0, 0.05, -0.04, 0.09][i]!)); // prettier-ignore
+    const s = section(warped, 200);
+    expect(s.inPlaneFaces).toHaveLength(1);
+    expect(s.loops).toHaveLength(1);
+    expect(s.loops[0]!.points.length / 3).toBe(4);
+    expect(loopArea(s.loops[0]!)).toBeCloseTo(40000);
+  });
+
   it('finds the hole: an outer loop and a clockwise inner loop', () => {
     const s = section(createCubeHole(), 0);
     expect(s.loops).toHaveLength(2);

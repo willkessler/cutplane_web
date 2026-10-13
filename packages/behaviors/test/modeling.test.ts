@@ -156,6 +156,52 @@ describe('the saw (slice.cpl, slice_object)', () => {
     expect(w.rt.bbox(body)![0]).toEqual([-450, -25, -25]);
   });
 
+  it('a group picked whole stays picked when the saw is taken, and one click cuts all of it', () => {
+    const w = setup();
+    const body = createObject(createCube(100, 100, 100), { name: 'Body', xform: mat4.translation(-300, -50, -50) }); // prettier-ignore
+    const part = createObject(createCube(100, 100, 100), { name: 'Part', xform: mat4.translation(250, -50, -50) }); // prettier-ignore
+    body.attrs.props = ['Visible'];
+    part.attrs.props = ['Visible'];
+    part.linked = false;
+    part.parent = body;
+    body.children = [part];
+    w.rt.importObjects(w.rt.primary, [body]);
+    w.rt.commit();
+    w.frame();
+    w.click([300, 0]);
+    expect(w.rt.picked()).toEqual([body]);
+    w.take(1);
+    expect(w.rt.picked()).toEqual([body]);
+    // The click lands on the part; the body, picked with it, is cut too.
+    w.click([300, 0]);
+    const zs = (o: CutObject) => [w.rt.bbox(o)![0][2], w.rt.bbox(o)![1][2]];
+    const pieces = [body, ...body.children].filter((o) => o !== w.cube);
+    expect(pieces).toHaveLength(4);
+    expect(pieces.map(zs).sort((a, b) => a[0]! - b[0]!)).toEqual([[-60, -10], [-60, -10], [10, 60], [10, 60]].map((r) => r.map((v) => expect.closeTo(v, 6)))); // prettier-ignore
+  });
+
+  it('\\ cuts a picked group whole, every part parting', () => {
+    const w = setup();
+    const body = createObject(createCube(100, 100, 100), { name: 'Body', xform: mat4.translation(-300, -50, -50) }); // prettier-ignore
+    const part = createObject(createCube(100, 100, 100), { name: 'Part', xform: mat4.translation(250, -50, -50) }); // prettier-ignore
+    body.attrs.props = ['Visible'];
+    part.attrs.props = ['Visible'];
+    part.linked = false;
+    part.parent = body;
+    body.children = [part];
+    w.rt.importObjects(w.rt.primary, [body]);
+    w.rt.commit();
+    w.frame();
+    w.click([300, 0]);
+    w.controls.slice();
+    w.frame();
+    expect(body.children).toHaveLength(3);
+    const fronts = [body, ...body.children].filter((o) => w.rt.bbox(o)![0][2] > 0);
+    expect(fronts).toHaveLength(2);
+    expect(w.rt.undo()).toBe(true);
+    expect(body.children).toEqual([part]);
+  });
+
   it('clicking on nothing with the saw cuts nothing', () => {
     const w = setup();
     w.take(1);

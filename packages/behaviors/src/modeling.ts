@@ -8,7 +8,7 @@ import {
   type BoolOp,
   type ResultShell,
 } from '@cutplane/booleans';
-import { groupRoot, type Brep, type CutObject } from '@cutplane/kernel';
+import { groupRoot, subtree, type Brep, type CutObject } from '@cutplane/kernel';
 import { isObject, isSub, type WorldFeature } from './features.ts';
 import type { Runtime } from './runtime.ts';
 
@@ -132,30 +132,41 @@ export const MODELING_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => voi
    *
    * New here (a later Cutplane did this too): a TRANS of a part of a group moves the
    * whole group, so the ±10 moves cancelled and a grouped part's halves stayed
-   * together. A grouped part's pieces are moved apart here instead, each on its own,
-   * and left out of what slice.cpl moves.
+   * together. Every piece is moved apart here instead, each on its own (a group's
+   * root without its parts), and none is left for slice.cpl to move.
    */
   slice_object(rt, vm) {
     const set = vm.pop();
     const seen = new Set<CutObject>();
-    const back: CutObject[] = [];
-    const front: CutObject[] = [];
     const z = rt.cursor()[2];
     for (const f of set.list ?? []) {
       const o = objectOf(f);
       if (!o || seen.has(o) || rt.worldOf(o) !== rt.primary) continue;
       seen.add(o);
+      const group = o.children.length > 0;
       const r = sliceObject(rt, o, z);
-      back.push(...r.back);
-      front.push(...r.front);
+      // A group's root cut: its new pieces stay in the group, as parts.
+      if (group) for (const p of [...r.back, ...r.front]) if (p !== o) rt.adopt(o, p, false);
+      for (const p of r.front) rt.moveOne(p, [0, 0, SAW_GAP]);
+      for (const p of r.back) rt.moveOne(p, [0, 0, -SAW_GAP]);
     }
-    const loose = (pieces: CutObject[], dz: number) =>
-      pieces.filter((p) => {
-        if (groupRoot(p) === p) return true;
-        rt.moveBranch(p, [0, 0, dz]);
-        return false;
-      });
-    vm.push(featuresWord(...loose(front, SAW_GAP)));
-    vm.push(featuresWord(...loose(back, -SAW_GAP)));
+    vm.push(featuresWord());
+    vm.push(featuresWord());
+  },
+
+  /**
+   * CPL_saw_targets (new): (what is under the saw) → (what it cuts). On something
+   * picked, or a part of a picked group, everything picked, groups and all (so a
+   * group picked whole is cut whole); otherwise just what is under it.
+   */
+  saw_targets(rt, vm) {
+    const under = (vm.pop().list ?? []).map(objectOf).filter((o) => o !== null);
+    const picked = rt
+      .picked()
+      .map(objectOf)
+      .filter((o) => o !== null);
+    const branches = new Set(picked.flatMap((o) => [...subtree(o)]));
+    const onPicked = under.some((o) => branches.has(o) || branches.has(groupRoot(o)));
+    vm.push(featuresWord(...(onPicked ? [...branches] : under)));
   },
 };

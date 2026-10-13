@@ -1,7 +1,8 @@
 ;	cutplane_web's cursor.cpl: the original (assets/original/cpl/cursor.cpl)
-;	with one change, marked "cutplane_web" below. The plane jump (Space) glides
+;	with changes marked "cutplane_web" below. The plane jump (Space) glides
 ;	over a quarter second instead of landing in one frame: Jumplane works out
 ;	the jump, and the host sends Glideplane each frame with that frame's share.
+;	A click on a pad, plate or tool doesn't unpick what is picked.
 
 ;
 ;		CPL Cursor Code
@@ -227,6 +228,11 @@ _Check_release	BNEQUAL	AA:XAS,Prop:Selectable,A:_Plane_releas?&
 
 		WORLD	Const:WPrimary_world
 		BNEMPTY	Prop:Selectable*,A:_Finish_marquee&
+;		 cutplane_web: nor on a pad, plate or tool (taking the saw keeps
+;		 what is picked, for it to cut)
+		WORLD	Const:WEnvironment_world
+		BNEMPTY	Prop:Selectable*,A:_Finish_marquee&
+		WORLD	Const:WPrimary_world
 
 		MAKEMSG	Msg:Unpick
 		QMSG	Prop:Picked*,Const:Noprioritymsg

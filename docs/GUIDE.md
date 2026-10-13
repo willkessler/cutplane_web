@@ -100,7 +100,8 @@ tool rides on the crosshair; click its pad again, or call up another tool, to pu
 
   ![The cube's side split in two by the pencil](images/guide-pencil-split.png)
 
-- **Saw**: click on an object to cut it in two at the plane.
+- **Saw**: click on an object to cut it in two at the plane. Taking the saw keeps what is picked:
+  pick a whole group (the Discovery, say), take the saw, and a click on it cuts every part at once.
 - **Drill**: press on an object to make a red copy of it, the cutter; carry it into another
   object and let go, and the cutter is taken out of it.
 - **Union** (two green blocks): carry one object into another and let go, and they become one.

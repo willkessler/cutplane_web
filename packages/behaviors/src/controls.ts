@@ -194,10 +194,11 @@ export class Controls {
     this.vm.encodeInstruction(' QMSG Obj:Grouptool,Const:Prioritymsg');
   }
 
-  /** \\ (SLICEBUTTON): what is picked is sliced at the plane, the pieces pulled apart. */
+  /** \\ (SLICEBUTTON): what is picked, groups whole, is sliced at the plane, the pieces pulled apart. */
   slice(): void {
     this.events = true;
     this.vm.encodeInstruction(' PUSH Prop:Picked*');
+    this.vm.encodeInstruction(' CRTN Crtn:saw_targets');
     this.vm.encodeInstruction(' CRTN Crtn:slice_object');
     this.vm.encodeInstruction(' POP A:R2');
     this.vm.encodeInstruction(' TRANS A:R2*,Const:Normaltranslate,Const:V[0.0,0.0,-10.0]');

@@ -63,6 +63,8 @@ export const CRTN_NAMES = [
   'measure_info_rec',
   // cutplane_web: a text input's label emptied (textinput.cpl's first key).
   'clear_label',
+  // cutplane_web: what the saw cuts (slice.cpl): everything picked, if it's on that.
+  'saw_targets',
 ] as const;
 
 export type CrtnName = (typeof CRTN_NAMES)[number];

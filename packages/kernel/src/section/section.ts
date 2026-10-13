@@ -23,8 +23,12 @@ import { Brep, NONE } from '../topology/brep.ts';
  * clockwise around holes, so a loop's signed area says which it is.
  */
 
-/** Distance from the plane (room units) within which a vertex counts as on it. */
-export const ON_PLANE = 1e-6;
+/**
+ * Distance from the plane (room units) within which a vertex counts as on it: the
+ * original's Tolerance (intersect.c, slice.c). Old files' faces are up to a tenth of
+ * a unit out of flat, so a face laid in the plane must not be cut by its own drift.
+ */
+export const ON_PLANE = 0.5;
 
 export interface SectionSegment {
   /** The face this segment cuts across. */
