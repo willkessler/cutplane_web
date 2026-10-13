@@ -288,6 +288,36 @@ test('the pencil draws a closed shape in the plane, which becomes a solid', asyn
   expect(errors).toEqual([]);
 });
 
+test('the pencil draws on a surface: from edge to edge, splitting the face', async ({
+  page,
+  browserName,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0 });
+  type P3 = [number, number, number];
+  const click = async (at: [number, number] | P3) => {
+    await set(page, { x: at[0], y: at[1] });
+    await press(page);
+    await release(page);
+  };
+  await click(await locate<P3>(page, 'toolpads'));
+  const [pencil] = await locate<P3[]>(page, 'pads');
+  await click(pencil!);
+  // The plane cuts the cube's z edges at the section's corners.
+  await click([100, 100]);
+  for (let y = 96; y >= 0; y -= 4) await set(page, { x: 100, y });
+  expect((await page.evaluate(() => window.__cutplane!.scribble())).line).toBe(true);
+  await shot(page, 'pencil-surface-line', browserName);
+  await click([100, -100]);
+  expect((await page.evaluate(() => window.__cutplane!.scribble())).line).toBe(false);
+  expect((await edit(page)).faces).toBe(7);
+  await set(page, { yaw: -50, pitch: 25 });
+  await shot(page, 'pencil-surface-split', browserName);
+  await page.keyboard.press('ControlOrMeta+KeyZ');
+  expect((await edit(page)).faces).toBe(6);
+  expect(errors).toEqual([]);
+});
+
 test('backslash slices the picked cube; G groups a duplicate with it and ungroups', async ({
   page,
 }) => {

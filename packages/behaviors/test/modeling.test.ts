@@ -306,6 +306,56 @@ describe('the union tool (union.cpl, CPBOOLEAN)', () => {
 });
 
 describe('the pencil (pencil.cpl, start_draw, extend_draw, end_draw)', () => {
+  it('on a surface (draw_on_surface): edge to edge splits the face they share, in one undo', () => {
+    const w = setup();
+    w.take(0);
+    const press = (x: number, y: number) => {
+      w.at(x, y, 0);
+      w.frame();
+      w.controls.pressPick(false);
+      w.frame();
+      w.controls.releasePick();
+      w.frame();
+    };
+    // The plane cuts the cube's four z edges at its corners: start at one...
+    press(100, 100);
+    expect(w.rt.vm.props.has(w.rt.line, P.Visible)).toBe(true);
+    expect(w.cube.brep.numFaces).toBe(6);
+    // ...the white line follows the crosshair...
+    w.move(0, -40);
+    const [a, b] = w.rt.line.brep.vertices().map((v) => w.rt.line.brep.vertexPos(v));
+    expect(a).toEqual([100, 100, 0]);
+    expect(b![1]).toBeCloseTo(60);
+    // ...and ends at the next corner down the right side: that face is split across.
+    press(100, -100);
+    w.frame();
+    expect(w.rt.vm.props.has(w.rt.line, P.Visible)).toBe(false);
+    expect(w.cube.brep.numFaces).toBe(7);
+    expect(w.cube.brep.numVertices).toBe(10);
+    expect(sound(w.cube)).toBe(true);
+    expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3);
+    expect(w.solids()).toEqual([w.cube]); // no scribble left behind
+    expect(w.rt.undo()).toBe(true);
+    expect(w.cube.brep.numFaces).toBe(6);
+  });
+
+  it('on a surface: ends with no face in common draw nothing', () => {
+    const w = setup();
+    w.take(0);
+    const press = (x: number, y: number) => {
+      w.at(x, y, 0);
+      w.frame();
+      w.controls.pressPick(false);
+      w.frame();
+      w.controls.releasePick();
+      w.frame();
+    };
+    press(100, 100);
+    press(-100, -100); // diagonally opposite: no face shares both
+    expect(w.cube.brep.numFaces).toBe(6);
+    expect(w.rt.vm.props.has(w.rt.line, P.Visible)).toBe(false);
+  });
+
   /** Draws a closed stroke through `pts` (offsets from the start) with the pencil down. */
   const draw = (
     w: ReturnType<typeof setup>,

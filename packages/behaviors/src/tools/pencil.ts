@@ -1,7 +1,17 @@
-import { featuresWord, first, type VM } from '@cutplane/cpl';
-import { Brep, extrudeFace, makeLamina, snap, validate, type CutObject } from '@cutplane/kernel';
+import { T, featuresWord, first, offsetWord, type VM } from '@cutplane/cpl';
+import {
+  Brep,
+  drawAcrossFace,
+  extrudeFace,
+  makeLamina,
+  mat4,
+  snap,
+  validate,
+  type CutObject,
+  type Spot,
+} from '@cutplane/kernel';
 import { booleansReady, simpleOutline } from '@cutplane/booleans';
-import { isObject } from '../features.ts';
+import { isObject, isSub, type Sub } from '../features.ts';
 import type { Runtime, V3 } from '../runtime.ts';
 import type { WorldFeature } from '../features.ts';
 
@@ -34,6 +44,34 @@ const strokes = new WeakMap<CutObject, { pts: V3[]; last: number }>();
 
 /** Whether `o` is a scribble still being drawn (draw_scribble_technique). */
 export const isScribble = (o: CutObject): boolean => o.drawTechnique === 'draw_scribble_technique';
+
+/** draw_on_surface's first end (its static vfe1/evf1 and cutpt1), until the second. */
+const surfaceStart = new WeakMap<Runtime, { feature: Sub; at: V3 }>();
+
+/**
+ * Where draw_on_surface takes a vertex or edge: a vertex where it is; an edge where
+ * the plane crosses it, or (lying in the plane) its point nearest the crosshair.
+ */
+function spotAt(rt: Runtime, f: Sub): V3 {
+  const g = rt.world(f.object);
+  const at = (v: number): V3 => [g.x(v), g.y(v), g.z(v)];
+  if (f.type === T.Vfe) return at(f.id);
+  const [p, q] = f.object.brep.edgeVertices(f.id).map(at) as [V3, V3];
+  const c = rt.cursor();
+  const z = c[2];
+  const dz = q[2] - p[2];
+  let t: number;
+  if (Math.abs(dz) > 1e-9 && (p[2] - z) * (q[2] - z) <= 0) t = (z - p[2]) / dz;
+  else {
+    const d = [q[0] - p[0], q[1] - p[1], q[2] - p[2]];
+    const len = d[0]! * d[0]! + d[1]! * d[1]! + d[2]! * d[2]!;
+    t = len === 0 ? 0 : ((c[0] - p[0]) * d[0]! + (c[1] - p[1]) * d[1]! + (c[2] - p[2]) * d[2]!) / len; // prettier-ignore
+    t = Math.min(1, Math.max(0, t));
+  }
+  return [p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1]), p[2] + t * (q[2] - p[2])];
+}
+
+const isEnd = (f: unknown): f is Sub => isSub(f as Sub) && ((f as Sub).type === T.Vfe || (f as Sub).type === T.Evf); // prettier-ignore
 
 const offsetOf = (w: { offset: readonly number[] }): V3 => [w.offset[0] ?? 0, w.offset[1] ?? 0, w.offset[2] ?? 0]; // prettier-ignore
 
@@ -68,6 +106,51 @@ export const PENCIL_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
       rt.changed(o);
     }
     vm.push(featuresWord(o));
+  },
+
+  /**
+   * CPL_draw_on_surface: (vertex or edge, connect) → (start point) | (). The first
+   * press marks where the line starts; the second, on the same object, draws it
+   * across the face the two share, splitting that face in two (one undo step).
+   * The original broke the first edge even when no face was shared; here nothing
+   * changes unless the line is drawn.
+   */
+  draw_on_surface(rt, vm) {
+    const connect = vm.pop().bool;
+    const f = first(vm.pop());
+    if (!isEnd(f)) return;
+    if (!connect) {
+      const at = spotAt(rt, f);
+      surfaceStart.set(rt, { feature: f, at });
+      vm.push(offsetWord(at));
+      return;
+    }
+    const start = surfaceStart.get(rt);
+    surfaceStart.delete(rt);
+    if (!start || start.feature.object !== f.object) return;
+    const o = f.object;
+    const local = (p: V3): V3 => {
+      const [x, y, z] = mat4.transformPoint(o.invXform, p[0], p[1], p[2]);
+      return [snap(x), snap(y), snap(z)];
+    };
+    const spot = (s: Sub, at: V3): Spot =>
+      s.type === T.Vfe ? { vertex: s.id } : { edge: s.id, at: local(at) };
+    const b = o.brep.clone();
+    if (drawAcrossFace(b, spot(start.feature, start.at), spot(f, spotAt(rt, f))) === null) return;
+    const was = validate(o.brep);
+    const now = validate(b);
+    if (!now.ok || (was.closedManifold && !now.closedManifold)) return;
+    rt.reshape(o, b);
+  },
+
+  /** CPL_draw_line: (from, to) → (): the Line object (the rubber band) runs between them. */
+  draw_line(rt, vm) {
+    const to = offsetOf(vm.pop());
+    const from = offsetOf(vm.pop());
+    const [a, c] = rt.line.brep.vertices() as [number, number];
+    rt.line.brep.setVertexPos(a, ...from);
+    rt.line.brep.setVertexPos(c, ...to);
+    rt.changed(rt.line);
   },
 
   /**

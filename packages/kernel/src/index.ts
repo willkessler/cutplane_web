@@ -20,6 +20,7 @@ export type {
 } from './topology/validate.ts';
 
 export * from './ops/sweep.ts';
+export { drawAcrossFace, splitEdge, type Spot } from './ops/split.ts';
 export * from './primitives.ts';
 
 export {

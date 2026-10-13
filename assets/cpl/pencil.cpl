@@ -1,0 +1,203 @@
+;
+;		CPL Pencil Code for use with tool.cpl
+;		Date: November 28,1990
+;		Version: 6
+;
+;	cutplane_web: drawing on a surface, from the original's draw.cpl (a later
+;	pencil, never in cplpropfiles): press on a vertex or edge in the section,
+;	a white line follows the crosshair, press on another of the same face and
+;	draw_on_surface splits the face along the line. Pressing anywhere else
+;	gives it up. Pressed on a face or an object, the pencil scribbles as
+;	before (draw.cpl did nothing there). draw.cpl's flip to the eraser is
+;	left out. Changes marked "cutplane_web".
+;
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;  marks holding button down while moving pencil.
+Pencildown	DEFPROP				
+Surfdrawing	DEFPROP					; cutplane_web (draw.cpl)
+_Newscribble	CPLDATA					; local var
+_Drawn_feature	CPLDATA					; cutplane_web (draw.cpl)
+_First_drawn	CPLDATA
+_Start_line_pos	CPLDATA
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main pencil code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;		Code for the Draw routine version 1: a la macpaint since easier
+
+Draw		DEFPROP
+
+Draw		STARTPROP
+		BWIPED	AA:XOP*,A:_End_drawing&		; Event still active?
+
+		OWNER	A:R1,Const:Motherobj		; Is pencil Active?
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_drawing&		; no,quit
+
+;	Start drawing upon a pick, barring selectable toolpads.
+
+;		 Is Opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectable?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_drawing&
+
+;		Are there selectable toolpads?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_drawing&		; yes, let toolpad work
+
+;		Is the headpad selectable?	
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_drawing&		; yes, let headpad work
+
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*,A:R3		; cutplane_web (draw.cpl)
+		UNPICK	Prop:Picked*
+		WORLD	Const:WEnvironment_world
+
+;		 cutplane_web (draw.cpl): on a vertex or edge, draw on the surface.
+		INDEX	A:R3,A:_Drawn_feature,Const:I1
+		BNEMPTY	A:_Drawn_feature,A:_Begin_drawsurf&
+
+;		On pick, begin drawing, unless we were drawing on a surface, in
+;		which case give that up (cutplane_web, draw.cpl).
+_Begin_drawing	HASPROP	A:R1*,Prop:Surfdrawing,A:R2,Const:Self
+		BTRUE	A:R2,A:_Final_drawsurf&
+		ADDPROP	A:R1,Prop:Pencildown
+		MOVE	Prop:Selectable*,A:R1
+		WIPE	A:XOP*
+		PUSH	A:R1
+		CRTN	Crtn:start_draw
+		POP	A:_Newscribble
+		ADDPROP	A:_Newscribble*,Prop:Nonmanifold
+		WTRANS	A:_Newscribble*,Const:WPrimary_world
+;		 move it a bit off the plane...
+		TRANS	A:_Newscribble*,Const:Normaltranslate,Const:V[0.0,0.0,10.0]
+		UPDATE	A:_Newscribble*,Const:UComputebboxflag/when:Now
+		UPDATE	A:_Newscribble*,Const:URecomputebackfaceflag/when:Now
+		JUMP	A:_End_drawing&
+
+;		 Is Opcode a RELEAS?
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_trans&
+;		 Releasing selectable?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_drawing&
+
+;	cutplane_web (draw.cpl): if drawing on a surface, just wipe the RELEAS;
+;	it is over once the second press has drawn the line (or given it up).
+		HASPROP	A:R1*,Prop:Surfdrawing,A:R2,Const:Self
+		BFALSE	A:R2,A:_Pencil_down?&
+		BNEMPTY	A:_First_drawn,A:_Wipesurfrel&	; cleared by 2nd pick
+		REMPROP	A:R1*,Prop:Surfdrawing
+_Wipesurfrel	WIPE	A:XOP*
+		JUMP	A:_End_drawing&
+
+;		Is pencil down?
+_Pencil_down?	HASPROP	A:R1*,Prop:Pencildown,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_drawing&
+
+;		yes, finish drawing
+
+_Stop_drawing	REMPROP	A:R1*,Prop:Pencildown		; mark pencil up
+
+_Wiperelease	WIPE	A:XOP*				; clear RELEAS
+		MOVE	Prop:Selectable*,A:R1
+		PUSH	A:R1
+;
+;	N.B. Croutine should not bite it if nothing was drawn and the guy
+;	just flipped the pencil!!!
+;
+		PUSH	A:_Newscribble			; push any scribble too
+		CRTN	Crtn:end_draw			; stop drawing
+		POP	A:_Newscribble
+		REMPROP	A:_Newscribble*,Prop:Nonmanifold
+;		 move it a bit back into the plane...
+		TRANS	A:_Newscribble*,Const:Normaltranslate,Const:V[0.0,0.0,-20.0]
+		UPDATE	A:_Newscribble*,Const:UAllupdateflags/when:Now
+		JUMP	A:_End_drawing&
+
+;	Extend drawing if xhair translated
+
+;		 Event is a TRANSLATE?
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_End_drawing&
+;		 TRANSlating xhair?
+		BNEQUAL	AA:XAS*,Env:Crosshair_part,A:_End_drawing&
+
+;		 move xhair, then
+		TRANS	Env:Crosshair_part,Const:Normaltranslate,AA:XAD*
+_Wipetrans	WIPE	A:XOP*				; wipe it so other objs
+;							; don't see doodly
+
+		HASPROP	A:R1*,Prop:Pencildown,A:R2,Const:Self ; pencil down?
+		BFALSE	A:R2,A:_Extend_surf?&		; no: drawing on a surface?
+
+		PUSH	A:_Newscribble
+		PUSH	AA:XAD				; pass trans amount
+		CRTN	Crtn:extend_draw		; yes, continue figure
+		POP	A:R2				; for update
+		UPDATE	A:R2*,Const:UComputebboxflag/when:Now
+		UPDATE	A:R2*,Const:URecomputebackfaceflag/when:Now
+		UPDATE	A:R2*,Const:ULogerasebboxflag/when:Now
+
+;	in the case of the pencil, this should only be added if something
+; 	was successfully drawn!!! this means the Crtn extend_draw should
+;	be used to check whether to add this prop... tricky tricky
+
+;		ADDPROP	A:R1*,Prop:Toolused		; let toolpad know
+;							; the pencil is in use
+
+;	cutplane_web (draw.cpl): rubber-band the white line from where it
+;	started to the crosshair (already moved: no need to add XAD to it).
+_Extend_surf?	HASPROP	A:R1*,Prop:Surfdrawing,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_drawing&
+		BEMPTY	A:_First_drawn,A:_End_drawing&
+		DIFF3D	Const:Origin,Env:Crosshair_part,A:R2
+		PUSH	A:_Start_line_pos
+		PUSH	A:R2
+		CRTN	Crtn:draw_line
+		UPDATE	Obj:Line,Const:UComputebboxflag/when:Now
+		UPDATE	Obj:Line,Const:URedrawflag/when:Now
+		JUMP	A:_End_drawing&
+
+;		 cutplane_web (draw.cpl): begin drawing on the surface of an
+;		 object, from (and to) its vertices and edges.
+_Begin_drawsurf	MOTHER	A:_Drawn_feature*,A:R3,Const:Motherevf
+		BEQUAL	A:_Drawn_feature,A:R3,A:_More_drawsurf&
+		MOTHER	A:_Drawn_feature*,A:R3,Const:Mothervfe
+		BEQUAL	A:_Drawn_feature,A:R3,A:_More_drawsurf&
+		CLEAR	A:_Drawn_feature
+		JUMP	A:_Begin_drawing&		; a face or an object: scribble
+
+_More_drawsurf	BNEMPTY	A:_First_drawn,A:_Finish_drawsurf&
+		MOVE	A:_Drawn_feature,A:_First_drawn
+		ADDPROP	A:R1*,Prop:Surfdrawing
+		ADDPROP	Obj:Line,Prop:Visible
+		SETCOLOR Obj:Line,Const:C[255,255,255]		; make line white
+		PUSH	A:_Drawn_feature
+		PUSH	Const:FALSE
+		CRTN	Crtn:draw_on_surface
+		POP	A:_Start_line_pos
+		PUSH	A:_Start_line_pos
+		PUSH	A:_Start_line_pos
+		CRTN	Crtn:draw_line
+		UPDATE	Obj:Line,Const:URedrawflag/when:Now
+		WIPE	A:XOP*
+		JUMP	A:_End_drawing&
+
+_Finish_drawsurf PUSH	A:_Drawn_feature
+		PUSH	Const:TRUE
+		CRTN	Crtn:draw_on_surface
+
+_Final_drawsurf	MOTHER	A:_First_drawn*,A:R3,Const:Motherobj
+		UPDATE	A:R3*,Const:UAllupdateflags/when:Now
+		REMPROP	Obj:Line,Prop:Visible
+		CLEAR	A:_First_drawn
+		CLEAR	A:_Drawn_feature
+		WIPE	A:XOP*
+		JUMP	A:_End_drawing&
+
+_End_drawing	RTS
+
