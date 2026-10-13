@@ -1,15 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { P } from '@cutplane/cpl';
 import { createCube, createObject, mat4 } from '@cutplane/kernel';
-import { fitToRoom, grouper, readGltf, readStl, writeGlb, writeStl } from '@cutplane/formats';
+import { grouper, readGltf, readStl, writeGlb, writeStl } from '@cutplane/formats';
 import { world } from './world.ts';
 
-/** A 100-unit box at (x, 0, 0) as an STL file and back: what an import hands the world. */
+/** A 100-unit box at (x, 0, 0) as an STL file and back: what an import hands the world (unfitted). */
 const imported = (x: number) => {
   const box = createObject(createCube(100, 100, 100), { xform: mat4.translation(x, -50, -50) });
-  const objs = readStl(writeStl([box]));
-  fitToRoom(objs);
-  return objs;
+  return readStl(writeStl([box]));
 };
 
 describe('objects imported from mesh files', () => {

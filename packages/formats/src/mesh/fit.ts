@@ -16,14 +16,15 @@ export function roomBox(roots: readonly CutObject[]): { lo: number[]; hi: number
   return lo[0]! <= hi[0]! ? { lo, hi } : null;
 }
 
-/** Imports smaller than this (room units) are scaled up to be seen. */
-const TINY = 20;
+/** Imports smaller than this much of the room (a fish 160 units long) are scaled up to work on. */
+const SMALL = 0.25;
 /** Of the room, how much a model scaled to fit takes up. */
 const FILL = 0.6;
 
 /**
- * Makes imported objects fit the room: left as they are when they already fit,
- * else scaled (uniformly) to take up most of it, or moved into its middle.
+ * Makes imported objects fit the room: left as they are when they fit and
+ * aren't small, else scaled (uniformly) to take up most of it, or moved into
+ * its middle.
  * Vertices then go onto the grid, as every committed vertex does. Returns the scale used.
  */
 export function fitToRoom(roots: readonly CutObject[]): number {
@@ -33,7 +34,7 @@ export function fitToRoom(roots: readonly CutObject[]): number {
   const room = [0, 1, 2].map((k) => ROOM.max[k]! - ROOM.min[k]!);
   const biggest = Math.max(...size);
   const inside = [0, 1, 2].every((k) => box.lo[k]! >= ROOM.min[k]! && box.hi[k]! <= ROOM.max[k]!);
-  const small = biggest < TINY;
+  const small = biggest < SMALL * Math.min(...room);
   const fits = size.every((d, k) => d <= room[k]! * 0.95);
   const s = small || !fits ? Math.min(...size.map((d, k) => (d > 0 ? (room[k]! * FILL) / d : Infinity))) : 1; // prettier-ignore
   // Moved (and scaled) about its centre into the middle of the room, unless it was in already.

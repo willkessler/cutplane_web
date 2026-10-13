@@ -371,6 +371,8 @@ export function polygonize(soup: Soup): CutObject | null {
 
   // Pieces: the polygons, welded, without repeated corners or zero area.
   const pieces: Piece[] = [];
+  // The same corners twice (either way round) is one face drawn twice: kept once.
+  const corners = new Set<string>();
   soup.polygons.forEach((poly, i) => {
     const loop: number[] = [];
     for (const v of poly) {
@@ -380,6 +382,9 @@ export function polygonize(soup: Soup): CutObject | null {
     }
     while (loop.length > 1 && loop[0] === loop[loop.length - 1]) loop.pop();
     if (new Set(loop).size !== loop.length || loop.length < 3) return;
+    const key = [...loop].sort((a, b) => a - b).join(',');
+    if (corners.has(key)) return;
+    corners.add(key);
     const nn = newell(loop.map((v) => points[v]!));
     const len = Math.hypot(...nn);
     if (len < tol * tol) return;

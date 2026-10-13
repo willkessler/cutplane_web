@@ -151,6 +151,10 @@ export function pickAt(
   const closed = s.loops.filter((l) => l.closed).map((l) => l.points);
   if (closed.length > 0 && insideAll(closed, x, y))
     return { kind: 'object', id: NONE, at: [x, y, z], dist: 0 };
+  // New here: an object that isn't a solid (a broken import) has a section that doesn't
+  // close. Inside any of its loops (an open one closed straight across) is the object.
+  if (s.loops.some((l) => !l.closed) && s.loops.some((l) => insideAll([l.points], x, y)))
+    return { kind: 'object', id: NONE, at: [x, y, z], dist: 0 };
   return undefined;
 }
 

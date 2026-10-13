@@ -102,7 +102,8 @@ export async function readMeshFiles(files: readonly File[]): Promise<Imported> {
     } catch (err) {
       throw new Error(`${f.name}: ${(err as Error).message}`, { cause: err });
     }
-    if (got.length === 0) throw new Error(`${f.name}: nothing in it with faces`);
+    if (got.length === 0)
+      throw new Error(`${f.name}: nothing in it with faces (only lines or points?)`);
     const title = f.name.replace(/\.[^.]+$/, '');
     for (const o of got) o.name ??= title;
     // A file's parts (a car's body, glass and wheels) come in as one group, named after it.

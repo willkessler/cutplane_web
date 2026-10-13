@@ -349,13 +349,13 @@ describe('fitting imports into the room', () => {
     createObject(createCube(w, w, w), { xform: mat4.translation(x, 0, 0) });
 
   it('leaves what fits where it is', () => {
-    const o = box(100, 50);
+    const o = box(300, 50);
     expect(fitToRoom([o])).toBe(1);
     expect(o.xform[12]).toBe(50);
   });
 
-  it('scales a model in metres up, and one too big for the room down, into the middle', () => {
-    for (const o of [box(1), box(5000, 9000)]) {
+  it('scales a model in metres or a small one up, and one too big for the room down, into the middle', () => {
+    for (const o of [box(1), box(150), box(5000, 9000)]) {
       const s = fitToRoom([o]);
       expect(s).not.toBe(1);
       const r = roomBox([o])!;
@@ -366,10 +366,10 @@ describe('fitting imports into the room', () => {
   });
 
   it('moves one that fits in size but lies outside the room into its middle, unscaled', () => {
-    const o = box(100, 2000);
+    const o = box(300, 2000);
     expect(fitToRoom([o])).toBe(1);
     const r = roomBox([o])!;
-    expect(r.hi[0]! - r.lo[0]!).toBeCloseTo(100);
+    expect(r.hi[0]! - r.lo[0]!).toBeCloseTo(300);
     expect((r.lo[0]! + r.hi[0]!) / 2).toBeCloseTo(-0.5);
   });
 });

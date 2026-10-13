@@ -287,9 +287,11 @@ covers the room while you work).
     there stays open.
   - **One file, one group.** A file with several parts (a car's body, glass and wheels) comes in
     as a group named after the file, so it moves as one. **G** ungroups it.
-  - A room unit is a millimetre. A model that doesn't fit the room (a building) or is too small
-    to see (one in metres) is scaled to fill most of it and set in the middle; the status line
-    says by how much. One that fits stays where it is.
+  - A room unit is a millimetre. A model that doesn't fit the room (a building), or takes up less
+    than a quarter of it (one in metres, a 160-unit fish), is scaled to fill most of it and set in
+    the middle; the status line says by how much. One that fits and isn't small stays where it is.
+  - A file of only lines (a mesh drawn as its edges, as SGI's IVREAD wrote VRML) has its closed
+    lines read as faces. A face drawn twice is kept once.
   - A glTF node with no mesh that holds others comes in as a group, as the group tool would make
     it: pick one part and you pick the group.
 - **Export…** writes the world's objects as:
@@ -346,6 +348,9 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
 - **Code in files, edited live.** Objects carry their CPL inline in `.cut` files. The original
   saved only the name of a code file, and only for vertices, edges and faces. The CPL editor is
   new, and so are Save and Open outside the Load/Save plate.
+- **Broken imports still pick.** An object whose section doesn't close (an import that isn't a
+  solid even after its holes are closed) is picked whole from inside any of its section loops,
+  an open one closed straight across. A solid's section always closes, so nothing else changes.
 - **Mesh files, drag and drop, autosave.** The original read and wrote only its own `.cut`
   format. Cutplane also adds OBJ, STL and glTF models to a world, exports to them, takes files
   dropped on the page, and keeps every change in the browser as it's made.

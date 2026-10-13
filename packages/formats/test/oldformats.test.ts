@@ -123,6 +123,33 @@ DEF Car Transform {
   });
 });
 
+describe('wireframes (line sets)', () => {
+  const wire = (extra = '') => `#VRML V2.0 utf8
+Group { children [
+  Shape { appearance Appearance { material Material { diffuseColor 1 0.8 0 } }
+    geometry IndexedLineSet {
+      coord Coordinate { point [ 0 0 0, 3 0 0, 0 3 0, 0 0 3, 0 0 0 ] }
+      # Each triangle drawn round as a closed line, as IVREAD wrote them.
+      coordIndex [ 0 1 2 4 -1  0 1 3 0 -1  0 2 3 0 -1  1 3 2 1 -1  1 2 -1 ]
+    } }
+  ${extra}
+] }`;
+
+  it('a file of only closed lines (a mesh drawn as its edges) is read as their faces', () => {
+    const [o] = readInventor(wire());
+    expect(o!.brep.numFaces).toBe(4);
+    expect(solid(o!)).toBe(true);
+    expect(vol(o!)).toBeCloseTo(4.5);
+    expect(o!.color).toEqual([255, 204, 0]);
+  });
+
+  it('lines in a file that has faces are left out', () => {
+    const objs = readInventor(wire('Shape { geometry Box { size 1 1 1 } }'));
+    expect(objs).toHaveLength(1);
+    expect(objs[0]!.brep.numFaces).toBe(6);
+  });
+});
+
 describe('DXF', () => {
   const pairs = (...ps: (string | number)[]) => ps.join('\n') + '\n';
   const polyface = (layer: string) =>

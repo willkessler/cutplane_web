@@ -232,7 +232,8 @@ const GREY: Rgb = [204, 204, 204]; // Inventor's default diffuse 0.8
 
 /**
  * Reads Open Inventor ASCII (.iv) and VRML 1.0 / 2.0 (.wrl): face sets,
- * triangle strips and the four primitives, placed by their transforms (baked
+ * triangle strips and the four primitives (and, in a file with no faces, line
+ * sets whose lines close, as their faces), placed by their transforms (baked
  * into the positions), coloured by their materials. Each Separator (or VRML
  * 2.0 Transform/Group) holding several shapes becomes a group. Binary
  * Inventor isn't read (SGI's `ivcat -a` turns it into ASCII).
@@ -356,6 +357,14 @@ export function readInventor(text: string): CutObject[] {
       case 'ShapeHints':
         st.ordering = word(n, 'vertexOrdering', 'UNKNOWN_ORDERING');
         return [];
+      case 'IndexedLineSet':
+        if (vrml2) return [];
+        {
+          const faces = loops(nums(n, 'coordIndex'), st.coords);
+          return lineShape([
+            shape(st, st.coords, faces, faceColors(st, faces.length, []), null, name),
+          ]);
+        }
       case 'IndexedFaceSet':
         if (vrml2) return [];
         {
@@ -473,6 +482,11 @@ export function readInventor(text: string): CutObject[] {
       ),
     ];
     switch (g.type) {
+      case 'IndexedLineSet': {
+        const coord = child(g, 'coord');
+        const pts = coord ? triples(nums(coord, 'point')) : [];
+        return lineShape(one(pts, loops(nums(g, 'coordIndex'), pts), null));
+      }
       case 'IndexedFaceSet': {
         const coord = child(g, 'coord');
         const pts = coord ? triples(nums(coord, 'point')) : [];
@@ -520,5 +534,36 @@ export function readInventor(text: string): CutObject[] {
 
   const st: State = { matrix: mat4.identity(), coords: [], materials: [], binding: 'OVERALL', ordering: 'UNKNOWN_ORDERING' }; // prettier-ignore
   const soups = roots.flatMap((r) => visit(r, st));
+  // Line sets count only when there's nothing else: a wireframe of a mesh (IVREAD wrote them).
+  const faced = (list: readonly Soup[]): boolean =>
+    list.some((x) => (!fromLines.has(x) && x.polygons.length > 0) || faced(x.children ?? []));
+  if (faced(soups)) {
+    const drop = (list: Soup[]): Soup[] =>
+      list
+        .filter((x) => !fromLines.has(x))
+        .map((x) => ({ ...x, children: drop(x.children ?? []) }));
+    return soupObjects(drop(soups));
+  }
   return soupObjects(soups);
+}
+
+/** Shapes made from line sets, kept only if the file has no faces of its own. */
+const fromLines = new WeakSet<Soup>();
+function lineShape(list: Soup[]): Soup[] {
+  for (const x of list) fromLines.add(x);
+  return list;
+}
+
+/**
+ * A line set's closed polylines (each ending where it began, round three
+ * corners or more) as faces: a mesh drawn as its edges. Open ones are left out.
+ */
+function loops(idx: readonly number[], pts: readonly V3[]): number[][] {
+  const same = (a: number, b: number) => a === b || (pts[a] !== undefined && pts[b] !== undefined && pts[a]!.every((v, k) => v === pts[b]![k])); // prettier-ignore
+  const out: number[][] = [];
+  for (const run of runs(idx)) {
+    if (run.length < 4 || !same(run[0]!, run[run.length - 1]!)) continue;
+    out.push(run.slice(0, -1));
+  }
+  return out;
 }

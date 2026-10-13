@@ -3,6 +3,7 @@ import fc from 'fast-check';
 import {
   Brep,
   WorldGeometry,
+  buildShell,
   computeSection,
   createCube,
   createCubeHole,
@@ -179,6 +180,18 @@ describe('pickAt', () => {
     expect(f.at).toEqual([0, 100, 100]);
     expect(at(100, 100, 100)?.kind).toBe('object');
     expect(at(300, 100, 100)).toBeUndefined();
+  });
+
+  it('an object that is not a solid (a box missing a side) is picked from inside its open section', () => {
+    // The cube's faces less the one at x = 200: its section at z = 100 is three sides of a square.
+    const box = new Brep();
+    const pts: V3[] = [[0, 0, 0], [200, 0, 0], [200, 200, 0], [0, 200, 0], [0, 0, 200], [200, 0, 200], [200, 200, 200], [0, 200, 200]]; // prettier-ignore
+    buildShell(box, { positions: pts, faces: [[[0, 3, 2, 1]], [[4, 5, 6, 7]], [[0, 1, 5, 4]], [[2, 3, 7, 6]], [[0, 4, 7, 3]]] }); // prettier-ignore
+    const og = new WorldGeometry(box, mat4.identity());
+    const s = computeSection(og, 100);
+    expect(s.loops.some((l) => !l.closed)).toBe(true);
+    expect(pickAt(og, s, 100, 100, 100)?.kind).toBe('object');
+    expect(pickAt(og, s, 300, 100, 100)).toBeUndefined();
   });
 
   it('uses a square pick box of 10 units', () => {
