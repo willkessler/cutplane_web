@@ -268,6 +268,11 @@ covers the room while you work).
   - a `.cut` world (or a `.rsc` or `.icon`) becomes the world being edited;
   - **OBJ, STL and glTF** models (`.obj`, `.stl`, `.glb`, `.gltf`) are **added** to the world, as
     one step that undo takes back out. Drop an OBJ's `.mtl`, or a `.gltf`'s `.bin`, along with it.
+  - So are the **SGI era's formats**: **Open Inventor** (`.iv`, ASCII; SGI's `ivcat -a` turns a
+    binary one into ASCII), **VRML 1.0 and 2.0** (`.wrl`), and **DXF** (`.dxf`: polyface and
+    polygon meshes, 3DFACEs, blocks placed by INSERT, an object per layer in AutoCAD's colours,
+    z up). Inventor's face sets, triangle strips, cubes, spheres, cylinders and cones come in
+    under their transforms and materials, and each Separator holding several shapes is a group.
   - Triangles that lie in one plane come back as one face, holes and all, so an imported box
     has six faces to grab, not twelve triangles.
   - **Colours** come from the materials: their colour, times the texture under each triangle
@@ -491,7 +496,17 @@ older versions of the format are normalised to the latest one on save.
   number triples. The world and history go in IndexedDB (`ui/idb.ts`); localStorage keeps the
   menu's title and time, and the world alone if IndexedDB can't be had. A history that doesn't
   fit the world it's loaded with is dropped whole.
-- **Tests:** `formats/test/mesh.test.ts` round-trips a cube, a holed face and five samples
+- **Old formats** (`mesh/inventor.ts`, `mesh/dxf.ts`): one tokenizer and parser for Inventor
+  ASCII and both VRMLs (a node is `[DEF n] Type { fields children }`; field values are numbers,
+  words, strings or nodes), walked with Inventor's traversal state (matrix, coordinates,
+  materials and binding, vertex ordering) and VRML 2.0's Shape/Transform nesting. Positions are
+  baked into the room. DXF is read as group-code pairs, anything before the first SECTION (a
+  1993 mail header) skipped, layer colours from the LAYER table, BYLAYER and BYBLOCK followed.
+  Faces with no stated winding (Inventor's default, all of DXF) are turned to agree with their
+  neighbours and then outward (`orient` in `polygonize.ts`).
+- **Tests:** `formats/test/oldformats.test.ts` reads Inventor, VRML 1.0 and 2.0 and DXF written
+  for the tests, and (locally, from the archive) `robot2.dxf`, a 1993 robot arm David Lees mailed
+  Larry: 52 layers, each a solid. `formats/test/mesh.test.ts` round-trips a cube, a holed face and five samples
   through each format. It checks points (within the grid), volume (within 10⁻⁴), face counts
   (the same through glTF, never more through OBJ except holed bent faces), colours and nesting.
   It reads glTF turned, scaled and sheared by other tools, runs the Khronos validator on a

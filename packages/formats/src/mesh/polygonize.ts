@@ -21,6 +21,8 @@ export interface Soup {
   colors?: (Rgb | null)[];
   /** The face each polygon belongs to, when the format kept it: these join, and only these. */
   faces?: number[];
+  /** The format doesn't say which way faces wind (Inventor's UNKNOWN_ORDERING, DXF): turn each piece outward. */
+  unordered?: boolean;
   /** Local → room placement (rigid) when the format had one; the positions are local. */
   xform?: Mat4;
   children?: Soup[];
@@ -159,6 +161,60 @@ function mergeGroup(pieces: readonly Piece[], points: readonly V3[]): number[][]
   const outer = loops.filter((l) => area(l) > 0);
   if (outer.length !== 1) return null;
   return [outer[0]!, ...loops.filter((l) => l !== outer[0])];
+}
+
+/**
+ * Turns pieces to wind like their neighbours: across an edge two pieces
+ * share, each runs it the other way. With `outward`, each connected part is
+ * then turned so it encloses positive volume.
+ */
+function orient(pieces: Piece[], points: readonly V3[], outward: boolean): void {
+  const flip = (p: Piece) => {
+    p.loop.reverse();
+    p.n = [-p.n[0], -p.n[1], -p.n[2]];
+    p.d = -p.d;
+  };
+  const byEdge = new Map<string, number[]>();
+  pieces.forEach((p, i) =>
+    p.loop.forEach((a, k) => {
+      const b = p.loop[(k + 1) % p.loop.length]!;
+      const key = a < b ? `${a},${b}` : `${b},${a}`;
+      const list = byEdge.get(key);
+      if (list) list.push(i);
+      else byEdge.set(key, [i]);
+    }),
+  );
+  const runs = (p: Piece, a: number, b: number) =>
+    p.loop.some((v, k) => v === a && p.loop[(k + 1) % p.loop.length] === b);
+  const seen = new Uint8Array(pieces.length);
+  for (let start = 0; start < pieces.length; start++) {
+    if (seen[start]) continue;
+    seen[start] = 1;
+    const part = [start];
+    for (let q = 0; q < part.length; q++) {
+      const p = pieces[part[q]!]!;
+      p.loop.forEach((a, k) => {
+        const b = p.loop[(k + 1) % p.loop.length]!;
+        const list = byEdge.get(a < b ? `${a},${b}` : `${b},${a}`)!;
+        if (list.length !== 2) return; // a fold of three or more: no way to agree
+        const j = list[0] === part[q] ? list[1]! : list[0]!;
+        if (seen[j]) return;
+        seen[j] = 1;
+        if (runs(pieces[j]!, a, b)) flip(pieces[j]!);
+        part.push(j);
+      });
+    }
+    if (!outward) continue;
+    let vol = 0;
+    for (const i of part) {
+      const l = pieces[i]!.loop.map((v) => points[v]!);
+      for (let k = 1; k + 1 < l.length; k++) {
+        const [p, q, r] = [l[0]!, l[k]!, l[k + 1]!];
+        vol += p[0] * (q[1] * r[2] - q[2] * r[1]) - p[1] * (q[0] * r[2] - q[2] * r[0]) + p[2] * (q[0] * r[1] - q[1] * r[0]); // prettier-ignore
+      }
+    }
+    if (vol < 0) for (const i of part) flip(pieces[i]!);
+  }
 }
 
 /** How many holes an import closed, by object (shown when it comes in). */
@@ -333,6 +389,7 @@ export function polygonize(soup: Soup): CutObject | null {
     pieces.push({ loop, face: soup.faces?.[i], n, d, color: soup.colors?.[i] ?? null });
   });
   if (pieces.length === 0) return null;
+  orient(pieces, points, soup.unordered ?? false);
 
   // Coplanar neighbours across an edge only they share join one group.
   const byEdge = new Map<string, number[]>();

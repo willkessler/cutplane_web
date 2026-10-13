@@ -803,7 +803,9 @@ function notify(text: string, error = false): void {
  */
 async function openFiles(files: File[]): Promise<void> {
   const cut = files.find((f) => kindOf(f.name) === 'cut');
-  const meshes = files.filter((f) => ['obj', 'stl', 'glb', 'gltf'].includes(kindOf(f.name)));
+  const meshes = files.filter((f) =>
+    ['obj', 'stl', 'glb', 'gltf', 'iv', 'dxf'].includes(kindOf(f.name)),
+  );
   if (!cut && meshes.length === 0) {
     if (files.length) notify(`Cutplane can't open ${files.map((f) => f.name).join(', ')}`, true);
     return;

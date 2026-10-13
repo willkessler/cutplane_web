@@ -15,3 +15,5 @@ export { readStl, writeStl } from './mesh/stl.ts';
 export { readGltf, writeGlb, UNITS_PER_METRE } from './mesh/gltf.ts';
 export type { DecodeImage, Pixels } from './mesh/gltf.ts';
 export { fitToRoom, roomBox } from './mesh/fit.ts';
+export { readDxf, aciColor } from './mesh/dxf.ts';
+export { readInventor } from './mesh/inventor.ts';

@@ -243,3 +243,21 @@ test('a model of open, textured parts comes in as one group of solids, coloured 
   await expect.poll(() => page.evaluate(() => window.__cutplane!.palette())).toEqual(expect.arrayContaining(['0,0,255', '255,0,0'])); // prettier-ignore
   expect(errors).toEqual([]);
 });
+
+test('Inventor, VRML and DXF files open too', async ({ page }) => {
+  const errors = await open(page, 'sample=cube');
+  const files = [
+    { name: 'blocks.iv', text: '#Inventor V2.1 ascii\nSeparator { Material { diffuseColor 1 0 0 } Cube { } Translation { translation 3 0 0 } Sphere { } }' }, // prettier-ignore
+    { name: 'box.wrl', text: '#VRML V2.0 utf8\nShape { appearance Appearance { material Material { diffuseColor 0 0 1 } } geometry Box { size 2 2 2 } }' }, // prettier-ignore
+    { name: 'face.dxf', text: ['0', 'SECTION', '2', 'ENTITIES', '0', '3DFACE', '8', 'A', '62', '3', '10', '0', '20', '0', '30', '0', '11', '1', '21', '0', '31', '0', '12', '1', '22', '1', '32', '0', '13', '0', '23', '1', '33', '0', '0', 'ENDSEC', '0', 'EOF'].join('\n') }, // prettier-ignore
+  ];
+  for (const [i, f] of files.entries()) {
+    await page
+      .locator('#file')
+      .setInputFiles({ name: f.name, mimeType: 'text/plain', buffer: Buffer.from(f.text) });
+    await expect(page.locator('#notice')).toContainText(`from ${f.name}`);
+    await expect.poll(async () => (await edit(page)).objects).toBe(2 + i);
+  }
+  await expect.poll(() => page.evaluate(() => window.__cutplane!.palette())).toEqual(expect.arrayContaining(['255,0,0', '0,0,255', '0,255,0'])); // prettier-ignore
+  expect(errors).toEqual([]);
+});

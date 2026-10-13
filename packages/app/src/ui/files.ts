@@ -2,7 +2,9 @@ import {
   fitToRoom,
   grouper,
   holesClosed,
+  readDxf,
   readGltf,
+  readInventor,
   readMtl,
   readObj,
   readStl,
@@ -14,19 +16,23 @@ import type { DecodeImage } from '@cutplane/formats';
 import { preorder, type CutObject, type Rgb } from '@cutplane/kernel';
 
 /** What a file is to Cutplane, by its extension. */
-export type FileKind = 'cut' | 'obj' | 'mtl' | 'stl' | 'glb' | 'gltf' | 'bin' | 'other';
+export type FileKind =
+  'cut' | 'obj' | 'mtl' | 'stl' | 'glb' | 'gltf' | 'bin' | 'iv' | 'dxf' | 'other';
 
 export function kindOf(name: string): FileKind {
   const ext = /\.([^.]+)$/.exec(name.toLowerCase())?.[1] ?? '';
   if (ext === 'cut' || ext === 'rsc' || ext === 'icon') return 'cut';
-  if (['obj', 'mtl', 'stl', 'glb', 'gltf', 'bin'].includes(ext)) return ext as FileKind;
+  if (['obj', 'mtl', 'stl', 'glb', 'gltf', 'bin', 'dxf'].includes(ext)) return ext as FileKind;
+  if (ext === 'iv' || ext === 'wrl' || ext === 'vrml') return 'iv';
   return 'other';
 }
 
 /** Files Open and drag and drop take. */
-export const ACCEPT = '.cut,.rsc,.icon,.obj,.mtl,.stl,.glb,.gltf,.bin';
+export const ACCEPT = '.cut,.rsc,.icon,.obj,.mtl,.stl,.glb,.gltf,.bin,.iv,.wrl,.vrml,.dxf';
 
 const bytes = async (f: File) => new Uint8Array(await f.arrayBuffer());
+/** Old text formats are 8-bit: latin1 maps every byte. */
+const latin1 = async (f: File) => new TextDecoder('latin1').decode(await f.arrayBuffer());
 
 /** A texture's pixels, decoded by the browser (models colour themselves with these). */
 const decodeImage: DecodeImage = async (data, mimeType) => {
@@ -72,6 +78,8 @@ export async function readMeshFiles(files: readonly File[]): Promise<Imported> {
     try {
       if (kind === 'obj') got = readObj(await f.text(), materials);
       else if (kind === 'stl') got = readStl(await bytes(f));
+      else if (kind === 'iv') got = readInventor(await latin1(f));
+      else if (kind === 'dxf') got = readDxf(await latin1(f));
       else if (kind === 'glb') got = await readGltf(await bytes(f), {}, decodeImage);
       else if (kind === 'gltf') {
         const text = await f.text();
