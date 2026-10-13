@@ -1,4 +1,12 @@
-import { Document, Logger, WebIO, type Material, type Node } from '@gltf-transform/core';
+import {
+  Document,
+  Logger,
+  WebIO,
+  type Material,
+  type Node,
+  type Primitive,
+  type Texture,
+} from '@gltf-transform/core';
 import { mat4, type CutObject, type Mat4, type Rgb } from '@cutplane/kernel';
 import { meshFaces, type V3 } from './faces.ts';
 import { nameOf } from './objects.ts';
@@ -128,15 +136,32 @@ function similarity(m: Mat4): number | null {
   return det > 0 ? s : null;
 }
 
+/** Pixels of a decoded image, RGBA, row by row from the top. */
+export interface Pixels {
+  width: number;
+  height: number;
+  data: ArrayLike<number>;
+}
+
+/** Decodes a texture's PNG or JPEG bytes (the browser's job: formats has no image codecs). */
+export type DecodeImage = (bytes: Uint8Array, mimeType: string) => Promise<Pixels | null>;
+
+/** Colours sampled from a photo-like texture are rounded to steps of this, so flat faces still join. */
+const COLOR_STEP = 8;
+const quantize = (c: number) => Math.min(255, Math.round(c / COLOR_STEP) * COLOR_STEP);
+
 /**
  * Reads glTF: a .glb, or .gltf JSON with its buffers (embedded, or in `resources`
  * by URI). Every node with a mesh becomes an object, under the nearest such node
  * above it; triangles in one plane come back as one face, and each material's
- * base colour is its faces' colour. Units come back as room units.
+ * base colour is its faces' colour: times its texture under each triangle, when
+ * `decodeImage` can read the texture, and times the vertices' colours. Units
+ * come back as room units.
  */
 export async function readGltf(
   data: Uint8Array | string,
   resources: Record<string, Uint8Array<ArrayBuffer>> = {},
+  decodeImage?: DecodeImage,
 ): Promise<CutObject[]> {
   const doc =
     typeof data === 'string'
@@ -145,10 +170,48 @@ export async function readGltf(
   const root = doc.getRoot();
   const scene = root.getDefaultScene() ?? root.listScenes()[0];
   if (!scene) return [];
-  const colorOf = (m: Material | null): Rgb | null => {
-    if (!m) return null;
-    const [r, g, b] = m.getBaseColorFactor();
-    return [toSrgb(r!), toSrgb(g!), toSrgb(b!)];
+  // Each base colour texture, decoded once.
+  const pixels = new Map<Texture, Pixels | null>();
+  if (decodeImage)
+    for (const m of root.listMaterials()) {
+      const t = m.getBaseColorTexture();
+      const img = t?.getImage();
+      if (!t || !img || pixels.has(t)) continue;
+      pixels.set(t, await decodeImage(img, t.getMimeType()).catch(() => null));
+    }
+  /** A triangle's colour: its material's, times the texel at its middle and its corners' colours (linear). */
+  const triangleColor = (prim: Primitive, corners: readonly number[]): Rgb | null => {
+    const m = prim.getMaterial();
+    const vc = prim.getAttribute('COLOR_0');
+    if (!m && !vc) return null;
+    const lin = m ? m.getBaseColorFactor().slice(0, 3) : [1, 1, 1];
+    const el: number[] = [];
+    if (vc) {
+      const avg = [0, 0, 0];
+      for (const i of corners) vc.getElement(i, el).slice(0, 3).forEach((c, k) => (avg[k]! += c / corners.length)); // prettier-ignore
+      for (let k = 0; k < 3; k++) lin[k]! *= avg[k]!;
+    }
+    const tex = m?.getBaseColorTexture();
+    const img = tex ? pixels.get(tex) : undefined;
+    const uv = img
+      ? prim.getAttribute(`TEXCOORD_${m!.getBaseColorTextureInfo()?.getTexCoord() ?? 0}`)
+      : null;
+    if (img && uv) {
+      let u = 0;
+      let v = 0;
+      for (const i of corners) {
+        const [a, b] = uv.getElement(i, el);
+        u += a! / corners.length;
+        v += b! / corners.length;
+      }
+      // Repeat wrapping; (0, 0) is the image's top left.
+      const x = Math.min(img.width - 1, Math.floor((u - Math.floor(u)) * img.width));
+      const y = Math.min(img.height - 1, Math.floor((v - Math.floor(v)) * img.height));
+      const o = (y * img.width + x) * 4;
+      for (let k = 0; k < 3; k++) lin[k]! *= toLinear(img.data[o + k]!);
+      return [quantize(toSrgb(lin[0]!)), quantize(toSrgb(lin[1]!)), quantize(toSrgb(lin[2]!))];
+    }
+    return [toSrgb(lin[0]!), toSrgb(lin[1]!), toSrgb(lin[2]!)];
   };
   const soupOf = (node: Node): Soup | null => {
     const mesh = node.getMesh();
@@ -190,11 +253,12 @@ export async function readGltf(
         soup.positions.push(place(pos.getElement(i, el) as V3));
       const idx = prim.getIndices();
       const n = idx ? idx.getCount() : pos.getCount();
-      const at = (i: number) => base + (idx ? idx.getScalar(i) : i);
+      const vertex = (i: number) => (idx ? idx.getScalar(i) : i);
+      const at = (i: number) => base + vertex(i);
       const tri = (a: number, b: number, c: number) => {
         soup.polygons.push(flip ? [at(a), at(c), at(b)] : [at(a), at(b), at(c)]);
-        soup.faces?.push(face!.getScalar(idx ? idx.getScalar(a) : a));
-        soup.colors!.push(colorOf(prim.getMaterial()));
+        soup.faces?.push(face!.getScalar(vertex(a)));
+        soup.colors!.push(triangleColor(prim, [vertex(a), vertex(b), vertex(c)]));
       };
       if (mode === 4) for (let i = 0; i + 2 < n; i += 3) tri(i, i + 1, i + 2);
       else if (mode === 5)

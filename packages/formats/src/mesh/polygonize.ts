@@ -8,7 +8,7 @@ import {
   type Rgb,
 } from '@cutplane/kernel';
 import { roomBox } from './fit.ts';
-import { flattener, newell, type V3 } from './faces.ts';
+import { flattener, newell, triangulate, type V3 } from './faces.ts';
 
 /**
  * A mesh as the formats hand it over: positions and polygons (often
@@ -161,11 +161,148 @@ function mergeGroup(pieces: readonly Piece[], points: readonly V3[]): number[][]
   return [outer[0]!, ...loops.filter((l) => l !== outer[0])];
 }
 
+/** How many holes an import closed, by object (shown when it comes in). */
+export const holesClosed = new WeakMap<CutObject, number>();
+
+type Face = { loops: number[][]; color: Rgb | null };
+
+/**
+ * Stitches T-junctions: where a corner of one face lies on the middle of an
+ * edge that has a face on one side only, the corner goes into that edge, so
+ * the two sides meet edge to edge instead of leaving a slit. Returns how many.
+ */
+function stitch(faces: Face[], points: readonly V3[], dist: number): number {
+  const sides = new Set<string>();
+  for (const f of faces)
+    for (const l of f.loops) l.forEach((a, k) => sides.add(`${a},${l[(k + 1) % l.length]}`));
+  const open: [number, number][] = [];
+  for (const e of sides) {
+    const [a, b] = e.split(',').map(Number) as [number, number];
+    if (!sides.has(`${b},${a}`)) open.push([a, b]);
+  }
+  const ends = [...new Set(open.flat())];
+  // Too many to compare pairwise: leave the slits.
+  if (open.length * ends.length > 4e7) return 0;
+  const on = new Map<string, number[]>();
+  let count = 0;
+  for (const [a, b] of open) {
+    const p = points[a]!;
+    const q = points[b]!;
+    const d = [q[0] - p[0], q[1] - p[1], q[2] - p[2]];
+    const len2 = d[0]! * d[0]! + d[1]! * d[1]! + d[2]! * d[2]!;
+    if (len2 === 0) continue;
+    const lo = [0, 1, 2].map((k) => Math.min(p[k]!, q[k]!) - dist);
+    const hi = [0, 1, 2].map((k) => Math.max(p[k]!, q[k]!) + dist);
+    const found: [number, number][] = [];
+    for (const v of ends) {
+      if (v === a || v === b) continue;
+      const r = points[v]!;
+      if (r[0] < lo[0]! || r[0] > hi[0]! || r[1] < lo[1]! || r[1] > hi[1]! || r[2] < lo[2]! || r[2] > hi[2]!) continue; // prettier-ignore
+      const t = ((r[0] - p[0]) * d[0]! + (r[1] - p[1]) * d[1]! + (r[2] - p[2]) * d[2]!) / len2;
+      if (t <= 0 || t >= 1) continue;
+      const off = Math.hypot(
+        p[0] + t * d[0]! - r[0],
+        p[1] + t * d[1]! - r[1],
+        p[2] + t * d[2]! - r[2],
+      );
+      if (off <= dist) found.push([t, v]);
+    }
+    if (found.length) {
+      on.set(
+        `${a},${b}`,
+        found.sort((x, y) => x[0] - y[0]).map(([, v]) => v),
+      );
+      count += found.length;
+    }
+  }
+  if (count === 0) return 0;
+  for (const f of faces)
+    f.loops = f.loops.map((l) =>
+      l.flatMap((a, k) => [a, ...(on.get(`${a},${l[(k + 1) % l.length]}`) ?? [])]),
+    );
+  return count;
+}
+
+/**
+ * Closes the holes in a mesh that isn't a solid (a car body made of open
+ * sheets, a wheel open on the inside): each run of edges with a face on one
+ * side only is chained into a loop, and the loop gets a face of its own, one
+ * polygon if it's flat, else its triangles. Cutplane picks an object from
+ * inside its section, which only closes round a solid. Returns how many.
+ */
+function closeHoles(faces: Face[], points: V3[], dist: number): number {
+  const sides = new Map<string, Rgb | null>();
+  for (const f of faces)
+    for (const l of f.loops)
+      l.forEach((a, k) => sides.set(`${a},${l[(k + 1) % l.length]}`, f.color));
+  // The cap runs each open edge the other way.
+  const out = new Map<number, number[]>();
+  const colorAt = new Map<string, Rgb | null>();
+  for (const [e, c] of sides) {
+    const [a, b] = e.split(',').map(Number) as [number, number];
+    if (sides.has(`${b},${a}`)) continue;
+    const list = out.get(b);
+    if (list) list.push(a);
+    else out.set(b, [a]);
+    colorAt.set(`${b},${a}`, c);
+  }
+  const loops: number[][] = [];
+  for (const start of [...out.keys()]) {
+    while (out.get(start)?.length) {
+      const loop = [start];
+      let v = out.get(start)!.pop()!;
+      let ok = true;
+      while (v !== start) {
+        const at = loop.indexOf(v);
+        if (at >= 0) loops.push(loop.splice(at)); // it pinches here: that part is a hole of its own
+        loop.push(v);
+        const next = out.get(v)?.pop();
+        if (next === undefined) {
+          ok = false;
+          break;
+        }
+        v = next;
+      }
+      if (ok) loops.push(loop);
+    }
+  }
+  let closed = 0;
+  for (const loop of loops) {
+    if (loop.length < 3) continue;
+    const pts = loop.map((i) => points[i]!);
+    const nn = newell(pts);
+    const len = Math.hypot(...nn);
+    if (len === 0) continue;
+    const n: V3 = [nn[0] / len, nn[1] / len, nn[2] / len];
+    const d = n[0] * pts[0]![0] + n[1] * pts[0]![1] + n[2] * pts[0]![2];
+    const color = colorAt.get(`${loop[0]},${loop[1]}`) ?? null;
+    const flat = pts.every((p) => Math.abs(n[0] * p[0] + n[1] * p[1] + n[2] * p[2] - d) <= dist);
+    if (flat) faces.push({ loops: [loop], color });
+    else {
+      // Its triangles, if it flattens without overlapping itself; else a fan from its middle.
+      const tris = triangulate([pts], n);
+      if (tris.length === loop.length - 2)
+        for (const t of tris) faces.push({ loops: [t.map((k) => loop[k]!)], color });
+      else {
+        const mid = points.length;
+        points.push(
+          [0, 1, 2].map((k) => pts.reduce((sum, p) => sum + p[k]!, 0) / pts.length) as V3,
+        );
+        loop.forEach((a, k) =>
+          faces.push({ loops: [[a, loop[(k + 1) % loop.length]!, mid]], color }),
+        );
+      }
+    }
+    closed++;
+  }
+  return closed;
+}
+
 /**
  * A mesh made into a solid the way Cutplane keeps them: equal positions welded
  * into shared vertices, and triangles that lie in one plane (and share a
- * colour) joined into one polygon face, holes and all. Each connected piece
- * becomes a shell.
+ * colour) joined into one polygon face, holes and all, and any holes in the
+ * surface closed. Each connected piece becomes a shell.
  * Null when nothing with area is left.
  */
 export function polygonize(soup: Soup): CutObject | null {
@@ -232,12 +369,14 @@ export function polygonize(soup: Soup): CutObject | null {
     if (list) list.push(p);
     else members.set(g, [p]);
   });
-  const faces: { loops: number[][]; color: Rgb | null }[] = [];
+  const faces: Face[] = [];
   for (const list of members.values()) {
     const merged = mergeGroup(list, points);
     if (merged) faces.push({ loops: merged, color: list[0]!.color });
     else for (const p of list) faces.push({ loops: [p.loop], color: p.color });
   }
+  stitch(faces, points, Math.max(dist * 10, span * 1e-5));
+  const holes = closeHoles(faces, points, dist);
 
   // Each connected piece is a shell.
   const shells = new Sets(points.length);
@@ -282,11 +421,13 @@ export function polygonize(soup: Soup): CutObject | null {
         brep.faceColors.set(built.faces[i]!, [...f.color]);
     });
   }
-  return createObject(brep, {
+  const o = createObject(brep, {
     name: soup.name,
     ...(main ? { color: [...main] } : {}),
     ...(soup.xform ? { xform: soup.xform } : {}),
   });
+  if (holes) holesClosed.set(o, holes);
+  return o;
 }
 
 /**

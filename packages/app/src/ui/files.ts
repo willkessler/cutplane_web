@@ -1,5 +1,7 @@
 import {
   fitToRoom,
+  grouper,
+  holesClosed,
   readGltf,
   readMtl,
   readObj,
@@ -8,7 +10,8 @@ import {
   writeObj,
   writeStl,
 } from '@cutplane/formats';
-import type { CutObject, Rgb } from '@cutplane/kernel';
+import type { DecodeImage } from '@cutplane/formats';
+import { preorder, type CutObject, type Rgb } from '@cutplane/kernel';
 
 /** What a file is to Cutplane, by its extension. */
 export type FileKind = 'cut' | 'obj' | 'mtl' | 'stl' | 'glb' | 'gltf' | 'bin' | 'other';
@@ -25,12 +28,31 @@ export const ACCEPT = '.cut,.rsc,.icon,.obj,.mtl,.stl,.glb,.gltf,.bin';
 
 const bytes = async (f: File) => new Uint8Array(await f.arrayBuffer());
 
+/** A texture's pixels, decoded by the browser (models colour themselves with these). */
+const decodeImage: DecodeImage = async (data, mimeType) => {
+  const bitmap = await createImageBitmap(
+    new Blob([data as Uint8Array<ArrayBuffer>], { type: mimeType }),
+  );
+  const { width, height } = bitmap;
+  const canvas =
+    typeof OffscreenCanvas !== 'undefined'
+      ? new OffscreenCanvas(width, height)
+      : Object.assign(document.createElement('canvas'), { width, height });
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null; // prettier-ignore
+  if (!ctx) return null;
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  return { width, height, data: ctx.getImageData(0, 0, width, height).data };
+};
+
 /** What reading mesh files gives: the objects, already fitted into the room. */
 export interface Imported {
   objects: CutObject[];
   /** The files they came from, and the scale they were fitted with. */
   names: string[];
   scale: number;
+  /** Holes closed to make solids of surfaces that weren't. */
+  holes: number;
 }
 
 /**
@@ -50,13 +72,15 @@ export async function readMeshFiles(files: readonly File[]): Promise<Imported> {
     try {
       if (kind === 'obj') got = readObj(await f.text(), materials);
       else if (kind === 'stl') got = readStl(await bytes(f));
-      else if (kind === 'glb') got = await readGltf(await bytes(f));
+      else if (kind === 'glb') got = await readGltf(await bytes(f), {}, decodeImage);
       else if (kind === 'gltf') {
         const text = await f.text();
-        // Buffers in separate files come along if they were dropped too.
-        const uris: string[] = (
-          (JSON.parse(text) as { buffers?: { uri?: string }[] }).buffers ?? []
-        )
+        // Buffers and textures in separate files come along if they were dropped too.
+        const json = JSON.parse(text) as {
+          buffers?: { uri?: string }[];
+          images?: { uri?: string }[];
+        };
+        const uris = [...(json.buffers ?? []), ...(json.images ?? [])]
           .map((b) => b.uri ?? '')
           .filter((u) => u && !u.startsWith('data:'));
         const resources: Record<string, Uint8Array<ArrayBuffer>> = {};
@@ -65,7 +89,7 @@ export async function readMeshFiles(files: readonly File[]): Promise<Imported> {
           if (!r) throw new Error(`it needs ${u} as well: drop them together`);
           resources[u] = (await bytes(r)) as Uint8Array<ArrayBuffer>;
         }
-        got = await readGltf(text, resources);
+        got = await readGltf(text, resources, decodeImage);
       } else continue;
     } catch (err) {
       throw new Error(`${f.name}: ${(err as Error).message}`, { cause: err });
@@ -73,10 +97,13 @@ export async function readMeshFiles(files: readonly File[]): Promise<Imported> {
     if (got.length === 0) throw new Error(`${f.name}: nothing in it with faces`);
     const title = f.name.replace(/\.[^.]+$/, '');
     for (const o of got) o.name ??= title;
-    objects.push(...got);
+    // A file's parts (a car's body, glass and wheels) come in as one group, named after it.
+    objects.push(...(got.length > 1 ? [grouper(title, got)] : got));
     names.push(f.name);
   }
-  return { objects, names, scale: objects.length ? fitToRoom(objects) : 1 };
+  let holes = 0;
+  for (const o of preorder(objects)) holes += holesClosed.get(o) ?? 0;
+  return { objects, names, scale: objects.length ? fitToRoom(objects) : 1, holes };
 }
 
 export type ExportFormat = 'glb' | 'obj' | 'stl';

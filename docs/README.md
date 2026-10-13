@@ -269,7 +269,19 @@ covers the room while you work).
   - **OBJ, STL and glTF** models (`.obj`, `.stl`, `.glb`, `.gltf`) are **added** to the world, as
     one step that undo takes back out. Drop an OBJ's `.mtl`, or a `.gltf`'s `.bin`, along with it.
   - Triangles that lie in one plane come back as one face, holes and all, so an imported box
-    has six faces to grab, not twelve triangles. Colours come from the materials.
+    has six faces to grab, not twelve triangles.
+  - **Colours** come from the materials: their colour, times the texture under each triangle
+    (most Poly Pizza and Sketchfab models colour themselves with a texture), times any vertex
+    colours. A texture's colours are rounded a little so flat faces still join.
+  - **Surfaces are made solids.** Many models aren't solids: a car's glass is single sheets and
+    its wheels are open on the inside. Cutplane picks a whole object from inside its section,
+    which only closes round a solid, so on the way in, slits where one triangle's corner sits on
+    another's edge are stitched shut, and every hole left gets a face of its own (one polygon if
+    it's flat, else triangles). A lone sheet becomes a thin solid. The status line says how many
+    holes were closed. Where three pieces meet at one edge, it can't be closed, and the section
+    there stays open.
+  - **One file, one group.** A file with several parts (a car's body, glass and wheels) comes in
+    as a group named after the file, so it moves as one. **G** ungroups it.
   - A room unit is a millimetre. A model that doesn't fit the room (a building) or is too small
     to see (one in metres) is scaled to fill most of it and set in the middle; the status line
     says by how much. One that fits stays where it is.
@@ -282,11 +294,12 @@ covers the room while you work).
   - **Wavefront OBJ**: an `o` per object, polygon faces (a face with a hole goes as triangles),
     colours named `color_rrggbb`, which Cutplane reads back without an `.mtl`.
   - **STL** (binary): every triangle, for printing.
-- **Autosave.** Every change (an undo too) is kept in this browser a moment later. Reload, close
-  the tab or crash, and the next visit opens the world as you left it. The model menu's
-  _Unsaved changes_ entry brings it back as well; choosing a model from the menu starts that
-  model afresh. There's one autosave: changes to another model replace it, so **Save** anything
-  you want to keep.
+- **Autosave.** Every change (an undo too) is kept in this browser a moment later, **with the
+  undo history**. Reload, close the tab or crash, and the next visit opens the world as you left
+  it, and undo and redo carry on from there (the last 200 steps). The model menu's _Unsaved
+  changes_ entry brings it back as well; choosing a model from the menu starts that model
+  afresh. There's one autosave: changes to another model replace it, so **Save** anything you
+  want to keep. (A saved `.cut` file holds the world, not its history.)
 
 ### Work mode
 
@@ -458,17 +471,35 @@ older versions of the format are normalised to the latest one on save.
   - **Faces through glTF:** each vertex carries `_FACE`, its face's number (glTF allows
     application attributes with a leading underscore). Reading a Cutplane GLB joins triangles by
     it rather than by plane, so the 1991 models' slightly bent faces come back whole.
+  - **Not solids:** `stitch` puts each boundary vertex that lies on an open edge (within 10⁻⁵
+    of the model's size) into that edge; `closeHoles` chains the open edges left into loops,
+    pinches split off, and caps each: one face if flat, earcut's triangles if it flattens
+    without overlapping itself, else a fan from a new point at its middle. `holesClosed` counts
+    them per object.
+  - **Texture colours:** `readGltf` takes a `decodeImage` (the app's uses `createImageBitmap`
+    and a canvas; formats has no codecs) and samples the base colour texture at each triangle's
+    middle UV, with repeat wrapping, in linear light, rounded to steps of 8.
   - **`fitToRoom`** scales and centres imports that don't fit or are tiny, then snaps vertices to
     the 1/256 grid, as every committed vertex is.
-- **The app:** `ui/files.ts` sorts files by extension, reads models and exports. `Runtime.addObjects`
-  makes an import one undoable step. The journal counts edits (`edits`); the app autosaves
-  800 ms after it changes, and at once when the page is hidden.
+- **The app:** `ui/files.ts` sorts files by extension, reads models (a file of several parts
+  under a grouper) and exports. `Runtime.addObjects` makes an import one undoable step. The
+  journal counts edits (`edits`); the app autosaves 800 ms after it changes, and at once when the
+  page is hidden.
+- **Undo history in the autosave** (`behaviors/src/history.ts`): objects are numbered (the
+  root, the world's objects in .cut order, then "ghosts" the history still holds, deleted ones),
+  each snapshot is a one-object .cut text (written once and cached), and tree snapshots are
+  number triples. The world and history go in IndexedDB (`ui/idb.ts`); localStorage keeps the
+  menu's title and time, and the world alone if IndexedDB can't be had. A history that doesn't
+  fit the world it's loaded with is dropped whole.
 - **Tests:** `formats/test/mesh.test.ts` round-trips a cube, a holed face and five samples
   through each format. It checks points (within the grid), volume (within 10⁻⁴), face counts
   (the same through glTF, never more through OBJ except holed bent faces), colours and nesting.
-  It reads glTF turned, scaled and sheared by other tools, and runs the Khronos validator on a
-  GLB. `e2e/files.spec.ts` drops an STL, exports and re-opens a GLB, downloads OBJ and STL,
-  reloads into an autosave, and refuses a broken file.
+  It reads glTF turned, scaled and sheared by other tools, runs the Khronos validator on a
+  GLB, closes a lidless box and a sheet, stitches T-junctions, and colours triangles from a
+  texture. `behaviors/test/history.test.ts` saves an edited world's history, loads it into a
+  fresh runtime, and checks every undo and redo gives the same world. `e2e/files.spec.ts` drops an STL, exports and re-opens a GLB, downloads OBJ and STL,
+  reloads into an autosave and undoes and redoes there, imports open textured parts as a
+  coloured group, and refuses a broken file.
 - **Blender:** the Discovery, stapler and floor fan GLBs open in Blender 4.3.2 (headless, in
   Docker). The Discovery is 34 meshes under 3 group empties, with 6 materials.
 

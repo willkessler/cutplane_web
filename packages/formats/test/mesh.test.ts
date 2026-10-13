@@ -14,6 +14,7 @@ import {
 } from '@cutplane/kernel';
 import {
   fitToRoom,
+  holesClosed,
   meshFaces,
   readCut,
   readGltf,
@@ -149,7 +150,7 @@ describe('STL', () => {
     samePoints(roomPoints([back!]), roomPoints([cube()]));
   });
 
-  it.each(['discovery.cut', 'staple.cut', 'robot.cut'])(
+  it.each(['discovery.cut', 'staple.cut', 'chair.cut'])(
     '%s round-trips (float32 positions)',
     (name) => {
       const roots = sample(name);
@@ -259,6 +260,87 @@ describe('glTF', () => {
       [0, 300, 0],
       [100, 0, 0],
     ]);
+  });
+});
+
+describe('meshes that are not solids', () => {
+  const V = [
+    'v 0 0 0',
+    'v 1 0 0',
+    'v 1 1 0',
+    'v 0 1 0',
+    'v 0 0 1',
+    'v 1 0 1',
+    'v 1 1 1',
+    'v 0 1 1',
+  ];
+  const SIDES = ['f 1 2 6 5', 'f 1 4 3 2', 'f 5 6 7 8', 'f 1 5 8 4', 'f 2 3 7 6'];
+
+  it('a box with no lid has its hole closed: a solid again', () => {
+    const [o] = readObj([...V, ...SIDES].join('\n'));
+    expect(holesClosed.get(o!)).toBe(1);
+    const r = validate(o!.brep);
+    expect(r.closedManifold).toBe(true);
+    expect(o!.brep.numFaces).toBe(6);
+    expect(volume(o!.brep)).toBeCloseTo(1);
+  });
+
+  it('a lid in two halves whose middle corners sit on the sides (T-junctions) is stitched shut', () => {
+    const lid = ['v 0.5 1 0', 'v 0.5 1 1', 'f 4 8 10 9', 'f 9 10 7 3'];
+    const [o] = readObj([...V, ...SIDES, ...lid].join('\n'));
+    expect(holesClosed.get(o!)).toBeUndefined();
+    expect(validate(o!.brep).closedManifold).toBe(true);
+    expect(volume(o!.brep)).toBeCloseTo(1);
+  });
+
+  it('a single sheet becomes a thin solid; a bent one is closed with triangles', () => {
+    const [flat] = readObj(
+      ['v 0 0 0', 'v 10 0 0', 'v 10 10 0', 'v 0 10 0', 'f 1 2 3 4'].join('\n'),
+    );
+    expect(validate(flat!.brep).closedManifold).toBe(true);
+    expect(flat!.brep.numFaces).toBe(2);
+    // A strip folded along its middle: its outline isn't flat.
+    const bent = [
+      'v 0 0 0',
+      'v 10 0 0',
+      'v 10 10 5',
+      'v 0 10 5',
+      'v 10 20 0',
+      'v 0 20 0',
+      'f 1 2 3 4',
+      'f 4 3 5 6',
+    ];
+    const [o] = readObj(bent.join('\n'));
+    expect(validate(o!.brep).closedManifold).toBe(true);
+    expect(o!.brep.numFaces).toBeGreaterThan(2);
+  });
+});
+
+describe('glTF colours from textures', () => {
+  it('each triangle takes the texel under its middle, times the material colour', async () => {
+    const doc = new Document();
+    const buf = doc.createBuffer();
+    // Two triangles side by side, the left one on the texture's left half, the right on its right.
+    const pos = [0, 0, 0, 0.1, 0, 0, 0, 0.1, 0, 0.1, 0, 0, 0.2, 0, 0, 0.1, 0.1, 0];
+    const uv = [0.1, 0.5, 0.2, 0.5, 0.1, 0.4, 0.8, 0.5, 0.9, 0.5, 0.8, 0.4];
+    const acc = (type: 'VEC2' | 'VEC3', a: number[]) => doc.createAccessor().setType(type).setBuffer(buf).setArray(new Float32Array(a)); // prettier-ignore
+    const tex = doc
+      .createTexture('palette')
+      .setImage(new Uint8Array([1, 2, 3]))
+      .setMimeType('image/png');
+    const mat = doc.createMaterial('m').setBaseColorTexture(tex).setBaseColorFactor([1, 1, 1, 1]);
+    const prim = doc.createPrimitive().setAttribute('POSITION', acc('VEC3', pos)).setAttribute('TEXCOORD_0', acc('VEC2', uv)).setMaterial(mat); // prettier-ignore
+    doc.createScene().addChild(doc.createNode('two').setMesh(doc.createMesh().addPrimitive(prim)));
+    const glb = await new WebIO().writeBinary(doc);
+    // A 2 × 1 image: red, then blue (the decoder is the browser's; here, a stand-in).
+    const decode = async () => ({ width: 2, height: 1, data: [255, 0, 0, 255, 0, 0, 255, 255] });
+    const [o] = await readGltf(glb, {}, decode);
+    const colors = o!.brep.faces().map((f) => o!.brep.faceColors.get(f) ?? o!.color);
+    // (Each triangle is a sheet, closed into a thin solid: two faces each.)
+    expect([...new Set(colors.map((c) => c.join(',')))].sort()).toEqual(['0,0,255', '255,0,0']);
+    // Without a decoder, the material's own colour.
+    const [plain] = await readGltf(glb);
+    expect(plain!.color).toEqual([255, 255, 255]);
   });
 });
 

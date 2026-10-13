@@ -18,7 +18,11 @@ import {
   installToolbars,
   isPad,
   isObject,
+  historyOrder,
+  loadHistory,
+  saveHistory,
   scaleBoxes as scaleBoxesIn,
+  type SavedHistory,
   type V3,
 } from '@cutplane/behaviors';
 import { DEMO_SECONDS, demoPose } from './demo.ts';
@@ -48,6 +52,7 @@ import { SectionLines } from './render/sectionlines.ts';
 import { createCamera, deeperOnScreen, fitFov, orbitCamera, unitsPerPixel } from './scene.ts';
 import { CLASSIC, rgb } from './viewer/palette.ts';
 import { CodePanel } from './ui/codepanel.ts';
+import { idbGet, idbSet } from './ui/idb.ts';
 import {
   ACCEPT,
   EXPORTS,
@@ -354,9 +359,13 @@ async function loadModel(src: string): Promise<void> {
   let doc: CutDocument;
   if (src === NEW_CUBE) doc = newCube();
   else if (src === AUTOSAVE) {
-    const a = autosaved();
+    const a = await autosavedWorld();
     if (!a) throw new Error('nothing autosaved');
     doc = readCut(a.text).doc;
+    loadDocument(doc);
+    // Undo carries on where the last session left off.
+    if (a.history) loadHistory(rt.journal, a.history, rt.primary.root, historyOrder(doc.roots));
+    return;
   } else if (src.startsWith(SAVED)) {
     const text = stored(`world.${src.slice(SAVED.length)}`);
     if (text === null) throw new Error(`${src}: not kept in this browser`);
@@ -813,8 +822,14 @@ async function openFiles(files: File[]): Promise<void> {
     const n = got.objects.length;
     const scaled =
       got.scale === 1 ? '' : `, scaled ×${Number(got.scale.toPrecision(3))} to fit the room`;
+    const holes = got.holes ? `, ${got.holes} hole${got.holes === 1 ? '' : 's'} closed to make solids` : ''; // prettier-ignore
+    const one = got.objects[0]!;
+    const what =
+      n === 1 && one.attrs.props.includes('Grouper')
+        ? `a group of ${one.children.length}` // G ungroups it
+        : `${n} object${n === 1 ? '' : 's'}`;
     notify(
-      `Added ${n} object${n === 1 ? '' : 's'} from ${got.names.join(', ')}${scaled} (undo takes ${n === 1 ? 'it' : 'them'} out)`,
+      `Added ${what} from ${got.names.join(', ')}${scaled}${holes} (undo takes ${n === 1 ? 'it' : 'them'} out)`,
     );
   } catch (err) {
     console.warn(err);
@@ -865,21 +880,30 @@ exportSelect.addEventListener('change', async () => {
 
 // ---- autosave ----
 /**
- * Every edit (and undo and redo) is kept in this browser a moment later, so
- * closing the tab or a crash loses nothing: the model menu's "Unsaved changes"
- * brings it back, and the next visit opens it.
+ * Every edit (and undo and redo) is kept in this browser a moment later, with
+ * the undo history, so closing the tab or a crash loses nothing: the next
+ * visit opens it where it was left, and undo carries on from there. The model
+ * menu's "Unsaved changes" brings it back too. The world and its history go in
+ * IndexedDB; localStorage holds what the menu shows (and the world alone, if
+ * IndexedDB can't be had).
  */
 const AUTOSAVE = 'autosave:';
 const AUTOSAVE_DELAY = 800;
 interface Autosave {
   title: string;
-  text: string;
   at: number;
+  /** The world, when it couldn't go in IndexedDB. */
+  text?: string;
+}
+interface AutosaveRecord {
+  at: number;
+  text: string;
+  history: SavedHistory;
 }
 function autosaved(): Autosave | null {
   try {
     const a = JSON.parse(stored('autosave') ?? 'null') as Autosave | null;
-    return a && typeof a.text === 'string' ? a : null;
+    return a && typeof a.at === 'number' ? a : null;
   } catch {
     return null;
   }
@@ -897,11 +921,27 @@ function listAutosave(): void {
 function autosave(): void {
   autosaveAt = 0;
   const value = modelSelect.value;
-  store('autosave', JSON.stringify({ title: worldTitle(), text: worldText(), at: Date.now() }));
+  const title = worldTitle();
+  const roots = rt.documentRoots();
+  const text = writeCut({ title, contains: 'World', name: null, roots });
+  const history = saveHistory(rt.journal, rt.primary.root, historyOrder(roots));
+  const at = Date.now();
+  const record: AutosaveRecord = { at, text, history };
+  void idbSet('autosave', record).then((ok) => {
+    store('autosave', JSON.stringify(ok ? { title, at } : { title, at, text }));
+    listAutosave();
+  });
   // The next visit opens it, whatever the menu says now.
   store('model', AUTOSAVE);
-  listAutosave();
   modelSelect.value = value;
+}
+/** The autosaved world and, if it was kept, its undo history. */
+async function autosavedWorld(): Promise<{ text: string; history: SavedHistory | null } | null> {
+  const a = autosaved();
+  if (!a) return null;
+  const r = await idbGet<AutosaveRecord>('autosave');
+  if (r && r.at === a.at) return { text: r.text, history: r.history };
+  return a.text !== undefined ? { text: a.text, history: null } : null;
 }
 /** Called every frame: an edit since the last autosave is kept once things settle. */
 function autosaveTick(): void {
@@ -950,6 +990,8 @@ declare global {
       locate(what: string): unknown;
       scribble(): { segments: number; start: number[] };
       saveText(): string;
+      /** Every colour a drawn face has, as "r,g,b". */
+      palette(): string[];
       openText(text: string): void;
       undo(): void;
       redo(): void;
@@ -1059,6 +1101,13 @@ async function start(): Promise<void> {
     },
     color: () => colorState(rt, colorControl),
     saveText: () => worldText(),
+    palette() {
+      const out = new Set<string>();
+      for (const m of models.models)
+        for (const f of m.object.brep.faces())
+          out.add((m.object.brep.faceColors.get(f) ?? m.object.color).join(','));
+      return [...out].sort();
+    },
     openText(text) {
       loadDocument(readCut(text).doc);
       settle();

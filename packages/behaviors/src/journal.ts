@@ -206,6 +206,18 @@ export class Journal {
     return s;
   }
 
+  /** The steps that undo and redo would take, oldest first (autosave keeps them). */
+  stacks(): { undo: readonly Step[]; redo: readonly Step[] } {
+    return { undo: this.undoStack, redo: this.redoStack };
+  }
+
+  /** Puts back steps a previous session kept: undo and redo carry on from there. */
+  setStacks(undo: readonly Step[], redo: readonly Step[]): void {
+    this.undoStack.splice(0, Infinity, ...undo);
+    this.redoStack.splice(0, Infinity, ...redo);
+    this.open = null;
+  }
+
   clear(): void {
     this.undoStack.length = 0;
     this.redoStack.length = 0;
