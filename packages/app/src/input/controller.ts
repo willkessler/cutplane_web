@@ -191,6 +191,7 @@ export class Controller {
       case 'redo':
       case 'duplicate':
       case 'delete':
+      case 'selectAll':
       case 'rotateTool':
         break; // handled by the app
     }

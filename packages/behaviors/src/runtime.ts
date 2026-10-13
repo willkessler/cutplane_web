@@ -687,11 +687,14 @@ export class Runtime implements Host {
     if (!isObject(obj)) return [];
     const b = obj.brep;
     const out: Sub[] = [];
+    const verts = b.verticesByShell();
+    const faces = b.facesByShell();
+    const edges = new Map(b.shells().map((s) => [s, [] as number[]]));
+    for (const e of b.edges()) edges.get(b.vertexShell(b.edgeVertices(e)[0]))?.push(e);
     for (const s of b.shells()) {
-      for (const v of b.vertices(s)) out.push(this.features.vertex(obj, v));
-      for (const e of b.edges())
-        if (b.vertexShell(b.edgeVertices(e)[0]) === s) out.push(this.features.edge(obj, e));
-      for (const f of b.faces(s)) out.push(this.features.face(obj, f));
+      for (const v of verts.get(s)!) out.push(this.features.vertex(obj, v));
+      for (const e of edges.get(s)!) out.push(this.features.edge(obj, e));
+      for (const f of faces.get(s)!) out.push(this.features.face(obj, f));
     }
     return out;
   }

@@ -194,3 +194,26 @@ describe('vertex bookkeeping', () => {
     }
   });
 });
+
+describe('fingerprint', () => {
+  it('is the same for a copy, and changes with any position, wiring, colour or property', () => {
+    const b = createCube(10, 10, 10);
+    const fp = b.fingerprint();
+    expect(b.clone().fingerprint()).toBe(fp);
+    expect(createCube(10, 10, 10).fingerprint()).toBe(fp);
+    const moved = b.clone();
+    const v = moved.vertices()[3]!;
+    moved.setVertexPos(v, moved.vx(v), moved.vy(v), moved.vz(v) + 1 / 256);
+    expect(moved.fingerprint()).not.toBe(fp);
+    const colored = b.clone();
+    colored.faceColors.set(colored.faces()[0]!, [1, 2, 3]);
+    expect(colored.fingerprint()).not.toBe(fp);
+    const marked = b.clone();
+    marked.faceAttrs.set(marked.faces()[0]!, { props: ['Visible'] });
+    expect(marked.fingerprint()).not.toBe(fp);
+    const split = b.clone();
+    const [h] = split.loopHalfEdges(split.faceLoops(split.faces()[0]!)[0]!);
+    mef(split, h!, split.heNext(split.heNext(h!)));
+    expect(split.fingerprint()).not.toBe(fp);
+  });
+});

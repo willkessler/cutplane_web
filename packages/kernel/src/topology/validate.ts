@@ -202,9 +202,11 @@ export function validate(b: Brep, opts: ValidateOptions = {}): ValidationReport 
         }
       if (worst > tol) warn('nonplanar-face', `face ${f}: off its plane by ${worst.toFixed(3)}`);
     }
+    const facesOf = b.facesByShell();
+    const vertsOf = b.verticesByShell();
     for (const s of b.shells()) {
-      const fs = b.faces(s);
-      const vs = b.vertices(s).filter((v) => b.vertexHe(v) !== NONE);
+      const fs = facesOf.get(s)!;
+      const vs = vertsOf.get(s)!.filter((v) => b.vertexHe(v) !== NONE);
       const es = new Set<number>();
       let loops = 0;
       for (const f of fs)

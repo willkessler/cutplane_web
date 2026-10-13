@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { computeSection, type ObjectSection } from '@cutplane/kernel';
+import { computeSection, type ObjectSection, type WorldGeometry } from '@cutplane/kernel';
 import { CLASSIC } from '../viewer/palette.ts';
 import { Lines, group } from './lines.ts';
 import type { Model } from './models.ts';
@@ -80,6 +80,9 @@ export class SectionLines {
     );
   }
 
+  /** Each geometry's last section (a model only redrawn, not changed, keeps its geometry). */
+  private readonly cache = new WeakMap<WorldGeometry, { z: number; s: ObjectSection }>();
+
   /** Recomputes the section at `z`, styled for an eye at `eye` (room coordinates). */
   update(models: readonly Model[], z: number, eye: THREE.Vector3): void {
     const all: number[] = [];
@@ -98,7 +101,9 @@ export class SectionLines {
     this.version++;
     for (const m of models) {
       if (m.object.attrs.props.includes('Sectioninvisible')) continue;
-      const s = computeSection(m.world, z);
+      let c = this.cache.get(m.world);
+      if (c?.z !== z) this.cache.set(m.world, (c = { z, s: computeSection(m.world, z) }));
+      const s = c.s;
       this.sections.set(m, s);
       if (s.loops.length === 0 && s.inPlaneEdges.length === 0) continue;
       stats.objects++;

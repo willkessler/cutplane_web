@@ -77,6 +77,33 @@ class Pool {
   *ids(): IterableIterator<number> {
     for (let i = 0; i < this.count; i++) if (this.alive[i]) yield i;
   }
+
+  /** Mixes every live slot's values into the hash pair `h`. */
+  hash(h: Uint32Array): void {
+    for (let i = 0; i < this.count; i++) {
+      if (!this.alive[i]) continue;
+      mix(h, i);
+      for (const c of this.i32) mix(h, c[i]!);
+      for (const c of this.f64) {
+        F64[0] = c[i]!;
+        mix(h, U32[0]!);
+        mix(h, U32[1]!);
+      }
+    }
+    mix(h, this.count);
+  }
+}
+
+const F64 = new Float64Array(1);
+const U32 = new Uint32Array(F64.buffer);
+/** Two 32-bit FNV-1a style lanes, so a collision needs both to agree. */
+function mix(h: Uint32Array, x: number): void {
+  h[0] = Math.imul(h[0]! ^ x, 0x01000193);
+  h[1] = Math.imul(h[1]! ^ x, 0x85ebca6b) ^ (h[1]! >>> 13);
+}
+function mixText(h: Uint32Array, s: string): void {
+  for (let i = 0; i < s.length; i++) mix(h, s.charCodeAt(i));
+  mix(h, s.length);
 }
 
 // Column indexes.
@@ -157,6 +184,24 @@ export class Brep {
     return b;
   }
 
+  /**
+   * A hash of everything the B-rep holds: positions, wiring, colours, surfaces and
+   * feature attributes. Equal hashes mean (all but certainly) an unchanged B-rep, so
+   * whoever drew or wrote it can keep what they made.
+   */
+  fingerprint(): string {
+    const h = new Uint32Array([0x811c9dc5, 0x9747b28c]);
+    for (const p of [this.v, this.h, this.e, this.l, this.f, this.s]) p.hash(h);
+    for (const [k, c] of this.faceColors) for (const x of [k, ...c]) mix(h, x);
+    for (const [k, t] of this.faceSurface) for (const x of [k, t]) mix(h, x);
+    for (const [k, t] of this.surfaceSlack) mixText(h, `${k}:${t}`);
+    for (const m of [this.vertexAttrs, this.edgeAttrs, this.faceAttrs]) {
+      mix(h, m.size);
+      for (const [k, a] of m) mixText(h, `${k}:${JSON.stringify(a)}`);
+    }
+    return `${h[0]!.toString(36)}.${h[1]!.toString(36)}`;
+  }
+
   // ---- counts and iteration (always in ID order, which is file order) ----
 
   get numVertices(): number {
@@ -190,6 +235,18 @@ export class Brep {
   faces(shell = NONE): number[] {
     const out: number[] = [];
     for (const id of this.f.ids()) if (shell === NONE || this.faceShell(id) === shell) out.push(id);
+    return out;
+  }
+  /** Every shell's vertices in one pass (vertices(shell) for each shell is a pass each). */
+  verticesByShell(): Map<number, number[]> {
+    const out = new Map(this.shells().map((s) => [s, [] as number[]]));
+    for (const id of this.v.ids()) out.get(this.vertexShell(id))?.push(id);
+    return out;
+  }
+  /** Every shell's faces in one pass, in ID order. */
+  facesByShell(): Map<number, number[]> {
+    const out = new Map(this.shells().map((s) => [s, [] as number[]]));
+    for (const id of this.f.ids()) out.get(this.faceShell(id))?.push(id);
     return out;
   }
   edges(): number[] {

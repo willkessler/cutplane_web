@@ -1,7 +1,7 @@
 ** Start of file ./icons/arrange.icon **
 Contains:Branch
 Branch Name:Arrangehead
-	Total Number of Objects In Branch:1
+	Total Number of Objects In Branch:3
 
 
 	Object 0:
@@ -30,13 +30,125 @@ Shell 1:
  Number of Vertices:8
  VFE List:
 Vertex 1: 0.0 0.0 0.0
-Vertex 2: 50.0 0.0 0.0
-Vertex 3: 50.0 50.0 0.0
-Vertex 4: 0.0 50.0 0.0
-Vertex 5: 0.0 0.0 50.0
-Vertex 6: 50.0 0.0 50.0
-Vertex 7: 50.0 50.0 50.0
-Vertex 8: 0.0 50.0 50.0
+Vertex 2: 10.0 0.0 0.0
+Vertex 3: 10.0 16.0 0.0
+Vertex 4: 0.0 16.0 0.0
+Vertex 5: 0.0 0.0 10.0
+Vertex 6: 10.0 0.0 10.0
+Vertex 7: 10.0 16.0 10.0
+Vertex 8: 0.0 16.0 10.0
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):8 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):1 4 3 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):6 5 1 2 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):7 6 2 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):8 7 3 4 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):5 8 4 1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 1:
+Object Name:(none)
+ Object Transform:
+ [  1.000000  0.000000  0.000000  0.000000  ]
+ [  0.000000  1.000000  0.000000  0.000000  ]
+ [  0.000000  0.000000  1.000000  0.000000  ]
+ [  0.000000  0.000000  0.000000  1.000000  ]
+ Object Inverse Transform:
+ [  1.000000  0.000000  0.000000  0.000000  ]
+ [  0.000000  1.000000  0.000000  0.000000  ]
+ [  0.000000  0.000000  1.000000  0.000000  ]
+ [  0.000000  0.000000  0.000000  1.000000  ]
+Object Parent:1
+Object Color:255 255 255
+Object has 2 properties:
+Quickupdate
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1: 17.0 0.0 0.0
+Vertex 2: 27.0 0.0 0.0
+Vertex 3: 27.0 30.0 0.0
+Vertex 4: 17.0 30.0 0.0
+Vertex 5: 17.0 0.0 10.0
+Vertex 6: 27.0 0.0 10.0
+Vertex 7: 27.0 30.0 10.0
+Vertex 8: 17.0 30.0 10.0
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):8 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):1 4 3 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):6 5 1 2 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):7 6 2 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):8 7 3 4 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):5 8 4 1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 2:
+Object Name:(none)
+ Object Transform:
+ [  1.000000  0.000000  0.000000  0.000000  ]
+ [  0.000000  1.000000  0.000000  0.000000  ]
+ [  0.000000  0.000000  1.000000  0.000000  ]
+ [  0.000000  0.000000  0.000000  1.000000  ]
+ Object Inverse Transform:
+ [  1.000000  0.000000  0.000000  0.000000  ]
+ [  0.000000  1.000000  0.000000  0.000000  ]
+ [  0.000000  0.000000  1.000000  0.000000  ]
+ [  0.000000  0.000000  0.000000  1.000000  ]
+Object Parent:1
+Object Color:255 255 255
+Object has 2 properties:
+Quickupdate
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1: 34.0 0.0 0.0
+Vertex 2: 44.0 0.0 0.0
+Vertex 3: 44.0 44.0 0.0
+Vertex 4: 34.0 44.0 0.0
+Vertex 5: 34.0 0.0 10.0
+Vertex 6: 44.0 0.0 10.0
+Vertex 7: 44.0 44.0 10.0
+Vertex 8: 34.0 44.0 10.0
  Number of Faces:6
  FVE List:
 Face:1 (1 bounds)

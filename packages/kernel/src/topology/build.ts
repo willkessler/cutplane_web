@@ -99,10 +99,14 @@ export function buildShell(b: Brep, input: PolygonShell): BuiltShell {
 }
 
 /** Canonical edge order of a shell, as used for "Edge N" numbering in .cut files. */
-export function canonicalEdges(b: Brep, shell: number): number[] {
+export function canonicalEdges(
+  b: Brep,
+  shell: number,
+  faces: readonly number[] = b.faces(shell),
+): number[] {
   const seen = new Set<number>();
   const out: number[] = [];
-  for (const f of b.faces(shell))
+  for (const f of faces)
     for (const l of b.faceLoops(f))
       for (const h of b.loopHalfEdges(l)) {
         const e = b.heEdge(h);

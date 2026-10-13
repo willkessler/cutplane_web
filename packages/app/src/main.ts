@@ -731,6 +731,7 @@ window.addEventListener('keydown', (e) => {
   else if (c === 'panTool') controls.takeTool('Pantool');
   else if (c === 'pencilTool') controls.takeTool('Pencil');
   else if (c === 'delete') controls.delete();
+  else if (c === 'selectAll') controls.selectAll();
   else if (c === 'planeJump')
     controls.planeJump(); // cursor.cpl's Jumplane
   else control.command(c);

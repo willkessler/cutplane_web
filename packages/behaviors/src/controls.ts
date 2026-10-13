@@ -122,6 +122,16 @@ export class Controls {
     this.vm.encodeInstruction(' QMSG Prop:Picked*,Const:Noprioritymsg');
   }
 
+  /** ⌘A (new): cursor.cpl's marquee release, with the whole world as the marquee. */
+  selectAll(): void {
+    this.events = true;
+    this.vm.encodeInstruction(' MAKEMSG Msg:Unpick');
+    this.vm.encodeInstruction(' QMSG Prop:Picked*,Const:Noprioritymsg');
+    this.vm.encodeInstruction(' ANCEST Prop:Visible*,A:R3');
+    this.vm.encodeInstruction(' MAKEMSG Msg:Pick');
+    this.vm.encodeInstruction(' QMSG A:R3*,Const:Noprioritymsg');
+  }
+
   duplicate(): void {
     this.events = true;
     const [x, y, z] = DUPLICATE_OFFSET;

@@ -170,6 +170,27 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     expect(cube.attrs.props).toContain('Visible');
   });
 
+  it('⌘A picks every object in the world; Backspace then clears it, in one undo', () => {
+    const { rt, cube, controls, frame } = world();
+    const other = createObject(createCube(50, 50, 50), {
+      name: 'Other',
+      xform: mat4.translation(200, 0, 0),
+    });
+    other.attrs.props = ['Visible'];
+    rt.importObjects(rt.primary, [other]);
+    controls.selectAll();
+    frame();
+    frame();
+    expect(new Set(rt.picked())).toEqual(new Set([cube, other]));
+    controls.delete();
+    frame();
+    frame();
+    expect(rt.primary.root.children.filter((o) => o === cube || o === other)).toEqual([]);
+    rt.undo();
+    expect(rt.primary.root.children).toContain(cube);
+    expect(rt.primary.root.children).toContain(other);
+  });
+
   it('D duplicates what is picked, (100, 100, 0) away, and picks the copy', () => {
     const { rt, cube, controls, frame, at } = world();
     at(0, 0, 0);

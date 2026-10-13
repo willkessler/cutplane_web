@@ -77,6 +77,7 @@ export type Command =
   | 'redo'
   | 'duplicate'
   | 'delete'
+  | 'selectAll'
   | 'rotateTool'
   | 'group'
   | 'slice'
@@ -89,6 +90,8 @@ export function commandFor(code: string, h: Held): Command | undefined {
   // Undo and redo are new (the original's U key did nothing): ⌘Z / ⇧⌘Z, or Ctrl on other systems.
   if ((h.meta || h.ctrl) && code === 'KeyZ') return h.shift ? 'redo' : 'undo';
   if (h.ctrl && code === 'KeyY') return 'redo';
+  // New: ⌘A / Ctrl+A picks everything in the world (then Delete clears it).
+  if ((h.meta || h.ctrl) && code === 'KeyA') return 'selectAll';
   if (h.meta || h.ctrl) return undefined; // leave the other ⌘/Ctrl combinations to the browser
   switch (code) {
     case 'Space':

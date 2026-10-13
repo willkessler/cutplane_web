@@ -163,9 +163,9 @@ export function computeSection(g: WorldGeometry, c: number): ObjectSection {
     return [g.x(p) + t * (g.x(q) - g.x(p)), g.y(p) + t * (g.y(q) - g.y(p)), c];
   };
 
-  for (const shell of b.shells()) {
+  for (const [shell, faces] of b.facesByShell()) {
     const segs: Seg[] = [];
-    for (const f of b.faces(shell)) {
+    for (const f of faces) {
       const loops = b.faceLoops(f);
       let allOn = true;
       for (const h of b.loopHalfEdges(loops[0]!))

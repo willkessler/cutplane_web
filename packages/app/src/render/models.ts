@@ -24,6 +24,24 @@ export interface Model {
   world: WorldGeometry;
   mesh?: THREE.Mesh | undefined;
   shadow?: THREE.Mesh | undefined;
+  /** What the meshes were built from: the shape's key and the placement. */
+  key?: string | undefined;
+  built?: ArrayLike<number> | undefined;
+}
+
+/**
+ * A key for what an object's meshes depend on besides its placement: its B-rep,
+ * colour and shadow. Far cheaper than triangulating again, so an object that was
+ * only told it changed (a pick, a release) is kept as drawn.
+ */
+export function shapeKey(o: CutObject): string {
+  return `${o.brep.fingerprint()}:${o.color.join()}:${o.attrs.props.includes('Noshadow')}`;
+}
+
+/** How far `now` moves things from `then`, if that is all it does (no turn, no scaling). */
+function shift(then: ArrayLike<number>, now: ArrayLike<number>): [number, number, number] | null {
+  for (const i of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 15]) if (then[i] !== now[i]) return null;
+  return [now[12]! - then[12]!, now[13]! - then[13]!, now[14]! - then[14]!];
 }
 
 /**
@@ -139,11 +157,26 @@ export class ModelView {
     });
   }
 
-  /** Rebuilds what's drawn for objects whose geometry or placement changed. */
+  /**
+   * Rebuilds what's drawn for objects whose geometry or placement changed. One only
+   * moved is shifted (its shading is fixed to the room, so it looks the same, unless
+   * the light bulb lights it); one that hasn't really changed is kept as it is.
+   */
   rebuild(objects: Iterable<CutObject>): void {
     const set = new Set(objects);
     for (const m of this.models) {
       if (!set.has(m.object)) continue;
+      const o = m.object;
+      if (m.mesh && m.built && m.world.brep === o.brep && m.key === shapeKey(o)) {
+        const d = shift(m.built, o.xform);
+        const still = d !== null && d[0] === 0 && d[1] === 0 && d[2] === 0;
+        if (d && (!this.light || still)) {
+          if (!still) m.world = new WorldGeometry(o.brep, o.xform);
+          m.mesh.position.set(...d);
+          m.shadow?.position.set(d[0], 0, d[2]); // a shadow lies on the floor
+          continue;
+        }
+      }
       this.drop(m);
       m.world = new WorldGeometry(m.object.brep, m.object.xform);
       this.build(m);
@@ -161,6 +194,8 @@ export class ModelView {
 
   private build(m: Model): void {
     const b = m.object.brep;
+    m.key = shapeKey(m.object);
+    m.built = [...m.object.xform];
     const pos: number[] = [];
     const col: number[] = [];
     triangulate(

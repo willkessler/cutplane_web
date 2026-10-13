@@ -91,21 +91,42 @@ function writeObject(w: (s: string) => void, o: CutObject, label: number, parent
     w(`Object CPL private code:${codeLines(o.attrs.privateSource)} lines\n`);
     writeCode(w, o.attrs.privateSource);
   }
-  const shells = o.brep.shells();
-  w(`\nNumber of Shells:${shells.length}\n`);
-  shells.forEach((s, i) => writeShell(w, o.brep, s, i + 1));
+  w(shellsText(o.brep));
 }
 
-function writeShell(w: (s: string) => void, b: Brep, shell: number, label: number): void {
+/** Each B-rep's shells as last written, kept while it is unchanged (autosave writes often). */
+const written = new WeakMap<Brep, { fingerprint: string; text: string }>();
+function shellsText(b: Brep): string {
+  const fingerprint = b.fingerprint();
+  const had = written.get(b);
+  if (had?.fingerprint === fingerprint) return had.text;
+  const out: string[] = [];
+  const w = (s: string) => out.push(s);
+  const shells = b.shells();
+  const verts = b.verticesByShell();
+  const faces = b.facesByShell();
+  w(`\nNumber of Shells:${shells.length}\n`);
+  shells.forEach((s, i) => writeShell(w, b, s, i + 1, verts.get(s)!, faces.get(s)!));
+  const text = out.join('');
+  written.set(b, { fingerprint, text });
+  return text;
+}
+
+function writeShell(
+  w: (s: string) => void,
+  b: Brep,
+  shell: number,
+  label: number,
+  verts: readonly number[],
+  faces: readonly number[],
+): void {
   w(`Shell ${label}:\n`);
-  const verts = b.vertices(shell);
   const vIndex = new Map(verts.map((v, i) => [v, i + 1]));
   w(` Number of Vertices:${verts.length}\n`);
   w(' VFE List:\n');
   verts.forEach((v, i) => {
     w(`Vertex ${i + 1}:${fmtCoord(b.vx(v))} ${fmtCoord(b.vy(v))} ${fmtCoord(b.vz(v))}\n`);
   });
-  const faces = b.faces(shell);
   w(` Number of Faces:${faces.length}\n`);
   w(' FVE List:\n');
   faces.forEach((f, i) => {
@@ -119,7 +140,7 @@ function writeShell(w: (s: string) => void, b: Brep, shell: number, label: numbe
     });
   });
 
-  const edges = canonicalEdges(b, shell);
+  const edges = canonicalEdges(b, shell, faces);
   const colored = faces.map((f, i) => [i + 1, b.faceColors.get(f)] as const).filter(([, c]) => c);
   w(`Faces with different colors:${colored.length}\n`);
   for (const [i, c] of colored) w(`\tFace ${i}:${c!.join(' ')}\n`);
