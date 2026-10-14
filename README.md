@@ -16,10 +16,14 @@ see their cross-sections. Vertices, edges and faces are picked and edited where 
 > yellow line is the live section), and a face of the command module is taken hold of through the
 > section, pulled out and pushed back home. The rotate tool rolls the lower ship and back. Then
 > the drill comes off its pad: pressed on the module it makes a red copy of it, and carried across
-> and let go, the copy takes a bite out of the module. Undo puts it back. All of this runs on the
+> and let go, the copy takes a bite out of the module. Undo puts it back. Last, the plane glides to
+> the toolboxes by the back wall, and a pyramid from the primitives box is carried out and set
+> down beside the ship. All of this runs on the
 > original CPL scripts in a CPL virtual machine; the cutting is done by manifold-3d and comes back
 > as the original's kind of polygon faces. The saw, pencil (in the plane or across a face), union
-> tool, magnet, grabber, pan tool, magnifier, group tool and the measure pad all work too, and a
+> tool, magnet, grabber, pan tool, magnifier, group tool and the measure pad all work too. The
+> camera opens a window on what it sees, and flies over the world through shots you place, into
+> a video if you like. A
 > **?** in the room shows the controls. Models in glTF, OBJ, STL, Open Inventor, VRML and DXF can
 > be dropped on the page, the world exports to glTF (it opens in Blender), OBJ and STL, and every
 > change is autosaved in the browser with its undo history.

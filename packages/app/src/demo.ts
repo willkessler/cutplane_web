@@ -11,7 +11,11 @@
  * its pad. Pressed on the module, it makes a red copy of it (the cutter);
  * carried across and let go over the module, the cutter takes a bite out
  * of it. A turn of the room shows the bite, undo puts the module back
- * whole, a click closes the rail, and a click on nothing lets go.
+ * whole, a click closes the rail, and the plane glides back to the
+ * toolboxes by the back wall. A click opens the primitives box; pressed on
+ * its pyramid, a copy comes out, picked, and is carried down and forward
+ * to stand beside the ship. Undo puts it back, and a click on nothing lets go.
+ * The room turns a little at a time, about both axes, and never far.
  */
 export interface Pose {
   x: number;
@@ -20,6 +24,8 @@ export interface Pose {
   depth: number;
   yaw: number;
   pitch: number;
+  /** 0 = the plane at `depth`; 1 = at the toolboxes by the back wall. */
+  back: number;
   /** The Pick button is held. */
   pressed: boolean;
   /** How many times R (rotate tool) has been pressed so far. */
@@ -42,6 +48,7 @@ const START: Pose = {
   x: 260,
   y: -170,
   depth: 0,
+  back: 0,
   yaw: 0,
   pitch: 12,
   pressed: false,
@@ -57,6 +64,11 @@ const HEADPAD = { x: -385, y: 320 };
 const PIVOT = { x: -110, y: -130 };
 /** The drill's pad, third on the toolpads' rail once it is open. */
 const DRILL = { x: -389, y: 34 };
+/** The primitives box by the back wall, and its pyramid once it is open (stacked last). */
+const PRIMS = { x: 170, y: -311 };
+const PYRAMID = { x: 170, y: 205 };
+/** Where the pyramid's copy is set down, clear of the ship. */
+const SET_DOWN = { x: 250, y: -150 };
 
 const SCRIPT: Step[] = [
   { seconds: 0.8 },
@@ -64,15 +76,21 @@ const SCRIPT: Step[] = [
   { seconds: 0.4 },
   { seconds: 2.4, to: { depth: 0.45 } }, // push the plane in
   { seconds: 0.6 },
-  { seconds: 2.2, to: { yaw: 24 } }, // turn the room to look along the cut
+  { seconds: 2.0, to: { yaw: 14 } }, // turn the room a little to look along the cut
   { seconds: 0.5 },
   { seconds: 2.0, to: { depth: 0.7 } }, // deeper
   { seconds: 0.6 },
-  { seconds: 3.2, to: { yaw: -24 } }, // and around the other way
+  { seconds: 2.0, to: { pitch: 26 } }, // tip the room toward you, to look down on it
+  { seconds: 0.5 },
+  { seconds: 2.6, to: { yaw: -14 } }, // and around the other way
   { seconds: 0.5 },
   { seconds: 2.0, to: { depth: 0.3 } }, // pull the plane back toward you
   { seconds: 0.6 },
-  { seconds: 2.0, to: { yaw: 0 } },
+  { seconds: 2.2, to: { pitch: 0 } }, // tip it back, to look straight along it
+  { seconds: 0.5 },
+  { seconds: 1.8, to: { yaw: 0 } },
+  { seconds: 0.4 },
+  { seconds: 1.4, to: { pitch: 12 } },
   { seconds: 0.4 },
   { seconds: 1.0, to: { depth: GRAB.depth } }, // set the plane through the sphere
   { seconds: 0.4 },
@@ -108,14 +126,36 @@ const SCRIPT: Step[] = [
   { seconds: 2.4, to: { x: PIVOT.x + 60 } }, // carry the cutter across the module
   { seconds: 0.6 },
   { seconds: 0.8, press: false }, // let go: it takes a bite out of the module (CPBOOLEAN)
-  { seconds: 2.2, to: { yaw: 32 } }, // turn the room to look at the bite
+  { seconds: 2.0, to: { yaw: 18 } }, // turn the room to look at the bite
   { seconds: 1.2 },
-  { seconds: 2.0, to: { yaw: 0 } }, // and back
+  { seconds: 1.8, to: { yaw: 0 } }, // and back
   { seconds: 0.6, undoKey: true }, // ⌘Z: the module is whole again
   { seconds: 1.6, to: HEADPAD },
   { seconds: 0.3 },
   { seconds: 0.2, press: true }, // a click closes the rail
   { seconds: 0.4, press: false },
+  { seconds: 1.2, to: { depth: 0.5, back: 1 } }, // Space: the plane glides to the back wall
+  { seconds: 0.4 },
+  { seconds: 1.4, to: PRIMS }, // to the primitives box
+  { seconds: 0.3 },
+  { seconds: 0.2, press: true }, // a click opens it: the primitives stand above it
+  { seconds: 0.8, press: false },
+  { seconds: 1.8, to: PYRAMID }, // up to the pyramid
+  { seconds: 0.4 },
+  { seconds: 0.4, press: true }, // press: a copy of it comes out, picked (stamp.cpl)
+  { seconds: 2.4, to: SET_DOWN }, // carry it down beside the ship
+  { seconds: 0.3 },
+  { seconds: 2.4, to: { back: 0 } }, // and forward with the plane (⌥ and move)
+  { seconds: 0.3, press: false }, // let go
+  { seconds: 0.4 },
+  { seconds: 2.0, to: { yaw: -16 } }, // turn the room a little to see it standing there
+  { seconds: 0.8 },
+  { seconds: 1.0, to: { pitch: 22 } },
+  { seconds: 0.8 },
+  { seconds: 1.0, to: { pitch: 12 } },
+  { seconds: 0.4 },
+  { seconds: 1.6, to: { yaw: 0 } },
+  { seconds: 0.6, undoKey: true }, // ⌘Z: the pyramid goes back
   { seconds: 1.6, to: { depth: 0, x: 260, y: -170 } }, // and out
   { seconds: 0.3 },
   { seconds: 0.2, press: true }, // a click on nothing lets go of the face, ready to loop

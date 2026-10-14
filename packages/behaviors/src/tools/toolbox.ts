@@ -312,6 +312,13 @@ export interface CameraView {
 }
 const cameras = new WeakMap<Runtime, CameraView>();
 export const cameraViewOf = (rt: Runtime): CameraView | undefined => cameras.get(rt);
+/** Turns the camera's view on or off from outside CPL (its window was closed). */
+export function setCameraShown(rt: Runtime, shown: boolean): void {
+  const view = cameras.get(rt);
+  if (!view || view.shown === shown) return;
+  cameras.set(rt, { ...view, shown });
+  rt.version++;
+}
 
 const objectOf = (f: Feature | null): CutObject | null =>
   isObject(f) ? f : isSub(f) ? f.object : null;

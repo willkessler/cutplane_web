@@ -110,10 +110,11 @@ zoom in, down to zoom out), the **group** tool, the **pan** tool (**H**: drag to
 world), the **magnet** (press on a face of one object, let go on a face of another, and the first
 lies flush on the second), the **grabber** (always picks whole objects), and the **ruler**.
 
-The **toolboxes** stand on the floor at the back (Space takes the plane there). The primitives box
-stamps cubes, cylinders, cones, spheres and pyramids; the goodies box holds a camera, a light bulb
-and the colour control (three bars and a paint chip: drag a bar and what is picked takes the
-colour, or drag the chip onto a face to paint it).
+The **toolboxes** stand on the floor at the back (Space takes the plane there). Click one to open
+it. The primitives box holds a cube, cylinder, cone, sphere and pyramid: press on one and a copy
+comes out, picked, to carry forward into the world. The goodies box holds a camera (section 7), a
+light bulb and the colour control (three bars and a paint chip: drag a bar and what is picked takes
+the colour, or drag the chip onto a face to paint it).
 
 ## 6. Measuring
 
@@ -132,7 +133,30 @@ comes out, bottom left beside the floppy. Put the ruler away and it goes.
 - **Pick an edge** to see its length.
 - **Drag out a marquee** and its size shows as it grows.
 
-## 7. Files
+## 7. The camera and fly-overs
+
+The camera gives you a second point of view, and can fly over what you've made.
+
+1. **Take it out.** Space takes the plane to the toolboxes; click the goodies box (the one with the
+   camera on it), then drag the magenta camera out and carry it forward (⌥ and move).
+2. **Open its window.** Click the camera. A window opens beside the main one, **Camera's View**,
+   showing what the lens sees, live as you carry the camera. Put it on a second screen if you have
+   one. (If nothing opens, let the page open pop-ups; until then the view stands on a slide in the
+   room above the camera.)
+3. **Aim it.** It comes out of its box looking out of the room, at you. Put the plane through the
+   lens (the grey cylinder at its front) and drag the lens: the camera turns to follow. To turn
+   it round to face the world, hold the lens and take the plane back past the camera (⌥ and move).
+4. **Place shots.** In the camera's window, click **Add shot** (or press Return) to keep where the
+   camera is and where it looks. Move and aim it again and add another; three or four make a good
+   fly-over. Each shot shows in the room as a magenta cross, with a dashed line through them all.
+   _Remove last_ and _Clear_ take shots away.
+5. **Fly.** Click **Play** (or Space in the camera's window): the view flies smoothly through the
+   shots and the path's white mark travels with it. _Seconds per shot_ sets the pace.
+   **Record video** plays it into a video file, which downloads when it ends.
+
+Click the camera again, or close its window, to put the view away; the shots are kept.
+
+## 8. Files
 
 - **Open…** (top bar), or drop files anywhere on the page:
   - a **`.cut`** world from 3Form or Cutplane replaces the world;
@@ -150,13 +174,13 @@ comes out, bottom left beside the floppy. Put the ruler away and it goes.
   come back, and the world is as you left it; undo still works. Choosing a model from the menu
   starts that model afresh, so Save what you want to keep.
 
-## 8. Help in the room
+## 9. Help in the room
 
 ![The help plate, opened from the ? pad](images/guide-help.png)
 
 Click the **?** pad (bottom right) for a plate of the controls in the plane. Click ? again to put it away.
 
-## 9. If something doesn't work
+## 10. If something doesn't work
 
 - **Nothing happens when I click.** The crosshair must be on the section: put the plane through
   the object first (⌥ and move, or scroll).

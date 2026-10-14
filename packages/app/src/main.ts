@@ -14,6 +14,7 @@ import {
   installToolboxes,
   bulbLightOf,
   cameraViewOf,
+  setCameraShown,
   installStoragePad,
   installHelpPad,
   installMeasurePad,
@@ -37,7 +38,10 @@ import { RotateToolView } from './render/rotatetool.ts';
 import { ScaleBoxView } from './render/scalebox.ts';
 import { setLineResolution } from './render/lines.ts';
 import { ModelView } from './render/models.ts';
-import { CameraSlide } from './render/cameraslide.ts';
+import { CameraSlide, lensShot } from './render/cameraslide.ts';
+import { CameraWindow } from './render/camerawindow.ts';
+import { CameraPathView } from './render/camerapath.ts';
+import type { Shot } from './camera/flyover.ts';
 import { ScribbleView } from './render/scribbles.ts';
 import { LabelView } from './render/labels.ts';
 import { PadView } from './render/pads.ts';
@@ -101,8 +105,10 @@ const envSection = new SectionLines();
 const padView = new PadView();
 const labelView = new LabelView();
 const cameraSlide = new CameraSlide();
+const cameraPath = new CameraPathView();
 const scribbles = new ScribbleView();
 scene.add(
+  cameraPath.object,
   scribbles.object,
   cameraSlide.object,
   padView.object,
@@ -441,6 +447,8 @@ function zRange(): [number, number] {
   return Number.isFinite(lo) ? [lo, hi] : [ROOM.min[2], ROOM.max[2]];
 }
 
+/** The plane through the toolboxes by the back wall, for the demo. */
+const DEMO_BOXES_Z = -480;
 let demoKeys = 0;
 let demoUndos = 0;
 function applyDemo(t: number): void {
@@ -449,7 +457,8 @@ function applyDemo(t: number): void {
   const front = Math.min(ROOM.max[2], hi + 15);
   const back = Math.max(ROOM.min[2], lo - 15);
   control.setCursor(p.x, p.y);
-  control.plane.set(front + (back - front) * p.depth);
+  const at = front + (back - front) * p.depth;
+  control.plane.set(at + (DEMO_BOXES_Z - at) * p.back);
   control.yaw = p.yaw;
   control.pitch = p.pitch;
   if (p.rotateKeys < demoKeys) demoKeys = 0; // looped
@@ -531,6 +540,48 @@ function catchUp(): void {
 }
 
 const readout = $<HTMLDivElement>('readout');
+// ---- the camera goodie's window and its fly-over ----
+let cameraWanted = false;
+let cameraBlocked = false;
+const cameraWindow = new CameraWindow({
+  scene,
+  // The camera sees the world being made, in its room: not the plane, the tools or itself.
+  hidden: [
+    cameraPath.object,
+    scribbles.object,
+    cameraSlide.object,
+    padView.object,
+    labelView.object,
+    envView.object,
+    envSection.object,
+    toolView.object,
+    boxView.object,
+    plane.object,
+    section.object,
+    highlights.object,
+    crosshair.object,
+  ],
+  live: () => {
+    const v = cameraViewOf(rt);
+    return v && rt.vm.props.has(v.camera, P.Visible) ? lensShot(rt, v.camera) : null;
+  },
+  onClose: () => {
+    cameraWanted = false;
+    setCameraShown(rt, false);
+  },
+  onShots: (shots, perShot) => store('flyover', JSON.stringify({ shots, perShot })),
+});
+try {
+  const saved = JSON.parse(stored('flyover') ?? 'null') as {
+    shots: Shot[];
+    perShot: number;
+  } | null;
+  if (saved?.shots) cameraWindow.setShots(saved.shots, saved.perShot);
+} catch {
+  /* nothing kept */
+}
+window.addEventListener('pagehide', () => cameraWindow.close());
+
 function render(): void {
   step();
   syncModels();
@@ -582,9 +633,26 @@ function render(): void {
       lastBoxes = bkey;
     }
   }
+  // The camera's view: its own window, or, if the browser won't open one, the slide.
+  cameraWindow.poll();
   const view = cameraViewOf(rt);
-  const shown = view?.shown && rt.vm.props.has(view.camera, P.Visible) ? view.camera : undefined;
-  cameraSlide.update(rt, shown, renderer, scene);
+  const out = view && rt.vm.props.has(view.camera, P.Visible) ? view.camera : undefined;
+  const wanted = !!(view?.shown && out);
+  if (wanted !== cameraWanted) {
+    cameraWanted = wanted;
+    if (wanted) cameraBlocked = demo || !cameraWindow.open();
+    else {
+      cameraWindow.close();
+      cameraBlocked = false;
+    }
+  }
+  cameraSlide.update(rt, cameraBlocked ? out : undefined, renderer, scene);
+  cameraPath.update(
+    cameraWindow.shots,
+    cameraWindow.secondsPerShot,
+    cameraWindow.flying,
+    cameraWindow.isOpen,
+  );
   renderer.render(scene, camera);
 }
 
@@ -1030,6 +1098,12 @@ declare global {
         /** Objects at the top of the world (a group counts once). */
         objects: number;
       };
+      flyover(): {
+        open: boolean;
+        inRoom: boolean;
+        shots: number;
+        playing: boolean;
+      };
       demoSeconds: number;
     };
   }
@@ -1229,6 +1303,12 @@ async function start(): Promise<void> {
         objects: tops.length,
       };
     },
+    flyover: () => ({
+      open: cameraWindow.isOpen,
+      inRoom: cameraBlocked,
+      shots: cameraWindow.shots.length,
+      playing: cameraWindow.playing,
+    }),
     demoSeconds: DEMO_SECONDS,
   };
   const t0 = performance.now();

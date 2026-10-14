@@ -6,19 +6,19 @@ Screenshots go in `docs/images/`.
 
 ## Roadmap
 
-| Milestone | Scope                                                               |
-| --------- | ------------------------------------------------------------------- |
-| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI              |
-| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation |
-| **M2** ✅ | Room, plane, section and full-screen work mode                      |
-| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo    |
-| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                 |
-| **M5** ✅ | CPL VM and environment: code stored in objects, live editing        |
-| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools  |
-| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                    |
-| **M8** 🚧 | Ship: user guide, help plate, measure pad, live on GitHub Pages     |
-| M9        | Acceptance: load and rebuild the stapler, fan and Discovery         |
-| M10       | Language evolution (optional)                                       |
+| Milestone | Scope                                                                             |
+| --------- | --------------------------------------------------------------------------------- |
+| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                            |
+| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation               |
+| **M2** ✅ | Room, plane, section and full-screen work mode                                    |
+| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                  |
+| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                               |
+| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                      |
+| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                |
+| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                  |
+| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, live on GitHub Pages |
+| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                       |
+| M10       | Language evolution (optional)                                                     |
 
 ## Using Cutplane
 
@@ -190,10 +190,20 @@ The room is laid out as in the 3Form photos. Everything in it runs on the origin
     one out to use it; drop it on the box to put it back.
     - The bulb lights the room in its colour from wherever it is. Paint it with the colour
       control to change the light.
-    - Click the camera to show what it sees, on a slide above it, and drag it to look elsewhere.
-      Put the plane through its lens and drag the lens to aim the camera: it turns about its
-      middle to follow the crosshair (`lens.cpl`). Dropped back on its box, the bulb goes out
-      and the camera's slide goes away.
+    - Click the camera and its window opens, **Camera's View**, showing what its lens sees (the
+      world and the room, without the plane or the tools), live as you carry it. Put the plane
+      through its lens and drag the lens to aim the camera: it turns about its middle to follow
+      the crosshair (`lens.cpl`). It comes out of its box looking out of the room, at you, so
+      aim it first: hold the lens and take the plane back past the camera to turn it round.
+      Click the camera again, or close its window, to put the view away. If the browser won't
+      open windows for the page, the view stands on a slide in the room above the camera.
+    - **Fly-overs.** In the camera's window, **Add shot** (or Return) keeps where the camera is
+      and where it looks. Move and aim it, add another, and so on. **Play** (or Space) flies
+      smoothly through the shots, easing in and out, and the path shows in the room as a dashed
+      magenta line with a cross at each shot. _Seconds per shot_ sets the pace. **Record
+      video** plays the fly-over into a video file (`.webm`, or `.mp4` in Safari) that downloads
+      when it ends. The shots are kept in the browser.
+    - Dropped back on its box, the bulb goes out and the camera's view goes away.
 - **The storage pad** (the floppy disk, bottom left in the plane) opens the **Load / Save
   plate**. Click a field and type: the keys go to the field (Backspace, ← →; Esc puts the old
   text back), not to the commands.
@@ -218,7 +228,7 @@ The room is laid out as in the 3Form photos. Everything in it runs on the origin
 
 ![The Load / Save plate, a name being typed into Load from:](images/env-plate.png)
 
-![The camera out of its box, its slide showing the Discovery](images/goodies-camera.png)
+![The camera out of its box, its slide (shown when the browser won't open its window) showing the Discovery](images/goodies-camera.png)
 
 ### Modeling
 
@@ -487,8 +497,9 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
 - **A face's "mother edge".** `find_largergrain(face, edge)` returned an unset pointer, and
   `rom.cpl`'s test for an edge pick relied on getting something other than the face back; here
   it is the face's first edge.
-- **The camera's view** is a slide standing in the room above the camera. The original opened a
-  second window. The **light bulb** adds a point light in its colour to the face shading, as
+- **The camera's view** opens in its own window, as the original's did ("Camera's View"); a slide
+  in the room above the camera stands in for it when the browser blocks pop-ups. **Fly-overs**
+  are new: the original camera showed one view, with no shots, paths or video. The **light bulb** adds a point light in its colour to the face shading, as
   `setup_light_source(2, ...)` did.
 - **Saving through the Load/Save plate** keeps the world in the browser, under the typed name,
   and loading looks there first, then among the bundled samples. The model menu lists what is
