@@ -29,14 +29,14 @@ move the plane. Every held key or button is **spring-loaded**: it lasts only whi
 
 ## 2. Looking around
 
-| To...                   | Do this                                        |
-| ----------------------- | ---------------------------------------------- |
-| move the crosshair      | move the pointer                               |
-| move the plane in depth | hold ⌥ and move, middle-drag, or scroll        |
-| turn the room           | hold ⌘ and move, right-drag, or the arrow keys |
-| face the room again     | 0                                              |
-| jump to the back wall   | Space (Space again comes back)                 |
-| work full screen        | **F**, or _Start working_; Esc leaves          |
+| To...                   | Do this                                                   |
+| ----------------------- | --------------------------------------------------------- |
+| move the crosshair      | move the pointer                                          |
+| move the plane in depth | hold ⌥ and move, middle-drag, or scroll                   |
+| turn the room           | hold ⌘ and move, right-drag, or the arrow keys            |
+| face the room again     | 0                                                         |
+| jump to the back wall   | Space (again comes back; the next goes to the front wall) |
+| work full screen        | **F**, or _Start working_; Esc leaves                     |
 
 Push the plane slowly through a model and watch the section change. Moving slowly, the plane
 **clicks onto the depths of vertices**, so a face or an edge comes to lie exactly in the plane,

@@ -174,13 +174,19 @@ describe('Controller', () => {
     expect(Math.abs(t.z - z)).toBeLessThan(1);
   });
 
-  it('plane jump goes to the back wall and returns', () => {
+  it('plane jump goes to the back wall and returns, then the front wall and returns', () => {
     const c = new Controller(held());
     c.plane.set(120);
     c.command('planeJump');
     expect(c.z).toBe(ROOM.min[2]);
     c.command('planeJump');
     expect(c.z).toBe(120);
+    c.command('planeJump');
+    expect(c.z).toBe(ROOM.max[2]);
+    c.command('planeJump');
+    expect(c.z).toBe(120);
+    c.command('planeJump');
+    expect(c.z).toBe(ROOM.min[2]);
   });
 
   it('arrow keys rotate in 10° steps; 0 resets', () => {

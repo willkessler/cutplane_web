@@ -213,6 +213,7 @@ export class Runtime implements Host {
   readonly line: CutObject;
   readonly cursorObj: CutObject;
   readonly backwall: CutObject;
+  readonly frontwall: CutObject;
   readonly groupObj: CutObject;
   /** create_scalebbox's template, which rom.cpl copies around picked objects. */
   readonly scaleBoxTemplate: CutObject;
@@ -310,6 +311,18 @@ export class Runtime implements Host {
       },
     );
     this.vm.props.del(this.backwall, P.Visible);
+    // cutplane_web: where every other plane jump goes (cursor.cpl).
+    this.frontwall = this.makeObj(
+      env,
+      [0, 0, ROOM.max[2]],
+      'Room_Frontwall',
+      ['Nonmanifold', 'Noshadow'],
+      {
+        selectTechnique: 'set_always_selectable',
+        drawTechnique: 'nodraw_technique',
+      },
+    );
+    this.vm.props.del(this.frontwall, P.Visible);
     this.groupObj = this.makeObj(env, null, 'Groupobj', ['Nonmanifold', 'Noshadow']);
     this.vm.props.del(this.groupObj, P.Visible);
     this.scaleBoxTemplate = createScaleBoxTemplate(this);

@@ -153,7 +153,7 @@ export function helpLines(mac: boolean): { text: string; heading?: boolean }[] {
     { text: 'Move: the crosshair' },
     { text: `Hold ${mac ? 'Option' : 'Alt'} and move, or middle-drag: the plane, in depth` },
     { text: mac ? 'Hold Cmd and move, or right-drag: turn the room' : 'Right-drag: turn the room' },
-    { text: 'Scroll: the plane    Space: jump to the back wall and back' },
+    { text: 'Scroll: the plane    Space: jump to the back wall, back, the front, back' },
     { text: 'Arrow keys: turn the room 10 degrees    0: face it again' },
     { text: 'Ctrl held: keep to one axis    F: full screen    Esc: leave it' },
     { text: 'Picking and changing', heading: true },

@@ -223,7 +223,7 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     expect(rt.vm.props.has(back, P.Visible)).toBe(true);
   });
 
-  it('Space jumps the plane to the back wall and back (cursor.cpl)', () => {
+  it('Space jumps the plane to the back wall and back, then the front and back (cursor.cpl)', () => {
     const { rt, stage, controls, frame } = world();
     const z0 = stage.z;
     // It glides there over GLIDE_MS, eased: a little way at first, all the way at the end.
@@ -246,6 +246,24 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     for (let i = 1; i < there.length; i++) expect(there[i]!).toBeLessThanOrEqual(there[i - 1]!);
     jump();
     expect(stage.z).toBeCloseTo(z0, 6);
+    // The next jump goes to the front wall instead, and the one after returns.
+    jump();
+    expect(stage.z).toBeCloseTo(500, 6);
+    jump();
+    expect(stage.z).toBeCloseTo(z0, 6);
+    // And round again: the back wall.
+    jump();
+    expect(stage.z).toBeCloseTo(-499, 6);
+    jump();
+    // Moving the plane by hand starts the round afresh, at the back wall.
+    jump();
+    expect(stage.z).toBeCloseTo(500, 6);
+    controls.pressPlane();
+    frame();
+    controls.releasePlane();
+    frame();
+    jump();
+    expect(stage.z).toBeCloseTo(-499, 6);
     void rt;
   });
 

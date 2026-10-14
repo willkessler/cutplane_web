@@ -57,21 +57,21 @@ mode is **spring-loaded**: it lasts only while you hold the key or button.
 A scroll is told apart per event: a wheel's notches move the plane straight in depth, a
 trackpad's swipe follows the plane's direction on screen.
 
-| Key     | Command                                                   |
-| ------- | --------------------------------------------------------- |
-| Space   | Plane jump: glides to the back wall, and back again       |
-| ← → ↑ ↓ | Rotate the room 10° (±90° side to side, 0–90° from above) |
-| 0       | Reset the view                                            |
-| F       | Start or stop working (full screen, pointer captured)     |
-| R       | Rotate tool to the crosshair (on its centre: put it away) |
-| D       | Duplicate what is picked                                  |
-| G       | Group what is picked (on one group: ungroup it)           |
-| \\      | Slice what is picked at the plane                         |
-| B       | Union what is picked into one object                      |
-| Z, H, P | The magnifier, the pan tool, the pencil, to the crosshair |
-| M       | The ruler: the measure pad comes out (again: put it away) |
-| ⌫       | Delete what is picked                                     |
-| ⌘Z, ⇧⌘Z | Undo, redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y elsewhere)     |
+| Key     | Command                                                                                 |
+| ------- | --------------------------------------------------------------------------------------- |
+| Space   | Plane jump: glides to the back wall and back again; the next to the front wall and back |
+| ← → ↑ ↓ | Rotate the room 10° (±90° side to side, 0–90° from above)                               |
+| 0       | Reset the view                                                                          |
+| F       | Start or stop working (full screen, pointer captured)                                   |
+| R       | Rotate tool to the crosshair (on its centre: put it away)                               |
+| D       | Duplicate what is picked                                                                |
+| G       | Group what is picked (on one group: ungroup it)                                         |
+| \\      | Slice what is picked at the plane                                                       |
+| B       | Union what is picked into one object                                                    |
+| Z, H, P | The magnifier, the pan tool, the pencil, to the crosshair                               |
+| M       | The ruler: the measure pad comes out (again: put it away)                               |
+| ⌫       | Delete what is picked                                                                   |
+| ⌘Z, ⇧⌘Z | Undo, redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y elsewhere)                                   |
 
 Dragging the plane follows the plane on screen: you push it the way it visibly travels as it goes
 deeper. Facing the room, that is up the screen; with the room turned 90°, it is sideways. Two-finger
@@ -379,7 +379,8 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
 - **Group drags.** Pressing on something already picked keeps the other picks, so several things
   can be dragged together. `assets/cpl/rom.cpl` is `rom.cpl` with this change made (marked
   "cutplane_web"), as the lines its authors had commented out were meant to do.
-- **The plane jump glides.** Space sends the plane to the back wall and back over a quarter
+- **The plane jump glides, and alternates walls.** Space sends the plane to the back wall and
+  back, then to the front wall and back (the original only had the back wall), over a quarter
   second, eased, instead of in one frame, so the room doesn't jump under you. Whatever is picked
   or held still travels with it. `assets/cpl/cursor.cpl` is `cursor.cpl` with this change
   (marked "cutplane_web"): `Jumplane` works out the jump, and a new `Glideplane` message moves

@@ -49,6 +49,8 @@ export class Controller {
    * deeper as you move right, not up.
    */
   planeAxis: readonly [number, number] = [0, 0];
+  /** Whether the next plane jump out goes to the front wall rather than the back. */
+  private jumpFront = false;
   /** Where the plane was before a plane jump, so the next jump returns it. */
   private jumpedFrom: number | undefined;
   /** Where the crosshair would be without Ctrl's axis lock. */
@@ -158,14 +160,15 @@ export class Controller {
   command(c: Command): void {
     switch (c) {
       case 'planeJump':
-        // controls.c: to the back wall, and back again.
+        // controls.c: to the back wall and back again; then (new here) the front and back.
         if (this.jumpedFrom === undefined) {
           const from = this.plane.z;
-          this.plane.set(ROOM.min[2]);
+          this.plane.set(this.jumpFront ? ROOM.max[2] : ROOM.min[2]);
           this.jumpedFrom = from;
         } else {
           this.plane.set(this.jumpedFrom);
           this.jumpedFrom = undefined;
+          this.jumpFront = !this.jumpFront;
         }
         break;
       case 'rotateLeft':

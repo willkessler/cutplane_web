@@ -3,6 +3,8 @@
 ;	over a quarter second instead of landing in one frame: Jumplane works out
 ;	the jump, and the host sends Glideplane each frame with that frame's share.
 ;	A click on a pad, plate or tool doesn't unpick what is picked.
+;	Jumps alternate between the back wall and the front: back, return, front,
+;	return (the original only ever jumped to the back wall).
 
 ;
 ;		CPL Cursor Code
@@ -43,12 +45,16 @@ _Check_jumpmsg	BNEQUAL	A:R2,Msg:Jumplane,A:_Glide_msg&
 ;		 Get topmost message
 		UNQMSG	A:R2
 
-;		 cutplane_web: Jumplane only works out the jump, to the back wall or
-;		 back again; the host then glides the plane there (Glideplane below).
+;		 cutplane_web: Jumplane only works out the jump, to a wall or back
+;		 again; the host then glides the plane there (Glideplane below).
+;		 Every other jump out goes to the front wall instead of the back.
 		BTRUE	A:_Plane_jumped,A:_Jump_back&
 
+		BTRUE	A:_Jump_front,A:_Jump_to_front&
 		DIFF3D	Env:Crosshair_part,Obj:Room_Backwall,A:_Plane_jumpvec
-		TRNSFRM	A:_Plane_jumpvec,A:R2,Const:M[{0.0,0.0,0.0,0.0},{0.0,0.0,0.0,0.0},{0.0,0.0,1.0,0.0},{0.0,0.0,0.0,1.0}]
+		JUMP	A:_Jump_out&
+_Jump_to_front	DIFF3D	Env:Crosshair_part,Obj:Room_Frontwall,A:_Plane_jumpvec
+_Jump_out	TRNSFRM	A:_Plane_jumpvec,A:R2,Const:M[{0.0,0.0,0.0,0.0},{0.0,0.0,0.0,0.0},{0.0,0.0,1.0,0.0},{0.0,0.0,0.0,1.0}]
 		MOVE	A:R2,A:_Plane_jumpvec
 		MOVE	Const:TRUE,A:_Plane_jumped
 		JUMP	A:_End_cursor&
@@ -56,6 +62,11 @@ _Check_jumpmsg	BNEQUAL	A:R2,Msg:Jumplane,A:_Glide_msg&
 _Jump_back	TRNSFRM	A:_Plane_jumpvec,A:R2,Const:M[{0.0,0.0,0.0,0.0},{0.0,0.0,0.0,0.0},{0.0,0.0,-1.0,0.0},{0.0,0.0,0.0,1.0}]	
 		MOVE	A:R2,A:_Plane_jumpvec
 		MOVE	Const:FALSE,A:_Plane_jumped
+;		 cutplane_web: the next jump out goes to the other wall.
+		BTRUE	A:_Jump_front,A:_Next_back&
+		MOVE	Const:TRUE,A:_Jump_front
+		JUMP	A:_End_cursor&
+_Next_back	MOVE	Const:FALSE,A:_Jump_front
 		JUMP	A:_End_cursor&
 
 ;		 cutplane_web: Glideplane, then a matrix that scales the jump to one
@@ -78,6 +89,8 @@ _Glide_msg	BNEQUAL	A:R2,Msg:Glideplane,A:_Jump_cancel&
 
 _Jump_cancel	BNEQUAL	A:R2,Msg:Canceljump,A:_Constrain_msg&
 		MOVE	Const:FALSE,A:_Plane_jumped
+;		 cutplane_web: and the next jump starts afresh, at the back wall.
+		MOVE	Const:FALSE,A:_Jump_front
 
 		JUMP	A:_End_cursor&
 
@@ -322,6 +335,9 @@ _Plane_jumped	CPLDATA					; Boolean value stored
 ;	Vector from plane to back of room.
 
 _Plane_jumpvec	CPLDATA					
+
+;	cutplane_web: whether the next jump out goes to the front wall.
+_Jump_front	CPLDATA
 
 ;	Boolean val for whether constraining cursor moves or not...
 ;	compare and contrast with constraining during scaling or other uses
