@@ -6,19 +6,19 @@ Screenshots go in `docs/images/`.
 
 ## Roadmap
 
-| Milestone | Scope                                                                             |
-| --------- | --------------------------------------------------------------------------------- |
-| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                            |
-| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation               |
-| **M2** ✅ | Room, plane, section and full-screen work mode                                    |
-| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                  |
-| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                               |
-| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                      |
-| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                |
-| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                  |
-| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, live on GitHub Pages |
-| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                       |
-| M10       | Language evolution (optional)                                                     |
+| Milestone | Scope                                                                                                            |
+| --------- | ---------------------------------------------------------------------------------------------------------------- |
+| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                                                           |
+| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation                                              |
+| **M2** ✅ | Room, plane, section and full-screen work mode                                                                   |
+| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                                                 |
+| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                                                              |
+| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                                                     |
+| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                                               |
+| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                                                 |
+| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, big and binary Inventor files, live on GitHub Pages |
+| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                                                      |
+| M10       | Language evolution (optional)                                                                                    |
 
 ## Using Cutplane
 
@@ -308,11 +308,20 @@ covers the room while you work).
   - a `.cut` world (or a `.rsc` or `.icon`) becomes the world being edited;
   - **OBJ, STL and glTF** models (`.obj`, `.stl`, `.glb`, `.gltf`) are **added** to the world, as
     one step that undo takes back out. Drop an OBJ's `.mtl`, or a `.gltf`'s `.bin`, along with it.
-  - So are the **SGI era's formats**: **Open Inventor** (`.iv`, ASCII; SGI's `ivcat -a` turns a
-    binary one into ASCII), **VRML 1.0 and 2.0** (`.wrl`), and **DXF** (`.dxf`: polyface and
+  - So are the **SGI era's formats**: **Open Inventor** (`.iv`, ASCII or binary), **VRML 1.0
+    and 2.0** (`.wrl`), and **DXF** (`.dxf`: polyface and
     polygon meshes, 3DFACEs, blocks placed by INSERT, an object per layer in AutoCAD's colours,
     z up). Inventor's face sets, triangle strips, cubes, spheres, cylinders and cones come in
     under their transforms and materials, and each Separator holding several shapes is a group.
+    Face sets one after another in a Separator (a model of thousands of parts, each its own
+    material, as the Mars rover is) come in as one object, coloured face by face.
+  - **Gzipped** files (`.iv.gz`, `.wrz`, `.obj.gz`...) are read as they are.
+  - **Big files** are read in the background (a worker), so the room keeps drawing: a **ring
+    turns in the room** while it's read, its arc filling as it goes, the file's name under it.
+    **Esc** stops the read. A file of more than **400,000 faces** is simplified to about that
+    many (meshoptimizer's simplifier, each colour on its own, its borders kept), since every face
+    is drawn, cut by the plane and kept in the undo history; the status line says it was.
+    `?faces=all` keeps every face, `?faces=N` sets another budget.
   - Triangles that lie in one plane come back as one face, holes and all, so an imported box
     has six faces to grab, not twelve triangles.
   - **Colours** come from the materials: their colour, times the texture under each triangle
@@ -597,14 +606,29 @@ older versions of the format are normalised to the latest one on save.
   number triples. The world and history go in IndexedDB (`ui/idb.ts`); localStorage keeps the
   menu's title and time, and the world alone if IndexedDB can't be had. A history that doesn't
   fit the world it's loaded with is dropped whole.
-- **Old formats** (`mesh/inventor.ts`, `mesh/dxf.ts`): one tokenizer and parser for Inventor
-  ASCII and both VRMLs (a node is `[DEF n] Type { fields children }`; field values are numbers,
-  words, strings or nodes), walked with Inventor's traversal state (matrix, coordinates,
+- **Old formats** (`mesh/inventor.ts`, `mesh/dxf.ts`): one parser for Inventor ASCII and both
+  VRMLs (a node is `[DEF n] Type { fields children }`; field values are numbers, words, strings
+  or nodes), in one pass over the text, numbers read straight into `Float64Array`s. Binary
+  Inventor (`mesh/inventorbin.ts`) is read into the same nodes: big-endian words, strings as a
+  length and padded bytes, each node its type, a flags word (V2.1), a field count, each field
+  its name, value and flags, then a group's children. Built-in nodes don't say their fields'
+  types, so `mesh/inventorfields.ts` does, for Coin3D's 160 Inventor nodes;
+  `docker/coin/make.sh` remakes it, and the binary test files, with Coin in Docker. The nodes are
+  walked with Inventor's traversal state (matrix, coordinates,
   materials and binding, vertex ordering) and VRML 2.0's Shape/Transform nesting. Positions are
   baked into the room. DXF is read as group-code pairs, anything before the first SECTION (a
   1993 mail header) skipped, layer colours from the LAYER table, BYLAYER and BYBLOCK followed.
   Faces with no stated winding (Inventor's default, all of DXF) are turned to agree with their
-  neighbours and then outward (`orient` in `polygonize.ts`).
+  neighbours and then outward (`orient` in `polygonize.ts`). A face set takes only the points
+  its faces use (face sets often share one list of tens of thousands).
+- **Big files:** `ui/importer.ts` reads in a worker (`ui/import.worker.ts`), which hands back the
+  objects as plain data (`ui/packing.ts`, `Brep.data()`), their B-reps' arrays transferred, not
+  copied. `polygonize` and `buildShell` key edges by vertex pairs in a `PairMap` (flat typed
+  arrays: millions of edges without an object, or a boxed number, each). The Mars rover (58 MB,
+  5,300 face sets) reads in about 3 s; before, it took 113 s and 10 GB, and the page froze. The
+  plane's stops (every vertex depth) are taken again only when the world's models change, not on
+  every redraw. `render/loadingring.ts` is the ring: drawn last on a cleared depth buffer, so it
+  shows over everything, lit by a light fixed to the eye.
 - **Tests:** `formats/test/oldformats.test.ts` reads Inventor, VRML 1.0 and 2.0 and DXF written
   for the tests, and (locally, from the archive) `robot2.dxf`, a 1993 robot arm David Lees mailed
   Larry: 52 layers, each a solid. `formats/test/mesh.test.ts` round-trips a cube, a holed face and five samples

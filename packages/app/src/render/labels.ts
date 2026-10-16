@@ -88,6 +88,30 @@ export class LabelView {
   }
 }
 
+/**
+ * A string's strokes in its own frame (x along the line from 0, y up from the
+ * baseline), `scale` times the font's size, as line segment ends; and its width.
+ */
+export function textStrokes(text: string, scale: number): { pos: number[]; width: number } {
+  const pos: number[] = [];
+  let x = 0;
+  for (const ch of text) {
+    const code = ch.charCodeAt(0);
+    for (const s of HERSHEY[code]?.[1] ?? [])
+      for (let i = 0; i + 3 < s.length; i += 2)
+        pos.push(
+          (x + s[i]!) * scale,
+          s[i + 1]! * scale,
+          0,
+          (x + s[i + 2]!) * scale,
+          s[i + 3]! * scale,
+          0,
+        );
+    x += charWidth(code);
+  }
+  return { pos, width: x * scale };
+}
+
 /** A point in an object's frame, in the room. */
 const place = (o: CutObject, x: number, y: number, z: number): number[] => [
   ...mat4.transformPoint(o.xform, x, y, z),

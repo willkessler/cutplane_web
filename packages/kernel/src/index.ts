@@ -6,9 +6,10 @@ export * as mat4 from './math/mat4.ts';
 export type { Mat4 } from './math/mat4.ts';
 
 export { Brep, NONE } from './topology/brep.ts';
-export type { FeatureAttrs, Rgb } from './topology/brep.ts';
+export type { BrepData, FeatureAttrs, Rgb } from './topology/brep.ts';
 export * from './topology/euler.ts';
 export { buildShell, canonicalEdges } from './topology/build.ts';
+export { PairMap } from './topology/pairmap.ts';
 export type { BuiltShell, PolygonShell } from './topology/build.ts';
 export { validate, assertValid } from './topology/validate.ts';
 export type {

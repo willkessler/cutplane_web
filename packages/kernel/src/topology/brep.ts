@@ -20,6 +20,30 @@ export interface FeatureAttrs {
   privateSource?: string;
 }
 
+/** A pool as plain arrays. */
+interface PoolData {
+  count: number;
+  live: number;
+  alive: Uint8Array;
+  i32: Int32Array[];
+  f64: Float64Array[];
+}
+
+/**
+ * A B-rep as plain data, to hand to another thread (a worker reads big files
+ * into them): its arrays go across without being copied (`transfer`).
+ */
+export interface BrepData {
+  pools: PoolData[];
+  vertexAttrs: Map<number, FeatureAttrs>;
+  edgeAttrs: Map<number, FeatureAttrs>;
+  faceAttrs: Map<number, FeatureAttrs>;
+  faceColors: Map<number, Rgb>;
+  faceSurface: Map<number, number>;
+  surfaceSlack: Map<number, number>;
+  nextSurface: number;
+}
+
 /** Growable struct-of-arrays pool. IDs are never reused, so they stay stable. */
 class Pool {
   count = 0;
@@ -62,6 +86,17 @@ class Pool {
       n.set(c);
       return n;
     });
+  }
+
+  data(): PoolData {
+    const { count, live, alive, i32, f64 } = this;
+    return { count, live, alive, i32, f64 };
+  }
+
+  static from(d: PoolData): Pool {
+    const p = new Pool(0, 0, 0);
+    Object.assign(p, d);
+    return p;
   }
 
   clone(): Pool {
@@ -161,6 +196,44 @@ export class Brep {
     const out: number[] = [];
     for (const [f, t] of this.faceSurface) if (t === s) out.push(f);
     return out;
+  }
+
+  /** This B-rep as plain data (it shares its arrays: hand it over, don't keep using both). */
+  data(): BrepData {
+    const { vertexAttrs, edgeAttrs, faceAttrs, faceColors, faceSurface, surfaceSlack } = this;
+    return {
+      pools: [this.v, this.h, this.e, this.l, this.f, this.s].map((p) => p.data()),
+      vertexAttrs,
+      edgeAttrs,
+      faceAttrs,
+      faceColors,
+      faceSurface,
+      surfaceSlack,
+      nextSurface: this.nextSurface,
+    };
+  }
+
+  /** The arrays of `data` that can be transferred rather than copied. */
+  static transfer(d: BrepData): ArrayBuffer[] {
+    return d.pools.flatMap((p) =>
+      [p.alive, ...p.i32, ...p.f64].map((a) => a.buffer as ArrayBuffer),
+    );
+  }
+
+  static fromData(d: BrepData): Brep {
+    const b = new Brep();
+    [b.v, b.h, b.e, b.l, b.f, b.s] = d.pools.map((p) => Pool.from(p)) as [Pool, Pool, Pool, Pool, Pool, Pool]; // prettier-ignore
+    for (const [from, to] of [
+      [d.vertexAttrs, b.vertexAttrs],
+      [d.edgeAttrs, b.edgeAttrs],
+      [d.faceAttrs, b.faceAttrs],
+    ] as const)
+      for (const [k, v] of from) to.set(k, v);
+    for (const [k, v] of d.faceColors) b.faceColors.set(k, v);
+    for (const [k, v] of d.faceSurface) b.faceSurface.set(k, v);
+    for (const [k, v] of d.surfaceSlack) b.surfaceSlack.set(k, v);
+    b.nextSurface = d.nextSurface;
+    return b;
   }
 
   clone(): Brep {

@@ -142,28 +142,36 @@ export class ModelView {
     for (const m of this.models) this.build(m);
   }
 
-  /** Catches up with objects added to or removed from the world (duplicate, delete, undo). */
-  sync(roots: readonly CutObject[], wanted: (o: CutObject) => boolean = () => true): void {
+  /**
+   * Catches up with objects added to or removed from the world (duplicate, delete, undo).
+   * True if any were.
+   */
+  sync(roots: readonly CutObject[], wanted: (o: CutObject) => boolean = () => true): boolean {
     const now = [...preorder(roots)].filter((o) => isDrawn(o) && wanted(o));
     const keep = new Set(now);
+    let any = now.length !== this.models.length;
     for (const m of this.models) if (!keep.has(m.object)) this.drop(m);
     const had = new Map(this.models.map((m) => [m.object, m]));
     this.models = now.map((object) => {
       const m = had.get(object);
       if (m) return m;
+      any = true;
       const fresh: Model = { object, world: new WorldGeometry(object.brep, object.xform) };
       this.build(fresh);
       return fresh;
     });
+    return any;
   }
 
   /**
    * Rebuilds what's drawn for objects whose geometry or placement changed. One only
    * moved is shifted (its shading is fixed to the room, so it looks the same, unless
    * the light bulb lights it); one that hasn't really changed is kept as it is.
+   * True if any of them moved or changed.
    */
-  rebuild(objects: Iterable<CutObject>): void {
+  rebuild(objects: Iterable<CutObject>): boolean {
     const set = new Set(objects);
+    let any = false;
     for (const m of this.models) {
       if (!set.has(m.object)) continue;
       const o = m.object;
@@ -171,16 +179,21 @@ export class ModelView {
         const d = shift(m.built, o.xform);
         const still = d !== null && d[0] === 0 && d[1] === 0 && d[2] === 0;
         if (d && (!this.light || still)) {
-          if (!still) m.world = new WorldGeometry(o.brep, o.xform);
+          if (!still) {
+            any = true;
+            m.world = new WorldGeometry(o.brep, o.xform);
+          }
           m.mesh.position.set(...d);
           m.shadow?.position.set(d[0], 0, d[2]); // a shadow lies on the floor
           continue;
         }
       }
+      any = true;
       this.drop(m);
       m.world = new WorldGeometry(m.object.brep, m.object.xform);
       this.build(m);
     }
+    return any;
   }
 
   private drop(m: Model): void {

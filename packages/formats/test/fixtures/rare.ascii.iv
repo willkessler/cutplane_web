@@ -1,0 +1,6 @@
+#Inventor V2.1 ascii
+Separator {
+  TextureCombine { rgbSource [ TEXTURE, CONSTANT ] }
+  GeoOrigin { geoCoords 1 2 3 }
+  ShapeKit { shape Cube { } }
+}

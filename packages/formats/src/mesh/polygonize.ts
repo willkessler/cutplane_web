@@ -3,12 +3,15 @@ import {
   buildShell,
   createObject,
   mat4,
+  PairMap,
   type CutObject,
   type Mat4,
   type Rgb,
 } from '@cutplane/kernel';
 import { roomBox } from './fit.ts';
 import { flattener, newell, triangulate, type V3 } from './faces.ts';
+import { part, type MeshOptions, type Progress } from './options.ts';
+import { polygonCount, simplifySoups } from './simplify.ts';
 
 /**
  * A mesh as the formats hand it over: positions and polygons (often
@@ -68,36 +71,41 @@ class Sets {
   }
 }
 
+/** A grid cell as one non-negative number: a hash, so two cells may share one (the distance check sorts them out). */
+const cell = (x: number, y: number, z: number) =>
+  (Math.imul(x | 0, 73856093) ^ Math.imul(y | 0, 19349663) ^ Math.imul(z | 0, 83492791)) &
+  0x7fffffff;
+
 /** Positions that are equal to within `tol` become one vertex. */
 function weld(positions: readonly V3[], tol: number): { points: V3[]; index: Int32Array } {
-  const cells = new Map<string, number[]>();
+  // Each cell's points: the first in `cells`, then on through `after`.
+  const cells = new PairMap(positions.length);
+  const after = new Int32Array(positions.length);
   const points: V3[] = [];
   const index = new Int32Array(positions.length);
-  const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
+  const near = (p: V3, q: V3) =>
+    Math.abs(q[0] - p[0]) <= tol && Math.abs(q[1] - p[1]) <= tol && Math.abs(q[2] - p[2]) <= tol;
+  const inCell = (p: V3, x: number, y: number, z: number) => {
+    for (let j = cells.get(cell(x, y, z), 0); j >= 0; j = after[j]!)
+      if (near(p, points[j]!)) return j;
+    return -1;
+  };
   positions.forEach((p, i) => {
-    const c = p.map((v) => Math.round(v / tol));
-    let found = -1;
+    const x = Math.round(p[0] / tol);
+    const y = Math.round(p[1] / tol);
+    const z = Math.round(p[2] / tol);
+    // Its own cell first (most likely), then the ones round it.
+    let found = inCell(p, x, y, z);
     for (let dx = -1; dx <= 1 && found < 0; dx++)
       for (let dy = -1; dy <= 1 && found < 0; dy++)
         for (let dz = -1; dz <= 1 && found < 0; dz++)
-          for (const j of cells.get(key(c[0]! + dx, c[1]! + dy, c[2]! + dz)) ?? []) {
-            const q = points[j]!;
-            if (
-              Math.abs(q[0] - p[0]) <= tol &&
-              Math.abs(q[1] - p[1]) <= tol &&
-              Math.abs(q[2] - p[2]) <= tol
-            ) {
-              found = j;
-              break;
-            }
-          }
+          if (dx || dy || dz) found = inCell(p, x + dx, y + dy, z + dz);
     if (found < 0) {
       found = points.length;
       points.push([p[0], p[1], p[2]]);
-      const k = key(c[0]!, c[1]!, c[2]!);
-      const list = cells.get(k);
-      if (list) list.push(found);
-      else cells.set(k, [found]);
+      const e = cells.add(cell(x, y, z), 0, -1);
+      after[found] = cells.value[e]!;
+      cells.value[e] = found;
     }
     index[i] = found;
   });
@@ -112,6 +120,14 @@ interface Piece {
   color: Rgb | null;
 }
 
+/** Two loops with the same corners, in whatever order. */
+const sameCorners = (a: readonly number[], b: readonly number[]) => {
+  if (a.length !== b.length) return false;
+  const x = [...a].sort((p, q) => p - q);
+  const y = [...b].sort((p, q) => p - q);
+  return x.every((v, k) => v === y[k]);
+};
+
 const sameColor = (a: Rgb | null, b: Rgb | null) =>
   a === b || (a !== null && b !== null && a[0] === b[0] && a[1] === b[1] && a[2] === b[2]);
 
@@ -122,13 +138,13 @@ const sameColor = (a: Rgb | null, b: Rgb | null) =>
  */
 function mergeGroup(pieces: readonly Piece[], points: readonly V3[]): number[][] | null {
   if (pieces.length === 1) return [pieces[0]!.loop];
-  const edges = new Set<string>();
-  for (const p of pieces)
-    p.loop.forEach((v, i) => edges.add(`${v},${p.loop[(i + 1) % p.loop.length]}`));
+  const edges = new PairMap();
+  for (const p of pieces) p.loop.forEach((v, i) => edges.add(v, p.loop[(i + 1) % p.loop.length]!));
   const next = new Map<number, number>();
-  for (const e of edges) {
-    const [a, b] = e.split(',').map(Number) as [number, number];
-    if (edges.has(`${b},${a}`)) continue; // inside the group
+  for (let e = 0; e < edges.size; e++) {
+    const a = edges.a[e]!;
+    const b = edges.b[e]!;
+    if (edges.has(b, a)) continue; // inside the group
     if (next.has(a)) return null; // two ways on from one vertex
     next.set(a, b);
   }
@@ -164,6 +180,39 @@ function mergeGroup(pieces: readonly Piece[], points: readonly V3[]): number[][]
 }
 
 /**
+ * The pieces round each edge, either way along it: how many, and the first
+ * two (enough for an edge between two; more is a fold, which nothing joins across).
+ */
+class EdgePieces {
+  readonly edges: PairMap;
+  readonly first: Int32Array;
+  readonly second: Int32Array;
+  constructor(pieces: readonly Piece[]) {
+    let n = 0;
+    for (const p of pieces) n += p.loop.length;
+    const edges = (this.edges = new PairMap(n));
+    this.first = new Int32Array(n);
+    this.second = new Int32Array(n);
+    pieces.forEach((p, i) =>
+      p.loop.forEach((a, k) => {
+        const b = p.loop[(k + 1) % p.loop.length]!;
+        const e = a < b ? edges.add(a, b) : edges.add(b, a);
+        const count = edges.value[e]!++;
+        if (count === 0) this.first[e] = i;
+        else if (count === 1) this.second[e] = i;
+      }),
+    );
+  }
+  /** The edge between a and b (either way). */
+  of(a: number, b: number): number {
+    return a < b ? this.edges.entry(a, b) : this.edges.entry(b, a);
+  }
+  count(e: number): number {
+    return this.edges.value[e]!;
+  }
+}
+
+/**
  * Turns pieces to wind like their neighbours: across an edge two pieces
  * share, each runs it the other way. With `outward`, each connected part is
  * then turned so it encloses positive volume.
@@ -174,16 +223,7 @@ function orient(pieces: Piece[], points: readonly V3[], outward: boolean): void 
     p.n = [-p.n[0], -p.n[1], -p.n[2]];
     p.d = -p.d;
   };
-  const byEdge = new Map<string, number[]>();
-  pieces.forEach((p, i) =>
-    p.loop.forEach((a, k) => {
-      const b = p.loop[(k + 1) % p.loop.length]!;
-      const key = a < b ? `${a},${b}` : `${b},${a}`;
-      const list = byEdge.get(key);
-      if (list) list.push(i);
-      else byEdge.set(key, [i]);
-    }),
-  );
+  const byEdge = new EdgePieces(pieces);
   const runs = (p: Piece, a: number, b: number) =>
     p.loop.some((v, k) => v === a && p.loop[(k + 1) % p.loop.length] === b);
   const seen = new Uint8Array(pieces.length);
@@ -195,9 +235,9 @@ function orient(pieces: Piece[], points: readonly V3[], outward: boolean): void 
       const p = pieces[part[q]!]!;
       p.loop.forEach((a, k) => {
         const b = p.loop[(k + 1) % p.loop.length]!;
-        const list = byEdge.get(a < b ? `${a},${b}` : `${b},${a}`)!;
-        if (list.length !== 2) return; // a fold of three or more: no way to agree
-        const j = list[0] === part[q] ? list[1]! : list[0]!;
+        const e = byEdge.of(a, b);
+        if (byEdge.count(e) !== 2) return; // a fold of three or more: no way to agree
+        const j = byEdge.first[e] === part[q] ? byEdge.second[e]! : byEdge.first[e]!;
         if (seen[j]) return;
         seen[j] = 1;
         if (runs(pieces[j]!, a, b)) flip(pieces[j]!);
@@ -228,18 +268,19 @@ type Face = { loops: number[][]; color: Rgb | null };
  * the two sides meet edge to edge instead of leaving a slit. Returns how many.
  */
 function stitch(faces: Face[], points: readonly V3[], dist: number): number {
-  const sides = new Set<string>();
+  const sides = new PairMap();
   for (const f of faces)
-    for (const l of f.loops) l.forEach((a, k) => sides.add(`${a},${l[(k + 1) % l.length]}`));
+    for (const l of f.loops) l.forEach((a, k) => sides.add(a, l[(k + 1) % l.length]!));
   const open: [number, number][] = [];
-  for (const e of sides) {
-    const [a, b] = e.split(',').map(Number) as [number, number];
-    if (!sides.has(`${b},${a}`)) open.push([a, b]);
+  for (let e = 0; e < sides.size; e++) {
+    const [a, b] = [sides.a[e]!, sides.b[e]!];
+    if (!sides.has(b, a)) open.push([a, b]);
   }
   const ends = [...new Set(open.flat())];
   // Too many to compare pairwise: leave the slits.
   if (open.length * ends.length > 4e7) return 0;
-  const on = new Map<string, number[]>();
+  const on = new PairMap(); // an edge → its place in `inserts`
+  const inserts: number[][] = [];
   let count = 0;
   for (const [a, b] of open) {
     const p = points[a]!;
@@ -264,17 +305,18 @@ function stitch(faces: Face[], points: readonly V3[], dist: number): number {
       if (off <= dist) found.push([t, v]);
     }
     if (found.length) {
-      on.set(
-        `${a},${b}`,
-        found.sort((x, y) => x[0] - y[0]).map(([, v]) => v),
-      );
+      on.set(a, b, inserts.length);
+      inserts.push(found.sort((x, y) => x[0] - y[0]).map(([, v]) => v));
       count += found.length;
     }
   }
   if (count === 0) return 0;
   for (const f of faces)
     f.loops = f.loops.map((l) =>
-      l.flatMap((a, k) => [a, ...(on.get(`${a},${l[(k + 1) % l.length]}`) ?? [])]),
+      l.flatMap((a, k) => {
+        const at = on.get(a, l[(k + 1) % l.length]!);
+        return at < 0 ? [a] : [a, ...inserts[at]!];
+      }),
     );
   return count;
 }
@@ -287,30 +329,37 @@ function stitch(faces: Face[], points: readonly V3[], dist: number): number {
  * inside its section, which only closes round a solid. Returns how many.
  */
 function closeHoles(faces: Face[], points: V3[], dist: number): number {
-  const sides = new Map<string, Rgb | null>();
-  for (const f of faces)
-    for (const l of f.loops)
-      l.forEach((a, k) => sides.set(`${a},${l[(k + 1) % l.length]}`, f.color));
+  const sides = new PairMap(); // each side → the face it's a side of
+  faces.forEach((f, i) => {
+    for (const l of f.loops) l.forEach((a, k) => sides.set(a, l[(k + 1) % l.length]!, i));
+  });
   // The cap runs each open edge the other way.
   const out = new Map<number, number[]>();
-  const colorAt = new Map<string, Rgb | null>();
-  for (const [e, c] of sides) {
-    const [a, b] = e.split(',').map(Number) as [number, number];
-    if (sides.has(`${b},${a}`)) continue;
+  const colorAt = new PairMap(); // a cap's side → the face across it
+  for (let e = 0; e < sides.size; e++) {
+    const [a, b] = [sides.a[e]!, sides.b[e]!];
+    if (sides.has(b, a)) continue;
     const list = out.get(b);
     if (list) list.push(a);
     else out.set(b, [a]);
-    colorAt.set(`${b},${a}`, c);
+    colorAt.set(b, a, sides.value[e]!);
   }
   const loops: number[][] = [];
   for (const start of [...out.keys()]) {
     while (out.get(start)?.length) {
       const loop = [start];
+      const place = new Map([[start, 0]]); // where each vertex is in the loop
       let v = out.get(start)!.pop()!;
       let ok = true;
       while (v !== start) {
-        const at = loop.indexOf(v);
-        if (at >= 0) loops.push(loop.splice(at)); // it pinches here: that part is a hole of its own
+        const at = place.get(v);
+        if (at !== undefined) {
+          // It pinches here: that part is a hole of its own.
+          const part = loop.splice(at);
+          for (const w of part) place.delete(w);
+          loops.push(part);
+        }
+        place.set(v, loop.length);
         loop.push(v);
         const next = out.get(v)?.pop();
         if (next === undefined) {
@@ -331,7 +380,8 @@ function closeHoles(faces: Face[], points: V3[], dist: number): number {
     if (len === 0) continue;
     const n: V3 = [nn[0] / len, nn[1] / len, nn[2] / len];
     const d = n[0] * pts[0]![0] + n[1] * pts[0]![1] + n[2] * pts[0]![2];
-    const color = colorAt.get(`${loop[0]},${loop[1]}`) ?? null;
+    const across = colorAt.get(loop[0]!, loop[1]!);
+    const color = across < 0 ? null : faces[across]!.color;
     const flat = pts.every((p) => Math.abs(n[0] * p[0] + n[1] * p[1] + n[2] * p[2] - d) <= dist);
     if (flat) faces.push({ loops: [loop], color });
     else {
@@ -361,18 +411,19 @@ function closeHoles(faces: Face[], points: V3[], dist: number): number {
  * surface closed. Each connected piece becomes a shell.
  * Null when nothing with area is left.
  */
-export function polygonize(soup: Soup): CutObject | null {
+export function polygonize(soup: Soup, progress?: Progress): CutObject | null {
   const span = soup.positions.reduce(
     (m, p) => Math.max(m, Math.abs(p[0]), Math.abs(p[1]), Math.abs(p[2])),
     0,
   );
   const tol = Math.max(span * 1e-9, 1e-9);
   const { points, index } = weld(soup.positions, tol);
+  progress?.(0.15);
 
   // Pieces: the polygons, welded, without repeated corners or zero area.
   const pieces: Piece[] = [];
   // The same corners twice (either way round) is one face drawn twice: kept once.
-  const corners = new Set<string>();
+  const corners = new Map<number, number[][]>(); // by a hash of the sorted corners
   soup.polygons.forEach((poly, i) => {
     const loop: number[] = [];
     for (const v of poly) {
@@ -382,9 +433,15 @@ export function polygonize(soup: Soup): CutObject | null {
     }
     while (loop.length > 1 && loop[0] === loop[loop.length - 1]) loop.pop();
     if (new Set(loop).size !== loop.length || loop.length < 3) return;
-    const key = [...loop].sort((a, b) => a - b).join(',');
-    if (corners.has(key)) return;
-    corners.add(key);
+    // A hash that doesn't depend on the order of the corners (a sum), so nothing is sorted
+    // unless two polygons share it.
+    let key = loop.length;
+    for (const v of loop) key = (key + Math.imul(v ^ (v >>> 13), 0x9e3779b1)) | 0;
+    key &= 0x3fffffff;
+    const same = corners.get(key);
+    if (same?.some((c) => sameCorners(c, loop))) return;
+    if (same) same.push(loop);
+    else corners.set(key, [loop]);
     const nn = newell(loop.map((v) => points[v]!));
     const len = Math.hypot(...nn);
     if (len < tol * tol) return;
@@ -394,19 +451,12 @@ export function polygonize(soup: Soup): CutObject | null {
     pieces.push({ loop, face: soup.faces?.[i], n, d, color: soup.colors?.[i] ?? null });
   });
   if (pieces.length === 0) return null;
+  progress?.(0.25);
   orient(pieces, points, soup.unordered ?? false);
+  progress?.(0.4);
 
   // Coplanar neighbours across an edge only they share join one group.
-  const byEdge = new Map<string, number[]>();
-  pieces.forEach((p, i) =>
-    p.loop.forEach((a, k) => {
-      const b = p.loop[(k + 1) % p.loop.length]!;
-      const key = a < b ? `${a},${b}` : `${b},${a}`;
-      const list = byEdge.get(key);
-      if (list) list.push(i);
-      else byEdge.set(key, [i]);
-    }),
-  );
+  const byEdge = new EdgePieces(pieces);
   const groups = new Sets(pieces.length);
   if (soup.faces) {
     const first = new Map<number, number>();
@@ -417,12 +467,13 @@ export function polygonize(soup: Soup): CutObject | null {
     });
   }
   const dist = Math.max(span * 1e-6, 1e-7); // offsets apart by float32 rounding at most
-  for (const list of soup.faces ? [] : byEdge.values()) {
-    if (list.length !== 2) continue;
-    const [p, q] = [pieces[list[0]!]!, pieces[list[1]!]!];
+  for (let e = 0; !soup.faces && e < byEdge.edges.size; e++) {
+    if (byEdge.count(e) !== 2) continue;
+    const [i, j] = [byEdge.first[e]!, byEdge.second[e]!];
+    const [p, q] = [pieces[i]!, pieces[j]!];
     const dot = p.n[0] * q.n[0] + p.n[1] * q.n[1] + p.n[2] * q.n[2];
     if (dot > PARALLEL && Math.abs(p.d - q.d) < dist && sameColor(p.color, q.color))
-      groups.join(list[0]!, list[1]!);
+      groups.join(i, j);
   }
   const members = new Map<number, Piece[]>();
   pieces.forEach((p, i) => {
@@ -437,8 +488,11 @@ export function polygonize(soup: Soup): CutObject | null {
     if (merged) faces.push({ loops: merged, color: list[0]!.color });
     else for (const p of list) faces.push({ loops: [p.loop], color: p.color });
   }
+  progress?.(0.55);
   stitch(faces, points, Math.max(dist * 10, span * 1e-5));
+  progress?.(0.65);
   const holes = closeHoles(faces, points, dist);
+  progress?.(0.75);
 
   // Each connected piece is a shell.
   const shells = new Sets(points.length);
@@ -496,11 +550,37 @@ export function polygonize(soup: Soup): CutObject | null {
  * Soups and their children as objects. One with no faces that holds two or
  * more becomes their grouper; otherwise what it holds takes its place.
  */
-export function soupObjects(soups: readonly Soup[]): CutObject[] {
+export function soupObjects(soups: readonly Soup[], opts: MeshOptions = {}): CutObject[] {
+  const { progress, budget } = opts;
+  if (budget !== undefined) {
+    const from = polygonCount(soups);
+    if (from > budget) {
+      soups = simplifySoups(soups, budget / from);
+      opts.simplified?.(from, polygonCount(soups));
+    }
+  }
+  if (!progress) return objectsOf(soups);
+  const size = (list: readonly Soup[]): number =>
+    list.reduce((n, s) => n + s.polygons.length + size(s.children ?? []), 0);
+  const total = Math.max(1, size(soups));
+  let done = 0;
+  const out = objectsOf(soups, (s) => {
+    const p = part(progress, done / total, (done + s.polygons.length) / total);
+    done += s.polygons.length;
+    return p;
+  });
+  progress(1);
+  return out;
+}
+
+function objectsOf(
+  soups: readonly Soup[],
+  progressOf?: (s: Soup) => Progress | undefined,
+): CutObject[] {
   const out: CutObject[] = [];
   for (const s of soups) {
-    const o = polygonize(s);
-    const kids = soupObjects(s.children ?? []);
+    const o = polygonize(s, progressOf?.(s));
+    const kids = objectsOf(s.children ?? [], progressOf);
     if (!o) {
       if (kids.length >= 2) out.push(grouper(s.name, kids));
       else out.push(...kids);

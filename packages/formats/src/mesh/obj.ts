@@ -1,6 +1,7 @@
 import type { CutObject, Rgb } from '@cutplane/kernel';
 import { meshFaces, type V3 } from './faces.ts';
 import { exportable, nameOf } from './objects.ts';
+import type { MeshOptions } from './options.ts';
 import { soupObjects, type Soup } from './polygonize.ts';
 
 const hex = (c: Rgb) => c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
@@ -66,7 +67,11 @@ export function readMtl(text: string): Map<string, Rgb> {
  * `o`s), polygons as they are, coplanar triangles joined back into faces.
  * Colours come from `materials` (an .mtl's) or from `color_rrggbb` names.
  */
-export function readObj(text: string, materials: Map<string, Rgb> = new Map()): CutObject[] {
+export function readObj(
+  text: string,
+  materials: Map<string, Rgb> = new Map(),
+  opts: MeshOptions = {},
+): CutObject[] {
   const positions: V3[] = [];
   const soups: Soup[] = [];
   const lines = text.split(/\r?\n/);
@@ -112,5 +117,8 @@ export function readObj(text: string, materials: Map<string, Rgb> = new Map()): 
       s.colors!.push(color);
     }
   }
-  return soupObjects(soups.filter((s) => s.polygons.length > 0));
+  return soupObjects(
+    soups.filter((s) => s.polygons.length > 0),
+    opts,
+  );
 }

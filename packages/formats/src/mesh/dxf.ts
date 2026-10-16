@@ -1,5 +1,6 @@
 import type { CutObject, Rgb } from '@cutplane/kernel';
 import type { V3 } from './faces.ts';
+import type { MeshOptions } from './options.ts';
 import { soupObjects, type Soup } from './polygonize.ts';
 
 /** A group code and its value: DXF is these, one line each. */
@@ -88,7 +89,7 @@ function entities(ps: readonly Pair[], from: number, to: number): Entity[] {
  * from the entity or its layer, and turned so the room's y is DXF's z (up).
  * Lines, arcs and text are passed over.
  */
-export function readDxf(text: string): CutObject[] {
+export function readDxf(text: string, opts: MeshOptions = {}): CutObject[] {
   const ps = pairs(text);
   // Sections by name.
   const sections = new Map<string, [number, number]>();
@@ -214,5 +215,5 @@ export function readDxf(text: string): CutObject[] {
   // Nothing in a DXF says which way a face winds: each piece is turned outward.
   const list = [...soups.values()].filter((s) => s.polygons.length > 0);
   for (const s of list) s.unordered = true;
-  return soupObjects(list);
+  return soupObjects(list, opts);
 }

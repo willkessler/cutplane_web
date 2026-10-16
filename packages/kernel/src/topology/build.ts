@@ -1,4 +1,5 @@
 import { Brep, NONE } from './brep.ts';
+import { PairMap } from './pairmap.ts';
 
 /** One shell as polygons: faces → loops (outer first) → 0-based vertex indices. */
 export interface PolygonShell {
@@ -30,7 +31,6 @@ export function buildShell(b: Brep, input: PolygonShell): BuiltShell {
   const vertices = input.positions.map(([x, y, z]) => b.newVertex(shell, x, y, z));
   const faces: number[] = [];
   const order: number[] = []; // half-edges in canonical order
-  const byDir = new Map<string, number[]>();
 
   for (const loops of input.faces) {
     const f = b.newFace(shell);
@@ -56,26 +56,47 @@ export function buildShell(b: Brep, input: PolygonShell): BuiltShell {
       }
       b.link(prev, first);
       b.setLoopHe(l, first);
-      for (const h of b.loopHalfEdges(l)) {
-        order.push(h);
-        if (b.heNext(h) === h) continue; // lone half-edge: no edge
-        const key = `${b.heVertex(h)},${b.heVertex(b.heNext(h))}`;
-        const list = byDir.get(key);
-        if (list) list.push(h);
-        else byDir.set(key, [h]);
-      }
+      for (const h of b.loopHalfEdges(l)) order.push(h);
     }
   }
 
-  const take = (key: string, h: number): number => {
-    const list = byDir.get(key);
-    if (!list) return NONE;
+  // Half-edges by direction (from vertex, to vertex), each direction a list in
+  // canonical order: its first entry in `head`, then on through `next`. A
+  // half-edge taken into an edge is marked `used` (and skipped thereafter).
+  const dirs = new PairMap(order.length);
+  const head = new Int32Array(order.length).fill(-1);
+  const tail = new Int32Array(order.length).fill(-1);
+  const next = new Int32Array(order.length).fill(-1);
+  const used = new Uint8Array(order.length);
+  const at = new Map<number, number>(); // half-edge → its place in `order`
+  order.forEach((h, k) => {
+    at.set(h, k);
+    if (b.heNext(h) === h) return; // lone half-edge: no edge
+    const d = dirs.add(b.heVertex(h), b.heVertex(b.heNext(h)));
+    if (head[d]! < 0) head[d] = k;
+    else next[tail[d]!] = k;
+    tail[d] = k;
+  });
+
+  const take = (u: number, v: number, h: number): number => {
+    const d = dirs.entry(u, v);
+    if (d < 0) return NONE;
     const face = b.heFace(h);
-    let pick = list.findIndex((c) => c !== h && b.heEdge(c) === NONE && b.heFace(c) !== face);
-    if (pick < 0) pick = list.findIndex((c) => c !== h && b.heEdge(c) === NONE);
+    let pick = -1;
+    let other = -1;
+    for (let k = head[d]!; k >= 0; k = next[k]!) {
+      const c = order[k]!;
+      if (used[k] || c === h || b.heEdge(c) !== NONE) continue;
+      if (b.heFace(c) !== face) {
+        pick = k;
+        break;
+      }
+      if (other < 0) other = k;
+    }
+    if (pick < 0) pick = other;
     if (pick < 0) return NONE;
-    const [m] = list.splice(pick, 1);
-    return m!;
+    used[pick] = 1;
+    return order[pick]!;
   };
 
   const edges: number[] = [];
@@ -86,10 +107,9 @@ export function buildShell(b: Brep, input: PolygonShell): BuiltShell {
     const e = b.newEdge(h, NONE);
     b.setHeEdge(h, e);
     edges.push(e);
-    const self = byDir.get(`${u},${v}`);
-    if (self) self.splice(self.indexOf(h), 1);
-    let m = take(`${v},${u}`, h);
-    if (m === NONE) m = take(`${u},${v}`, h); // misoriented neighbour
+    used[at.get(h)!] = 1;
+    let m = take(v, u, h);
+    if (m === NONE) m = take(u, v, h); // misoriented neighbour
     if (m !== NONE) {
       b.setHeEdge(m, e);
       b.setEdgeHes(e, h, m);

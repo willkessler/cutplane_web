@@ -10,6 +10,7 @@ import {
 import { mat4, type CutObject, type Mat4, type Rgb } from '@cutplane/kernel';
 import { meshFaces, type V3 } from './faces.ts';
 import { nameOf } from './objects.ts';
+import type { MeshOptions } from './options.ts';
 import { soupObjects, type Soup } from './polygonize.ts';
 
 /** A room unit is a millimetre: glTF's metres are a thousand of them. */
@@ -162,6 +163,7 @@ export async function readGltf(
   data: Uint8Array | string,
   resources: Record<string, Uint8Array<ArrayBuffer>> = {},
   decodeImage?: DecodeImage,
+  opts: MeshOptions = {},
 ): Promise<CutObject[]> {
   const doc =
     typeof data === 'string'
@@ -278,5 +280,5 @@ export async function readGltf(
     soup.children = kids;
     return [soup];
   };
-  return soupObjects(scene.listChildren().flatMap(walk));
+  return soupObjects(scene.listChildren().flatMap(walk), opts);
 }

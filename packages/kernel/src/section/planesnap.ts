@@ -28,11 +28,12 @@ export class PlaneSnapper {
 
   /** Replaces the depth stops; values outside the room are ignored. */
   setDepths(zs: Iterable<number>): void {
-    const sorted = [...zs]
-      .filter((z) => z >= ROOM.min[2] && z <= ROOM.max[2])
-      .sort((a, b) => a - b);
+    const sorted = Float64Array.from(zs).sort(); // a typed array sorts by value, quickly
     const kept: number[] = [];
-    for (const z of sorted) if (kept.length === 0 || z - kept.at(-1)! >= DEPTH_MERGE) kept.push(z);
+    for (const z of sorted) {
+      if (!(z >= ROOM.min[2] && z <= ROOM.max[2])) continue;
+      if (kept.length === 0 || z - kept.at(-1)! >= DEPTH_MERGE) kept.push(z);
+    }
     this.depths = Float64Array.from(kept);
   }
 

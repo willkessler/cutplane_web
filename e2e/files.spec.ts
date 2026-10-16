@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { crc32, deflateSync } from 'node:zlib';
+import { crc32, deflateSync, gzipSync } from 'node:zlib';
 import { expect, test, type Page } from '@playwright/test';
 
 // M7: OBJ, STL and glTF in and out, drag and drop, autosave.
@@ -259,5 +259,25 @@ test('Inventor, VRML and DXF files open too', async ({ page }) => {
     await expect.poll(async () => (await edit(page)).objects).toBe(2 + i);
   }
   await expect.poll(() => page.evaluate(() => window.__cutplane!.palette())).toEqual(expect.arrayContaining(['255,0,0', '0,0,255', '0,255,0'])); // prettier-ignore
+  expect(errors).toEqual([]);
+});
+
+test('binary Inventor opens, and gzipped files (.iv.gz) open as they are', async ({ page }) => {
+  const errors = await open(page, 'sample=cube');
+  // Written by Coin3D (docker/coin/make.sh): a red tetrahedron and a cube, among other things.
+  const binary = readFileSync('packages/formats/test/fixtures/scene.bin.iv');
+  await page
+    .locator('#file')
+    .setInputFiles({ name: 'scene.iv', mimeType: 'application/octet-stream', buffer: binary });
+  await expect(page.locator('#notice')).toContainText('from scene.iv');
+  const after = (await edit(page)).objects;
+  expect(after).toBeGreaterThan(1);
+  await page.locator('#file').setInputFiles({
+    name: 'scene.iv.gz',
+    mimeType: 'application/gzip',
+    buffer: gzipSync(binary),
+  });
+  await expect(page.locator('#notice')).toContainText('from scene.iv.gz');
+  await expect.poll(async () => (await edit(page)).objects).toBe(after + (after - 1));
   expect(errors).toEqual([]);
 });

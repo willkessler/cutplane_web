@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { preorder, validate, volume, type CutObject } from '@cutplane/kernel';
@@ -79,8 +79,77 @@ Separator {
     expect(vol(kids[1]!)).toBeGreaterThan(0.9 * (4 / 3) * Math.PI * 8);
   });
 
-  it('says binary Inventor files are not read', () => {
-    expect(() => readInventor('#Inventor V2.1 binary\n\0\0')).toThrow(/binary/);
+  it('joins face sets in a row into one shape, coloured face by face, each taking only its points', () => {
+    // Two parts of one model drawn from one long list of points, each its own material
+    // (as a model of thousands of parts is): one object, not one a part.
+    const objs = readInventor(`#Inventor V2.1 ascii
+Separator {
+  Coordinate3 { point [ 0 0 0, 3 0 0, 0 3 0, 0 0 3,  10 0 0, 13 0 0, 10 3 0, 10 0 3,  50 50 50 ] }
+  DEF metal+0 Material { diffuseColor 1 0 0 }
+  IndexedFaceSet { coordIndex [ 0 2 1 -1 0 1 3 -1 0 3 2 -1 1 2 3 -1 ] }
+  Material { diffuseColor 0 0 1 }
+  IndexedFaceSet { coordIndex [ 4 6 5 -1 4 5 7 -1 4 7 6 -1 5 6 7 -1 ] }
+}`);
+    expect(objs).toHaveLength(1);
+    const [o] = objs as [CutObject];
+    expect(o.brep.numFaces).toBe(8);
+    expect(o.brep.vertices()).toHaveLength(8); // the point at 50 50 50 isn't used: not taken
+    const colors = new Set(o.brep.faces().map((f) => (o.brep.faceColors.get(f) ?? o.color).join()));
+    expect(colors).toEqual(new Set(['255,0,0', '0,0,255']));
+    expect(vol(o)).toBeCloseTo(9);
+  });
+
+  it('keeps each Separator its own, and names a DEF without its +n', () => {
+    const objs = readInventor(`#Inventor V2.1 ascii
+Separator {
+  Coordinate3 { point [ 0 0 0, 3 0 0, 0 3 0, 0 0 3 ] }
+  DEF part+3 Separator { IndexedFaceSet { coordIndex [ 0 2 1 -1 0 1 3 -1 0 3 2 -1 1 2 3 -1 ] } }
+  Separator { Translation { translation 9 0 0 } IndexedFaceSet { coordIndex [ 0 2 1 -1 0 1 3 -1 0 3 2 -1 1 2 3 -1 ] } }
+}`);
+    const [g] = objs;
+    expect(g!.children).toHaveLength(2);
+    expect(g!.children[0]!.name).toBe('part');
+  });
+});
+
+describe('binary Open Inventor', () => {
+  // Written by Coin3D from the ASCII files beside them (docker/coin/make.sh).
+  const fixture = (name: string) =>
+    new Uint8Array(readFileSync(join(import.meta.dirname, 'fixtures', name)));
+  const summary = (objs: CutObject[]) =>
+    [...objs.flatMap((o) => [...preorder([o])])].map((o) => ({
+      name: o.name,
+      faces: o.brep.numFaces,
+      color: o.color,
+      volume: Math.round(vol(o) * 1000) / 1000,
+      at: o.brep.numFaces ? at(o).map((v) => Math.round(v * 1000) / 1000) : null,
+    }));
+
+  it('reads as the ASCII it was written from: DEF and USE, materials, transforms, enums', () => {
+    const text = readFileSync(join(import.meta.dirname, 'fixtures', 'scene.ascii.iv'), 'latin1');
+    const fromText = readInventor(text);
+    const fromBinary = readInventor(fixture('scene.bin.iv'));
+    expect(summary(fromBinary)).toEqual(summary(fromText));
+    expect(summary(fromBinary).some((o) => o.color.join() === '255,0,0')).toBe(true);
+  });
+
+  it("reads the other field types, and a node Inventor doesn't know that describes its fields", () => {
+    for (const f of ['types', 'rare']) {
+      const text = readFileSync(join(import.meta.dirname, 'fixtures', `${f}.ascii.iv`), 'latin1');
+      expect(summary(readInventor(fixture(`${f}.bin.iv`)))).toEqual(summary(readInventor(text)));
+    }
+    // The cylinder (parts SIDES | TOP) and the cube in the switch.
+    const solids = readInventor(fixture('types.bin.iv'))
+      .flatMap((o) => [...preorder([o])])
+      .filter((o) => !o.attrs.props.includes('Grouper'));
+    expect(solids.map((o) => o.brep.numFaces)).toEqual([26, 6]);
+  });
+
+  it('says what it could not read, and where', () => {
+    const bad = new Uint8Array(readFileSync(join(import.meta.dirname, 'fixtures', 'scene.bin.iv')));
+    expect(() => readInventor(bad.subarray(0, 200))).toThrow(
+      /binary Inventor: the file ends too soon \(at byte \d+\)/,
+    );
   });
 });
 

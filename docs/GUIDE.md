@@ -161,8 +161,13 @@ Click the camera again, or close its window, to put the view away; the shots are
 - **Open…** (top bar), or drop files anywhere on the page:
   - a **`.cut`** world from 3Form or Cutplane replaces the world;
   - **models** are added to it: glTF (`.glb`, `.gltf`), OBJ (with its `.mtl`), STL, and the SGI
-    era's Open Inventor (`.iv`), VRML (`.wrl`) and DXF. A file comes in as one group; **G** takes
-    it apart. Models are made into solids on the way in, and scaled to fit the room if need be.
+    era's Open Inventor (`.iv`, text or binary), VRML (`.wrl`) and DXF, gzipped or not
+    (`.iv.gz`). A file comes in as one group; **G** takes it apart. Models are made into solids on
+    the way in, and scaled to fit the room if need be.
+  - A big file takes a few seconds: a **ring turns in the room** while it's read, filling as it
+    goes. **Esc** stops it. A model of more than 400,000 faces is simplified to about that many,
+    so the room stays quick to work in (the status line says so); add `?faces=all` to the page's
+    address to keep every face.
     Free models to try: [Poly Pizza](https://poly.pizza/) (glTF, CC0 and CC-BY) and
     [Sketchfab](https://sketchfab.com/) (filter by downloadable).
 - **Save** writes the world as a `.cut` file, and keeps a copy in the browser (listed in the model

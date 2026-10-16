@@ -1,6 +1,7 @@
 import type { CutObject } from '@cutplane/kernel';
 import { meshFaces, type V3 } from './faces.ts';
 import { exportable } from './objects.ts';
+import type { MeshOptions } from './options.ts';
 import { soupObjects, type Soup } from './polygonize.ts';
 
 /** Binary STL: every object's triangles, in room units, with their faces' normals. */
@@ -38,7 +39,7 @@ function isBinary(bytes: Uint8Array): boolean {
 }
 
 /** Reads an STL (binary or ASCII), welding its triangles into solids: one per `solid` block. */
-export function readStl(bytes: Uint8Array): CutObject[] {
+export function readStl(bytes: Uint8Array, opts: MeshOptions = {}): CutObject[] {
   const soups: Soup[] = [];
   if (isBinary(bytes)) {
     const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -79,5 +80,8 @@ export function readStl(bytes: Uint8Array): CutObject[] {
       }
     }
   }
-  return soupObjects(soups.filter((s) => s.polygons.length > 0));
+  return soupObjects(
+    soups.filter((s) => s.polygons.length > 0),
+    opts,
+  );
 }

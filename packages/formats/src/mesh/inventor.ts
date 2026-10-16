@@ -1,6 +1,8 @@
 import { mat4, type CutObject, type Mat4, type Rgb } from '@cutplane/kernel';
 import type { V3 } from './faces.ts';
 import { soupObjects, type Soup } from './polygonize.ts';
+import { parseBinary } from './inventorbin.ts';
+import { part, type MeshOptions } from './options.ts';
 
 /**
  * Open Inventor (.iv, ASCII) and VRML (.wrl, 1.0 and 2.0). VRML 1.0 is
@@ -9,147 +11,274 @@ import { soupObjects, type Soup } from './polygonize.ts';
  * its body fields (a name and its values) and, in Inventor, child nodes.
  */
 
-type Value = number | string | VNode;
+export type Value = number | string | VNode;
+/** A field's values: numbers alone come as one array of them (the big lists: points, indices). */
+export type Field = Value[] | Float64Array;
 
-interface VNode {
+export interface VNode {
   type: string;
-  fields: Map<string, Value[]>;
+  fields: Map<string, Field>;
   children: VNode[];
   name?: string;
 }
 
-function tokenize(text: string): string[] {
-  const out: string[] = [];
-  const n = text.length;
-  for (let i = 0; i < n;) {
-    const c = text[i]!;
-    if (c === '#') {
-      while (i < n && text[i] !== '\n' && text[i] !== '\r') i++;
-    } else if (c <= ' ' || c === ',') i++;
-    else if ('{}[]()|'.includes(c)) {
-      out.push(c);
-      i++;
-    } else if (c === '"') {
-      let s = '';
-      for (i++; i < n && text[i] !== '"'; i++) s += text[i] === '\\' ? text[++i] : text[i];
-      i++;
-      out.push(`"${s}`); // a leading quote marks a string
-    } else {
-      const start = i;
-      while (i < n && text[i]! > ' ' && !'{}[]()|,#"'.includes(text[i]!)) i++;
-      out.push(text.slice(start, i));
+/** A growing list of numbers. */
+class Numbers {
+  a = new Float64Array(16);
+  n = 0;
+  push(v: number): void {
+    if (this.n === this.a.length) {
+      const b = new Float64Array(this.n * 2);
+      b.set(this.a);
+      this.a = b;
     }
+    this.a[this.n++] = v;
   }
-  return out;
+  take(): Float64Array {
+    return this.a.slice(0, this.n);
+  }
 }
 
-const isNumber = (t: string | undefined) => t !== undefined && /^[+-]?(\d|\.\d)/.test(t);
+// Character codes.
+const HASH = 35, COMMA = 44, QUOTE = 34, BACKSLASH = 92, LF = 10, CR = 13; // prettier-ignore
+const PLUS = 43, MINUS = 45, DOT = 46, ZERO = 48, NINE = 57; // prettier-ignore
+/** Characters that end a word: space and below, and these. */
+const BREAKS = new Set([...'{}[]()|,#"'].map((c) => c.charCodeAt(0)));
+const isDigit = (c: number) => c >= ZERO && c <= NINE;
 
-function parse(tokens: string[]): VNode[] {
+/**
+ * The name a DEF gives a node, as it's shown: writers add "+n" to tell apart
+ * nodes that share a name (rover_metal+0, rover_metal+1), which isn't part of it.
+ * (USE refers to the whole of it.)
+ */
+/** Bytes as 8-bit text: Latin-1 maps every byte to the character of that code. */
+export function latin1(bytes: Uint8Array): string {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000)
+    s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return s;
+}
+
+export const defName = (def: string): string | undefined => def.replace(/\+\d+$/, '') || undefined;
+
+/**
+ * The text formats' nodes, read in one pass over the text: words, strings,
+ * brackets and numbers, the numbers read straight into number arrays (a file
+ * of millions of points makes no string for each).
+ */
+function parseText(text: string, progress?: (f: number) => void): VNode[] {
+  const n = text.length;
   let i = 0;
+  let reported = 0;
   const defs = new Map<string, VNode>();
+
+  /** Past spaces, commas and comments. */
+  const skip = () => {
+    for (;;) {
+      const c = text.charCodeAt(i);
+      if (c === HASH) while (i < n && text.charCodeAt(i) !== LF && text.charCodeAt(i) !== CR) i++;
+      else if (i < n && (c <= 32 || c === COMMA)) i++;
+      else return;
+    }
+  };
+  const isNumberAt = (at: number) => {
+    let c = text.charCodeAt(at);
+    if (c === PLUS || c === MINUS) c = text.charCodeAt(++at);
+    return isDigit(c) || (c === DOT && isDigit(text.charCodeAt(at + 1)));
+  };
+  /** The word (or number) here, and past it. */
+  const word = () => {
+    const start = i;
+    while (i < n) {
+      const c = text.charCodeAt(i);
+      if (c <= 32 || BREAKS.has(c)) break;
+      i++;
+    }
+    return text.slice(start, i);
+  };
+  /** The number here: whole numbers (indices) without making a string. */
+  const number = () => {
+    const start = i;
+    let c = text.charCodeAt(i);
+    const neg = c === MINUS;
+    if (c === PLUS || c === MINUS) c = text.charCodeAt(++i);
+    let v = 0;
+    while (isDigit(c)) {
+      v = v * 10 + (c - ZERO);
+      c = text.charCodeAt(++i);
+    }
+    if (c <= 32 || c === COMMA || BREAKS.has(c) || i >= n) {
+      if (v <= Number.MAX_SAFE_INTEGER) return neg ? -v : v;
+    }
+    i = start;
+    return Number(word());
+  };
+  const string = () => {
+    let s = '';
+    for (i++; i < n && text.charCodeAt(i) !== QUOTE; i++)
+      s += text.charCodeAt(i) === BACKSLASH ? text[++i] : text[i];
+    i++;
+    return s;
+  };
+  /** Whether a node starts here: DEF, USE, or a type name and its {. */
   const startsNode = () => {
-    const t = tokens[i];
-    return (
-      t === 'DEF' ||
-      t === 'USE' ||
-      (t !== undefined && /^[A-Za-z_]/.test(t) && tokens[i + 1] === '{')
-    );
+    const c = text.charCodeAt(i);
+    if (!((c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 95)) return false;
+    const at = i;
+    const w = word();
+    if (w === 'DEF' || w === 'USE') {
+      i = at;
+      return true;
+    }
+    skip();
+    const brace = text[i] === '{';
+    i = at;
+    return brace;
+  };
+  const tick = () => {
+    if (i - reported < 1 << 20) return;
+    reported = i;
+    progress!(i / n);
   };
   const node = (): VNode => {
-    if (tokens[i] === 'USE') {
-      const name = tokens[i + 1]!;
-      i += 2;
+    if (progress) tick();
+    let w = word();
+    if (w === 'USE') {
+      skip();
+      const name = word();
       return defs.get(name) ?? { type: 'Group', fields: new Map(), children: [] };
     }
     let name: string | undefined;
-    if (tokens[i] === 'DEF') {
-      name = tokens[i + 1];
-      i += 2;
+    if (w === 'DEF') {
+      skip();
+      name = word();
+      skip();
+      w = word();
     }
-    const n: VNode = {
-      type: tokens[i]!,
+    const shown = name && defName(name);
+    const nd: VNode = {
+      type: w,
       fields: new Map(),
       children: [],
-      ...(name ? { name } : {}),
+      ...(shown ? { name: shown } : {}),
     };
-    if (name) defs.set(name, n);
-    i += 2; // the type and its {
-    while (i < tokens.length && tokens[i] !== '}') {
+    if (name) defs.set(name, nd);
+    skip();
+    i++; // {
+    for (skip(); i < n && text[i] !== '}'; skip()) {
       if (startsNode()) {
-        n.children.push(node());
+        nd.children.push(node());
         continue;
       }
-      const field = tokens[i++]!;
-      n.fields.set(field, value());
+      const field = BREAKS.has(text.charCodeAt(i)) ? text[i++]! : word();
+      skip();
+      nd.fields.set(field, value());
     }
     i++; // }
-    return n;
+    return nd;
   };
-  const value = (): Value[] => {
-    const t = tokens[i];
-    if (t === '[') {
+  const value = (): Field => {
+    const c = text[i];
+    if (c === '[') {
       i++;
-      const vs: Value[] = [];
-      while (i < tokens.length && tokens[i] !== ']') {
-        if (startsNode()) vs.push(node());
-        else vs.push(atom(tokens[i++]!));
+      const nums = new Numbers();
+      let vs: Value[] | null = null;
+      for (skip(); i < n && text[i] !== ']'; skip()) {
+        let v: Value;
+        if (progress && (nums.n & 0xffff) === 0) tick();
+        if (isNumberAt(i)) {
+          v = number();
+          if (!vs) {
+            nums.push(v);
+            continue;
+          }
+        } else if (text[i] === '"') v = string();
+        else if (startsNode()) v = node();
+        else if (BREAKS.has(text.charCodeAt(i))) v = text[i++]!;
+        else v = word();
+        vs ??= Array.from(nums.take());
+        vs.push(v);
       }
       i++;
-      return vs;
+      return vs ?? nums.take();
     }
-    if (t === '(') {
+    if (c === '(') {
       const vs: Value[] = [];
-      for (i++; i < tokens.length && tokens[i] !== ')'; i++)
-        if (tokens[i] !== '|') vs.push(tokens[i]!);
+      for (i++, skip(); i < n && text[i] !== ')'; skip())
+        if (text[i] === '|') i++;
+        else vs.push(word());
       i++;
       return vs;
     }
+    if (c === '}' || i >= n) return [];
     if (startsNode()) return [node()];
-    if (isNumber(t)) {
-      const vs: Value[] = [];
-      while (isNumber(tokens[i])) vs.push(Number(tokens[i++]));
-      return vs;
+    if (isNumberAt(i)) {
+      const nums = new Numbers();
+      for (; isNumberAt(i); skip()) nums.push(number());
+      return nums.take();
     }
-    i++;
-    return t === undefined ? [] : [atom(t)];
+    if (c === '"') return [string()];
+    if (BREAKS.has(text.charCodeAt(i))) return [text[i++]!];
+    return [word()];
   };
-  const atom = (t: string): Value => (isNumber(t) ? Number(t) : t.startsWith('"') ? t.slice(1) : t);
+
   const roots: VNode[] = [];
-  while (i < tokens.length) {
+  for (skip(); i < n; skip()) {
     if (startsNode()) roots.push(node());
-    else i++;
+    else if (BREAKS.has(text.charCodeAt(i)) && text[i] !== '"') i++;
+    else if (text[i] === '"') string();
+    else word();
   }
   return roots;
 }
 
+/** A field's numbers (a short one, as a list). */
 const nums = (n: VNode, f: string, d: number[] = []): number[] => {
   const v = n.fields.get(f);
-  return v ? v.filter((x): x is number => typeof x === 'number') : d;
+  if (!v) return d;
+  return v instanceof Float64Array
+    ? Array.from(v)
+    : v.filter((x): x is number => typeof x === 'number');
+};
+/** A field's numbers as they are kept (a long list: points, indices), not copied. */
+const list = (n: VNode, f: string): ArrayLike<number> => {
+  const v = n.fields.get(f);
+  if (!v) return [];
+  return v instanceof Float64Array ? v : v.filter((x): x is number => typeof x === 'number');
+};
+const first = (n: VNode, f: string): Value | undefined => {
+  const v = n.fields.get(f);
+  return v instanceof Float64Array ? v[0] : v?.[0];
 };
 const word = (n: VNode, f: string, d = ''): string => {
-  const v = n.fields.get(f)?.[0];
+  const v = first(n, f);
   return typeof v === 'string' ? v : d;
 };
 const child = (n: VNode, f: string): VNode | undefined => {
-  const v = n.fields.get(f)?.[0];
+  const v = first(n, f);
   return typeof v === 'object' ? v : undefined;
 };
-const triples = (a: readonly number[]): V3[] => {
-  const out: V3[] = [];
-  for (let k = 0; k + 2 < a.length; k += 3) out.push([a[k]!, a[k + 1]!, a[k + 2]!]);
+const triples = (a: ArrayLike<number>): V3[] => {
+  const out: V3[] = new Array<V3>(Math.floor(a.length / 3));
+  for (let k = 0, j = 0; k + 2 < a.length; k += 3) out[j++] = [a[k]!, a[k + 1]!, a[k + 2]!];
   return out;
 };
 const rgb = (c: readonly number[]): Rgb =>
   c.map((v) => Math.round(Math.min(1, Math.max(0, v)) * 255)) as Rgb;
 /** Faces of an index list, each ended by -1 (the last may not be). */
-const runs = (idx: readonly number[]): number[][] => {
-  const out: number[][] = [[]];
-  for (const v of idx) {
-    if (v < 0) out.push([]);
-    else out[out.length - 1]!.push(v);
+const runs = (idx: ArrayLike<number>): number[][] => {
+  const out: number[][] = [];
+  let f: number[] = [];
+  for (let k = 0; k < idx.length; k++) {
+    const v = idx[k]!;
+    if (v >= 0) f.push(v);
+    else if (f.length) {
+      out.push(f);
+      f = [];
+    }
   }
-  return out.filter((f) => f.length > 0);
+  if (f.length) out.push(f);
+  return out;
 };
 
 /** Translation, rotation, scale about a centre (scaleOrientation left out), as a row-vector matrix. */
@@ -229,20 +358,28 @@ interface State {
 }
 
 const GREY: Rgb = [204, 204, 204]; // Inventor's default diffuse 0.8
+/** The share of the time reading the text takes; the rest is making solids of it. */
+const READING = 0.15;
 
 /**
  * Reads Open Inventor ASCII (.iv) and VRML 1.0 / 2.0 (.wrl): face sets,
  * triangle strips and the four primitives (and, in a file with no faces, line
  * sets whose lines close, as their faces), placed by their transforms (baked
  * into the positions), coloured by their materials. Each Separator (or VRML
- * 2.0 Transform/Group) holding several shapes becomes a group. Binary
- * Inventor isn't read (SGI's `ivcat -a` turns it into ASCII).
+ * 2.0 Transform/Group) holding several shapes becomes a group. `file` is
+ * the text, or the file's bytes: binary Inventor is read from those (see
+ * inventorbin.ts).
  */
-export function readInventor(text: string): CutObject[] {
-  const head = text.slice(0, 64);
-  if (/^#Inventor V\d\.\d binary/.test(head)) throw new Error('binary Inventor files are not read yet (ivcat -a makes an ASCII one)'); // prettier-ignore
+export function readInventor(file: string | Uint8Array, opts: MeshOptions = {}): CutObject[] {
+  const { progress } = opts;
+  const head =
+    typeof file === 'string' ? file.slice(0, 64) : latin1(file.subarray(0, 64)); // prettier-ignore
+  const binary = /^#Inventor V\d\.\d binary/.test(head);
+  if (binary && typeof file === 'string') throw new Error('binary Inventor is read from its bytes, not as text'); // prettier-ignore
   const vrml2 = /^#VRML V2\.0/.test(head);
-  const roots = parse(tokenize(text));
+  const roots = binary
+    ? parseBinary(file as Uint8Array, part(progress, 0, READING))
+    : parseText(typeof file === 'string' ? file : latin1(file), part(progress, 0, READING)); // prettier-ignore
 
   const shape = (
     st: State,
@@ -256,13 +393,33 @@ export function readInventor(text: string): CutObject[] {
     const det =
       m[0]! * (m[5]! * m[10]! - m[6]! * m[9]!) - m[1]! * (m[4]! * m[10]! - m[6]! * m[8]!) + m[2]! * (m[4]! * m[9]! - m[5]! * m[8]!); // prettier-ignore
     const flip = (ccw === false) !== det < 0;
-    const positions = pts.map((p) => [...mat4.transformPoint(m, p[0], p[1], p[2])] as V3);
-    const polygons = faces.map((f) => (flip ? [...f].reverse() : f));
+    // Only the points its faces use: face sets often share one long list of points.
+    const at = new Int32Array(pts.length).fill(-1);
+    const positions: V3[] = [];
+    const polygons = faces.map((f) => {
+      const g = f.map((v) => {
+        let k = at[v];
+        if (k === undefined) return -1; // out of range: dropped below
+        if (k < 0) {
+          const p = pts[v]!;
+          k = at[v] = positions.length;
+          positions.push([...mat4.transformPoint(m, p[0], p[1], p[2])] as V3);
+        }
+        return k;
+      });
+      const ok = g.every((k) => k >= 0) ? g : g.filter((k) => k >= 0);
+      return flip ? ok.reverse() : ok;
+    });
     return { name, positions, polygons, colors, ...(ccw === null ? { unordered: true } : {}) };
+  };
+  /** A face set's shape: one of several in a row may join the others (see `joined`). */
+  const faceSet = (soup: Soup): Soup[] => {
+    faceSets.add(soup);
+    return [soup];
   };
   const ordering = (st: State): boolean | null =>
     st.ordering === 'COUNTERCLOCKWISE' ? true : st.ordering === 'CLOCKWISE' ? false : null;
-  const faceColors = (st: State, n: number, materialIndex: readonly number[]): (Rgb | null)[] => {
+  const faceColors = (st: State, n: number, materialIndex: ArrayLike<number>): (Rgb | null)[] => {
     const mats = st.materials.length ? st.materials : [GREY];
     const b = st.binding;
     return Array.from({ length: n }, (_, f) =>
@@ -285,7 +442,9 @@ export function readInventor(text: string): CutObject[] {
   const visit = (n: VNode, st: State): Soup[] => {
     const name = n.name ?? null;
     const group = (kids: VNode[], scoped: State): Soup[] => {
-      const out = kids.flatMap((k) => visit(k, scoped));
+      const out = joined(kids.flatMap((k) => visit(k, scoped)));
+      // A Separator's shapes are its own: none join the shapes beside it.
+      for (const x of out) faceSets.delete(x);
       if (out.length >= 2) return [{ name, positions: [], polygons: [], children: out }];
       // A named Separator round one shape names the shape.
       if (out.length === 1 && name && !out[0]!.name) out[0]!.name = name;
@@ -343,7 +502,7 @@ export function readInventor(text: string): CutObject[] {
         return [];
       }
       case 'Coordinate3':
-        st.coords = triples(nums(n, 'point'));
+        st.coords = triples(list(n, 'point'));
         return [];
       case 'Material':
         if (!vrml2) st.materials = triples(nums(n, 'diffuseColor', [0.8, 0.8, 0.8])).map(rgb);
@@ -360,7 +519,7 @@ export function readInventor(text: string): CutObject[] {
       case 'IndexedLineSet':
         if (vrml2) return [];
         {
-          const faces = loops(nums(n, 'coordIndex'), st.coords);
+          const faces = loops(list(n, 'coordIndex'), st.coords);
           return lineShape([
             shape(st, st.coords, faces, faceColors(st, faces.length, []), null, name),
           ]);
@@ -368,17 +527,17 @@ export function readInventor(text: string): CutObject[] {
       case 'IndexedFaceSet':
         if (vrml2) return [];
         {
-          const faces = runs(nums(n, 'coordIndex'));
-          return [
+          const faces = runs(list(n, 'coordIndex'));
+          return faceSet(
             shape(
               st,
               st.coords,
               faces,
-              faceColors(st, faces.length, nums(n, 'materialIndex')),
+              faceColors(st, faces.length, list(n, 'materialIndex')),
               ordering(st),
               name,
             ),
-          ];
+          );
         }
       case 'FaceSet': {
         let at = nums(n, 'startIndex', [0])[0]!;
@@ -388,11 +547,15 @@ export function readInventor(text: string): CutObject[] {
           at += count;
           return f;
         });
-        return [shape(st, st.coords, faces, faceColors(st, faces.length, []), ordering(st), name)];
+        return faceSet(
+          shape(st, st.coords, faces, faceColors(st, faces.length, []), ordering(st), name),
+        );
       }
       case 'IndexedTriangleStripSet': {
-        const faces = strips(st, runs(nums(n, 'coordIndex')));
-        return [shape(st, st.coords, faces, faceColors(st, faces.length, []), ordering(st), name)];
+        const faces = strips(st, runs(list(n, 'coordIndex')));
+        return faceSet(
+          shape(st, st.coords, faces, faceColors(st, faces.length, []), ordering(st), name),
+        );
       }
       case 'TriangleStripSet': {
         let at = nums(n, 'startIndex', [0])[0]!;
@@ -402,7 +565,9 @@ export function readInventor(text: string): CutObject[] {
           return s;
         });
         const faces = strips(st, list);
-        return [shape(st, st.coords, faces, faceColors(st, faces.length, []), ordering(st), name)];
+        return faceSet(
+          shape(st, st.coords, faces, faceColors(st, faces.length, []), ordering(st), name),
+        );
       }
       case 'Cube': {
         const g = box(
@@ -464,8 +629,12 @@ export function readInventor(text: string): CutObject[] {
         return n.children.flatMap((k) => visit(k, st));
     }
   };
-  const nodesOf = (n: VNode, f: string): VNode[] =>
-    (n.fields.get(f) ?? []).filter((v): v is VNode => typeof v === 'object');
+  const nodesOf = (n: VNode, f: string): VNode[] => {
+    const v = n.fields.get(f);
+    return !v || v instanceof Float64Array
+      ? []
+      : v.filter((x): x is VNode => typeof x === 'object');
+  };
   const vrmlShape = (n: VNode, st: State, name: string | null): Soup[] => {
     const mat = child(child(n, 'appearance') ?? n, 'material');
     const base = mat ? rgb(nums(mat, 'diffuseColor', [0.8, 0.8, 0.8])) : GREY;
@@ -484,20 +653,20 @@ export function readInventor(text: string): CutObject[] {
     switch (g.type) {
       case 'IndexedLineSet': {
         const coord = child(g, 'coord');
-        const pts = coord ? triples(nums(coord, 'point')) : [];
-        return lineShape(one(pts, loops(nums(g, 'coordIndex'), pts), null));
+        const pts = coord ? triples(list(coord, 'point')) : [];
+        return lineShape(one(pts, loops(list(g, 'coordIndex'), pts), null));
       }
       case 'IndexedFaceSet': {
         const coord = child(g, 'coord');
-        const pts = coord ? triples(nums(coord, 'point')) : [];
-        const faces = runs(nums(g, 'coordIndex'));
+        const pts = coord ? triples(list(coord, 'point')) : [];
+        const faces = runs(list(g, 'coordIndex'));
         const ccw = word(g, 'ccw', 'TRUE') !== 'FALSE';
         const color = child(g, 'color');
         if (!color) return one(pts, faces, ccw);
-        const cs = triples(nums(color, 'color')).map(rgb);
-        const ci = nums(g, 'colorIndex');
+        const cs = triples(list(color, 'color')).map(rgb);
+        const ci = list(g, 'colorIndex');
         const perVertex = word(g, 'colorPerVertex', 'TRUE') !== 'FALSE';
-        const flat = nums(g, 'coordIndex');
+        const flat = list(g, 'coordIndex');
         let k = 0;
         const colors = faces.map((f, i) => {
           if (perVertex) {
@@ -533,7 +702,7 @@ export function readInventor(text: string): CutObject[] {
   };
 
   const st: State = { matrix: mat4.identity(), coords: [], materials: [], binding: 'OVERALL', ordering: 'UNKNOWN_ORDERING' }; // prettier-ignore
-  const soups = roots.flatMap((r) => visit(r, st));
+  const soups = joined(roots.flatMap((r) => visit(r, st)));
   // Line sets count only when there's nothing else: a wireframe of a mesh (IVREAD wrote them).
   const faced = (list: readonly Soup[]): boolean =>
     list.some((x) => (!fromLines.has(x) && x.polygons.length > 0) || faced(x.children ?? []));
@@ -542,9 +711,48 @@ export function readInventor(text: string): CutObject[] {
       list
         .filter((x) => !fromLines.has(x))
         .map((x) => ({ ...x, children: drop(x.children ?? []) }));
-    return soupObjects(drop(soups));
+    return soupObjects(drop(soups), { ...opts, progress: part(progress, READING, 1) });
   }
-  return soupObjects(soups);
+  return soupObjects(soups, { ...opts, progress: part(progress, READING, 1) });
+}
+
+/** Shapes made from face sets (not primitives or lines). */
+const faceSets = new WeakSet<Soup>();
+
+/**
+ * Face sets one after another in one group, unnamed, come in as one shape,
+ * coloured face by face: a model drawn as thousands of face sets (a part
+ * each, its own material) would otherwise be thousands of objects.
+ */
+function joined(list: Soup[]): Soup[] {
+  const out: Soup[] = [];
+  let run: Soup[] = [];
+  const end = () => {
+    if (run.length === 1) out.push(run[0]!);
+    else if (run.length > 1) {
+      const positions: V3[] = [];
+      const polygons: number[][] = [];
+      const colors: (Rgb | null)[] = [];
+      for (const s of run) {
+        const base = positions.length;
+        for (const p of s.positions) positions.push(p);
+        for (const p of s.polygons) polygons.push(p.map((v) => v + base));
+        s.polygons.forEach((_, i) => colors.push(s.colors?.[i] ?? null));
+      }
+      const one: Soup = { name: null, positions, polygons, colors, ...(run[0]!.unordered ? { unordered: true } : {}) }; // prettier-ignore
+      faceSets.add(one);
+      out.push(one);
+    }
+    run = [];
+  };
+  for (const s of list) {
+    const joins = faceSets.has(s) && !s.name;
+    if (!joins || (run.length && run[0]!.unordered !== s.unordered)) end();
+    if (joins) run.push(s);
+    else out.push(s);
+  }
+  end();
+  return out;
 }
 
 /** Shapes made from line sets, kept only if the file has no faces of its own. */
@@ -558,7 +766,7 @@ function lineShape(list: Soup[]): Soup[] {
  * A line set's closed polylines (each ending where it began, round three
  * corners or more) as faces: a mesh drawn as its edges. Open ones are left out.
  */
-function loops(idx: readonly number[], pts: readonly V3[]): number[][] {
+function loops(idx: ArrayLike<number>, pts: readonly V3[]): number[][] {
   const same = (a: number, b: number) => a === b || (pts[a] !== undefined && pts[b] !== undefined && pts[a]!.every((v, k) => v === pts[b]![k])); // prettier-ignore
   const out: number[][] = [];
   for (const run of runs(idx)) {

@@ -57,10 +57,13 @@ import {
   exportWorld,
   fileName,
   kindOf,
-  readMeshFiles,
+  MESH_KINDS,
   saveFile,
+  FACE_BUDGET,
   type ExportFormat,
 } from './ui/files.ts';
+import { Cancelled, readInBackground } from './ui/importer.ts';
+import { LoadingRing } from './render/loadingring.ts';
 import { AppStage } from './world/stage.ts';
 import {
   boxDrawing,
@@ -107,7 +110,10 @@ const labelView = new LabelView();
 const cameraSlide = new CameraSlide();
 const cameraPath = new CameraPathView();
 const scribbles = new ScribbleView();
+/** The ring that turns in the room while a file is read. */
+const loading = new LoadingRing();
 scene.add(
+  loading.object,
   cameraPath.object,
   scribbles.object,
   cameraSlide.object,
@@ -425,6 +431,8 @@ let lastTool = '';
 let lastBoxes = '';
 let lastWorld = -1;
 let planeHeld = false;
+/** The world's models changed since the plane's stops were last taken from them. */
+let depthsStale = true;
 
 function resize(): void {
   const { clientWidth: w, clientHeight: h } = canvas;
@@ -496,17 +504,22 @@ function step(): void {
 function syncModels(): void {
   if (rt.version !== lastWorld) {
     lastWorld = rt.version;
-    models.sync(rt.primary.root.children);
+    // (A redraw counts as a version too: the cursor asks for one each move.)
+    if (models.sync(rt.primary.root.children)) depthsStale = true;
     envView.sync(rt.environment.root.children, (o) => !isPad(o));
     dirty = envDirty = true;
   }
   const changed = rt.takeChanged();
   if (changed.size) {
-    models.rebuild(changed);
+    // The plane's stops are the world's vertex depths: only its models change them.
+    if (models.rebuild(changed)) depthsStale = true;
     envView.rebuild(changed);
     dirty = envDirty = true;
   }
-  if ((dirty || envDirty) && !controls.pickHeld) control.plane.setDepths(models.depths());
+  if (depthsStale && !controls.pickHeld) {
+    control.plane.setDepths(models.depths());
+    depthsStale = false;
+  }
   // The light bulb lights the room while it's out (set_light).
   const bulb = bulbLightOf(rt);
   const bulbObj = rt.findObject('Lightbulb');
@@ -547,6 +560,7 @@ const cameraWindow = new CameraWindow({
   scene,
   // The camera sees the world being made, in its room: not the plane, the tools or itself.
   hidden: [
+    loading.object,
     cameraPath.object,
     scribbles.object,
     cameraSlide.object,
@@ -590,6 +604,7 @@ function render(): void {
   control.planeAxis = deeperOnScreen(camera);
   plane.z = stage.z;
   crosshair.place(stage.x, stage.y, stage.z);
+  loading.update(camera);
   const key = `${stage.z}|${control.yaw}|${control.pitch}`;
   if (envDirty || key !== lastKey) {
     envSection.update(envView.models, stage.z, camera.position);
@@ -778,6 +793,11 @@ canvas.addEventListener(
 );
 window.addEventListener('keydown', (e) => {
   syncHeld(e);
+  if (reading && e.key === 'Escape') {
+    e.preventDefault();
+    reading.cancel();
+    return;
+  }
   if (
     demo ||
     !ready ||
@@ -894,9 +914,7 @@ function notify(text: string, error = false): void {
  */
 async function openFiles(files: File[]): Promise<void> {
   const cut = files.find((f) => kindOf(f.name) === 'cut');
-  const meshes = files.filter((f) =>
-    ['obj', 'stl', 'glb', 'gltf', 'iv', 'dxf'].includes(kindOf(f.name)),
-  );
+  const meshes = files.filter((f) => MESH_KINDS.includes(kindOf(f.name)));
   if (!cut && meshes.length === 0) {
     if (files.length) notify(`Cutplane can't open ${files.map((f) => f.name).join(', ')}`, true);
     return;
@@ -909,26 +927,70 @@ async function openFiles(files: File[]): Promise<void> {
       modelSelect.value = `file:${cut.name}`;
     }
     if (meshes.length === 0) return;
+    if (reading) {
+      notify(`Still reading ${reading.names} (Esc stops it)`);
+      return;
+    }
+    // Read in the background, the ring showing how far it has got: a big file takes a while.
+    const names = meshes.map((f) => f.name).join(', ');
+    loading.start(`Reading ${names}...`); // (the stroke font has no …)
+    const r = readInBackground(files, { progress: (f) => loading.progress(f), budget });
+    reading = { names, cancel: r.cancel };
+    let got;
+    try {
+      got = await r.result;
+    } catch (err) {
+      loading.stop();
+      throw err;
+    } finally {
+      reading = null;
+    }
+    if (loading.shown) {
+      // Building what's drawn takes a moment more, on this thread: say so before it starts.
+      loading.finishing(`Adding ${names} to the world...`);
+      await nextFrame();
+      await nextFrame();
+    } else loading.stop(); // quick: it never came up
     if (controls.pickHeld) controls.releasePick();
-    const got = await readMeshFiles(files);
     rt.addObjects(got.objects);
+    // The frame that draws them is the next: the ring goes once it has.
+    void nextFrame().then(() => loading.stop());
     const n = got.objects.length;
     const scaled =
       got.scale === 1 ? '' : `, scaled ×${Number(got.scale.toPrecision(3))} to fit the room`;
     const holes = got.holes ? `, ${got.holes} hole${got.holes === 1 ? '' : 's'} closed to make solids` : ''; // prettier-ignore
+    const fewer = got.simplified ? `, simplified from ${count(got.simplified.from)} faces to ${count(got.simplified.to)}` : ''; // prettier-ignore
     const one = got.objects[0]!;
     const what =
       n === 1 && one.attrs.props.includes('Grouper')
         ? `a group of ${one.children.length}` // G ungroups it
         : `${n} object${n === 1 ? '' : 's'}`;
     notify(
-      `Added ${what} from ${got.names.join(', ')}${scaled}${holes} (undo takes ${n === 1 ? 'it' : 'them'} out)`,
+      `Added ${what} from ${got.names.join(', ')}${scaled}${fewer}${holes} (undo takes ${n === 1 ? 'it' : 'them'} out)`,
     );
   } catch (err) {
+    if (err instanceof Cancelled) {
+      notify('Stopped reading');
+      return;
+    }
     console.warn(err);
     notify(`Couldn't open ${(err as Error).message}`, true);
   }
 }
+
+/**
+ * The most faces an import comes in as: ?faces=all keeps every one,
+ * ?faces=N sets another budget.
+ */
+const budget = ((t) => (t === 'all' ? Infinity : Number(t) > 0 ? Number(t) : FACE_BUDGET))(
+  params.get('faces'),
+);
+const nextFrame = () => new Promise<void>((done) => requestAnimationFrame(() => done()));
+/** A read of model files under way, if one is. */
+let reading: { names: string; cancel(): void } | null = null;
+/** A count to read: 2.4 million, 380 thousand. */
+const count = (n: number) =>
+  n >= 1e6 ? `${Number((n / 1e6).toPrecision(2))} million` : n >= 1e4 ? `${Math.round(n / 1e3)} thousand` : `${n}`; // prettier-ignore
 
 // Drag and drop: files dropped anywhere on the page open as Open does.
 let dragDepth = 0;
@@ -1098,6 +1160,8 @@ declare global {
         /** Objects at the top of the world (a group counts once). */
         objects: number;
       };
+      /** The ring that turns while a file is read: up or not, and how far round it has turned. */
+      loading(): { shown: boolean; turn: number };
       flyover(): {
         open: boolean;
         inRoom: boolean;
@@ -1303,6 +1367,7 @@ async function start(): Promise<void> {
         objects: tops.length,
       };
     },
+    loading: () => ({ shown: loading.shown, turn: loading.turn }),
     flyover: () => ({
       open: cameraWindow.isOpen,
       inRoom: cameraBlocked,
