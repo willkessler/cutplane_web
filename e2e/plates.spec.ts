@@ -28,6 +28,7 @@ const SAVE = [-280, -270] as const;
 test('typing a name into Save to: keeps the world; Load from: brings it back after a reload', async ({
   page,
 }) => {
+  test.setTimeout(60_000); // two sessions of steps: about 20 s alone, more with three browsers
   const errors = await open(page, 'sample=cube');
   await set(page, { yaw: 0, pitch: 0, z: 0 });
   await page.keyboard.press('KeyD'); // nothing picked: nothing to duplicate

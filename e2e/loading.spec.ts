@@ -35,15 +35,16 @@ test('a long read shows a turning ring in the room, then the model comes in', as
   await page
     .locator('#file')
     .setInputFiles({ name: 'terrain.iv', mimeType: 'text/plain', buffer: Buffer.from(terrain(400)) }); // prettier-ignore
-  await expect.poll(async () => (await loading()).shown).toBe(true);
+  // (Software rendering, as in CI's containers, can take seconds a frame while the worker reads.)
+  await expect.poll(async () => (await loading()).shown, { timeout: 30_000 }).toBe(true);
   const turned = (await loading()).turn;
-  await expect.poll(async () => (await loading()).turn).not.toBe(turned); // it turns
+  await expect.poll(async () => (await loading()).turn, { timeout: 30_000 }).not.toBe(turned); // it turns
   if (SHOTS && browserName === 'chromium') {
     mkdirSync(SHOTS, { recursive: true });
     await page.screenshot({ path: `${SHOTS}/loading.png` });
   }
   await expect(page.locator('#notice')).toContainText('from terrain.iv', { timeout: 60_000 });
-  await expect.poll(async () => (await loading()).shown).toBe(false);
+  await expect.poll(async () => (await loading()).shown, { timeout: 30_000 }).toBe(false);
   expect(errors).toEqual([]);
 });
 
@@ -55,7 +56,9 @@ test('Esc stops a read: nothing comes in', async ({ page }) => {
   await page
     .locator('#file')
     .setInputFiles({ name: 'terrain.iv', mimeType: 'text/plain', buffer: Buffer.from(terrain(400)) }); // prettier-ignore
-  await expect.poll(() => page.evaluate(() => window.__cutplane!.loading().shown)).toBe(true);
+  await expect
+    .poll(() => page.evaluate(() => window.__cutplane!.loading().shown), { timeout: 30_000 })
+    .toBe(true);
   await page.keyboard.press('Escape');
   await expect(page.locator('#notice')).toHaveText('Stopped reading');
   expect(await page.evaluate(() => window.__cutplane!.loading().shown)).toBe(false);
