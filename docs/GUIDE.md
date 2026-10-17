@@ -44,8 +44,10 @@ ready to take hold of. Move fast and it flies straight through. Hold **Ctrl** to
 without clicking.
 
 **Work mode** (F) goes full screen and captures the pointer, as the SGI did: nothing flat covers
-the room, and the pointer can't run off the edge of the window. Press **?** in the room (bottom
-right) any time for the controls on a plate in the plane.
+the room, and the pointer can't run off the edge of the window. The shortcut keys are then on a
+dark plate fixed to the plane's right side, just outside the room; it moves with the plane (turn
+the room far round and you see it edge on). Press **?** in the room (bottom right) any time for
+the controls on a plate in the plane.
 
 ## 3. Picking and moving
 
@@ -124,6 +126,8 @@ second), the **grabber** (always picks whole objects), the **ruler**, and the **
   a marquee with it: everything the marquee touches, even partly, is grouped at once.
 - **Magnet**: what it drags is solid. Drag it into another object and it stops where they touch,
   sliding along the other as you keep going, so two things are quickly slapped face to face.
+  It sticks by the face you took it by: whatever side touches first, it turns so that face lies
+  flush on the face it met, and slides on stuck there. Let go and it stays.
 - **Globe** (a little Earth, the last pad, or press **V**): click on an object and it falls to the floor. It
   tumbles, bounces a little and comes to rest as a solid of its shape would, so a car or a rover
   held at a slant lands on its wheels, and a chair on its legs. A group falls whole; click on
@@ -131,7 +135,8 @@ second), the **grabber** (always picks whole objects), the **ruler**, and the **
   other). It lands on whatever is under it, the floor or another object, so stacking things is a
   matter of dropping one over another. Only the room's floor is solid, not its walls: something
   bigger than the room falls too. Then the globe goes back to its pad. One ⌘Z lifts it back to
-  where it was. A fall is worked out by
+  where it was. You needn't wait for things to settle: click on something while it falls and it
+  stops there, picked, to drag where you like; anything else falling carries on as it was. A fall is worked out by
   [Rapier](https://rapier.rs), a physics engine, from each part's _convex hull_ (the part
   shrink-wrapped): the hull's underside is what a solid lying on a floor can touch it with.
 - **Gravity always**: **double-click** with the globe and everything falls, and keeps falling
@@ -139,7 +144,8 @@ second), the **grabber** (always picks whole objects), the **ruler**, and the **
   you pick up **dangles** from where you took hold of it, rather than changing shape. Taken by a
   corner, it hangs from that corner; by an edge, it swings about that edge, which keeps its
   slant; by its inside, it turns until its weight hangs below. Move the crosshair and it swings.
-  Let go and it drops. ⌘Z still puts things back where they were (gravity leaves an undo be).
+  Let go and it drops; you can take it again in mid-air. ⌘Z still puts things back where they
+  were (gravity leaves an undo be).
   Double-click with the globe again to turn it off.
 
 The **toolboxes** stand on the floor at the back (Space takes the plane there). Click one to open

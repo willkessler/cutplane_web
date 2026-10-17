@@ -136,6 +136,52 @@ test('dropped on another, it lands on top of it', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+/** Once it is falling (the next frame that has it so), the crosshair to `at` and a press there. */
+const pressWhileFalling = (page: Page, at: [number, number]) =>
+  page.evaluate(
+    (a) =>
+      new Promise<boolean>((done) => {
+        const look = () => {
+          const c = window.__cutplane!;
+          if (!c.falls().active) return requestAnimationFrame(look);
+          c.set({ x: a[0], y: a[1] });
+          c.press();
+          done(c.falls().active);
+        };
+        look();
+      }),
+    at,
+  );
+
+test('what is falling can be taken hold of; a press on nothing lets it fall on', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 15, z: 0 });
+  // Dropped (V), and caught at once by its middle: it stops there, picked.
+  await page.keyboard.press('KeyV');
+  await click(page, [0, 0]);
+  expect(await pressWhileFalling(page, [0, -20])).toBe(false);
+  expect((await edit(page)).picked).toEqual(['object']);
+  // Dragged up out of its fall: it goes where it is taken, and stays.
+  for (let y = -10; y <= 100; y += 10) await set(page, { x: 0, y });
+  await page.evaluate(() => window.__cutplane!.release());
+  expect((await falls(page)).active).toBe(false);
+  expect((await falls(page)).aboveFloor).toBeGreaterThan(282);
+  // Dropped again, and a press on nothing while it falls: it falls on to the floor.
+  await click(page, [300, -150]); // (nothing picked)
+  await page.keyboard.press('KeyV');
+  const [mid] = (await falls(page)).mids;
+  await click(page, [0, mid![1]!]);
+  await pressWhileFalling(page, [300, -150]);
+  await page.evaluate(() => window.__cutplane!.release());
+  expect((await edit(page)).picked).toEqual([]);
+  await expect.poll(async () => (await falls(page)).aboveFloor, { timeout: 30_000 }).toBeLessThan(1.5); // prettier-ignore
+  await expect.poll(async () => (await falls(page)).active, { timeout: 30_000 }).toBe(false);
+  expect(errors).toEqual([]);
+});
+
 test('"Groups pick whole" (the first choice): a click by a part\'s face picks its group', async ({
   page,
 }) => {

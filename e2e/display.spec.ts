@@ -93,3 +93,28 @@ test('1 with nothing picked: all as wire, front faces only, then every edge, the
   expect(await pixels()).toEqual(before);
   expect(errors).toEqual([]);
 });
+
+test("the keys plate on the plane's side: not shown windowed (the help line is), drawn when it is", async ({
+  page,
+  browserName,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await page.setViewportSize({ width: 1440, height: 900 }); // (a full screen's shape: room beside the room)
+  await set(page, { yaw: 0, pitch: 0, z: 0 });
+  const keys = (show?: boolean | null) => page.evaluate((s) => window.__cutplane!.keysPlate(s), show); // prettier-ignore
+  expect(await keys(null)).toBe(false);
+  const pixels = () => page.evaluate(() => window.__cutplane!.readPixels());
+  // (WebKit takes a while to resize the canvas.)
+  const dpr = await page.evaluate(() => devicePixelRatio);
+  await expect
+    .poll(async () => (await keys(null), (await pixels()).split(':')[0]))
+    .toBe(`${1440 * dpr}x${900 * dpr}`);
+  const before = await pixels();
+  expect(await keys(true)).toBe(true);
+  expect(await pixels()).not.toEqual(before);
+  await shot(page, 'keys-plate', browserName);
+  // Left to full screen again: windowed, it goes.
+  expect(await keys(null)).toBe(false);
+  expect(await pixels()).toEqual(before);
+  expect(errors).toEqual([]);
+});

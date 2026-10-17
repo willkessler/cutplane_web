@@ -415,9 +415,9 @@ test('the magnifier: a double click fits everything into the room at once; undo 
   await page.keyboard.press('KeyZ');
   await set(page, { x: 300, y: -200 });
   await doubleClick(page);
-  // The cube, 200 across, scaled to 0.8 of the room's height (765) and in its middle.
+  // The cube, 200 across, scaled to 0.9 of the room's height (765) and in its middle.
   const f = await falls(page);
-  expect(f.spans[0]![1]!).toBeCloseTo(612, 0);
+  expect(f.spans[0]![1]!).toBeCloseTo(688.5, 0);
   expect(f.mids[0]![0]!).toBeCloseTo(-0.5, 0);
   expect(f.mids[0]![1]!).toBeCloseTo(0.5, 0);
   expect(f.mids[0]![2]!).toBeCloseTo(0.5, 0);
@@ -496,6 +496,47 @@ test('the magnet: what it drags stops where it meets another, and slides along i
   expect(slid[1]!).toBeCloseTo(40, 0);
   await shot(page, 'magnet-flush', browserName);
   await release(page);
+  expect(errors).toEqual([]);
+});
+
+test('the magnet: taken by a face, it turns to meet what it touches with that face', async ({
+  page,
+  browserName,
+}) => {
+  test.setTimeout(60_000);
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0 });
+  const click = async (at: P3 | [number, number]) => {
+    await set(page, { x: at[0], y: at[1] });
+    await press(page);
+    await release(page);
+  };
+  // A copy, off to the right: 300 to 500 across, 0 to 200 up.
+  await click([0, 0]);
+  await page.keyboard.press('KeyD');
+  await set(page, { x: 150, y: 150 });
+  await press(page);
+  for (const x of [250, 350, 450]) await set(page, { x, y: 150 });
+  await release(page);
+  const right = async () => (await falls(page)).mids.reduce((a, b) => (b[0]! > a[0]! ? b : a));
+  await click([300, -250]);
+  // The magnet, by the copy's top face...
+  await click(await locate<P3>(page, 'arrangepads'));
+  await click((await locate<P3[]>(page, 'arrangers'))[3]!);
+  await set(page, { x: 400, y: 200 });
+  await press(page);
+  // ...dragged left: its left face touches the cube first, and it turns a quarter so
+  // the top meets the cube's right face instead, flush; it stays stuck there.
+  for (let x = 390; x >= 0; x -= 10) await set(page, { x, y: 200 });
+  const stuck = await right();
+  expect(stuck[0]!).toBeCloseTo(200, 0);
+  expect(stuck[1]!).toBeCloseTo(200, 0);
+  await shot(page, 'magnet-stuck', browserName);
+  // Let go, it stays as it was stuck (whatever is under the crosshair).
+  await release(page);
+  const left = await right();
+  expect(left[0]!).toBeCloseTo(200, 0);
+  expect(left[1]!).toBeCloseTo(200, 0);
   expect(errors).toEqual([]);
 });
 

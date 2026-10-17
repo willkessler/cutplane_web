@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { ROOM, mat4 } from '@cutplane/kernel';
 
 const { transformPoint } = mat4;
-import { poseAt, simulate } from './gravity.ts';
+import * as THREE from 'three';
+import { GRAVITY, motionAt, poseAt, simulate } from './gravity.ts';
 
 const FLOOR = ROOM.min[1];
 
@@ -86,6 +87,23 @@ describe('gravity: things fall to the floor and rest there', () => {
     const xs = end.map((p) => p[0]!);
     expect(Math.abs(Math.min(...xs) + wide / 2)).toBeLessThan(1);
     expect(Math.abs(Math.max(...xs) - wide / 2)).toBeLessThan(1);
+  });
+
+  it('caught mid-fall, its motion is read off where it has got to, and it falls on as it was', async () => {
+    const pts = box([-50, 150, -50], [50, 250, 50]);
+    const fall = await simulate([{ parts: [pts] }]);
+    // A third of a second in: falling at a third of GRAVITY, not turning.
+    const m = motionAt(fall, 0, 20, new THREE.Vector3(0, 200, 0));
+    expect(m.velocity[1] / (-GRAVITY / 3)).toBeCloseTo(1, 1);
+    expect(Math.abs(m.velocity[0]) + Math.abs(m.velocity[2])).toBeLessThan(1);
+    expect(Math.hypot(...m.spin)).toBeLessThan(0.01);
+    // Let go moving sideways: it lands off to that side.
+    const on = await simulate([
+      { parts: [pts], motion: { velocity: [300, 0, 0], spin: [0, 0, 0] } },
+    ]);
+    const end = placed(pts, poseAt(on, 0, on.frames - 1));
+    expect(Math.min(...end.map((p) => p[0]!))).toBeGreaterThan(50);
+    expect(Math.abs(lowest(end) - FLOOR)).toBeLessThan(1.5);
   });
 });
 

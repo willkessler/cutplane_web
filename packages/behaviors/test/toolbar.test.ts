@@ -2,8 +2,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { P } from '@cutplane/cpl';
-import type { CutObject } from '@cutplane/kernel';
-import { decalOf, installToolbars } from '../src/index.ts';
+import { subtree, validate, type CutObject } from '@cutplane/kernel';
+import { TOOL_MOST, decalOf, installToolbars } from '../src/index.ts';
 import { world } from './world.ts';
 
 const ASSETS = resolve(import.meta.dirname, '../../../assets');
@@ -61,6 +61,48 @@ describe('toolbars through headpad, toolpad, padhandle and tool.cpl', () => {
     const z = w.rt.bbox(w.tools)![0][2];
     w.at(0, 0, 0);
     expect(w.rt.bbox(w.tools)![0][2]).toBeCloseTo(z - 500);
+  });
+
+  it("the pan tool's hand (assets/icons/pan.icon, new): closed shells, every face flat", () => {
+    const w = setup();
+    const hand = w.rt.findObject('Pantool')!;
+    expect(w.rt.hasProp(hand, 'Pan')).toBe(true);
+    // Its cuff, a child: a tool with none is turned end for end going back on its pad.
+    expect(hand.children.map((c) => c.name)).toEqual(['Pancuff']);
+    for (const o of [hand, hand.children[0]!]) {
+      const r = validate(o.brep, { planarityTolerance: 1e-3 });
+      expect(r.closedManifold).toBe(true);
+      expect(r.issues).toEqual([]);
+    }
+    // About 55 high, as small in hand as the other tools.
+    const lo = Math.min(...[...subtree(hand)].map((o) => w.rt.bbox(o)![0][1]));
+    const hi = Math.max(...[...subtree(hand)].map((o) => w.rt.bbox(o)![1][1]));
+    expect(Math.round(hi - lo)).toBeGreaterThan(50);
+    expect(Math.round(hi - lo)).toBeLessThanOrEqual(TOOL_MOST);
+  });
+
+  it("every tool is at most TOOL_MOST across in hand (the original's pencil, saw and drill were 150)", () => {
+    const w = setup();
+    const sizes = new Map<string, number>();
+    for (const head of [w.tools, w.arrangers])
+      for (const handle of head.children[0]!.children) {
+        const tool = handle.children[0]!.children[0]!;
+        const lo = [Infinity, Infinity, Infinity];
+        const hi = [-Infinity, -Infinity, -Infinity];
+        for (const o of subtree(tool)) {
+          const b = w.rt.bbox(o);
+          if (!b) continue;
+          for (let k = 0; k < 3; k++) {
+            lo[k] = Math.min(lo[k]!, b[0][k]!);
+            hi[k] = Math.max(hi[k]!, b[1][k]!);
+          }
+        }
+        sizes.set(tool.name ?? '?', Math.max(...[0, 1, 2].map((k) => hi[k]! - lo[k]!)));
+      }
+    for (const name of ['Pencil', 'Saw', 'Bit', 'Magnifier', 'Grabberblock'])
+      expect(sizes.get(name)).toBeCloseTo(TOOL_MOST, 3);
+    expect(sizes.get('Globe')).toBeCloseTo(56, 0); // (small already: left as it is)
+    for (const n of sizes.values()) expect(n).toBeLessThanOrEqual(TOOL_MOST + 1e-6);
   });
 
   it('clicking the headpad opens its rail, pads stacked down it; clicking again closes it', () => {
@@ -145,6 +187,34 @@ describe('toolbars through headpad, toolpad, padhandle and tool.cpl', () => {
     expect(pencil.parent).toBe(w.rt.cursorObj);
     expect(union.parent).toBe(pads[3]);
     expect(w.rt.hasProp(pads[0]!, 'Toolpadempty')).toBe(true);
+  });
+
+  it('every tool goes back on its own pad, whether the pad is clicked or its key pressed again', () => {
+    const w = setup();
+    const pads = [w.tools, w.arrangers].flatMap((head) => {
+      w.click(head);
+      return head.children[0]!.children.map((h) => h.children[0]!);
+    });
+    for (const pad of pads) {
+      const tool = pad.children.find((c) => w.rt.hasProp(c, 'Tool'))!;
+      w.click(pad);
+      expect(tool.parent, tool.name!).toBe(w.rt.cursorObj);
+      w.click(pad);
+      expect(tool.parent, tool.name!).toBe(pad);
+    }
+    // H, and H again (the hand, once in one piece, was lost on the way back).
+    const hand = w.rt.findObject('Pantool')!;
+    const home = hand.parent;
+    for (let n = 0; n < 2; n++) {
+      w.controls.takeTool('Pantool');
+      for (let i = 0; i < 4; i++) w.frame();
+      expect(hand.parent).toBe(w.rt.cursorObj);
+      w.controls.takeTool('Pantool');
+      for (let i = 0; i < 4; i++) w.frame();
+      expect(hand.parent).toBe(home);
+    }
+    for (const pad of pads)
+      expect(pad.children.filter((c) => w.rt.hasProp(c, 'Tool'))).toHaveLength(1);
   });
 
   it('a padhandle pulled off the rail floats where it is let go', () => {

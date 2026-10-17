@@ -29,6 +29,8 @@ import {
   setCameraShown,
   installStoragePad,
   installHelpPad,
+  installKeysPlate,
+  showKeysPlate,
   installMeasurePad,
   installToolbars,
   isPad,
@@ -41,7 +43,14 @@ import {
   type V3,
 } from '@cutplane/behaviors';
 import { DEMO_SECONDS, demoPose } from './demo.ts';
-import { NOTHING_HELD, bindingHints, helpLines, commandFor, type Held } from './input/bindings.ts';
+import {
+  NOTHING_HELD,
+  bindingHints,
+  helpLines,
+  keyLines,
+  commandFor,
+  type Held,
+} from './input/bindings.ts';
 import { Controller, isMouseWheel } from './input/controller.ts';
 import { WorkMode } from './input/workmode.ts';
 import { Crosshair } from './render/crosshair.ts';
@@ -59,7 +68,7 @@ import { LabelView } from './render/labels.ts';
 import { PadView } from './render/pads.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
 import { SectionLines } from './render/sectionlines.ts';
-import { Falls } from './world/gravity.ts';
+import { Falls, type Caught } from './world/gravity.ts';
 import { Dangle } from './world/dangle.ts';
 import { Blocker } from './world/collide.ts';
 import { createCamera, deeperOnScreen, fitFov, orbitCamera, unitsPerPixel } from './scene.ts';
@@ -305,6 +314,7 @@ function makeWorld(): void {
   rt.groupPick = groupPickSelect.value as GroupPick;
   falls = new Falls(rt, models);
   blocker = new Blocker(rt, models);
+  rt.snapTo = blocker.snapTo;
   rt.dropper = (roots) =>
     void falls.drop(roots).catch((e: Error) => notify(`Couldn't drop it: ${e.message}`, true));
   rt.loadCode(source);
@@ -327,14 +337,32 @@ function makeWorld(): void {
   });
   installMeasurePad(rt, resource, source);
   installHelpPad(rt, helpLines(MAC));
+  keysPlate = installKeysPlate(rt, keyLines(MAC));
+  showKeys();
   controls = new Controls(rt);
   ready = true;
 }
 
+/** The keys plate on the plane's side: shown in full screen, where the help line isn't. */
+let keysPlate: CutObject | null = null;
+/** The test hooks' say, over full screen's. */
+let keysWanted: boolean | null = null;
+function showKeys(): void {
+  if (keysPlate) showKeysPlate(rt, keysPlate, keysWanted ?? work.state !== 'off');
+}
+
 function pressPick(shift: boolean): void {
   if (!ready) return;
+  // Anything falling stops where it is, so it can be taken hold of (not by the globe,
+  // which would only drop it again); what isn't taken falls on after the pick.
+  if (falls.active && toolInHand() !== 'Globe') {
+    caught = falls.catchAll();
+    rt.commit();
+  }
   control.resetConstrain();
   controls.pressPick(shift);
+  // Taken by a face, the magnet's drag sticks it by that face to what it meets.
+  if (magnetInHand()) blocker.grab(rt.vm.props.features(rt.primary, P.Selectable));
   // Where an object picked whole is taken hold of (it dangles from there: permanent gravity).
   const part = rt.vm.props.features(rt.primary, P.Selectable).find(isObject);
   const pick = part && rt.wholePicks.get(part);
@@ -345,6 +373,29 @@ function releasePick(): void {
   if (!ready) return;
   controls.releasePick();
   hold = dangle = null;
+}
+
+const magnetInHand = () => [...subtree(rt.cursorObj)].some((o) => rt.hasProp(o, 'Magnetic'));
+
+/** Caught mid-fall by the last press: those it didn't pick fall on, as they were. */
+let caught: Caught[] = [];
+function fallOn(): void {
+  if (caught.length === 0) return;
+  const taken = new Set<CutObject>();
+  for (const f of rt.picked()) {
+    const o = isObject(f) ? f : (f as { object?: CutObject }).object;
+    if (o) taken.add(o);
+  }
+  const left = caught.filter((c) => ![...subtree(c.root)].some((o) => taken.has(o)));
+  caught = [];
+  if (left.length === 0) return;
+  const motions = new Map(left.map((c) => [c.root, c.motion]));
+  void falls
+    .drop(
+      left.map((c) => c.root),
+      { motions },
+    )
+    .catch((e: Error) => notify(`Couldn't drop it: ${e.message}`, true));
 }
 
 // ---- double clicks (new here) ----
@@ -732,8 +783,9 @@ function applyDemo(t: number): void {
  */
 function step(): void {
   // The magnet in hand: what it drags can't go into anything (its solid push-back).
-  const magnet = [...subtree(rt.cursorObj)].some((o) => rt.hasProp(o, 'Magnetic'));
+  const magnet = magnetInHand();
   if (magnet) blocker.ready();
+  else blocker.forget();
   rt.moveGuard = magnet ? blocker.guard : null;
   if (!magnet || !controls.pickHeld) blocker.end();
   const plane = control.motion === 'plane';
@@ -747,6 +799,7 @@ function step(): void {
   const d: V3 = [control.x - stage.x, control.y - stage.y, control.z - stage.z];
   controls.moveCrosshair(d, (dd) => stage.preview(...dd));
   controls.frame();
+  if (!messagesWaiting()) fallOn(); // (once the pick has been made)
   // CPL may have held the crosshair back or put it somewhere else (a tool's bar, a dial).
   if (stage.x !== control.x || stage.y !== control.y) placeCrosshair(stage.x, stage.y);
   if (stage.z !== control.z) control.plane.set(stage.z);
@@ -1429,6 +1482,7 @@ work.onChange((s) => {
   $<HTMLDivElement>('pause').classList.toggle('shown', s === 'paused');
   Object.assign(held, NOTHING_HELD);
   showHints();
+  showKeys();
 });
 
 // ---- test and recording hooks ----
@@ -1472,6 +1526,8 @@ declare global {
       };
       /** The ring that turns while a file is read: up or not, and how far round it has turned. */
       loading(): { shown: boolean; turn: number };
+      /** Shows the keys plate or not (null: as full screen has it); whether it is shown. */
+      keysPlate(show?: boolean | null): boolean;
       /** Whether anything is falling (the globe), and how far above the floor the world's lowest point is (and each object's). */
       falls(): {
         active: boolean;
@@ -1709,6 +1765,12 @@ async function start(): Promise<void> {
       };
     },
     loading: () => ({ shown: loading.shown, turn: loading.turn }),
+    keysPlate(show) {
+      if (show !== undefined) keysWanted = show;
+      showKeys();
+      render();
+      return keysPlate !== null && rt.vm.props.has(keysPlate, P.Visible);
+    },
     falls: () => {
       const lows = models.models.map((m) => {
         let low = Infinity;

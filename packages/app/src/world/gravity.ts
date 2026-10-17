@@ -45,9 +45,16 @@ export function loadRapier(): Promise<typeof RAPIER> {
   }));
 }
 
-/** A body to drop: each part's world points (x y z …). */
+/** A body to drop: each part's world points (x y z …), and how it is moving already. */
 export interface Dropped {
   parts: Float32Array[];
+  motion?: Motion | undefined;
+}
+
+/** How a body is moving: its middle (room units a second) and its spin (radians a second, about an axis). */
+export interface Motion {
+  velocity: [number, number, number];
+  spin: [number, number, number];
 }
 
 /** Each body's placement, frame by frame: world → world (row vectors), 16 numbers a frame. */
@@ -149,6 +156,12 @@ export async function simulate(bodies: Dropped[], obstacles: Float32Array[] = []
           make(slab(R, part));
         }
       }
+      // Caught mid-fall and let go again: it falls on as it was.
+      if (b.motion) {
+        const [v, w] = [b.motion.velocity, b.motion.spin];
+        body.setLinvel({ x: v[0], y: v[1], z: v[2] }, true);
+        body.setAngvel({ x: w[0], y: w[1], z: w[2] }, true);
+      }
       return body;
     });
 
@@ -183,6 +196,22 @@ export async function simulate(bodies: Dropped[], obstacles: Float32Array[] = []
   } finally {
     world.free();
   }
+}
+
+/** How a body is moving at frame `i` of its fall: told from frame i - 1 to i, by where `middle` goes. */
+export function motionAt(fall: Fall, body: number, i: number, middle: THREE.Vector3): Motion {
+  const at = Math.min(fall.frames - 1, Math.max(0, i));
+  const [m0, m1] = [at - 1, at].map((k) => new THREE.Matrix4().fromArray(poseAt(fall, body, k)));
+  const [c0, c1] = [m0!, m1!].map((m) => middle.clone().applyMatrix4(m));
+  const v = c1!.sub(c0!).multiplyScalar(FPS);
+  const [q0, q1] = [m0!, m1!].map((m) => new THREE.Quaternion().setFromRotationMatrix(m));
+  // The turn from one frame to the next, as an axis times its angle, per second.
+  const dq = q1!.multiply(q0!.invert());
+  if (dq.w < 0) dq.set(-dq.x, -dq.y, -dq.z, -dq.w);
+  const angle = 2 * Math.acos(Math.min(1, dq.w));
+  const s = Math.sqrt(Math.max(0, 1 - dq.w * dq.w));
+  const k = s < 1e-9 ? 0 : (angle / s) * FPS;
+  return { velocity: [v.x, v.y, v.z], spin: [dq.x * k, dq.y * k, dq.z * k] };
 }
 
 /** A part's points, at most HULL_POINTS of them. */
@@ -226,6 +255,14 @@ interface Falling {
   fall: Fall;
   body: number;
   began: number;
+  /** The middle of its box as the fall began (its motion is told from where that goes). */
+  middle: THREE.Vector3;
+}
+
+/** One caught mid-fall: its group, and how it was moving then. */
+export interface Caught {
+  root: CutObject;
+  motion: Motion;
 }
 
 /**
@@ -283,7 +320,8 @@ export class Falls {
     {
       quietly = false,
       now = () => performance.now(),
-    }: { quietly?: boolean; now?: () => number } = {},
+      motions,
+    }: { quietly?: boolean; now?: () => number; motions?: Map<CutObject, Motion> } = {},
   ): Promise<void> {
     const rt = this.rt;
     const fresh = roots.filter((r) => !this.has(r) && !this.pending.has(r));
@@ -304,6 +342,7 @@ export class Falls {
         vs.forEach((v, i) => pts.set([w.x(v), w.y(v), w.z(v)], i * 3));
         return pts;
       }),
+      motion: motions?.get(g.root),
     }));
     // What they can land on: the world's other objects under where they fall (as far
     // round as the biggest of them is across, for one tumbling off an edge).
@@ -352,7 +391,9 @@ export class Falls {
       if (g.root.xform !== g.start || staysPut(fall, body)) this.release(g.held);
       else {
         if (quietly) putAway(g);
-        this.falling.push({ ...g, fall, body, began });
+        const [a, z] = bounds(bodies[body]!.parts);
+        const middle = new THREE.Vector3((a[0]! + z[0]!) / 2, (a[1]! + z[1]!) / 2, (a[2]! + z[2]!) / 2); // prettier-ignore
+        this.falling.push({ ...g, fall, body, began, middle });
       }
     });
   }
@@ -389,6 +430,28 @@ export class Falls {
       }
       return true;
     });
+  }
+
+  /**
+   * New here: everything falling stops where it is drawn now, in reach again, so a
+   * click can take hold of it. Each one's motion then is given back, for those not
+   * taken to fall on with.
+   */
+  catchAll(now: number = performance.now()): Caught[] {
+    const caught: Caught[] = [];
+    const inWorld = new Set(subtree(this.rt.primary.root));
+    for (const f of this.falling) {
+      for (const o of f.objects) this.view.pose(o, null);
+      this.release(f.held);
+      if (f.root.xform !== f.start || !inWorld.has(f.root)) continue;
+      const i = Math.floor(((now - f.began) / 1000) * FPS);
+      const pose = poseAt(f.fall, f.body, i);
+      if (!stays(pose)) this.rt.transformBranch(f.root, pose);
+      caught.push({ root: f.root, motion: motionAt(f.fall, f.body, i, f.middle) });
+    }
+    this.falling = [];
+    this.poses.clear();
+    return caught;
   }
 
   private release(objects: CutObject[]): void {

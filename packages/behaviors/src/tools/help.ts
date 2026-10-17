@@ -7,6 +7,7 @@ import {
   type CutObject,
   type Rgb,
 } from '@cutplane/kernel';
+import { P } from '@cutplane/cpl';
 import type { Runtime, V3 } from '../runtime.ts';
 import { charWidth } from '../text/hershey.ts';
 import { readPlate, type PlateSpec } from './plates.ts';
@@ -142,4 +143,66 @@ export function installHelpPad(rt: Runtime, lines: readonly HelpLine[]): CutObje
   for (const o of subtree(pad)) rt.addProp(o, 'Lockedgeometry');
   rt.vm.resolveObjectRefs();
   return pad;
+}
+
+/**
+ * The keys plate (new): the shortcut keys and what they do, on a plate fixed to
+ * the plane's right side, just outside the room, so that with nothing laid over
+ * the room (full screen) they are still to hand. It moves with the plane; seen
+ * from far round to a side it is seen edge on. Shown or not by showKeysPlate.
+ */
+const KEYS_MARGIN = 14;
+const KEYS_LINE = 17;
+const KEYS_SCALE = 0.62;
+/** Clear of the room's right wall. */
+const KEYS_GAP = 16;
+
+export function installKeysPlate(
+  rt: Runtime,
+  keys: readonly (readonly [string, string])[],
+): CutObject {
+  const width = (s: string) => [...s].reduce((w, c) => w + charWidth(c.charCodeAt(0)), 0) * KEYS_SCALE; // prettier-ignore
+  const keyColumn = Math.max(...keys.map(([k]) => width(k))) + 10;
+  const plateWidth = KEYS_MARGIN * 2 + keyColumn + Math.max(...keys.map(([, a]) => width(a)));
+  const height = KEYS_MARGIN * 2 + keys.length * KEYS_LINE;
+  const label = (text: string, x: number, i: number, color: Rgb) => ({
+    text,
+    offset: [x, height - KEYS_MARGIN - (i + 1) * KEYS_LINE + 5, 5] as V3,
+    color,
+    pen: 1,
+    scale: [KEYS_SCALE, KEYS_SCALE * 1.2] as [number, number],
+    style: 'Plain' as const,
+  });
+  const at = rt.cutplane.xform;
+  const plate = readPlate(
+    rt,
+    rt.cutplane,
+    {
+      name: 'Keys_Plate',
+      size: [plateWidth, height],
+      // Its middle level with the room's, a little in front of the plane.
+      offset: [MAX_X + KEYS_GAP - at[12]!, -height / 2 - at[13]!, 3],
+      color: [40, 40, 60],
+      code: '<none>',
+      labels: keys.flatMap(([k, a], i) => [
+        label(k, KEYS_MARGIN, i, YELLOW),
+        label(a, KEYS_MARGIN + keyColumn, i, WHITE),
+      ]),
+      inputs: [],
+    },
+    () => '',
+  );
+  for (const o of subtree(plate)) rt.addProp(o, 'Lockedgeometry');
+  rt.vm.resolveObjectRefs();
+  return plate;
+}
+
+/** The keys plate shown, or put out of sight. */
+export function showKeysPlate(rt: Runtime, plate: CutObject, shown: boolean): void {
+  for (const o of subtree(plate))
+    if (rt.vm.props.has(o, P.Visible) !== shown) {
+      if (shown) rt.vm.props.add(o, P.Visible);
+      else rt.vm.props.del(o, P.Visible);
+      rt.changed(o);
+    }
 }

@@ -252,6 +252,7 @@ export function createToolbar(
     const tool = readDataFile(rt, pad, read(file));
     if (tool) {
       applyFrontDecal(rt, tool, pad, DECAL_THICKNESS, DECAL_GAP, 0);
+      fitInHand(rt, tool);
       for (const o of subtree(tool))
         if (rt.vm.props.has(o, P.Visible)) rt.vm.props.del(o, P.Visible);
     }
@@ -270,6 +271,30 @@ export function createToolbar(
   rt.discard(handleOrig);
   rt.discard(padOrig);
   return headpad;
+}
+
+/**
+ * New here: in hand, no tool is more than this across. The original's ran from the globe's
+ * 50 to the pencil's, saw's and drill's 150 (and the magnifier's 136): they are made as small
+ * as the little ones. (Where a tool sits on the crosshair is its Hotspot, wherever that is.)
+ */
+export const TOOL_MOST = 60;
+
+function fitInHand(rt: Runtime, tool: CutObject): void {
+  const lo: V3 = [Infinity, Infinity, Infinity];
+  const hi: V3 = [-Infinity, -Infinity, -Infinity];
+  for (const o of subtree(tool)) {
+    const b = rt.bbox(o);
+    if (!b) continue;
+    for (let k = 0; k < 3; k++) {
+      lo[k] = Math.min(lo[k]!, b[0][k]!);
+      hi[k] = Math.max(hi[k]!, b[1][k]!);
+    }
+  }
+  const most = Math.max(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]);
+  if (!(most > TOOL_MOST)) return;
+  const s = TOOL_MOST / most;
+  rt.scaleBranch(tool, lo, [s, s, s]);
 }
 
 /** adjust_toolbar: the rail is stretched (from its top) to hold its pads. */

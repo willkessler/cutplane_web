@@ -266,6 +266,11 @@ export class Runtime implements Host {
    * the group's root and the offset asked for, how far it may go.
    */
   moveGuard: ((root: CutObject, d: V3) => V3) | null = null;
+  /**
+   * New here: what the magnet's release snaps to, given what it grabbed and what is
+   * under the crosshair (its drag may have stuck the grabbed face to another already).
+   */
+  snapTo: ((source: Feature, target: Feature) => Feature) | null = null;
 
   private readonly worldOfRoot = new Map<CutObject, WorldFeature>();
   private readonly geometry = new Map<CutObject, WorldGeometry>();
@@ -1039,7 +1044,8 @@ export class Runtime implements Host {
    * `target`. Face to face: the faces end up flush, facing each other. An edge to an
    * edge or a face: the edges line up, the grabbed edge's first end on the other's.
    */
-  snapFeatures(source: Feature, target: Feature): void {
+  snapFeatures(source: Feature, under: Feature): void {
+    const target = this.snapTo?.(source, under) ?? under;
     if (!isSub(source) || !isSub(target)) return;
     const o = groupRoot(source.object);
     if (o === groupRoot(target.object)) return;
@@ -1076,7 +1082,7 @@ export class Runtime implements Host {
   }
 
   /** A face's world normal and centre. */
-  private worldFace(o: CutObject, f: number): { normal: V3; center: V3 } | null {
+  worldFace(o: CutObject, f: number): { normal: V3; center: V3 } | null {
     const b = o.brep;
     if (!b.faces().includes(f)) return null;
     const g = this.world(o);
@@ -1236,7 +1242,7 @@ export class Runtime implements Host {
    * New here: everything in `world` scaled and moved (as one) to fit in the middle of
    * the room, `margin` of it across at most (the magnifier's double click; undoable).
    */
-  fitWorld(world: WorldFeature, margin = 0.8): void {
+  fitWorld(world: WorldFeature, margin = 0.9): void {
     let lo: V3 = [Infinity, Infinity, Infinity];
     let hi: V3 = [-Infinity, -Infinity, -Infinity];
     for (const o of subtree(world.root)) {

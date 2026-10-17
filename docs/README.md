@@ -10,19 +10,19 @@ beside it, by date ([ENHANCEMENTS_10_17_26.md](ENHANCEMENTS_10_17_26.md)).
 
 ## Roadmap
 
-| Milestone | Scope                                                                                                                                                                                                                                                               |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                                                                                                                                                                                                              |
-| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation                                                                                                                                                                                                 |
-| **M2** ✅ | Room, plane, section and full-screen work mode                                                                                                                                                                                                                      |
-| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                                                                                                                                                                                                    |
-| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                                                                                                                                                                                                                 |
-| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                                                                                                                                                                                                        |
-| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                                                                                                                                                                                                  |
-| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                                                                                                                                                                                                    |
-| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, big and binary Inventor files, gravity, live on GitHub Pages; Oct 17 wave: fit to room, the 1 key's wire views, gravity always with dangling, the magnet's push-back, double-click to put goodies away |
-| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                                                                                                                                                                                                         |
-| M10       | Language evolution (optional)                                                                                                                                                                                                                                       |
+| Milestone | Scope                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                                                                                                                                                                                                                                                                                                                                           |
+| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation                                                                                                                                                                                                                                                                                                                              |
+| **M2** ✅ | Room, plane, section and full-screen work mode                                                                                                                                                                                                                                                                                                                                                   |
+| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                                                                                                                                                                                                                                                                                                                                 |
+| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                                                                                                                                                                                                                                                                                                                                              |
+| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                                                                                                                                                                                                                                                                                                                                     |
+| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                                                                                                                                                                                                                                                                                                                               |
+| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                                                                                                                                                                                                                                                                                                                                 |
+| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, big and binary Inventor files, gravity, live on GitHub Pages; Oct 17 wave: fit to room, the 1 key's wire views, gravity always with dangling, the magnet's push-back, double-click to put goodies away; then: the magnet sticks by the face dragged, falling things can be taken hold of, the keys plate in full screen, a new hand |
+| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                                                                                                                                                                                                                                                                                                                                      |
+| M10       | Language evolution (optional)                                                                                                                                                                                                                                                                                                                                                                    |
 
 ## Using Cutplane
 
@@ -273,17 +273,20 @@ undo away.
   the second's, facing it. An edge snaps to an edge the same way. Pressing inside an object, not
   on its outline, does nothing, as in the original. New: while it's dragged, the object is
   solid. It can't go into another: it stops where they touch and slides along the other as the
-  drag goes on, so two objects are slapped together quickly.
+  drag goes on, so two objects are slapped together quickly. Taken by a face, it sticks by that
+  face: whatever side touches first, it turns (as the release's snap would) so the face dragged
+  lies flush on the face it met, and slides on stuck there; let go, it stays as it was stuck.
 - **Union** (the two green blocks, on the tools' rail). The drill's twin: press on an object
   with it and the object itself comes away with the tool. Carry it into another and let go, and
   the two become one solid, each part keeping its colours. Let go over nothing and it's just put
   down where it is. One undo parts them, the carried one back where it was picked up.
 - **Grabber** (a claw holding a green block). Picks whole objects, even where a plain click
   would take a face or an edge.
-- **Pan tool** (or **H**). Drag on empty space to move the whole world with the crosshair.
+- **Pan tool** (or **H**; a pink hand). Drag on empty space to move the whole world with the
+  crosshair.
 - **Magnifier** (or **Z**). Drag up to zoom the world in about the crosshair, down to zoom out:
   1% per unit. New: a double click with it fits everything into the room at once (scaled to
-  0.8 of the room at most, in its middle; one undo).
+  0.9 of the room at most, a 10% margin, in its middle; one undo).
 - **Group** (**G**, or the group tool: the three little men). With several things picked, G puts
   them under a new group, which is then picked and drags as one. G with one group picked takes it
   apart again. With the group tool in hand, a click on what is picked does the same, and the tool
@@ -300,6 +303,9 @@ undo away.
   everything picked falls, together (they can land on each other). It lands on what is under it,
   the floor or another object: drop one thing over another to stack them. Only the floor of the
   room is solid, not its walls (things may be bigger than the room). One undo lifts it back.
+  New: what is falling can be taken hold of. A press anywhere stops every fall where it has got
+  to (the globe in hand aside); what the press picks is then the user's to drag, and the rest
+  fall on as they were going, at the same speed and spin.
   - **Gravity always:** a double click with the globe, and everything falls, after every change
     from then on: nothing stays up unless it's being dragged. With _Groups pick whole_ any object
     is picked whole, and once dragged it **dangles** from where it was taken: from a corner (or
@@ -392,7 +398,10 @@ covers the room while you work).
 **Start working** (or F) goes full screen and captures the pointer, like the SGI: the cursor
 can't leave the window, and the plane and room can be pushed as far as you like without hitting a
 screen edge. Input is raw relative motion, unaccelerated where the browser allows. Nothing flat
-covers the room while you work: the toolbar and the status bar disappear.
+covers the room while you work: the toolbar and the status bar disappear. The shortcut keys,
+which the status bar listed, are on the **keys plate** instead: a dark plate fixed to the
+plane's right side, just outside the room, each key in yellow and what it does beside it. It
+moves with the plane; turned far round, the room shows it edge on.
 
 - **Leaving:** tap Esc (or F).
 - **Pausing:** if the pointer is released (Esc, ⌘-Tab, a notification), everything stays where
@@ -464,6 +473,23 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   taken from its pad it did nothing. Here a click with it on what is picked groups or ungroups,
   and a marquee with it groups what it touches (`assets/cpl/group.cpl`; `tool.cpl` lets its
   presses through, as the ruler's; `cursor.cpl` asks `touching_marquee` for the set).
+- **The magnet sticks by its face.** The original's magnet snapped only on release, to whatever
+  face was under the crosshair. Here its drag is solid, and taken by a face it snaps on contact:
+  the face dragged turns flush onto the face it met, and the release leaves it there.
+- **Falls can be interrupted.** A press stops what is falling where it is, to be picked; what
+  isn't picked falls on.
+- **The keys plate.** New: in work mode the shortcut keys are on a plate at the plane's side.
+- **A new hand.** The pan tool's picture, drawn in 1991, was an outline that doubled back on
+  itself, its sides joining its front to its back at the wrong points, so it shaded in broken
+  pieces. It is drawn again (`assets/icons/pan.icon`, made by `docker/hand/make.mjs`): one
+  smooth outline, its edges rounded, as pink as before, with a cuff at the wrist.
+- **Tools are one size in hand.** The original's tools ran from the globe's 50 units to the
+  pencil's, saw's and drill's 150, so some were huge in hand and others tiny. Here none is more
+  than 60 across (`TOOL_MOST`, `toolbar.ts`'s `fitInHand`, as each is read): the pencil, saw,
+  drill, magnifier, magnet, grabber, union, group tool and ruler are scaled down to it, about
+  their corner (where a tool sits on the crosshair is its hotspot, wherever that is). Their
+  pictures on the pads are as they were. The drill's cutter is a copy of what it's pressed
+  on, so its holes are as big as ever.
 - **Double clicks.** The original counted them (`controls.c`'s `Doubleclick`) but nothing used
   them. Here: with the magnifier, fit everything into the room; with the globe, gravity always;
   on the colour control's base or the camera's body, back into the goodies box (as dropping it
@@ -713,6 +739,29 @@ older versions of the format are normalised to the latest one on save.
   limits each drag step. The dragged group's parts are convex hulls, cast (Rapier's shape casts)
   against the other objects' triangles; it stops 0.05 short of what it hits and slides the rest
   of the step along it, up to four times. Touching something and moving along it or away is free.
+  A press with the magnet tells it what it took (`Blocker.grab`); taken by a face, a hit on
+  anything (`Blocker.stick`: the face hit is the one of the object hit whose plane holds the
+  contact point, facing most nearly along the contact normal) calls `Runtime.snapFeatures`, the
+  magnet's own snap, unless the two are already flush. `Runtime.snapTo` then sends the release's
+  snap to that face, whatever is under the crosshair.
+- **Catching a fall** (`Falls.catchAll`): a press (not with the globe) ends every fall under way
+  at the frame it has got to, as one edit, before the pick. Each fall's motion there is read off
+  its recorded poses (`motionAt`: its box's middle from one frame to the next, and the turn
+  between them, as an axis and angle a second). After the pick (once no CPL message waits), the
+  groups not picked are dropped again with that motion (`Dropped.motion`: Rapier's linear and
+  angular velocity).
+- **The keys plate** (`installKeysPlate`, `showKeysPlate` in `behaviors/src/tools/help.ts`;
+  `keyLines` in `bindings.ts`): a plate, as `read_plate` makes them, adopted to the plane at its
+  right, two Hershey labels a line. `main.ts` shows it while work mode is on.
+- **The hand** (`docker/hand/make.mjs`): a signed distance field of a palm, four finger
+  capsules and a thumb, smoothly unioned; traced by marching squares, spaced evenly round (240
+  points), and extruded through rings inset along each point's inward normal so both edges
+  round over (quads up the straight side, triangles where it rounds, so every face is flat).
+  The hotspot is the middle fingertip, as the original's. It is about 55 high. The cuff, made
+  the same way, is its child, a little thicker: `tool.cpl`'s `Put_away_tool` turns a tool
+  with no children end for end on its way back to its pad, and `Flip_tool`, finding no other
+  end, hands back the tool's parent instead, so a one-piece hand never got home (the
+  original's was three pieces).
 - **The 1 key** (`ModelView.setStyle`): a mesh drawn as wire draws nothing itself and carries
   its wire as a child (so it moves, and falls, with it): each face's edges with the face's
   normal, the faces turned away left out in the shader for the front-only view. What is out of
@@ -876,12 +925,4 @@ they ran on (`select.c`, `translate.c`, `split.c`, `update.c`), not from the 198
 - `pnpm check` is the full local gate. (pnpm 12 reserves `pnpm ci` for a clean install.)
 - **Archive corpus.** The full archive isn't in the repo. Put it in `corpus/cut/` (git-ignored)
   or set `CUTPLANE_CORPUS`, and the corpus tests run too; CI tests the bundled samples and
-  original resources. `node packages/formats/scripts/report.ts corpus/cut` (in the dev
-  container) prints a fidelity report.
-- **README animation.** `docs/images/demo.gif` is recorded from the running app:
-  `RECORD=1 docker compose run --rm e2e`. It plays the scripted session in
-  `packages/app/src/demo.ts`, which does one thing at a time the way a person would (turn the
-  room a little, push the plane, turn again); a unit test keeps it that way. Re-record it
-  whenever a milestone changes what the app looks like.
-- **Screenshots.** `SHOTS=.shots docker compose run --rm e2e` saves the E2E screenshots used in
-  these docs (copy them into `docs/images/`).
+  original resources. `node packages/formats/scripts/report.ts c

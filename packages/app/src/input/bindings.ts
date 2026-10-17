@@ -153,6 +153,43 @@ export function bindingHints(mac: boolean): string[] {
   ];
 }
 
+/**
+ * The keys plate's lines (new: on the plane's side in full screen, where the help
+ * line isn't): a key, and what it does, in the Hershey font's plain ASCII.
+ */
+export function keyLines(mac: boolean): [string, string][] {
+  const cmd = mac ? 'Cmd' : 'Ctrl';
+  const alt = mac ? 'Opt' : 'Alt';
+  return [
+    ['Click', 'pick'],
+    ['Shift-click', 'add, remove'],
+    ['Drag', 'move what is picked'],
+    [`${alt} + move`, 'plane depth'],
+    [mac ? 'Cmd + move' : 'Right-drag', 'turn the room'],
+    ['Scroll', 'plane depth'],
+    ['Space', 'plane jump'],
+    ['Arrows', 'turn 10 degrees'],
+    ['0', 'face the room'],
+    ['Ctrl', 'one axis'],
+    [`${cmd}-A`, 'pick everything'],
+    ['R', 'rotate tool'],
+    ['D', 'duplicate'],
+    ['G', 'group, ungroup'],
+    ['\\', 'slice at the plane'],
+    ['B', 'union'],
+    ['Z', 'magnifier'],
+    ['H', 'pan'],
+    ['P', 'pencil'],
+    ['M', 'ruler'],
+    ['V', 'globe (gravity)'],
+    ['1', 'the rest: wire, gone'],
+    ['Delete', 'delete'],
+    [`${cmd}-Z`, 'undo'],
+    [`Shift-${cmd}-Z`, 'redo'],
+    ['F, Esc', 'leave full screen'],
+  ];
+}
+
 /** The help plate's lines (in the room, so in the Hershey font's plain ASCII). */
 export function helpLines(mac: boolean): { text: string; heading?: boolean }[] {
   const cmd = mac ? 'Cmd' : 'Ctrl';

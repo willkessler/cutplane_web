@@ -8,7 +8,9 @@ import {
   charstreamOf,
   decalOf,
   installHelpPad,
+  installKeysPlate,
   installStoragePad,
+  showKeysPlate,
   type PlateFiles,
 } from '../src/index.ts';
 import { source, world } from './world.ts';
@@ -153,6 +155,33 @@ describe('the help pad (new): a Dialog like the storage pad', () => {
     w.click(help);
     expect(w.rt.vm.props.has(plate, P.Visible)).toBe(false);
     // Nothing in the world was picked or changed by it.
+    expect(w.rt.picked()).toEqual([]);
+  });
+});
+
+describe("the keys plate (new): the shortcut keys, on the plane's side", () => {
+  it('rides with the plane just outside the room on the right; shown or not', () => {
+    const w = setup();
+    const plate = installKeysPlate(w.rt, [['D', 'duplicate'], ['G', 'group, ungroup']]); // prettier-ignore
+    w.frame();
+    expect(plate.parent).toBe(w.rt.cutplane);
+    expect(w.rt.vm.props.has(plate, P.Visible)).toBe(false);
+    const b = w.rt.bbox(plate)!;
+    expect(b[0][0]).toBeGreaterThan(510); // clear of the right wall
+    expect((b[0][1] + b[1][1]) / 2).toBeCloseTo(0, 0); // level with the room's middle
+    // Each key in yellow, what it does in white beside it.
+    const items = w.rt.labelItems(plate);
+    expect(items.map((l) => l.text)).toEqual(['D', 'duplicate', 'G', 'group, ungroup']);
+    expect(items[0]!.color).toEqual([255, 255, 0]);
+    expect(items[1]!.color).toEqual([255, 255, 255]);
+    showKeysPlate(w.rt, plate, true);
+    expect(w.rt.vm.props.has(plate, P.Visible)).toBe(true);
+    // With the plane.
+    const z = w.rt.bbox(plate)![0][2];
+    w.at(0, 0, w.rt.cutplane.xform[14]! - 200);
+    expect(w.rt.bbox(plate)![0][2]).toBeCloseTo(z - 200);
+    showKeysPlate(w.rt, plate, false);
+    expect(w.rt.vm.props.has(plate, P.Visible)).toBe(false);
     expect(w.rt.picked()).toEqual([]);
   });
 });
