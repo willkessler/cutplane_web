@@ -300,6 +300,10 @@ _Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
 ;		 through, so it picks as the crosshair does and is measured.
 		HASPROP	A:R1*,Prop:Measure,A:R2,Const:Self
 		BTRUE	A:R2,A:_End_tool&
+;		 cutplane_web: so does the group tool, so picks and marquees
+;		 gather what it groups (group.cpl takes a click on what is picked).
+		HASPROP	A:R1*,Prop:Group,A:R2,Const:Self
+		BTRUE	A:R2,A:_End_tool&
 
 ;		No, set tool to be flipped	
 _Set_flip	ADDPROP	A:R1,Prop:Fliptool

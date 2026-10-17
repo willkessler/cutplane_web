@@ -171,6 +171,45 @@ export const MODELING_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => voi
   },
 
   /**
+   * CPL_group_targets (new): (what is under the group tool) → (what it groups). On
+   * something picked, or a part of a picked group, everything picked; otherwise
+   * nothing (the click picks as usual).
+   */
+  group_targets(rt, vm) {
+    const under = (vm.pop().list ?? []).map(objectOf).filter((o) => o !== null);
+    const picked = rt
+      .picked()
+      .map(objectOf)
+      .filter((o) => o !== null);
+    const branches = new Set(picked.flatMap((o) => [...subtree(o)]));
+    const onPicked = under.some((o) => branches.has(o) || branches.has(groupRoot(o)));
+    vm.push(featuresWord(...(onPicked ? picked : [])));
+  },
+
+  /**
+   * CPL_touching_marquee (new): (marquee, objects) → those of the objects the
+   * marquee's box takes in at least partly (the group tool's marquee; WITHIN wants
+   * them wholly inside).
+   */
+  touching_marquee(rt, vm) {
+    const objects = (vm.pop().list ?? []).map(objectOf).filter((o) => o !== null);
+    const marquee = objectOf((vm.pop().list ?? [])[0]);
+    const box = marquee ? rt.bbox(marquee) : null;
+    if (!marquee || !box) {
+      vm.push(featuresWord());
+      return;
+    }
+    const lo = [box[0][0], box[0][1], box[0][2] - 1];
+    const hi = [box[1][0], box[1][1], box[1][2] + 1];
+    const touching = objects.filter((o) => {
+      if (o === marquee || o.brep.numFaces === 0 || rt.hasProp(o, 'Scalebbox')) return false;
+      const b = rt.bbox(o);
+      return b !== null && [0, 1, 2].every((k) => b[0][k]! <= hi[k]! && b[1][k]! >= lo[k]!);
+    });
+    vm.push(featuresWord(...touching));
+  },
+
+  /**
    * CPL_drop_objects (new): (objects) → (): each one's group, whole, falls to the
    * floor (the app's physics: rt.dropper). Only what is in the world being edited;
    * what is picked sits in its scale box for now, and the group under the box falls.

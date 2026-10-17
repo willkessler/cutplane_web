@@ -275,6 +275,7 @@ async function loadCpl(): Promise<void> {
     'measurepad.cpl',
     'textinput.cpl',
     'slice.cpl',
+    'group.cpl',
   ]);
   await Promise.all(
     CPL_FILES.map(async (f) => {

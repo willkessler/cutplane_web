@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { initBooleans } from '@cutplane/booleans';
 import { P } from '@cutplane/cpl';
-import { createCube, createObject, mat4, type CutObject } from '@cutplane/kernel';
+import { createCube, createObject, mat4, subtree, type CutObject } from '@cutplane/kernel';
 import { installToolbars, isObject, isScaleBox, isSub } from '../src/index.ts';
 import { world } from './world.ts';
 
@@ -78,6 +78,65 @@ describe('the grabber (grabber.cpl)', () => {
     expect(w.rt.hasProp(tool, 'Grabber')).toBe(true);
     w.click([60, 60]);
     expect(w.picked()).toEqual(['Cube']);
+  });
+});
+
+describe('the group tool in hand (group.cpl)', () => {
+  /** The grouper over `o`, if it's in one. */
+  const grouperOf = (w: ReturnType<typeof setup>, o: CutObject) => {
+    for (let p = o.parent; p; p = p.parent) if (w.rt.hasProp(p, 'Grouper')) return p;
+    return null;
+  };
+
+  it('a click with it on something picked groups what is picked, and again ungroups it', () => {
+    const w = setup();
+    const other = w.add('Other', 300, 0);
+    w.click([60, 60]);
+    w.at(350, 50);
+    w.controls.pressPick(true);
+    w.frame();
+    w.controls.releasePick();
+    w.frame();
+    expect(w.picked().sort()).toEqual(['Cube', 'Other']);
+    const { pad, tool } = w.take(1);
+    expect(w.rt.hasProp(tool, 'Group')).toBe(true);
+    w.click([60, 60]);
+    const g = grouperOf(w, w.cube);
+    expect(g).not.toBeNull();
+    expect(grouperOf(w, other)).toBe(g);
+    expect(w.rt.picked()).toEqual([g]);
+    expect([...subtree(g!)].filter((o) => w.rt.hasProp(o, 'Scalebbox'))).toEqual([]);
+    expect(tool.parent).toBe(pad); // back on its pad, as the globe goes
+    w.take(1);
+    w.click([60, 60]);
+    expect(grouperOf(w, w.cube)).toBeNull();
+    expect(grouperOf(w, other)).toBeNull();
+  });
+
+  it('on something not picked, a click with it picks as usual', () => {
+    const w = setup();
+    const { tool } = w.take(1);
+    w.click([60, 60]);
+    expect(w.picked()).toEqual(['Cube']);
+    expect(grouperOf(w, w.cube)).toBeNull();
+    expect(tool.parent).toBe(w.rt.cursorObj);
+  });
+
+  it('a marquee with it groups everything it takes in, even partly', () => {
+    const w = setup();
+    const near = w.add('Near', 120, 0);
+    const far = w.add('Far', 600, 0);
+    const { tool } = w.take(1);
+    // Across the cube's right half and Near's left: each only partly inside.
+    w.drag([150, -250], [-200, 300]);
+    const g = grouperOf(w, w.cube);
+    expect(g).not.toBeNull();
+    expect(grouperOf(w, near)).toBe(g);
+    expect(grouperOf(w, far)).toBeNull();
+    // Only the group is picked: one scale box, round it, none on its parts.
+    expect(w.rt.picked()).toEqual([g]);
+    expect([...subtree(g!)].filter((o) => w.rt.hasProp(o, 'Scalebbox'))).toEqual([]);
+    expect(tool.parent).toBe(w.rt.cursorObj); // still in hand
   });
 });
 

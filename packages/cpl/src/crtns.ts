@@ -67,6 +67,10 @@ export const CRTN_NAMES = [
   'saw_targets',
   // cutplane_web: what the globe drops falls to the floor (gravity.cpl).
   'drop_objects',
+  // cutplane_web: what the group tool groups: what is picked, if it's on that (group.cpl);
+  // what a marquee takes in at least partly.
+  'group_targets',
+  'touching_marquee',
 ] as const;
 
 export type CrtnName = (typeof CRTN_NAMES)[number];

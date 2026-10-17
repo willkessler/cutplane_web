@@ -498,3 +498,49 @@ test('the magnet: what it drags stops where it meets another, and slides along i
   await release(page);
   expect(errors).toEqual([]);
 });
+
+test('the group tool: a click on what is picked groups it, a marquee groups what it touches; one scale box', async ({
+  page,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  const click = async (x: number, y: number, shift = false) => {
+    await set(page, { x, y });
+    await page.evaluate((s) => window.__cutplane!.press(s), shift);
+    await release(page);
+  };
+  /** Takes the group tool from its pad (the second on the arranging rail), opening the rail first. */
+  const takeGroupTool = async (openRail: boolean) => {
+    if (openRail) {
+      const rail = await locate<P3>(page, 'arrangepads');
+      await click(rail[0], rail[1]);
+    }
+    const pad = (await locate<P3[]>(page, 'arrangers'))[1]!;
+    await click(pad[0], pad[1]);
+  };
+  // The cube and a copy, both picked.
+  await click(0, 0);
+  await page.keyboard.press('KeyD');
+  await click(-80, -80, true);
+  expect((await edit(page)).boxes).toBe(2);
+
+  // A click with the group tool on one of them: one group, picked, with one scale box.
+  await takeGroupTool(true);
+  await click(-80, -80);
+  expect((await edit(page)).objects).toBe(1);
+  expect((await edit(page)).boxes).toBe(1);
+
+  // Apart again (G), nothing picked; then a marquee with it across both.
+  await page.keyboard.press('KeyG');
+  expect((await edit(page)).objects).toBe(2);
+  await click(350, -250);
+  expect((await edit(page)).boxes).toBe(0);
+  await takeGroupTool(false);
+  await set(page, { x: 350, y: -250 });
+  await press(page);
+  for (let i = 1; i <= 10; i++) await set(page, { x: 350 - 40 * i, y: -250 + 30 * i });
+  await release(page);
+  expect((await edit(page)).objects).toBe(1);
+  expect((await edit(page)).boxes).toBe(1);
+  expect(errors).toEqual([]);
+});

@@ -273,11 +273,26 @@ _Finish_marquee	OWNER	A:R1,Const:Motherobj
 		WORLD	Const:WPrimary_world
 		WITHIN	A:_Thismarquee*,Prop:Visible*,A:R2 ; (Primary world vis.)
 		WORLD	Const:WEnvironment_world
+;		 cutplane_web: with the group tool in hand, what the marquee
+;		 takes in even partly, and not picked: the tool groups it, and
+;		 the group is picked (picks arriving after would pick the parts
+;		 inside it too, each with its scale box)
+		AND	Prop:Active*,Prop:Group*,A:R4
+		BEMPTY	A:R4,A:_Pick_marqueed&
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Visible*,A:R4
+		PUSH	A:_Thismarquee
+		PUSH	A:R4
+		CRTN	Crtn:touching_marquee
+		POP	A:R2
+		WORLD	Const:WEnvironment_world
 		ANCEST	A:R2*,A:R3
+		JUMP	A:_Send_marqueed&
+_Pick_marqueed	ANCEST	A:R2*,A:R3
 		MAKEMSG	Msg:Pick
 		QMSG	A:R3*,Const:Noprioritymsg	; tell 'em to pick em
 		UPDATE	A:R3*,Const:URedrawflag/when:Now
-		MAKEMSG	Msg:Marqueedset
+_Send_marqueed	MAKEMSG	Msg:Marqueedset
 		MAKEMSG	A:R3
 		QMSG	Prop:Active*,Const:Prioritymsg	; send marqueed set out
 		CPDELETE	A:_Thismarquee*			; kill marquee

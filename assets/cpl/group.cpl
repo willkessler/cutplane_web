@@ -1,0 +1,194 @@
+;
+;		CPL Group Tool Code
+;		Date: February 10,1991
+;		Version: 2
+;
+;		*** Pushbutton-Style Interface ***
+;
+;	cutplane_web: the original's grouper took only the Activate message (the
+;	G key, or a pushbutton pad, which the toolbar never gave it), so taken
+;	from its pad it did nothing. Here a click with it on something picked does
+;	what G does: groups what is picked, or ungroups a picked group; then it
+;	goes back to its pad, as the globe does. A click on anything else picks as
+;	usual. A marquee dragged with it groups at once everything it takes in,
+;	even partly (cursor.cpl), and the tool stays in hand.
+
+Grouper		DEFPROP
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Group subroutines
+; WARNING: The following routines make extensive use of R6,R7,R8,R9... so
+; save 'em if you wan' 'em!
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Group_sub	POP	A:_Grouped_objs
+		MAKE	Const:WPrimary_world,A:_Grouper_obj,Const:Motherobj
+		ADDPROP	A:_Grouper_obj*,Prop:Nonmanifold
+		ADDPROP	A:_Grouper_obj*,Prop:Grouper
+		ADDPROP	A:_Grouper_obj*,Prop:Noshadow
+		ADDPROP	A:_Grouper_obj*,Prop:Forcedcpnormal	; grouper uses
+;								; cpnormal!
+
+		DIFF3D	A:_Grouper_obj*,A:_Grouped_objs*,A:R7	; put grouper
+		TRANS	A:_Grouper_obj*,Const:Normaltranslate,A:R7 ; inside
+
+		MAKEMSG	Msg:Unpick				; unpick
+		QMSG	A:_Grouped_objs*,Const:Prioritymsg	; grouped
+		JSRAT	A:_Grouped_objs*,Code:Property_code	; immediately
+
+_Coagulate	ANCEST	A:_Grouped_objs*,A:R9
+		ADOPT	A:_Grouper_obj*,A:R9*,Const:FALSE	; adopt ancests.
+		MAKEMSG	Msg:Pick				; Pick the
+		QMSG	A:_Grouper_obj*,Const:Noprioritymsg	; grouper.
+		UPDATE	A:_Grouper_obj*,Const:UAllupdateflags/when:Now
+		RTS
+
+; get whether dealing with picked objects or some other set...
+_Ungroup_sub	POP	A:_Grouped_objs
+
+		MAKEMSG	Msg:Unpick				; unpick
+		QMSG	A:_Grouped_objs*,Const:Prioritymsg	; targets
+		JSRAT	A:_Grouped_objs*,Code:Property_code	; immediately
+
+		ANCEST	A:_Grouped_objs*,A:R9
+
+;		 Only ungroup if ancestor is a grouper.
+		HASPROP	A:R9*,Prop:Grouper,A:R8,Const:Self
+		BEMPTY	A:R8,A:_End_ungroupsub&
+
+		PARENT	A:R9*,A:R8
+		CHLDRN	A:R9*,A:R7
+		GETLINK	A:R9*,A:R6
+		ADOPT	A:R8*,A:R7*,A:R6
+		MAKEMSG	Msg:Pick			; pick kids
+		QMSG	A:R7*,Const:Prioritymsg 	; immediately after
+		JSRAT	A:R7*,Code:Property_code
+
+_Ungroup_finish	CPDELETE	A:R9*				; kill grouper
+
+_End_ungroupsub	RTS
+
+; cutplane_web: groups the set passed, or ungroups it if it is all one group.
+
+_Group_or_ungroup POP	A:_Group_set
+		ANCEST	A:_Group_set*,A:R4
+		COUNT	A:R4,A:R5
+		BEQUAL	A:R5,Const:I1,A:_Do_ungroup_set& ; ungroup if
+;							; only one ancestor
+		PUSH	A:_Group_set
+		JSR	A:_Group_sub&
+		RTS
+
+_Do_ungroup_set	PUSH	A:_Group_set
+		JSR	A:_Ungroup_sub&
+		RTS
+
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+Group		DEFPROP
+
+Group		STARTPROP
+
+		OWNER	A:R1,Const:Motherobj		; Get grouper
+;		 Do regular stuff if no messages
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+;		 Check topmost message
+		CHKMSG	A:R2
+
+;		Message jump table starts here.
+;		Check to see if somebody (e.g. the buttonpad) has told me
+;		to do a grouping
+
+_Check_groupmsg	BNEQUAL	A:R2,Msg:Activate,A:_Check_marquee&
+
+;		 Get topmost message
+		UNQMSG	A:R2
+
+;		If the message included a groupable set, get it. Otherwise
+;		group picked objects in the primary world.
+		BNOMSGS	A:R1,A:_Group_picked&
+		UNQMSG	A:R3				; get groupable set
+		MOVE	Const:FALSE,A:_Grouping_picked
+		JUMP	A:_Group_style&			; passed with message
+
+_Group_picked	WORLD	Const:WPrimary_world
+		MOVE	Prop:Picked*,A:R3
+		MOVE	Const:TRUE,A:_Grouping_picked
+		BEMPTY	A:R3,A:_End_group&		; do nada if nada
+;							; picked
+
+_Group_style	PUSH	A:R3
+		JSR	A:_Group_or_ungroup&
+		JUMP	A:_End_group&
+
+;		cutplane_web: a drag with the tool in hand groups what it marquees.
+_Check_marquee	BNEQUAL	A:R2,Msg:Marqueedset,A:_End_group&
+		UNQMSG	A:R2
+		UNQMSG	A:R3				; what was marqueed
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_group&
+		BEMPTY	A:R3,A:_End_group&
+		ANCEST	A:R3*,A:R4			; two things at least:
+		COUNT	A:R4,A:R5			; a marquee only groups
+		BEQUAL	A:R5,Const:I1,A:_End_group&
+		WORLD	Const:WPrimary_world
+		PUSH	A:R3
+		JSR	A:_Group_sub&
+		JUMP	A:_End_group&
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+;		cutplane_web: a click with the tool in hand groups (or ungroups)
+;		what is picked, as G does.
+_Check_events	BWIPED	AA:XOP*,A:_End_group&		; Event still active?
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_group&		; not in hand, quit
+
+;		 Is Opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_End_group&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_group&
+
+;		Are there selectable toolpads?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_group&		; yes, let toolpad work
+
+;		Is the headpad selectable?
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_group&		; yes, let headpad work
+
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*,A:R2		; on nothing: a marquee
+		BEMPTY	A:R2,A:_End_group&		; starts
+		PUSH	A:R2
+		CRTN	Crtn:group_targets		; what is picked, if
+		POP	A:R3				; it's on that; else the
+		BEMPTY	A:R3,A:_End_group&		; click picks as usual
+
+		ADDPROP	A:R1*,Prop:Toolused		; let toolpad know
+;							; the tool was used
+		MOVE	A:R1,A:_Grouptool_obj		; (the subroutines run others' code)
+		PUSH	A:R3
+		JSR	A:_Group_or_ungroup&
+		WORLD	Const:WEnvironment_world
+		WIPE	A:XOP*				; no picking please!
+
+		MAKEMSG	Msg:Attachtool
+		MAKEMSG	A:_Grouptool_obj*
+; 		 adopt me to any free toolpad
+		QMSG	Prop:Toolpadempty*,Const:Prioritymsg
+
+_End_group	WORLD	Const:WEnvironment_world
+		RTS
+
+; =-=-=-=-=-=-=-= Local vars here =-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+_Grouping_picked CPLDATA
+_Grouper_obj	CPLDATA
+_Grouped_objs	CPLDATA
+_Group_set	CPLDATA
+_Grouptool_obj	CPLDATA
+_stopgroup	CPLDATA

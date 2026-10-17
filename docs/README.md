@@ -284,8 +284,11 @@ undo away.
 - **Magnifier** (or **Z**). Drag up to zoom the world in about the crosshair, down to zoom out:
   1% per unit. New: a double click with it fits everything into the room at once (scaled to
   0.8 of the room at most, in its middle; one undo).
-- **Group** (**G**). With several things picked, G puts them under a new group, which is then
-  picked and drags as one. G with one group picked takes it apart again.
+- **Group** (**G**, or the group tool: the three little men). With several things picked, G puts
+  them under a new group, which is then picked and drags as one. G with one group picked takes it
+  apart again. With the group tool in hand, a click on what is picked does the same, and the tool
+  goes back to its pad; a click on anything else picks as usual. A marquee dragged with it groups
+  at once everything it takes in, even partly, and the tool stays in hand.
 - **Union what is picked** (**B**). With several objects picked (shift-click to add), B joins
   them into one solid, the first picked; each part keeps its colours. The drill is the way to
   subtract. (Group, G, is the other way to put parts together: they stay separate solids under
@@ -456,6 +459,11 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   choice picks a group whole from any of its parts. The globe's picture is the Earth, from
   Natural Earth's coastlines. A double click with it keeps gravity on, and what is dragged
   dangles; the magnet's drags are solid.
+- **The group tool works in hand.** In the original, `group.cpl` took only an Activate message,
+  sent by G or by a push-button pad, but `arrangepads.rsc` put the tool on an ordinary pad, so
+  taken from its pad it did nothing. Here a click with it on what is picked groups or ungroups,
+  and a marquee with it groups what it touches (`assets/cpl/group.cpl`; `tool.cpl` lets its
+  presses through, as the ruler's; `cursor.cpl` asks `touching_marquee` for the set).
 - **Double clicks.** The original counted them (`controls.c`'s `Doubleclick`) but nothing used
   them. Here: with the magnifier, fit everything into the room; with the globe, gravity always;
   on the colour control's base or the camera's body, back into the goodies box (as dropping it

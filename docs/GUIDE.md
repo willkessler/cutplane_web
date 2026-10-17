@@ -119,6 +119,9 @@ once), the **group** tool, the **pan** tool (**H**: drag to move the whole world
 (press on a face of one object, let go on a face of another, and the first lies flush on the
 second), the **grabber** (always picks whole objects), the **ruler**, and the **globe**.
 
+- **Group** (three little men): with things picked, click on one of them and they're grouped (on
+  one picked group, it's taken apart), as **G** does, and the tool goes back to its pad. Or drag
+  a marquee with it: everything the marquee touches, even partly, is grouped at once.
 - **Magnet**: what it drags is solid. Drag it into another object and it stops where they touch,
   sliding along the other as you keep going, so two things are quickly slapped face to face.
 - **Globe** (a little Earth, the last pad, or press **V**): click on an object and it falls to the floor. It
