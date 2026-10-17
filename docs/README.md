@@ -4,21 +4,25 @@
 roadmap, every control, how Cutplane differs from the 1991 original, and notes for developers.
 Screenshots go in `docs/images/`.
 
+The brief this rebuild began from, written by Cutplane's authors, Will Kessler and Larry Edwards,
+is [REBUILD_BRIEF_BY_AUTHORS.md](REBUILD_BRIEF_BY_AUTHORS.md). Later waves of requests are kept
+beside it, by date ([ENHANCEMENTS_10_17_26.md](ENHANCEMENTS_10_17_26.md)).
+
 ## Roadmap
 
-| Milestone | Scope                                                                                                                     |
-| --------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                                                                    |
-| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation                                                       |
-| **M2** ✅ | Room, plane, section and full-screen work mode                                                                            |
-| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                                                          |
-| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                                                                       |
-| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                                                              |
-| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                                                        |
-| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                                                          |
-| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, big and binary Inventor files, gravity, live on GitHub Pages |
-| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                                                               |
-| M10       | Language evolution (optional)                                                                                             |
+| Milestone | Scope                                                                                                                                                                                                                                                               |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                                                                                                                                                                                                              |
+| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation                                                                                                                                                                                                 |
+| **M2** ✅ | Room, plane, section and full-screen work mode                                                                                                                                                                                                                      |
+| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                                                                                                                                                                                                    |
+| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                                                                                                                                                                                                                 |
+| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                                                                                                                                                                                                        |
+| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                                                                                                                                                                                                  |
+| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                                                                                                                                                                                                    |
+| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, big and binary Inventor files, gravity, live on GitHub Pages; Oct 17 wave: fit to room, the 1 key's wire views, gravity always with dangling, the magnet's push-back, double-click to put goodies away |
+| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                                                                                                                                                                                                         |
+| M10       | Language evolution (optional)                                                                                                                                                                                                                                       |
 
 ## Using Cutplane
 
@@ -57,21 +61,23 @@ mode is **spring-loaded**: it lasts only while you hold the key or button.
 A scroll is told apart per event: a wheel's notches move the plane straight in depth, a
 trackpad's swipe follows the plane's direction on screen.
 
-| Key     | Command                                                                                 |
-| ------- | --------------------------------------------------------------------------------------- |
-| Space   | Plane jump: glides to the back wall and back again; the next to the front wall and back |
-| ← → ↑ ↓ | Rotate the room 10° (±90° side to side, 0–90° from above)                               |
-| 0       | Reset the view                                                                          |
-| F       | Start or stop working (full screen, pointer captured)                                   |
-| R       | Rotate tool to the crosshair (on its centre: put it away)                               |
-| D       | Duplicate what is picked                                                                |
-| G       | Group what is picked (on one group: ungroup it)                                         |
-| \\      | Slice what is picked at the plane                                                       |
-| B       | Union what is picked into one object                                                    |
-| Z, H, P | The magnifier, the pan tool, the pencil, to the crosshair                               |
-| M       | The ruler: the measure pad comes out (again: put it away)                               |
-| ⌫       | Delete what is picked                                                                   |
-| ⌘Z, ⇧⌘Z | Undo, redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y elsewhere)                                   |
+| Key     | Command                                                                                                           |
+| ------- | ----------------------------------------------------------------------------------------------------------------- |
+| Space   | Plane jump: glides to the back wall and back again; the next to the front wall and back                           |
+| ← → ↑ ↓ | Rotate the room 10° (±90° side to side, 0–90° from above)                                                         |
+| 0       | Reset the view                                                                                                    |
+| F       | Start or stop working (full screen, pointer captured)                                                             |
+| R       | Rotate tool to the crosshair (on its centre: put it away)                                                         |
+| D       | Duplicate what is picked                                                                                          |
+| G       | Group what is picked (on one group: ungroup it)                                                                   |
+| \\      | Slice what is picked at the plane                                                                                 |
+| B       | Union what is picked into one object                                                                              |
+| Z, H, P | The magnifier, the pan tool, the pencil, to the crosshair                                                         |
+| M       | The ruler: the measure pad comes out (again: put it away)                                                         |
+| V       | The globe (gravity) to the crosshair                                                                              |
+| 1       | What isn't picked as wire, then out of sight, then back (nothing picked: all as wire, then every edge, then back) |
+| ⌫       | Delete what is picked                                                                                             |
+| ⌘Z, ⇧⌘Z | Undo, redo (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y elsewhere)                                                             |
 
 Dragging the plane follows the plane on screen: you push it the way it visibly travels as it goes
 deeper. Facing the room, that is up the screen; with the room turned 90°, it is sideways. Two-finger
@@ -265,7 +271,9 @@ undo away.
 - **Magnet.** Press on a face of one object (where the plane cuts it: its outline in the plane)
   and let go on a face of another. The first object turns and moves so its face lies flush on
   the second's, facing it. An edge snaps to an edge the same way. Pressing inside an object, not
-  on its outline, does nothing, as in the original.
+  on its outline, does nothing, as in the original. New: while it's dragged, the object is
+  solid. It can't go into another: it stops where they touch and slides along the other as the
+  drag goes on, so two objects are slapped together quickly.
 - **Union** (the two green blocks, on the tools' rail). The drill's twin: press on an object
   with it and the object itself comes away with the tool. Carry it into another and let go, and
   the two become one solid, each part keeping its colours. Let go over nothing and it's just put
@@ -274,7 +282,8 @@ undo away.
   would take a face or an edge.
 - **Pan tool** (or **H**). Drag on empty space to move the whole world with the crosshair.
 - **Magnifier** (or **Z**). Drag up to zoom the world in about the crosshair, down to zoom out:
-  1% per unit.
+  1% per unit. New: a double click with it fits everything into the room at once (scaled to
+  0.8 of the room at most, in its middle; one undo).
 - **Group** (**G**). With several things picked, G puts them under a new group, which is then
   picked and drags as one. G with one group picked takes it apart again.
 - **Union what is picked** (**B**). With several objects picked (shift-click to add), B joins
@@ -282,12 +291,18 @@ undo away.
   subtract. (Group, G, is the other way to put parts together: they stay separate solids under
   one object, as the Discovery is built.)
 - **Pencil** (or **P**) comes to the crosshair, as the magnifier does with Z.
-- **Globe** (a little Earth, on the arranging rail, or **>**). Click on something with it and it falls to
+- **Globe** (a little Earth, on the arranging rail, or **V**). Click on something with it and it falls to
   the floor, tumbling and bouncing a little, and comes to rest as a solid of its shape would: a
   car or a rover held at a slant lands on its wheels. A group falls whole; on something picked,
   everything picked falls, together (they can land on each other). It lands on what is under it,
   the floor or another object: drop one thing over another to stack them. Only the floor of the
   room is solid, not its walls (things may be bigger than the room). One undo lifts it back.
+  - **Gravity always:** a double click with the globe, and everything falls, after every change
+    from then on: nothing stays up unless it's being dragged. With _Groups pick whole_ any object
+    is picked whole, and once dragged it **dangles** from where it was taken: from a corner (or
+    from inside, or a face) it swings freely about that point until its weight hangs below it;
+    from an edge it swings about the edge alone, which keeps its slant. Moving the crosshair
+    swings it. Let go and it drops. Undo and redo are left be. Another double click turns it off.
 
 ![The pencil's triangle, extruded into a prism through the plane](images/m6-pencil.png)
 
@@ -439,7 +454,14 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   this was it. The message is no longer sent.
 - **Gravity, and groups picked whole.** New: the globe drops things to the floor, and a toolbar
   choice picks a group whole from any of its parts. The globe's picture is the Earth, from
-  Natural Earth's coastlines.
+  Natural Earth's coastlines. A double click with it keeps gravity on, and what is dragged
+  dangles; the magnet's drags are solid.
+- **Double clicks.** The original counted them (`controls.c`'s `Doubleclick`) but nothing used
+  them. Here: with the magnifier, fit everything into the room; with the globe, gravity always;
+  on the colour control's base or the camera's body, back into the goodies box (as dropping it
+  on the box does).
+- **The 1 key** draws what isn't picked as light grey wire, or puts it out of sight; with nothing
+  picked, everything as wire. The original drew hidden edges only while the plane or room moved.
 - **Far edges are dimmer.** A highlighted edge whose faces are all turned away is drawn at about
   half brightness.
 - **A union tool, and B unions.** The 1991 rails had no union tool (a later Cutplane did, with
@@ -670,6 +692,23 @@ older versions of the format are normalised to the latest one on save.
   test body onto its back. The Mars rover, held up and tilted 20° or 35°, comes to rest on its
   wheels within 0.7° of level, worked out in 100 to 300 ms. `docker/globe/make.mjs` makes the
   globe's picture: 1,152 faces of sea, land and ice from Natural Earth's 1:110m land.
+- **Gravity always** (a double click with the globe; `main.ts`'s `gravityTick`): after every
+  edit that wasn't an undo, a redo or a landing, the whole world is dropped quietly
+  (`Falls.drop(..., { quietly: true })`): what wouldn't move stays as it is, picked or not, and
+  only what falls is put out of reach. A landing that leaves a thing where it was isn't an edit.
+  **Dangling** (`world/dangle.ts`): the object held is a rigid pendulum, its weight spread over
+  its faces (each face's area at its middle), turning about the point held, or only about the
+  edge held (a hinge), under gravity and the crosshair's acceleration, damped, integrated four
+  steps a frame. The click's vertex, edge, face or inside comes from `Runtime.wholePicks`, kept
+  as a click is collapsed to the whole object (`Runtime.dangling` makes every object pick whole).
+- **The magnet's push-back** (`world/collide.ts`): with the magnet in hand, `Runtime.moveGuard`
+  limits each drag step. The dragged group's parts are convex hulls, cast (Rapier's shape casts)
+  against the other objects' triangles; it stops 0.05 short of what it hits and slides the rest
+  of the step along it, up to four times. Touching something and moving along it or away is free.
+- **The 1 key** (`ModelView.setStyle`): a mesh drawn as wire draws nothing itself and carries
+  its wire as a child (so it moves, and falls, with it): each face's edges with the face's
+  normal, the faces turned away left out in the shader for the front-only view. What is out of
+  sight is in `Runtime.unseen`: not drawn, cut, highlighted or picked.
 - **Tests:** `formats/test/oldformats.test.ts` reads Inventor, VRML 1.0 and 2.0 and DXF written
   for the tests, and (locally, from the archive) `robot2.dxf`, a 1993 robot arm David Lees mailed
   Larry: 52 layers, each a solid. `formats/test/mesh.test.ts` round-trips a cube, a holed face and five samples

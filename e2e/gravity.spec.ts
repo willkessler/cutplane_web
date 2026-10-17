@@ -128,8 +128,8 @@ test('dropped on another, it lands on top of it', async ({ page }) => {
   await set(page, { x: 50, y: 68 });
   await page.evaluate(() => window.__cutplane!.release());
   expect(await lows(page)).toEqual([0, 300]);
-  // Dropped (the globe by its key this time), it comes to rest on the cube's top, not the floor.
-  await page.keyboard.press('Shift+Period'); // >
+  // Dropped (the globe by its key, V, this time), it comes to rest on the cube's top, not the floor.
+  await page.keyboard.press('KeyV');
   await click(page, [50, 68]);
   await expect.poll(async () => (await falls(page)).active, { timeout: 30_000 }).toBe(false);
   await expect.poll(() => lows(page), { timeout: 30_000 }).toEqual([0, 200]);
@@ -165,5 +165,97 @@ test('"Groups pick whole" (the first choice): a click by a part\'s face picks it
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
   await expect(page.locator('#groupPick')).toHaveValue('parts');
+  expect(errors).toEqual([]);
+});
+
+const doubleClick = async (page: Page, at: [number, number]) => {
+  await set(page, { x: at[0], y: at[1] });
+  await page.evaluate(() => window.__cutplane!.doubleClick());
+};
+const gravity = (page: Page) => page.evaluate(() => window.__cutplane!.gravity());
+const settled = async (page: Page) =>
+  expect.poll(async () => (await falls(page)).active, { timeout: 30_000 }).toBe(false);
+
+/** Gravity always on (a double click with the globe), everything on the floor. */
+async function alwaysFalling(page: Page) {
+  await page.keyboard.press('KeyV');
+  await doubleClick(page, [300, -150]); // nothing there
+  expect((await gravity(page)).always).toBe(true);
+  await expect.poll(() => lows(page), { timeout: 30_000 }).toEqual([0]);
+  await settled(page);
+}
+
+test('a double click with the globe: gravity always; what is dragged dangles from a vertex', async ({
+  page,
+  browserName,
+}) => {
+  test.setTimeout(90_000);
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 15, z: 0 });
+  await alwaysFalling(page);
+  // The cube stands on the floor, -382 to -182. Taken by its front face's top right corner...
+  await set(page, { z: 100, x: 100, y: -182 });
+  await page.evaluate(() => window.__cutplane!.press());
+  // ...and lifted: it swings round until it hangs from it, its middle below the corner.
+  for (let y = -172; y <= 0; y += 8) await set(page, { x: 100, y });
+  expect((await gravity(page)).dangling).toBe(true);
+  await expect
+    .poll(
+      async () => {
+        const [mid] = (await falls(page)).mids;
+        return Math.round(Math.hypot(mid![0]! - 100, mid![2]! - 100) / 10);
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(0);
+  const [mid] = (await falls(page)).mids;
+  expect(mid![1]!).toBeLessThan(-100); // well under the corner, held at 0
+  if (SHOTS && browserName === 'chromium') await page.screenshot({ path: `${SHOTS}/dangle-vertex.png` }); // prettier-ignore
+  // Let go, it falls.
+  await page.evaluate(() => window.__cutplane!.release());
+  expect((await gravity(page)).dangling).toBe(false);
+  await expect.poll(async () => (await falls(page)).aboveFloor, { timeout: 30_000 }).toBeLessThan(1.5); // prettier-ignore
+  expect(errors).toEqual([]);
+});
+
+test('held by an edge, it swings about the edge alone, which keeps its slant', async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 15, z: 0 });
+  await alwaysFalling(page);
+  // At the plane through its middle, the section's corner is on an edge running front to back.
+  await set(page, { z: 0, x: 100, y: -182 });
+  await page.evaluate(() => window.__cutplane!.press());
+  for (let y = -172; y <= 0; y += 8) await set(page, { x: 100, y });
+  // It turns an eighth of a turn about that edge: corner down, 283 across, still 200 deep.
+  await expect
+    .poll(async () => Math.round((await falls(page)).spans[0]![0]! / 10), { timeout: 30_000 })
+    .toBe(28);
+  expect((await falls(page)).spans[0]![2]!).toBeCloseTo(200, 0);
+  await page.evaluate(() => window.__cutplane!.release());
+  await expect.poll(async () => (await falls(page)).aboveFloor, { timeout: 30_000 }).toBeLessThan(1.5); // prettier-ignore
+  // Gravity off again (another double click with the globe): a copy stays where it is put.
+  await page.keyboard.press('KeyV');
+  await doubleClick(page, [300, 150]);
+  expect((await gravity(page)).always).toBe(false);
+  expect(errors).toEqual([]);
+});
+
+test('with gravity always, a click to pick leaves things be; undo is not undone by gravity', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 15, z: 0 });
+  await alwaysFalling(page);
+  // A click picks it, and it stays picked (it's resting: it doesn't fall).
+  await click(page, [0, -282]);
+  await settled(page);
+  expect((await edit(page)).picked).toEqual(['object']);
+  // Undo the fall: back up in the air it stays.
+  await page.keyboard.press('ControlOrMeta+KeyZ');
+  await expect.poll(async () => Math.round((await falls(page)).aboveFloor)).toBe(282);
+  await page.waitForTimeout(500);
+  expect(Math.round((await falls(page)).aboveFloor)).toBe(282);
   expect(errors).toEqual([]);
 });

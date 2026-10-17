@@ -401,3 +401,100 @@ test('the drill: a red cutter made from a copy of the cube cuts a corner out of 
   expect((await edit(page)).faces).toBe(12);
   expect(errors).toEqual([]);
 });
+
+const doubleClick = (page: Page) => page.evaluate(() => window.__cutplane!.doubleClick());
+type Falls = { mids: number[][]; spans: number[][]; lows: number[] };
+const falls = (page: Page) => page.evaluate(() => window.__cutplane!.falls()) as Promise<Falls>;
+
+test('the magnifier: a double click fits everything into the room at once; undo puts it back', async ({
+  page,
+  browserName,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0 });
+  await page.keyboard.press('KeyZ');
+  await set(page, { x: 300, y: -200 });
+  await doubleClick(page);
+  // The cube, 200 across, scaled to 0.8 of the room's height (765) and in its middle.
+  const f = await falls(page);
+  expect(f.spans[0]![1]!).toBeCloseTo(612, 0);
+  expect(f.mids[0]![0]!).toBeCloseTo(-0.5, 0);
+  expect(f.mids[0]![1]!).toBeCloseTo(0.5, 0);
+  expect(f.mids[0]![2]!).toBeCloseTo(0.5, 0);
+  await set(page, { z: 300 });
+  await shot(page, 'magnifier-fit', browserName);
+  await page.keyboard.press('ControlOrMeta+KeyZ');
+  expect((await falls(page)).spans[0]![1]!).toBeCloseTo(200, 0);
+  expect(errors).toEqual([]);
+});
+
+test('a double click on the colour control or the camera puts it back in its box', async ({
+  page,
+  browserName,
+}) => {
+  test.setTimeout(60_000);
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  const shown = (name: string) =>
+    page.evaluate((n) => window.__cutplane!.locate(`shown:${n}`), name) as Promise<boolean>;
+  await openBox(page, 'goodies');
+  expect(await shown('Colorcontrol')).toBe(true);
+  expect(await shown('Nikon')).toBe(true);
+  await shot(page, 'goodies-out', browserName);
+  const base = await locate<P3>(page, 'base');
+  await set(page, { z: base[2], x: base[0], y: base[1] });
+  await doubleClick(page);
+  expect(await shown('Colorcontrol')).toBe(false);
+  // The box closed again as it went in: open it, and the camera's next.
+  await openBox(page, 'goodies');
+  expect(await shown('Colorcontrol')).toBe(true);
+  const camera = await locate<P3>(page, 'camera');
+  await set(page, { z: camera[2], x: camera[0], y: camera[1] });
+  await doubleClick(page);
+  expect(await shown('Nikon')).toBe(false);
+  await shot(page, 'goodies-away', browserName);
+  expect(errors).toEqual([]);
+});
+
+test('the magnet: what it drags stops where it meets another, and slides along it', async ({
+  page,
+  browserName,
+}) => {
+  test.setTimeout(60_000);
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0 });
+  const click = async (at: P3 | [number, number]) => {
+    await set(page, { x: at[0], y: at[1] });
+    await press(page);
+    await release(page);
+  };
+  // A copy, off to the right: 300 to 500 across, 0 to 200 up.
+  await click([0, 0]);
+  await page.keyboard.press('KeyD');
+  await set(page, { x: 150, y: 150 });
+  await press(page);
+  for (const x of [250, 350, 450]) await set(page, { x, y: 150 });
+  await release(page);
+  const xs = (await falls(page)).mids.map((m) => Math.round(m[0]!));
+  expect([...xs].sort((a, b) => a - b)).toEqual([0, 400]);
+  // The copy: on the right, wherever it's listed.
+  const right = async () => (await falls(page)).mids.reduce((a, b) => (b[0]! > a[0]! ? b : a));
+  await click([300, -250]);
+  // The magnet (the arranging rail's fourth pad), by the copy's left face.
+  await click(await locate<P3>(page, 'arrangepads'));
+  await click((await locate<P3[]>(page, 'arrangers'))[3]!);
+  await set(page, { x: 300, y: 50 });
+  await press(page);
+  // Dragged left, into the cube and past it: it stops, flush with the cube's right face...
+  for (let x = 290; x >= 0; x -= 10) await set(page, { x, y: 50 });
+  const copy = await right();
+  expect(copy[0]!).toBeCloseTo(200, 0);
+  // ...and down as well as on: it slides down along it.
+  for (let y = 40; y >= -10; y -= 10) await set(page, { x: y - 60, y });
+  const slid = await right();
+  expect(slid[0]!).toBeCloseTo(200, 0);
+  expect(slid[1]!).toBeCloseTo(40, 0);
+  await shot(page, 'magnet-flush', browserName);
+  await release(page);
+  expect(errors).toEqual([]);
+});

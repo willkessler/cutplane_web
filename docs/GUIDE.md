@@ -114,12 +114,14 @@ tool rides on the crosshair; click its pad again, or call up another tool, to pu
 - **Union** (two green blocks): carry one object into another and let go, and they become one.
 
 The headpad with **three bars** opens the arranging tools: the **magnifier** (**Z**: drag up to
-zoom in, down to zoom out), the **group** tool, the **pan** tool (**H**: drag to move the whole
-world), the **magnet** (press on a face of one object, let go on a face of another, and the first
-lies flush on the second), the **grabber** (always picks whole objects), the **ruler**, and the
-**globe**.
+zoom in, down to zoom out; **double-click** with it and everything is fitted into the room at
+once), the **group** tool, the **pan** tool (**H**: drag to move the whole world), the **magnet**
+(press on a face of one object, let go on a face of another, and the first lies flush on the
+second), the **grabber** (always picks whole objects), the **ruler**, and the **globe**.
 
-- **Globe** (a little Earth, the last pad, or press **>**): click on an object and it falls to the floor. It
+- **Magnet**: what it drags is solid. Drag it into another object and it stops where they touch,
+  sliding along the other as you keep going, so two things are quickly slapped face to face.
+- **Globe** (a little Earth, the last pad, or press **V**): click on an object and it falls to the floor. It
   tumbles, bounces a little and comes to rest as a solid of its shape would, so a car or a rover
   held at a slant lands on its wheels, and a chair on its legs. A group falls whole; click on
   something picked and everything picked falls (things dropped together can land on each
@@ -129,12 +131,26 @@ lies flush on the second), the **grabber** (always picks whole objects), the **r
   where it was. A fall is worked out by
   [Rapier](https://rapier.rs), a physics engine, from each part's _convex hull_ (the part
   shrink-wrapped): the hull's underside is what a solid lying on a floor can touch it with.
+- **Gravity always**: **double-click** with the globe and everything falls, and keeps falling
+  after every change: nothing stays up unless you're dragging it. With _Groups pick whole_, what
+  you pick up **dangles** from where you took hold of it, rather than changing shape. Taken by a
+  corner, it hangs from that corner; by an edge, it swings about that edge, which keeps its
+  slant; by its inside, it turns until its weight hangs below. Move the crosshair and it swings.
+  Let go and it drops. ⌘Z still puts things back where they were (gravity leaves an undo be).
+  Double-click with the globe again to turn it off.
 
 The **toolboxes** stand on the floor at the back (Space takes the plane there). Click one to open
 it. The primitives box holds a cube, cylinder, cone, sphere and pyramid: press on one and a copy
 comes out, picked, to carry forward into the world. The goodies box holds a camera (section 7), a
 light bulb and the colour control (three bars and a paint chip: drag a bar and what is picked takes
-the colour, or drag the chip onto a face to paint it).
+the colour, or drag the chip onto a face to paint it). **Double-click** the colour control's base
+or the camera's body to put it away: it goes back into its box, which closes.
+
+**1** clears the view. With something picked, the first press draws everything else as light grey
+wire (the edges of the faces turned towards you), the second puts it out of sight (and out of
+reach: it can't be picked or cut), and the third brings it all back. With nothing picked, the
+first press draws everything as wire, the second shows every edge, back ones too, and the third
+brings back the solids.
 
 ## 6. Measuring
 

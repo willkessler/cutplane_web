@@ -7,9 +7,12 @@ import {
   WorldGeometry,
   createCube,
   createObject,
+  groupRoot,
   mat4,
   preorder,
+  subtree,
   type CutObject,
+  type Pick,
 } from '@cutplane/kernel';
 import type { CutDocument } from '@cutplane/formats';
 import { P, PROPERTY_FILES } from '@cutplane/cpl';
@@ -46,7 +49,7 @@ import { Highlights } from './render/highlights.ts';
 import { RotateToolView } from './render/rotatetool.ts';
 import { ScaleBoxView } from './render/scalebox.ts';
 import { setLineResolution } from './render/lines.ts';
-import { ModelView, type Model } from './render/models.ts';
+import { ModelView, type DrawStyle, type Model } from './render/models.ts';
 import { CameraSlide, lensShot } from './render/cameraslide.ts';
 import { CameraWindow } from './render/camerawindow.ts';
 import { CameraPathView } from './render/camerapath.ts';
@@ -57,6 +60,8 @@ import { PadView } from './render/pads.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
 import { SectionLines } from './render/sectionlines.ts';
 import { Falls } from './world/gravity.ts';
+import { Dangle } from './world/dangle.ts';
+import { Blocker } from './world/collide.ts';
 import { createCamera, deeperOnScreen, fitFov, orbitCamera, unitsPerPixel } from './scene.ts';
 import { CLASSIC, rgb } from './viewer/palette.ts';
 import { CodePanel } from './ui/codepanel.ts';
@@ -286,6 +291,7 @@ let rt!: Runtime;
 let controls!: Controls;
 let rotateTool!: ReturnType<typeof installRotateTool>;
 let falls!: Falls;
+let blocker!: Blocker;
 let colorControl!: ReturnType<typeof installToolboxes>['colorControl'];
 let toolboxes!: ReturnType<typeof installToolboxes>;
 let ready = false;
@@ -297,6 +303,7 @@ function makeWorld(): void {
   rt.faceDrag = faceDragSelect.value as FaceDrag;
   rt.groupPick = groupPickSelect.value as GroupPick;
   falls = new Falls(rt, models);
+  blocker = new Blocker(rt, models);
   rt.dropper = (roots) =>
     void falls.drop(roots).catch((e: Error) => notify(`Couldn't drop it: ${e.message}`, true));
   rt.loadCode(source);
@@ -327,10 +334,220 @@ function pressPick(shift: boolean): void {
   if (!ready) return;
   control.resetConstrain();
   controls.pressPick(shift);
+  // Where an object picked whole is taken hold of (it dangles from there: permanent gravity).
+  const part = rt.vm.props.features(rt.primary, P.Selectable).find(isObject);
+  const pick = part && rt.wholePicks.get(part);
+  hold = part && pick ? { part, pick: { ...pick, at: [...pick.at] } } : null;
+  dangle = null;
 }
 function releasePick(): void {
   if (!ready) return;
   controls.releasePick();
+  hold = dangle = null;
+}
+
+// ---- double clicks (new here) ----
+/** Two clicks this close in time (ms) and place (room units) are a double click. */
+const DOUBLE_MS = 400;
+const DOUBLE_NEAR = 8;
+interface Click {
+  t: number;
+  x: number;
+  y: number;
+  /** The tool in hand as it was clicked. */
+  tool: 'Magnifier' | 'Globe' | null;
+  /** The goodie it was on, if it was on one that goes back in its box. */
+  goodie: CutObject | null;
+  /** It turned into a drag. */
+  dragged: boolean;
+}
+let lastClick: Click | null = null;
+/** The second click of a double click was taken: its release is too. */
+let swallowRelease = false;
+
+/** Which of the tools that know double clicks the crosshair holds. */
+function toolInHand(): Click['tool'] {
+  for (const name of ['Magnifier', 'Globe'] as const) {
+    const t = rt.findObject(name);
+    if (t && heldBy(t, rt.cursorObj)) return name;
+  }
+  return null;
+}
+
+/** The colour control or the camera, if the crosshair is on its base (the camera's body, not its lens). */
+function goodieUnder(): CutObject | null {
+  rt.setSelectables();
+  for (const f of rt.vm.props.features(rt.environment, P.Selectable)) {
+    const o = isObject(f) ? f : (f as { object?: CutObject }).object;
+    if (!o) continue;
+    if (o.name === 'Colorcontrol' || o.name === 'Nikon') return o;
+    // The camera's winder and viewfinder are its body too (its lens has its cap on it).
+    if (o.parent?.name === 'Nikon' && o.children.length === 0) return o.parent;
+  }
+  return null;
+}
+
+/** A press of the pick button by hand: the second of a double click may be taken for one. */
+function clickPress(shift: boolean, t = performance.now()): void {
+  if (!ready) return;
+  const c = lastClick;
+  lastClick = null;
+  if (
+    c &&
+    !c.dragged &&
+    !shift &&
+    t - c.t < DOUBLE_MS &&
+    Math.hypot(control.x - c.x, control.y - c.y) < DOUBLE_NEAR &&
+    doubleClick(c)
+  ) {
+    // prettier-ignore
+    swallowRelease = true;
+    settle();
+    return;
+  }
+  lastClick = { t, x: control.x, y: control.y, tool: toolInHand(), goodie: goodieUnder(), dragged: false }; // prettier-ignore
+  pressPick(shift);
+}
+function clickRelease(): void {
+  if (swallowRelease) {
+    swallowRelease = false;
+    return;
+  }
+  if (lastClick && controls.pickHeld && !controls.pressedStill) lastClick.dragged = true;
+  releasePick();
+}
+
+/** What a double click does, by what was in hand or under the crosshair. False: nothing. */
+function doubleClick(c: Click): boolean {
+  if (c.tool === 'Magnifier') {
+    // Everything, fitted into the room at once.
+    rt.fitWorld(rt.primary);
+    rt.commit();
+    return true;
+  }
+  if (c.tool === 'Globe') {
+    setPermanentGravity(!permanentGravity);
+    if (toolInHand() === 'Globe') controls.putToolAway('Globe');
+    return true;
+  }
+  if (c.goodie) {
+    controls.putGoodieAway(c.goodie.name!);
+    return true;
+  }
+  return false;
+}
+
+// ---- permanent gravity (new here: a double click with the globe) ----
+/** Everything falls, all the time, unless it's being dragged. */
+let permanentGravity = false;
+/** The edits gravity has seen to (nothing new since: nothing to drop). */
+let gravitySeen = -1;
+/** Where the object being picked whole was taken hold of, until it's dragged. */
+let hold: { part: CutObject; pick: Pick } | null = null;
+/** The object dangling from the crosshair, swinging. */
+let dangle: Dangle | null = null;
+let lastSwing = 0;
+
+function setPermanentGravity(on: boolean): void {
+  permanentGravity = on;
+  rt.dangling = on;
+  gravitySeen = -1; // everything falls now
+  notify(
+    on
+      ? 'Gravity always: everything falls, and what you drag dangles (double-click with the globe again to stop)'
+      : 'Gravity only where the globe drops it',
+  );
+}
+
+/** The world's objects at its top (looking through scale boxes to what they hold). */
+function worldTops(): CutObject[] {
+  const boxes = new Set(scaleBoxesIn(rt, rt.primary.root));
+  return rt.primary.root.children.flatMap((o) => (boxes.has(o) ? o.children : [o]));
+}
+
+/** Each frame: with permanent gravity, anything changed since it last looked falls. */
+function gravityTick(): void {
+  if (!permanentGravity || controls.pickHeld || falls.settling) return;
+  if (rt.journal.edits === gravitySeen) return;
+  gravitySeen = rt.journal.edits;
+  const roots = worldTops().filter((o) => !rt.hasProp(o, 'Grouper') || o.children.length > 0);
+  if (roots.length)
+    void falls
+      .drop(roots, { quietly: true })
+      .catch((e: Error) => notify(`Couldn't drop it: ${e.message}`, true));
+}
+
+/** Each frame: what is held whole, once dragged, dangles (permanent gravity, groups picked whole). */
+function swingTick(): void {
+  const now = performance.now();
+  const dt = (now - lastSwing) / 1000;
+  lastSwing = now;
+  if (!permanentGravity || rt.groupPick !== 'whole' || !controls.pickHeld) {
+    hold = dangle = null;
+    return;
+  }
+  if (!dangle && hold && !controls.pressedStill) {
+    // What was picked for the click: the part, or the group it's in.
+    const { part, pick } = hold;
+    const picked = rt.picked().find((f) => {
+      for (let o: CutObject | null = part; o; o = o.parent) if (o === f) return true;
+      return false;
+    }) as CutObject | undefined;
+    if (picked) dangle = Dangle.hold(rt, groupRoot(picked), part, pick);
+    hold = null;
+  }
+  dangle?.step(dt);
+}
+
+/** Undo and redo: what they put back stays put, even with permanent gravity. */
+function undo(): void {
+  const was = rt.journal.edits;
+  rt.undo();
+  if (gravitySeen === was) gravitySeen = rt.journal.edits;
+}
+function redo(): void {
+  const was = rt.journal.edits;
+  rt.redo();
+  if (gravitySeen === was) gravitySeen = rt.journal.edits;
+}
+
+// ---- the 1 key (new here) ----
+/**
+ * How the rest is drawn. With something picked: all else as wire (the edges of the
+ * faces turned towards you), then out of sight, then as it was. With nothing picked:
+ * everything as wire, then as wire with every edge, then as it was.
+ */
+let display: { step: 0 | 1 | 2; picked: boolean; keep: Set<CutObject> } = {
+  step: 0,
+  picked: false,
+  keep: new Set(),
+};
+function styleOf(o: CutObject): DrawStyle {
+  const { step, picked, keep } = display;
+  if (step === 0 || keep.has(o)) return 'solid';
+  if (step === 1) return 'frontWire';
+  return picked ? 'hidden' : 'wire';
+}
+function stepDisplay(): void {
+  const step = ((display.step + 1) % 3) as 0 | 1 | 2;
+  const picked = rt.pickedObjects().filter((o) => rt.worldOf(o) === rt.primary);
+  const keep = new Set(picked.flatMap((o) => [...subtree(o)]));
+  display = {
+    step,
+    picked: step === 1 ? picked.length > 0 : display.picked,
+    // (Unpicked meanwhile: what was kept still is.)
+    keep: step === 0 ? new Set() : keep.size > 0 ? keep : display.keep,
+  };
+  applyDisplay();
+}
+/** Draws everything as `display` says; what is out of sight can't be picked. */
+function applyDisplay(): void {
+  models.setStyle(styleOf);
+  rt.unseen.clear();
+  if (display.step !== 0)
+    for (const m of models.models) if (styleOf(m.object) === 'hidden') rt.unseen.add(m.object);
+  dirty = true;
+  lastHighlights = '';
 }
 
 styleSelect.addEventListener('change', () => {
@@ -432,11 +649,13 @@ function loadDocument(doc: CutDocument): void {
   rt.clearWorld(rt.primary);
   rt.journal.clear();
   rt.importObjects(rt.primary, doc.roots);
+  display = { step: 0, picked: false, keep: new Set() }; // a new world is drawn as it is
   // A fall used to make its objects Nonselectable while it lasted, and an autosave in
   // the meantime kept them so: nothing in the world being edited is meant to be.
   for (const o of preorder(rt.primary.root.children))
     if (rt.vm.props.has(o, P.Nonselectable)) rt.vm.props.del(o, P.Nonselectable);
   models.load(doc);
+  applyDisplay();
   control.plane.setDepths(models.depths());
   control.plane.set(ROOM.max[2]);
   dirty = true;
@@ -511,6 +730,11 @@ function applyDemo(t: number): void {
  * wherever it left them.
  */
 function step(): void {
+  // The magnet in hand: what it drags can't go into anything (its solid push-back).
+  const magnet = [...subtree(rt.cursorObj)].some((o) => rt.hasProp(o, 'Magnetic'));
+  if (magnet) blocker.ready();
+  rt.moveGuard = magnet ? blocker.guard : null;
+  if (!magnet || !controls.pickHeld) blocker.end();
   const plane = control.motion === 'plane';
   if (plane !== planeHeld) {
     planeHeld = plane;
@@ -526,6 +750,7 @@ function step(): void {
   if (stage.x !== control.x || stage.y !== control.y) placeCrosshair(stage.x, stage.y);
   if (stage.z !== control.z) control.plane.set(stage.z);
   if (rt.quitRequested) rt.quitRequested = false;
+  swingTick();
 }
 
 /** Catches the drawn models up with the world: new and gone objects, changed geometry. */
@@ -533,7 +758,10 @@ function syncModels(): void {
   if (rt.version !== lastWorld) {
     lastWorld = rt.version;
     // (A redraw counts as a version too: the cursor asks for one each move.)
-    if (models.sync(rt.primary.root.children)) depthsStale = true;
+    if (models.sync(rt.primary.root.children)) {
+      depthsStale = true;
+      if (display.step !== 0) applyDisplay();
+    }
     envView.sync(rt.environment.root.children, (o) => !isPad(o));
     dirty = envDirty = true;
   }
@@ -633,14 +861,19 @@ window.addEventListener('pagehide', () => cameraWindow.close());
 
 /** The models not falling: a falling one isn't hovered or picked (it isn't where the world has it). */
 function stillModels(): Model[] {
-  return falls.busy ? models.models.filter((m) => !falls.has(m.object)) : models.models;
+  const shown = display.step === 0 ? models.models : models.models.filter((m) => models.shows(m.object)); // prettier-ignore
+  return falls.busy ? shown.filter((m) => !falls.has(m.object)) : shown;
 }
 
 function render(): void {
   step();
   // Falling objects are drawn where their fall has got to; those that land are moved there.
   const falling = falls.active;
+  const edits = rt.journal.edits;
   falls.tick();
+  // A landing is gravity's own edit: nothing for it to see to again.
+  if (gravitySeen === edits) gravitySeen = rt.journal.edits;
+  gravityTick();
   syncModels();
   autosaveTick();
   orbitCamera(camera, control.yaw, control.pitch);
@@ -655,14 +888,15 @@ function render(): void {
   }
   if (dirty || key !== lastKey || falling) {
     // A falling object is cut where its fall has got to.
+    const shown = display.step === 0 ? models.models : models.models.filter((m) => models.shows(m.object)); // prettier-ignore
     const drawn = falling
-      ? models.models.map((m) => {
+      ? shown.map((m) => {
           const pose = falls.poseOf(m.object);
           if (!pose) return m;
           const world = new WorldGeometry(m.object.brep, mat4.multiply(m.object.xform, pose));
           return { object: m.object, world };
         })
-      : models.models;
+      : shown;
     section.update(drawn, stage.z, camera.position);
     lastKey = key;
     dirty = false;
@@ -825,11 +1059,11 @@ canvas.addEventListener('pointerdown', (e) => {
   if (demo || e.button !== 0) return;
   if (work.state === 'off') canvas.setPointerCapture(e.pointerId); // keep dragging past the edge
   aim = [control.x, control.y];
-  pressPick(e.shiftKey);
+  clickPress(e.shiftKey);
 });
 canvas.addEventListener('pointerup', (e) => {
   syncHeld(e);
-  if (e.button === 0) releasePick();
+  if (e.button === 0) clickRelease();
 });
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 canvas.addEventListener(
@@ -877,14 +1111,14 @@ window.addEventListener('keydown', (e) => {
     }
     return;
   }
-  const c = commandFor(e.code, held, e.key);
+  const c = commandFor(e.code, held);
   if (!c) return;
   e.preventDefault();
   if (c === 'workMode') {
     if (work.state === 'off') void work.enter();
     else if (e.code === 'KeyF') work.exit(); // F toggles, like a video player's full screen
-  } else if (c === 'undo') rt.undo();
-  else if (c === 'redo') rt.redo();
+  } else if (c === 'undo') undo();
+  else if (c === 'redo') redo();
   else if (c === 'duplicate') controls.duplicate();
   else if (c === 'rotateTool') controls.snapRotateTool();
   else if (c === 'group') controls.group();
@@ -895,6 +1129,7 @@ window.addEventListener('keydown', (e) => {
   else if (c === 'pencilTool') controls.takeTool('Pencil');
   else if (c === 'measureTool') controls.takeTool('Ruler');
   else if (c === 'gravityTool') controls.takeTool('Globe');
+  else if (c === 'display') stepDisplay();
   else if (c === 'delete') controls.delete();
   else if (c === 'selectAll') controls.selectAll();
   else if (c === 'planeJump')
@@ -1206,6 +1441,12 @@ declare global {
       stats(): typeof section.stats;
       press(shift?: boolean): void;
       release(): void;
+      /** Two clicks, quickly, where the crosshair is (as by hand: a double click). */
+      doubleClick(): void;
+      /** How many objects are drawn each way (the 1 key), and how many can't be picked for it. */
+      display(): { solid: number; frontWire: number; wire: number; hidden: number; unseen: number };
+      /** Whether gravity is always on, and whether something dangles from the crosshair. */
+      gravity(): { always: boolean; dangling: boolean };
       tool(): { center: number[]; hover: string | null; rotating: boolean };
       color(): { rgb: number[]; hover: string | null; base: number[] };
       locate(what: string): unknown;
@@ -1231,7 +1472,13 @@ declare global {
       /** The ring that turns while a file is read: up or not, and how far round it has turned. */
       loading(): { shown: boolean; turn: number };
       /** Whether anything is falling (the globe), and how far above the floor the world's lowest point is (and each object's). */
-      falls(): { active: boolean; aboveFloor: number; lows: number[]; mids: number[][] };
+      falls(): {
+        active: boolean;
+        aboveFloor: number;
+        lows: number[];
+        mids: number[][];
+        spans: number[][];
+      };
       flyover(): {
         open: boolean;
         inRoom: boolean;
@@ -1332,6 +1579,23 @@ async function start(): Promise<void> {
       releasePick();
       settle();
     },
+    doubleClick() {
+      // (A slow software-rendered frame mustn't part the clicks: they're timed as by hand.)
+      const t = performance.now();
+      for (let i = 0; i < 2; i++) {
+        render();
+        clickPress(false, t + i * 150);
+        settle();
+        clickRelease();
+        settle();
+      }
+    },
+    display() {
+      const out = { solid: 0, frontWire: 0, wire: 0, hidden: 0, unseen: rt.unseen.size };
+      for (const m of models.models) out[styleOf(m.object)]++;
+      return out;
+    },
+    gravity: () => ({ always: permanentGravity, dangling: dangle !== null }),
     color: () => colorState(rt, colorControl),
     saveText: () => worldText(),
     palette() {
@@ -1390,6 +1654,11 @@ async function start(): Promise<void> {
           };
         },
       };
+      // Whether a thing in the room is out (drawn), by name ("shown:Colorcontrol").
+      if (what.startsWith('shown:')) {
+        const o = rt.findObject(what.slice(6));
+        return !!o && rt.vm.props.has(o, P.Visible);
+      }
       // A measure pad field's centre, by name ("measurefield:Cube_height").
       if (what.startsWith('measurefield:')) return box(rt.findObject(what.slice(13)) ?? undefined);
       return parts[what]?.() ?? null;
@@ -1408,11 +1677,11 @@ async function start(): Promise<void> {
       };
     },
     undo() {
-      rt.undo();
+      undo();
       render();
     },
     redo() {
-      rt.redo();
+      redo();
       render();
     },
     edit() {
@@ -1445,13 +1714,15 @@ async function start(): Promise<void> {
         for (const v of m.object.brep.vertices()) low = Math.min(low, m.world.y(v));
         return low - ROOM.min[1];
       });
-      // Each top-level object's middle (its box's), where the world has it.
-      const mids = rt.primary.root.children.map((o) => {
+      // Each top-level object's box (looking into scale boxes), where the world has it.
+      const tops = worldTops();
+      const top = new Set(tops);
+      const boxes = tops.map((o) => {
         const lo = [Infinity, Infinity, Infinity];
         const hi = [-Infinity, -Infinity, -Infinity];
         for (const m of models.models) {
           let p: CutObject | null = m.object;
-          while (p && p.parent !== rt.primary.root) p = p.parent;
+          while (p && !top.has(p)) p = p.parent;
           if (p !== o) continue;
           for (const v of m.object.brep.vertices()) {
             const q = [m.world.x(v), m.world.y(v), m.world.z(v)];
@@ -1461,9 +1732,11 @@ async function start(): Promise<void> {
             }
           }
         }
-        return lo.map((a, k) => (a + hi[k]!) / 2);
+        return [lo, hi];
       });
-      return { active: falls.active, aboveFloor: Math.min(...lows), lows, mids };
+      const mids = boxes.map(([lo, hi]) => lo!.map((a, k) => (a + hi![k]!) / 2));
+      const spans = boxes.map(([lo, hi]) => lo!.map((a, k) => hi![k]! - a));
+      return { active: falls.active, aboveFloor: Math.min(...lows), lows, mids, spans };
     },
     flyover: () => ({
       open: cameraWindow.isOpen,

@@ -219,6 +219,30 @@ export class Controls {
     this.vm.encodeInstruction(` QMSG Obj:${name},Const:Prioritymsg`);
   }
 
+  /** New: a tool in hand goes back to a free pad, as one does once used (tool.cpl's Attachtool). */
+  putToolAway(name: 'Globe' | 'Magnifier'): void {
+    this.events = true;
+    this.vm.encodeInstruction(' WORLD Const:WEnvironment_world');
+    this.vm.encodeInstruction(' MAKEMSG Msg:Attachtool');
+    this.vm.encodeInstruction(` MAKEMSG Obj:${name}`);
+    this.vm.encodeInstruction(' QMSG Prop:Toolpadempty*,Const:Prioritymsg');
+    this.vm.encodeInstruction(' WORLD Const:WPrimary_world');
+  }
+
+  /**
+   * New: a goodie (the camera, the colour control) goes back into its box and the box
+   * closes, as when it's dropped on the box (goodies.cpl's _Try_dunk).
+   */
+  putGoodieAway(name: string, box = 'Goodiesbox'): void {
+    this.events = true;
+    this.vm.encodeInstruction(' WORLD Const:WEnvironment_world');
+    this.vm.encodeInstruction(' MAKEMSG Msg:Dunkobject');
+    this.vm.encodeInstruction(` MAKEMSG Obj:${name}`);
+    this.vm.encodeInstruction(' MAKEMSG Msg:Closetoolbox');
+    this.vm.encodeInstruction(` QMSG Obj:${box},Const:Prioritymsg`);
+    this.vm.encodeInstruction(' WORLD Const:WPrimary_world');
+  }
+
   /** store_roomrot: the room turns by (dx, dy) tenths of a degree. */
   rotateRoom(dx: number, dy: number): void {
     const ad = new Word();

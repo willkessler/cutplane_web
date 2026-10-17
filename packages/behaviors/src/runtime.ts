@@ -251,6 +251,21 @@ export class Runtime implements Host {
    * Not a property: nothing of it is saved, copied or undone.
    */
   readonly outOfReach = new Set<CutObject>();
+  /** Objects put out of sight (the 1 key): not drawn, so not pickable either. */
+  readonly unseen = new Set<CutObject>();
+  /**
+   * New here: permanent gravity is on (a double click with the globe). With "Groups
+   * pick whole", a click on any object picks it whole (it dangles from where it is
+   * held, rather than being reshaped), and wholePicks says where that was.
+   */
+  dangling = false;
+  /** Where each object picked whole was clicked: its vertex, edge or face, or inside it. */
+  readonly wholePicks = new WeakMap<CutObject, KernelPick>();
+  /**
+   * Can hold back an object being dragged whole (the magnet's solid push-back): given
+   * the group's root and the offset asked for, how far it may go.
+   */
+  moveGuard: ((root: CutObject, d: V3) => V3) | null = null;
 
   private readonly worldOfRoot = new Map<CutObject, WorldFeature>();
   private readonly geometry = new Map<CutObject, WorldGeometry>();
@@ -896,7 +911,9 @@ export class Runtime implements Host {
     const d: V3 = [offset[0] ?? 0, offset[1] ?? 0, offset[2] ?? 0];
     if (isObject(f) || (isSub(f) && f.type === T.Shell)) {
       const o = isObject(f) ? f : (f as Sub).object;
-      this.moveBranch(groupRoot(o), d);
+      const root = groupRoot(o);
+      const guard = this.moveGuard && this.worldOf(o) === this.primary ? this.moveGuard : null;
+      this.moveBranch(root, guard ? guard(root, d) : d);
       return;
     }
     if (!isSub(f)) return;
@@ -1215,6 +1232,39 @@ export class Runtime implements Host {
     if (world === this.primary) this.totalZoom *= factor;
   }
 
+  /**
+   * New here: everything in `world` scaled and moved (as one) to fit in the middle of
+   * the room, `margin` of it across at most (the magnifier's double click; undoable).
+   */
+  fitWorld(world: WorldFeature, margin = 0.8): void {
+    let lo: V3 = [Infinity, Infinity, Infinity];
+    let hi: V3 = [-Infinity, -Infinity, -Infinity];
+    for (const o of subtree(world.root)) {
+      if (o === world.root || !this.vm.props.has(o, P.Visible)) continue;
+      if (this.vm.props.has(o, P.Scalebbox)) continue;
+      const b = this.bbox(o);
+      if (!b) continue;
+      lo = lo.map((v, k) => Math.min(v, b[0][k]!)) as V3;
+      hi = hi.map((v, k) => Math.max(v, b[1][k]!)) as V3;
+    }
+    if (!Number.isFinite(lo[0])) return;
+    const size = hi.map((v, k) => Math.max(v - lo[k]!, 1e-6));
+    const room = [0, 1, 2].map((k) => ROOM.max[k]! - ROOM.min[k]!);
+    const factor = margin * Math.min(...room.map((r, k) => r / size[k]!));
+    const c = lo.map((v, k) => (v + hi[k]!) / 2) as V3;
+    const to = [0, 1, 2].map((k) => (ROOM.max[k]! + ROOM.min[k]!) / 2);
+    const m = mat4.multiply(
+      mat4.scaleAbout(c, [factor, factor, factor]),
+      mat4.translation(to[0]! - c[0], to[1]! - c[1], to[2]! - c[2]),
+    );
+    for (const r of world.root.children) {
+      for (const x of subtree(r)) if (world === this.primary) this.journal.touch(x);
+      transformTree(r, m);
+      for (const x of subtree(r)) this.changed(x);
+    }
+    if (world === this.primary) this.totalZoom *= factor;
+  }
+
   /** kill_obj, now: the object leaves its world (undoable). */
   killNow(o: CutObject): void {
     if (this.worldOf(o) === this.primary) this.journal.touch(o);
@@ -1346,7 +1396,7 @@ export class Runtime implements Host {
     const candidates: { o: CutObject; s: Selectable; pick: KernelPick }[] = [];
     for (const f of visible) {
       if (!isObject(f) || this.vm.props.has(f, P.Nonselectable)) continue;
-      if (this.outOfReach.has(f)) {
+      if (this.outOfReach.has(f) || this.unseen.has(f)) {
         this.applySelectable(f, NOTHING);
         continue;
       }
@@ -1394,8 +1444,9 @@ export class Runtime implements Host {
     let kind: number;
     const wholeGroup =
       this.groupPick === 'whole' &&
-      (o.children.length > 0 || groupRoot(o) !== o) &&
+      (o.children.length > 0 || groupRoot(o) !== o || this.dangling) &&
       this.worldOf(o) === this.primary;
+    if (wholeGroup) this.wholePicks.set(o, pick);
     if (pick.kind === 'object' || wholeGroup || this.vm.props.has(o, P.Lockedgeometry)) {
       feature = o;
       kind = SelectKind.Obj;

@@ -62,6 +62,25 @@ export function poseAt(fall: Fall, body: number, i: number): Mat4 {
   return fall.poses[body]!.slice(k, k + 16);
 }
 
+/** Within this of where it was (room units, as far as any corner of a 100 unit box moves). */
+const UNMOVED = 0.05;
+
+/** Does `m` (world → world) leave things where they were, near enough? */
+export function stays(m: ArrayLike<number>): boolean {
+  for (let i = 0; i < 12; i++) {
+    if (i % 4 === 3) continue;
+    const want = i % 5 === 0 ? 1 : 0;
+    if (Math.abs(m[i]! - want) * 100 > UNMOVED) return false;
+  }
+  return Math.hypot(m[12]!, m[13]!, m[14]!) <= UNMOVED;
+}
+
+/** Does a body stay where it was, the whole fall through? */
+export function staysPut(fall: Fall, body: number): boolean {
+  for (let i = 0; i < fall.frames; i++) if (!stays(poseAt(fall, body, i))) return false;
+  return true;
+}
+
 /** The world-space box of some points. */
 function bounds(parts: Float32Array[]): [number[], number[]] {
   const lo = [Infinity, Infinity, Infinity];
@@ -218,6 +237,8 @@ export class Falls {
   private falling: Falling[] = [];
   /** Those whose fall is being worked out. */
   private readonly starting = new Set<CutObject>();
+  /** Those whose fall is being worked out quietly (permanent gravity: maybe they stay put). */
+  private readonly pending = new Set<CutObject>();
   private readonly matrix = new THREE.Matrix4();
   /** Where each falling object has got to: world → world from where the world has it. */
   private readonly poses = new Map<CutObject, Mat4>();
@@ -242,15 +263,30 @@ export class Falls {
     return this.poses.get(o);
   }
 
+  /** Is anything falling, or being looked at to see if it will (quietly too)? */
+  get settling(): boolean {
+    return this.busy || this.pending.size > 0;
+  }
+
   /** Is `o` (or its group) falling, or about to? */
   has(o: CutObject): boolean {
     return this.starting.has(o) || this.falling.some((f) => f.objects.includes(o));
   }
 
-  /** Each group root (and its parts) falls, all together. */
-  async drop(roots: CutObject[], now: () => number = () => performance.now()): Promise<void> {
+  /**
+   * Each group root (and its parts) falls, all together. `quietly`: those that would
+   * stay where they are (resting on the floor or on something) are left as they are,
+   * picked or not; only those that fall are put out of reach, once that's known.
+   */
+  async drop(
+    roots: CutObject[],
+    {
+      quietly = false,
+      now = () => performance.now(),
+    }: { quietly?: boolean; now?: () => number } = {},
+  ): Promise<void> {
     const rt = this.rt;
-    const fresh = roots.filter((r) => !this.has(r));
+    const fresh = roots.filter((r) => !this.has(r) && !this.pending.has(r));
     if (fresh.length === 0) return;
     const groups = fresh.map((root) => ({
       root,
@@ -290,14 +326,17 @@ export class Falls {
       if (under) obstacles.push(tris);
     }
     // While it falls it is neither picked nor pickable (it isn't where the world has it).
-    for (const g of groups)
+    const putAway = (g: (typeof groups)[number]) => {
       for (const o of g.objects) {
         rt.unpickNow(o); // out of its scale box too, or the next click picks the box
         if (rt.outOfReach.has(o)) continue;
         rt.outOfReach.add(o);
         g.held.push(o);
       }
-    for (const o of dropping) this.starting.add(o);
+    };
+    if (!quietly) for (const g of groups) putAway(g);
+    const waiting = quietly ? this.pending : this.starting;
+    for (const o of dropping) waiting.add(o);
     let fall: Fall;
     try {
       fall = await simulate(bodies, obstacles);
@@ -305,13 +344,16 @@ export class Falls {
       for (const g of groups) this.release(g.held);
       throw e;
     } finally {
-      for (const o of dropping) this.starting.delete(o);
+      for (const o of dropping) waiting.delete(o);
     }
     const began = now();
     groups.forEach((g, body) => {
-      // Moved meanwhile (an undo while Rapier loaded): it doesn't fall.
-      if (g.root.xform !== g.start) this.release(g.held);
-      else this.falling.push({ ...g, fall, body, began });
+      // Moved meanwhile (an undo while Rapier loaded), or going nowhere: it doesn't fall.
+      if (g.root.xform !== g.start || staysPut(fall, body)) this.release(g.held);
+      else {
+        if (quietly) putAway(g);
+        this.falling.push({ ...g, fall, body, began });
+      }
     });
   }
 
@@ -333,9 +375,11 @@ export class Falls {
       if (done) {
         for (const o of f.objects) this.view.pose(o, null);
         this.release(f.held);
-        this.rt.transformBranch(f.root, pose);
-        // Closed now, as its own edit: an undo pressed before the next frame takes the fall back.
-        this.rt.commit();
+        if (!stays(pose)) {
+          this.rt.transformBranch(f.root, pose);
+          // Closed now, as its own edit: an undo pressed before the next frame takes the fall back.
+          this.rt.commit();
+        }
         return false;
       }
       this.matrix.fromArray(pose);

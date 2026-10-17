@@ -29,6 +29,66 @@ export interface Model {
   /** What the meshes were built from: the shape's key and the placement. */
   key?: string | undefined;
   built?: ArrayLike<number> | undefined;
+  /** Its faces' edges, for when it's drawn as wire (built the first time it is). */
+  wire?: THREE.LineSegments | undefined;
+}
+
+/**
+ * How an object is drawn (the 1 key): solid; as light grey wire, only the edges of
+ * the faces turned towards the viewer, or every edge; or not at all.
+ */
+export type DrawStyle = 'solid' | 'frontWire' | 'wire' | 'hidden';
+
+/** The wire's light grey. */
+const WIRE = 0xc8c8c8;
+
+/**
+ * Lines along each face's edges (each edge twice: once for either face), each with its
+ * face's normal: the shader leaves out those of faces turned away, when asked to.
+ */
+function wireGeometry(m: Model): THREE.BufferGeometry {
+  const b = m.object.brep;
+  // Where the mesh was built: it's shifted from there as the object moves (rebuild).
+  const g = m.built ? new WorldGeometry(b, Float64Array.from(m.built)) : m.world;
+  const pos: number[] = [];
+  const nor: number[] = [];
+  for (const f of b.faces()) {
+    const n = g.faceNormal(f);
+    for (const l of b.faceLoops(f))
+      for (const h of b.loopHalfEdges(l)) {
+        const v = b.heVertex(h);
+        const w = b.heVertex(b.heNext(h));
+        pos.push(g.x(v), g.y(v), g.z(v), g.x(w), g.y(w), g.z(w));
+        nor.push(...n, ...n);
+      }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  return geo;
+}
+
+function wireMaterial(frontOnly: boolean): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    uniforms: { color: { value: new THREE.Color(WIRE) } },
+    defines: frontOnly ? { FRONT_ONLY: 1 } : {},
+    vertexShader: `
+      varying float facing;
+      void main() {
+        vec4 at = modelMatrix * vec4(position, 1.0);
+        facing = dot(mat3(modelMatrix) * normal, cameraPosition - at.xyz);
+        gl_Position = projectionMatrix * viewMatrix * at;
+      }`,
+    fragmentShader: `
+      uniform vec3 color;
+      varying float facing;
+      void main() {
+        #ifdef FRONT_ONLY
+        if (facing <= 0.0) discard;
+        #endif
+        gl_FragColor = vec4(color, 1.0);
+      }`,
+  });
 }
 
 /**
@@ -125,6 +185,46 @@ export class ModelView {
     color: rgb(CLASSIC.shadow),
     side: THREE.DoubleSide,
   });
+  /** A mesh drawn as wire draws nothing itself (its wire is its child: it moves with it). */
+  private readonly unseenMaterial = new THREE.MeshBasicMaterial({
+    colorWrite: false,
+    depthWrite: false,
+  });
+  private readonly wireMaterials = { frontWire: wireMaterial(true), wire: wireMaterial(false) };
+  /** How each object is drawn: `styleOf`, else solid. */
+  private styleOf: (o: CutObject) => DrawStyle = () => 'solid';
+
+  /** How objects are drawn from now on (the 1 key). */
+  setStyle(styleOf: (o: CutObject) => DrawStyle): void {
+    this.styleOf = styleOf;
+    for (const m of this.models) this.applyStyle(m);
+  }
+
+  /** Is `o` drawn at all? */
+  shows(o: CutObject): boolean {
+    return this.styleOf(o) !== 'hidden';
+  }
+
+  private applyStyle(m: Model): void {
+    const style = this.styleOf(m.object);
+    const mesh = m.mesh;
+    if (!mesh) return;
+    mesh.visible = style !== 'hidden';
+    mesh.material = style === 'solid' || style === 'hidden' ? this.material : this.unseenMaterial;
+    if (style === 'frontWire' || style === 'wire') {
+      if (!m.wire) {
+        m.wire = new THREE.LineSegments(wireGeometry(m), this.wireMaterials[style]);
+        m.wire.frustumCulled = false;
+        // Built where the world has it; the mesh's own shift is the wire's too.
+        mesh.add(m.wire);
+      }
+      m.wire.material = this.wireMaterials[style];
+      m.wire.visible = true;
+    } else if (m.wire) m.wire.visible = false;
+    if (m.shadow) m.shadow.visible = style === 'solid' && mesh.matrixAutoUpdate;
+    const shade = this.posed.get(m.object);
+    if (shade) shade.visible = style === 'solid';
+  }
 
   /** The light bulb's light, when it's out of its box and on. */
   light: PointLight | undefined;
@@ -206,7 +306,8 @@ export class ModelView {
       this.object.remove(mesh);
       mesh.geometry.dispose();
     }
-    m.mesh = m.shadow = undefined;
+    m.wire?.geometry.dispose();
+    m.mesh = m.shadow = m.wire = undefined;
   }
 
   private build(m: Model): void {
@@ -247,6 +348,7 @@ export class ModelView {
       m.shadow.renderOrder = -1;
       this.object.add(m.shadow);
     }
+    this.applyStyle(m);
   }
 
   /** A face's colour, lit as it lies in the room; `turn`: turned so (a fall). */
@@ -301,7 +403,7 @@ export class ModelView {
         mesh.matrixAutoUpdate = true;
         mesh.updateMatrix();
       }
-      if (model?.shadow) model.shadow.visible = true;
+      if (model?.shadow) model.shadow.visible = this.styleOf(o) === 'solid';
       if (shade) {
         this.object.remove(shade);
         this.posed.delete(o);
@@ -324,6 +426,7 @@ export class ModelView {
       this.object.add(shade);
       this.posed.set(o, shade);
     }
+    shade.visible = this.styleOf(o) === 'solid';
     shade.matrix.copy(mesh.matrix).premultiply(this.squash);
     shade.matrixWorldNeedsUpdate = true;
   }
