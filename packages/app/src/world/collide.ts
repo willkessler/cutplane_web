@@ -1,5 +1,5 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
-import { groupRoot, subtree, type CutObject, type Mat4 } from '@cutplane/kernel';
+import { groupRoot, mat4, subtree, type CutObject, type Mat4 } from '@cutplane/kernel';
 import { P, T, type Feature } from '@cutplane/cpl';
 import { isSub, type Runtime, type Sub, type V3 } from '@cutplane/behaviors';
 import { loadRapier, type Poser } from './gravity.ts';
@@ -11,17 +11,22 @@ import { loadRapier, type Poser } from './gravity.ts';
  * What it hits is as drawn (its triangles); what moves is a convex hull per part,
  * cast along each step of the drag (Rapier's shape casts).
  *
- * Taken by a face, it sticks by that face: what it meets, it turns to meet with
- * the face being dragged, flush (as the magnet's release snaps it), and slides on
- * stuck there; the release then leaves it there.
+ * Taken by a face, it sticks by that face, like a magnet, for as long as the button
+ * is held: near enough another object's face, it turns to meet it with the face
+ * being dragged, flush (as the magnet's release snaps it), and slides on stuck
+ * there; drawn off again it lets go, back as it was taken, and near another face
+ * it sticks to that one. The release leaves it as it is.
  */
 
 /** How close it comes (room units): touching, as near as the eye can tell. */
 const GAP = 0.05;
 /** How many times one step of the drag may slide off something it meets. */
 const SLIDES = 4;
-/** Already flush: facing each other this nearly, this near (room units). */
-const FACING = 0.9995;
+/** Taken by a face, it sticks to a face this near (room units)... */
+const CATCH = 20;
+/** ...and lets go of it farther than this. */
+const HOLD = 30;
+/** On a face's plane, this nearly (room units). */
 const FLUSH = 0.5;
 
 interface Session {
@@ -29,8 +34,14 @@ interface Session {
   world: RAPIER.World;
   /** The dragged group's parts, as hulls placed where they were when the drag began. */
   shapes: RAPIER.Shape[];
-  /** The root's placement then. */
-  from: Mat4;
+  /** Each part's placement then. */
+  start: Map<CutObject, Mat4>;
+  /** The parts' vertices then (world), for how near they come to anything. */
+  points: V3[];
+  /** Where the drag has it, as it was taken (unstuck): its move from the start. */
+  at: V3;
+  /** The root's placement as it was last left (moved some other way since: begin again). */
+  left: Mat4;
   /** What each collider is of. */
   owners: Map<number, CutObject>;
 }
@@ -41,7 +52,7 @@ export class Blocker {
   private session: Session | null = null;
   /** The face the magnet took hold of, if it took a face. */
   private grabbed: Sub | null = null;
-  /** The face the drag stuck it to (its release snaps there). */
+  /** The face the drag has it stuck to now (its release snaps there). */
   private stuck: Sub | null = null;
 
   constructor(
@@ -83,62 +94,111 @@ export class Blocker {
     this.session = null;
   }
 
-  /** How far `root`'s group may move of the `d` asked for. */
+  /**
+   * How far `root`'s group may move of the `d` asked for. Taken by a face, it is
+   * placed here instead (as taken, or stuck to a face), and goes no further.
+   */
   readonly guard = (root: CutObject, d: V3): V3 => {
     const R = this.R;
     if (!R) return d;
     let s = this.session;
-    // A different object, or this one turned or scaled since (a snap): cast it afresh.
-    if (s && (s.root !== root || !onlyMoved(s.from, root.xform))) {
+    // A different object, or this one moved some other way since: cast it afresh.
+    if (s && (s.root !== root || !same(s.left, root.xform))) {
       this.end();
       s = null;
     }
-    s ??= this.session = this.begin(R, root);
-    const at: V3 = [
-      root.xform[12]! - s.from[12]!,
-      root.xform[13]! - s.from[13]!,
-      root.xform[14]! - s.from[14]!,
-    ];
+    if (!s) {
+      s = this.session = this.begin(R, root);
+      this.stuck = null;
+    }
     // Cast, go as far as it can, and slide the rest along what it hit; again, as it
     // may meet something else (or an edge of the same) sliding.
-    const pos: V3 = [...at];
+    const from: V3 = [...s.at];
     let left = d;
+    let hit: Hit | null = null;
     for (let i = 0; i < SLIDES && Math.hypot(...left) > 1e-6; i++) {
-      const hit = this.cast(s, pos, left);
-      const t = hit ? hit.t : 1;
-      for (let k = 0; k < 3; k++) pos[k]! += left[k]! * t;
-      if (!hit) break;
-      // Met by any face but the one dragged: it turns to meet with that one.
-      if (this.stick(s, root, sub(pos, at), hit)) return [0, 0, 0];
+      const h = this.cast(s, s.at, left);
+      const t = h ? h.t : 1;
+      for (let k = 0; k < 3; k++) s.at[k]! += left[k]! * t;
+      if (!h) break;
+      hit ??= h;
       const rest = scale(left, 1 - t);
-      const into = dot(rest, hit.normal);
-      left = into < 0 ? sub(rest, scale(hit.normal, into)) : rest;
+      const into = dot(rest, h.normal);
+      left = into < 0 ? sub(rest, scale(h.normal, into)) : rest;
     }
-    return sub(pos, at);
+    const g = this.grabbed;
+    if (!g || groupRoot(g.object) !== root) {
+      const moved = sub(s.at, from);
+      s.left = mat4.multiply(root.xform, mat4.translation(...moved)); // (as moveBranch will)
+      return moved;
+    }
+    // By a face: placed as taken, moved as far as it got, then stuck to what it's near.
+    this.place(s);
+    const target = this.near(s, hit);
+    this.stuck = null;
+    if (target) {
+      this.rt.snapFeatures(g, target);
+      this.stuck = target;
+    }
+    s.left = Float64Array.from(root.xform);
+    return [0, 0, 0];
   };
 
-  /**
-   * The grabbed face, turned and moved flush against the face hit (the magnet's snap),
-   * unless it is flush with it already. `moved`: how far the cast has come this step.
-   */
-  private stick(s: Session, root: CutObject, moved: V3, hit: Hit): boolean {
-    const g = this.grabbed;
-    const o = hit.owner;
-    if (!g || !o || groupRoot(g.object) !== root) return false;
-    const target = this.faceAt(o, hit.point, hit.normal);
-    if (!target) return false;
+  /** The group as it was taken, moved on to where the drag has it. */
+  private place(s: Session): void {
     const rt = this.rt;
-    const a = rt.worldFace(g.object, g.id);
-    const b = rt.worldFace(o, target.id);
-    if (!a || !b) return false;
-    // (The cast has the faces where they would be `moved` on.)
-    const gap = dot(sub(b.center, a.center), b.normal) - dot(moved, b.normal);
-    if (dot(a.normal, b.normal) < -FACING && Math.abs(gap) < FLUSH) return false;
-    rt.moveBranch(root, moved);
-    this.stuck = null;
-    rt.snapFeatures(g, target);
-    this.stuck = target;
-    return true;
+    const m = mat4.translation(...s.at);
+    for (const [o, x] of s.start) {
+      rt.journal.touch(o);
+      o.xform = mat4.multiply(x, m);
+      o.invXform = mat4.invert(o.xform) ?? o.invXform;
+      rt.changed(o);
+    }
+  }
+
+  /**
+   * The face it sticks to, placed as taken where the drag has it: the one it's stuck
+   * to while still near enough, else the nearest face it has come near (or hit).
+   */
+  private near(s: Session, hit: Hit | null): Sub | null {
+    const held = this.stuck?.object;
+    if (held) {
+      const p = this.nearest(s, (o) => o === held);
+      if (p && p.distance <= HOLD) {
+        const f = this.faceAt(held, p.point, p.normal);
+        if (f) return f;
+      }
+    }
+    if (hit?.owner) {
+      const f = this.faceAt(hit.owner, hit.point, hit.normal);
+      if (f) return f;
+    }
+    const p = this.nearest(s, () => true);
+    return p && p.distance <= CATCH ? this.faceAt(p.owner, p.point, p.normal) : null;
+  }
+
+  /** The point of what it could stick to (`which`) nearest any of its vertices, and the way out from it there. */
+  private nearest(
+    s: Session,
+    which: (o: CutObject) => boolean,
+  ): { owner: CutObject; point: V3; normal: V3; distance: number } | null {
+    let best: { owner: CutObject; point: V3; normal: V3; distance: number } | null = null;
+    const pred = (c: RAPIER.Collider) => {
+      const o = s.owners.get(c.handle);
+      return !!o && which(o);
+    };
+    for (const v of s.points) {
+      const q: V3 = [v[0] + s.at[0], v[1] + s.at[1], v[2] + s.at[2]];
+      const p = s.world.projectPoint({ x: q[0], y: q[1], z: q[2] }, false, undefined, undefined, undefined, undefined, pred); // prettier-ignore
+      if (!p) continue;
+      const point: V3 = [p.point.x, p.point.y, p.point.z];
+      const out = sub(q, point);
+      const distance = Math.hypot(...out);
+      if (distance < 1e-6 || (best && distance >= best.distance)) continue;
+      const owner = s.owners.get(p.collider.handle)!;
+      best = { owner, point, normal: scale(out, 1 / distance), distance };
+    }
+    return best;
   }
 
   /** The face of `o` that `point` lies on, outward along `normal` (or nearest so). */
@@ -179,12 +239,19 @@ export class Blocker {
       }
     }
     const shapes: RAPIER.Shape[] = [];
+    const points: V3[] = [];
+    const start = new Map<CutObject, Mat4>();
+    for (const o of moving) start.set(o, Float64Array.from(o.xform));
     for (const o of moving) {
       if (!solid(o)) continue;
       const g = rt.world(o);
       const vs = o.brep.vertices();
       const pts = new Float32Array(vs.length * 3);
-      vs.forEach((v, i) => pts.set([g.x(v), g.y(v), g.z(v)], i * 3));
+      vs.forEach((v, i) => {
+        const p: V3 = [g.x(v), g.y(v), g.z(v)];
+        pts.set(p, i * 3);
+        points.push(p);
+      });
       try {
         const hull = R.ColliderDesc.convexHull(pts);
         if (hull) shapes.push(hull.shape);
@@ -193,7 +260,7 @@ export class Blocker {
       }
     }
     world.step(); // (the colliders go into what the casts look through)
-    return { root, world, shapes, from: Float64Array.from(root.xform), owners };
+    return { root, world, shapes, start, points, at: [0, 0, 0], left: Float64Array.from(root.xform), owners }; // prettier-ignore
   }
 
   /**
@@ -244,8 +311,8 @@ const sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const scale = (a: V3, k: number): V3 => [a[0] * k, a[1] * k, a[2] * k];
 
-/** Does `now` differ from `then` by a move alone? */
-function onlyMoved(then: Mat4, now: Mat4): boolean {
-  for (let i = 0; i < 12; i++) if (Math.abs(then[i]! - now[i]!) > 1e-9) return false;
+/** Is `now` where `then` was? */
+function same(then: Mat4, now: Mat4): boolean {
+  for (let i = 0; i < 16; i++) if (Math.abs(then[i]! - now[i]!) > 1e-9) return false;
   return true;
 }

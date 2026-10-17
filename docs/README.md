@@ -274,8 +274,11 @@ undo away.
   on its outline, does nothing, as in the original. New: while it's dragged, the object is
   solid. It can't go into another: it stops where they touch and slides along the other as the
   drag goes on, so two objects are slapped together quickly. Taken by a face, it sticks by that
-  face: whatever side touches first, it turns (as the release's snap would) so the face dragged
-  lies flush on the face it met, and slides on stuck there; let go, it stays as it was stuck.
+  face like a magnet, for as long as the button is held: come within 20 of another object's
+  face (whatever side comes near) and it turns (as the release's snap would) so the face dragged
+  lies flush on that face, and slides on stuck there. Draw it 30 away and it lets go, back as it
+  was taken; bring it near another face and it sticks to that one. Let go of the button and it
+  stays as it is.
 - **Union** (the two green blocks, on the tools' rail). The drill's twin: press on an object
   with it and the object itself comes away with the tool. Carry it into another and let go, and
   the two become one solid, each part keeping its colours. Let go over nothing and it's just put
@@ -474,8 +477,9 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   and a marquee with it groups what it touches (`assets/cpl/group.cpl`; `tool.cpl` lets its
   presses through, as the ruler's; `cursor.cpl` asks `touching_marquee` for the set).
 - **The magnet sticks by its face.** The original's magnet snapped only on release, to whatever
-  face was under the crosshair. Here its drag is solid, and taken by a face it snaps on contact:
-  the face dragged turns flush onto the face it met, and the release leaves it there.
+  face was under the crosshair. Here its drag is solid, and taken by a face it snaps as it comes
+  near another face: the face dragged turns flush onto it, lets go again when drawn off, and
+  snaps to the next face it nears, until the release leaves it as it is.
 - **Falls can be interrupted.** A press stops what is falling where it is, to be picked; what
   isn't picked falls on.
 - **The keys plate.** New: in work mode the shortcut keys are on a plate at the plane's side.
@@ -739,11 +743,15 @@ older versions of the format are normalised to the latest one on save.
   limits each drag step. The dragged group's parts are convex hulls, cast (Rapier's shape casts)
   against the other objects' triangles; it stops 0.05 short of what it hits and slides the rest
   of the step along it, up to four times. Touching something and moving along it or away is free.
-  A press with the magnet tells it what it took (`Blocker.grab`); taken by a face, a hit on
-  anything (`Blocker.stick`: the face hit is the one of the object hit whose plane holds the
-  contact point, facing most nearly along the contact normal) calls `Runtime.snapFeatures`, the
-  magnet's own snap, unless the two are already flush. `Runtime.snapTo` then sends the release's
-  snap to that face, whatever is under the crosshair.
+  A press with the magnet tells it what it took (`Blocker.grab`). Taken by a face, the drag keeps
+  where the object would be as taken (the casts above, from its pose at the press, which the
+  session keeps), and each step puts it there, then picks a face to stick to (`Blocker.near`):
+  the one it's stuck to while that object is within 30 of the dragged one's vertices (Rapier's
+  point projections), else what the step hit, else the nearest face within 20 (the face of that
+  object whose plane holds the nearest point, facing most nearly out towards the vertex). That
+  face gets `Runtime.snapFeatures`, the magnet's own snap; with none it stays as taken. So a
+  stick is undone by drawing off, and another taken, all through one drag. `Runtime.snapTo`
+  sends the release's snap to the face it's stuck to, whatever is under the crosshair.
 - **Catching a fall** (`Falls.catchAll`): a press (not with the globe) ends every fall under way
   at the frame it has got to, as one edit, before the pick. Each fall's motion there is read off
   its recorded poses (`motionAt`: its box's middle from one frame to the next, and the turn

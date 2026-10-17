@@ -30,7 +30,8 @@ see their cross-sections. Vertices, edges and faces are picked and edited where 
 >
 > **New here? Read the [user guide](docs/GUIDE.md).** Then the
 > [controls](docs/README.md#using-cutplane), the [roadmap](docs/README.md#roadmap) and
-> [how it differs from the original](docs/README.md#differences-from-the-original).
+> [how it differs from the original](docs/README.md#differences-from-the-original). What's new
+> in 2026 is in the [changelog](CHANGELOG.md).
 
 ## Quick start
 

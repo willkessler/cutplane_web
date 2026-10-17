@@ -540,6 +540,57 @@ test('the magnet: taken by a face, it turns to meet what it touches with that fa
   expect(errors).toEqual([]);
 });
 
+test('the magnet: held, it lets go when drawn off and sticks to the next face it comes near', async ({
+  page,
+  browserName,
+}) => {
+  test.setTimeout(60_000);
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0 });
+  const click = async (at: P3 | [number, number]) => {
+    await set(page, { x: at[0], y: at[1] });
+    await press(page);
+    await release(page);
+  };
+  // A copy, off to the right: 300 to 500 across, 0 to 200 up.
+  await click([0, 0]);
+  await page.keyboard.press('KeyD');
+  await set(page, { x: 150, y: 150 });
+  await press(page);
+  for (const x of [250, 350, 450]) await set(page, { x, y: 150 });
+  await release(page);
+  const right = async () => (await falls(page)).mids.reduce((a, b) => (b[0]! > a[0]! ? b : a));
+  await click([300, -250]);
+  await click(await locate<P3>(page, 'arrangepads'));
+  await click((await locate<P3[]>(page, 'arrangers'))[3]!);
+  await set(page, { x: 400, y: 200 });
+  await press(page);
+  // By its top face, left to the cube: it turns, the top flush on the cube's right face.
+  for (let x = 390; x >= 200; x -= 10) await set(page, { x, y: 200 });
+  const stuck = await right();
+  expect(stuck[0]!).toBeCloseTo(200, 0);
+  expect(stuck[1]!).toBeCloseTo(200, 0);
+  // Drawn off to the right, it lets go: back as it was taken, the top up again.
+  for (let x = 225; x <= 300; x += 25) await set(page, { x, y: 200 });
+  const free = await right();
+  expect(free[0]!).toBeCloseTo(300, 0);
+  expect(free[1]!).toBeCloseTo(100, 0);
+  // Down, under the cube and up its far side, then on to its left face: it turns
+  // again, its top flush on that face now.
+  for (let y = 150; y >= -250; y -= 50) await set(page, { x: 300, y });
+  for (let x = 250; x >= -300; x -= 50) await set(page, { x, y: -250 });
+  for (let y = -200; y <= 100; y += 50) await set(page, { x: -300, y });
+  for (let x = -290; x <= -100; x += 10) await set(page, { x, y: 100 });
+  const left = async () => (await falls(page)).mids.reduce((a, b) => (b[0]! < a[0]! ? b : a));
+  const again = await left();
+  expect(again[0]!).toBeCloseTo(-200, 0);
+  expect(again[1]!).toBeCloseTo(100, 0);
+  await shot(page, 'magnet-again', browserName);
+  await release(page);
+  expect((await left())[0]!).toBeCloseTo(-200, 0);
+  expect(errors).toEqual([]);
+});
+
 test('the group tool: a click on what is picked groups it, a marquee groups what it touches; one scale box', async ({
   page,
 }) => {
