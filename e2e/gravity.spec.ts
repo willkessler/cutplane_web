@@ -35,6 +35,9 @@ test('the globe drops the cube to the floor; undo lifts it back', async ({ page,
   test.setTimeout(60_000);
   const errors = await open(page, 'sample=cube');
   await set(page, { yaw: -30, pitch: 15, z: 0 });
+  await click(page, [0, 0]); // picked first: it falls out of its scale box
+  expect((await edit(page)).picked).toEqual(['object']);
+  expect((await edit(page)).boxes).toBe(1);
   // The cube is 200 across, about the middle of the room: 282 above the floor.
   expect((await falls(page)).aboveFloor).toBeCloseTo(282, 0);
   const rail = await locate<P3>(page, 'arrangepads');
@@ -49,6 +52,32 @@ test('the globe drops the cube to the floor; undo lifts it back', async ({ page,
     await page.screenshot({ path: `${SHOTS}/globe-held.png` });
   }
   await click(page, [0, 0]);
+  // Falling, it isn't hovered where it was, nor picked: its scale box is gone.
+  expect((await edit(page)).hover).toBeNull();
+  expect((await edit(page)).boxes).toBe(0);
+  // Nor is that kept with it: saved now, it's as pickable as ever.
+  expect(await page.evaluate(() => window.__cutplane!.saveText())).not.toContain('Nonselectable');
+  // Each frame while it falls, it's cut where it has got to (one loop through the cube).
+  const cuts = await page.evaluate(
+    () =>
+      new Promise<number[]>((done) => {
+        const seen: number[] = [];
+        let began = false;
+        const look = () => {
+          const c = window.__cutplane!;
+          const active = c.falls().active;
+          if (active) {
+            began = true;
+            seen.push(c.stats().loops);
+          }
+          if (began && !active) done(seen);
+          else requestAnimationFrame(look);
+        };
+        look();
+      }),
+  );
+  expect(cuts.length).toBeGreaterThan(0);
+  expect(cuts.every((n) => n === 1)).toBe(true);
   // (Software rendering, as in CI's containers, can take a while a frame.)
   // (A fall can be over between two looks, so wait for where it ends.)
   await expect
@@ -57,6 +86,17 @@ test('the globe drops the cube to the floor; undo lifts it back', async ({ page,
   await expect.poll(async () => (await falls(page)).active, { timeout: 30_000 }).toBe(false);
   if (SHOTS && browserName === 'chromium')
     await page.screenshot({ path: `${SHOTS}/globe-dropped.png` });
+  // Straight down: it stays where it was across the room.
+  const [mid] = (await falls(page)).mids;
+  expect(Math.abs(mid![0]!)).toBeLessThan(1);
+  expect(Math.abs(mid![2]!)).toBeLessThan(1);
+  // Landed, it can be picked again.
+  await set(page, { x: 0, y: mid![1]! });
+  expect((await edit(page)).hover).not.toBeNull();
+  // The first click picks it (in a scale box of its own, not one left from before).
+  await click(page, [0, mid![1]!]);
+  expect((await edit(page)).picked).toEqual(['object']);
+  expect((await edit(page)).boxes).toBe(1);
   // One edit: one undo puts it back up.
   await page.keyboard.press('ControlOrMeta+KeyZ');
   await expect.poll(async () => Math.round((await falls(page)).aboveFloor)).toBe(282);
@@ -88,13 +128,17 @@ test('dropped on another, it lands on top of it', async ({ page }) => {
   await set(page, { x: 50, y: 68 });
   await page.evaluate(() => window.__cutplane!.release());
   expect(await lows(page)).toEqual([0, 300]);
-  // Dropped, it comes to rest on the cube's top, not the floor.
-  await drop([50, 68]);
+  // Dropped (the globe by its key this time), it comes to rest on the cube's top, not the floor.
+  await page.keyboard.press('Shift+Period'); // >
+  await click(page, [50, 68]);
+  await expect.poll(async () => (await falls(page)).active, { timeout: 30_000 }).toBe(false);
   await expect.poll(() => lows(page), { timeout: 30_000 }).toEqual([0, 200]);
   expect(errors).toEqual([]);
 });
 
-test('"Groups pick whole": a click by a part\'s face picks its group', async ({ page }) => {
+test('"Groups pick whole" (the first choice): a click by a part\'s face picks its group', async ({
+  page,
+}) => {
   const errors = await open(page, 'sample=cube');
   await set(page, { yaw: -30, pitch: 20, z: 0 });
   // A copy grouped with the cube (as tools.spec does it).
@@ -106,17 +150,20 @@ test('"Groups pick whole": a click by a part\'s face picks its group', async ({ 
   await page.keyboard.press('KeyG');
   expect((await edit(page)).objects).toBe(1);
   await click(page, [300, -150]); // nothing there: nothing picked
-  // By the cube's right face: its face, as the original picks.
+  // By the cube's right face: the group.
+  await expect(page.locator('#groupPick')).toHaveValue('whole');
   await set(page, { x: 95, y: 0 });
-  expect((await edit(page)).hover).toBe('face');
-  await page.locator('#groupPick').selectOption('whole');
-  await set(page, { x: 96, y: 0 });
   expect((await edit(page)).hover).toBe('object');
-  await click(page, [96, 0]);
+  await click(page, [95, 0]);
   expect((await edit(page)).picked).toEqual(['object']);
+  await click(page, [300, -150]);
+  // By part: its face, as the original picks.
+  await page.locator('#groupPick').selectOption('parts');
+  await set(page, { x: 96, y: 0 });
+  expect((await edit(page)).hover).toBe('face');
   // The choice is kept.
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
-  await expect(page.locator('#groupPick')).toHaveValue('whole');
+  await expect(page.locator('#groupPick')).toHaveValue('parts');
   expect(errors).toEqual([]);
 });

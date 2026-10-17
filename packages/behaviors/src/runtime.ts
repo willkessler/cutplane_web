@@ -246,6 +246,11 @@ export class Runtime implements Host {
   groupPick: GroupPick = 'parts';
   /** Lets objects (group roots) fall to the floor: the app's physics (the globe, drop_objects). */
   dropper: ((roots: CutObject[]) => void) | null = null;
+  /**
+   * Objects that can't be picked for now (one falling isn't where the world has it).
+   * Not a property: nothing of it is saved, copied or undone.
+   */
+  readonly outOfReach = new Set<CutObject>();
 
   private readonly worldOfRoot = new Map<CutObject, WorldFeature>();
   private readonly geometry = new Map<CutObject, WorldGeometry>();
@@ -1341,6 +1346,10 @@ export class Runtime implements Host {
     const candidates: { o: CutObject; s: Selectable; pick: KernelPick }[] = [];
     for (const f of visible) {
       if (!isObject(f) || this.vm.props.has(f, P.Nonselectable)) continue;
+      if (this.outOfReach.has(f)) {
+        this.applySelectable(f, NOTHING);
+        continue;
+      }
       if (f.selectTechnique === 'set_object_selectable') {
         const c = this.objectCandidate(f);
         if (c) candidates.push({ o: f, ...c });
@@ -1424,6 +1433,21 @@ export class Runtime implements Host {
 
   unpick(f: Feature): void {
     if (this.vm.props.has(f, P.Picked)) this.vm.props.del(f, P.Picked);
+  }
+
+  /**
+   * Unpicks an object and its features now, and takes away the scale box around it
+   * (rom.cpl's Msg:Unpick and _Destroy_scaler, without waiting for the message).
+   */
+  unpickNow(o: CutObject): void {
+    for (const f of this.picked())
+      if (f === o || (f as { object?: CutObject }).object === o) this.unpick(f);
+    for (let p = o.parent; p; p = p.parent)
+      if (this.vm.props.has(p, P.Scalebbox)) {
+        this.dissolve(p);
+        this.treeChanged();
+        break;
+      }
   }
 
   /** execute_RELEAS on a vertex, edge or face: the drag is done; faces merge back. */

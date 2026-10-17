@@ -24,6 +24,8 @@ export interface Model {
   world: WorldGeometry;
   mesh?: THREE.Mesh | undefined;
   shadow?: THREE.Mesh | undefined;
+  /** Each of the mesh's triangles' face (to shade it again as it turns: a fall). */
+  faces?: Int32Array | undefined;
   /** What the meshes were built from: the shape's key and the placement. */
   key?: string | undefined;
   built?: ArrayLike<number> | undefined;
@@ -56,6 +58,7 @@ export function triangulate(
   pos: number[],
   col: number[],
   flattenY?: number,
+  faceOut?: number[],
 ): void {
   const v3 = (v: number) => new THREE.Vector3(g.x(v), g.y(v), g.z(v));
   for (const f of b.faces()) {
@@ -89,6 +92,7 @@ export function triangulate(
         pos.push(p.x, flattenY ?? p.y, p.z);
         col.push(c[0]!, c[1]!, c[2]!);
       }
+      faceOut?.push(f);
     }
   }
 }
@@ -211,20 +215,18 @@ export class ModelView {
     m.built = [...m.object.xform];
     const pos: number[] = [];
     const col: number[] = [];
+    const faces: number[] = [];
     triangulate(
       b,
       m.world,
       () => true,
-      (f) =>
-        shadeFace(
-          m.world.faceNormal(f),
-          b.faceColors.get(f) ?? m.object.color,
-          this.light ? faceCenter(m, f) : undefined,
-          this.light,
-        ),
+      (f) => this.shade(m, f),
       pos,
       col,
+      undefined,
+      faces,
     );
+    m.faces = Int32Array.from(faces);
     m.mesh = new THREE.Mesh(geometry(pos, col), this.material);
     m.mesh.frustumCulled = false;
     this.object.add(m.mesh);
@@ -245,6 +247,33 @@ export class ModelView {
       m.shadow.renderOrder = -1;
       this.object.add(m.shadow);
     }
+  }
+
+  /** A face's colour, lit as it lies in the room; `turn`: turned so (a fall). */
+  private shade(m: Model, f: number, turn?: THREE.Matrix4): [number, number, number] {
+    const n = new THREE.Vector3(...m.world.faceNormal(f));
+    let at = this.light ? new THREE.Vector3(...faceCenter(m, f)) : undefined;
+    if (turn) {
+      n.transformDirection(turn);
+      at = at?.applyMatrix4(turn);
+    }
+    const color = m.object.brep.faceColors.get(f) ?? m.object.color;
+    return shadeFace(n.toArray(), color, at?.toArray(), this.light);
+  }
+
+  /** Shades a model's mesh again, turned by `turn` (or not: as built). */
+  private reshade(m: Model, turn: THREE.Matrix4 | null): void {
+    const faces = m.faces;
+    const col = m.mesh?.geometry.getAttribute('color');
+    if (!faces || !col) return;
+    const of = new Map<number, [number, number, number]>();
+    for (let t = 0; t < faces.length; t++) {
+      const f = faces[t]!;
+      let c = of.get(f);
+      if (!c) of.set(f, (c = this.shade(m, f, turn ?? undefined)));
+      for (let k = 0; k < 3; k++) col.setXYZ(t * 3 + k, c[0], c[1], c[2]);
+    }
+    col.needsUpdate = true;
   }
 
   /** The shadows of objects drawn somewhere else for now (pose). */
@@ -268,6 +297,7 @@ export class ModelView {
     let shade = this.posed.get(o);
     if (!model || !mesh || !m) {
       if (mesh) {
+        if (!mesh.matrixAutoUpdate) this.reshade(model!, null);
         mesh.matrixAutoUpdate = true;
         mesh.updateMatrix();
       }
@@ -281,6 +311,8 @@ export class ModelView {
     mesh.matrixAutoUpdate = false;
     mesh.matrix.makeTranslation(mesh.position.x, mesh.position.y, mesh.position.z).premultiply(m);
     mesh.matrixWorldNeedsUpdate = true;
+    // Lit as it now lies: its faces turn to and from the room's lights as it tumbles.
+    this.reshade(model, m);
     if (!model.shadow) return;
     model.shadow.visible = false;
     if (!shade || shade.geometry !== mesh.geometry) {

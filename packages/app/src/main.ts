@@ -2,7 +2,15 @@ import { initBooleans } from '@cutplane/booleans';
 import manifoldWasm from 'manifold-3d/manifold.wasm?url';
 import * as THREE from 'three';
 import { readCut, writeCut } from '@cutplane/formats';
-import { ROOM, createCube, createObject, mat4, type CutObject } from '@cutplane/kernel';
+import {
+  ROOM,
+  WorldGeometry,
+  createCube,
+  createObject,
+  mat4,
+  preorder,
+  type CutObject,
+} from '@cutplane/kernel';
 import type { CutDocument } from '@cutplane/formats';
 import { P, PROPERTY_FILES } from '@cutplane/cpl';
 import {
@@ -38,7 +46,7 @@ import { Highlights } from './render/highlights.ts';
 import { RotateToolView } from './render/rotatetool.ts';
 import { ScaleBoxView } from './render/scalebox.ts';
 import { setLineResolution } from './render/lines.ts';
-import { ModelView } from './render/models.ts';
+import { ModelView, type Model } from './render/models.ts';
 import { CameraSlide, lensShot } from './render/cameraslide.ts';
 import { CameraWindow } from './render/camerawindow.ts';
 import { CameraPathView } from './render/camerapath.ts';
@@ -153,7 +161,7 @@ styleSelect.value = (stored('planeStyle') as PlaneStyle | null) ?? 'classic';
 const faceDragSelect = $<HTMLSelectElement>('faceDrag');
 faceDragSelect.value = (stored('faceDrag') as FaceDrag | null) ?? 'stretch';
 const groupPickSelect = $<HTMLSelectElement>('groupPick');
-groupPickSelect.value = (stored('groupPick') as GroupPick | null) ?? 'parts';
+groupPickSelect.value = (stored('groupPick') as GroupPick | null) ?? 'whole';
 plane.style = styleSelect.value as PlaneStyle;
 
 const held: Held = { ...NOTHING_HELD };
@@ -424,6 +432,10 @@ function loadDocument(doc: CutDocument): void {
   rt.clearWorld(rt.primary);
   rt.journal.clear();
   rt.importObjects(rt.primary, doc.roots);
+  // A fall used to make its objects Nonselectable while it lasted, and an autosave in
+  // the meantime kept them so: nothing in the world being edited is meant to be.
+  for (const o of preorder(rt.primary.root.children))
+    if (rt.vm.props.has(o, P.Nonselectable)) rt.vm.props.del(o, P.Nonselectable);
   models.load(doc);
   control.plane.setDepths(models.depths());
   control.plane.set(ROOM.max[2]);
@@ -619,6 +631,11 @@ try {
 }
 window.addEventListener('pagehide', () => cameraWindow.close());
 
+/** The models not falling: a falling one isn't hovered or picked (it isn't where the world has it). */
+function stillModels(): Model[] {
+  return falls.busy ? models.models.filter((m) => !falls.has(m.object)) : models.models;
+}
+
 function render(): void {
   step();
   // Falling objects are drawn where their fall has got to; those that land are moved there.
@@ -637,8 +654,15 @@ function render(): void {
     envDirty = false;
   }
   if (dirty || key !== lastKey || falling) {
-    // A falling object isn't where the world has it: it has no section until it lands.
-    const drawn = falling ? models.models.filter((m) => !falls.has(m.object)) : models.models;
+    // A falling object is cut where its fall has got to.
+    const drawn = falling
+      ? models.models.map((m) => {
+          const pose = falls.poseOf(m.object);
+          if (!pose) return m;
+          const world = new WorldGeometry(m.object.brep, mat4.multiply(m.object.xform, pose));
+          return { object: m.object, world };
+        })
+      : models.models;
     section.update(drawn, stage.z, camera.position);
     lastKey = key;
     dirty = false;
@@ -649,11 +673,12 @@ function render(): void {
       `section <b>${s.loops}</b> loop${s.loops === 1 ? '' : 's'} in <b>${s.objects}</b> object${s.objects === 1 ? '' : 's'}`;
   }
   // Highlights follow the VM's Selectable and Picked properties.
-  const hkey = `${rt.vm.props.version}|${rt.version}|${section.version}|${key}|${stage.x}|${stage.y}`;
+  const hkey = `${rt.vm.props.version}|${rt.version}|${section.version}|${key}|${stage.x}|${stage.y}|${falls.busy}`;
   if (hkey !== lastHighlights) {
+    const steady = stillModels();
     highlights.update(
-      highlightState(rt, models.models),
-      models.models,
+      highlightState(rt, steady),
+      steady,
       camera.position,
       outlinedParts(rt, envView.models),
       envView.models.filter((m) => heldBy(m.object, rt.cursorObj)),
@@ -852,7 +877,7 @@ window.addEventListener('keydown', (e) => {
     }
     return;
   }
-  const c = commandFor(e.code, held);
+  const c = commandFor(e.code, held, e.key);
   if (!c) return;
   e.preventDefault();
   if (c === 'workMode') {
@@ -869,6 +894,7 @@ window.addEventListener('keydown', (e) => {
   else if (c === 'panTool') controls.takeTool('Pantool');
   else if (c === 'pencilTool') controls.takeTool('Pencil');
   else if (c === 'measureTool') controls.takeTool('Ruler');
+  else if (c === 'gravityTool') controls.takeTool('Globe');
   else if (c === 'delete') controls.delete();
   else if (c === 'selectAll') controls.selectAll();
   else if (c === 'planeJump')
@@ -1199,11 +1225,13 @@ declare global {
         colors: number[][];
         /** Objects at the top of the world (a group counts once). */
         objects: number;
+        /** Scale boxes in the world (one round what is picked). */
+        boxes: number;
       };
       /** The ring that turns while a file is read: up or not, and how far round it has turned. */
       loading(): { shown: boolean; turn: number };
       /** Whether anything is falling (the globe), and how far above the floor the world's lowest point is (and each object's). */
-      falls(): { active: boolean; aboveFloor: number; lows: number[] };
+      falls(): { active: boolean; aboveFloor: number; lows: number[]; mids: number[][] };
       flyover(): {
         open: boolean;
         inRoom: boolean;
@@ -1389,7 +1417,7 @@ async function start(): Promise<void> {
     },
     edit() {
       catchUp(); // the world catches up with the pointer first
-      const h = highlightState(rt, models.models);
+      const h = highlightState(rt, stillModels());
       let faces = 0;
       let vertices = 0;
       for (const m of models.models) {
@@ -1407,6 +1435,7 @@ async function start(): Promise<void> {
         marquee: h.marquee !== undefined,
         colors: tops.filter(isObject).map((r) => [...r.color]),
         objects: tops.length,
+        boxes: boxes.size,
       };
     },
     loading: () => ({ shown: loading.shown, turn: loading.turn }),
@@ -1416,7 +1445,25 @@ async function start(): Promise<void> {
         for (const v of m.object.brep.vertices()) low = Math.min(low, m.world.y(v));
         return low - ROOM.min[1];
       });
-      return { active: falls.active, aboveFloor: Math.min(...lows), lows };
+      // Each top-level object's middle (its box's), where the world has it.
+      const mids = rt.primary.root.children.map((o) => {
+        const lo = [Infinity, Infinity, Infinity];
+        const hi = [-Infinity, -Infinity, -Infinity];
+        for (const m of models.models) {
+          let p: CutObject | null = m.object;
+          while (p && p.parent !== rt.primary.root) p = p.parent;
+          if (p !== o) continue;
+          for (const v of m.object.brep.vertices()) {
+            const q = [m.world.x(v), m.world.y(v), m.world.z(v)];
+            for (let k = 0; k < 3; k++) {
+              lo[k] = Math.min(lo[k]!, q[k]!);
+              hi[k] = Math.max(hi[k]!, q[k]!);
+            }
+          }
+        }
+        return lo.map((a, k) => (a + hi[k]!) / 2);
+      });
+      return { active: falls.active, aboveFloor: Math.min(...lows), lows, mids };
     },
     flyover: () => ({
       open: cameraWindow.isOpen,

@@ -94,8 +94,8 @@ picked is red. In order of priority, within a 10-unit box around the crosshair:
 5. the whole **object**, from inside its section. Objects marked `Lockedgeometry` are always
    picked whole, and an object is always picked with the group it belongs to.
 
-**Groups pick by part or whole**, as chosen in the toolbar. _Groups pick by part_ is the
-original's way, as above. With _Groups pick whole_ (new), any pick on a part of a group in the
+**Groups pick whole or by part**, as chosen in the toolbar. _Groups pick by part_ is the
+original's way, as above. With _Groups pick whole_ (new, and the first choice), any pick on a part of a group in the
 world (its vertex, edge or face) picks the group: an imported model is a group of many thin
 parts whose sections have little inside to click.
 
@@ -282,7 +282,7 @@ undo away.
   subtract. (Group, G, is the other way to put parts together: they stay separate solids under
   one object, as the Discovery is built.)
 - **Pencil** (or **P**) comes to the crosshair, as the magnifier does with Z.
-- **Globe** (a little Earth, on the arranging rail). Click on something with it and it falls to
+- **Globe** (a little Earth, on the arranging rail, or **>**). Click on something with it and it falls to
   the floor, tumbling and bouncing a little, and comes to rest as a solid of its shape would: a
   car or a rover held at a slant lands on its wheels. A group falls whole; on something picked,
   everything picked falls, together (they can land on each other). It lands on what is under it,

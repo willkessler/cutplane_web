@@ -57,9 +57,10 @@ outlined in white with a small yellow box where you'd take hold of it. What is p
 - **Inside** the section: the whole object. An object that belongs to a group is picked with its
   group.
 
-**Groups pick by part or whole** (top bar). _Groups pick by part_ is the original: a click on a
-grouped object's corner, edge or face picks just that, and only a click inside its section picks
-the group. With _Groups pick whole_, a click anywhere on a group's part picks the whole group.
+**Groups pick whole or by part** (top bar). With _Groups pick whole_, the first choice, a click
+anywhere on a group's part picks the whole group. _Groups pick by part_ is the original: a click
+on a grouped object's corner, edge or face picks just that, and only a click inside its section
+picks the group.
 Use it for imported models: a model file comes in as a group of many thin parts, whose sections
 have little inside to click (the rover's wheels, say, and nothing else). Ungroup (**G**) to work
 on single faces again.
@@ -118,7 +119,7 @@ world), the **magnet** (press on a face of one object, let go on a face of anoth
 lies flush on the second), the **grabber** (always picks whole objects), the **ruler**, and the
 **globe**.
 
-- **Globe** (a little Earth, the last pad): click on an object and it falls to the floor. It
+- **Globe** (a little Earth, the last pad, or press **>**): click on an object and it falls to the floor. It
   tumbles, bounces a little and comes to rest as a solid of its shape would, so a car or a rover
   held at a slant lands on its wheels, and a chair on its legs. A group falls whole; click on
   something picked and everything picked falls (things dropped together can land on each

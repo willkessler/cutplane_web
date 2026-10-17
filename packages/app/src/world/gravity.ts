@@ -202,7 +202,7 @@ interface Falling {
   objects: CutObject[];
   /** The root's placement as the fall began: anything else moving it (an undo) stops the fall. */
   start: Mat4;
-  /** Those made unpickable for the fall (not any that already were). */
+  /** Those put out of reach for the fall (not any that already were). */
   held: CutObject[];
   fall: Fall;
   body: number;
@@ -216,20 +216,35 @@ interface Falling {
  */
 export class Falls {
   private falling: Falling[] = [];
+  /** Those whose fall is being worked out. */
+  private readonly starting = new Set<CutObject>();
   private readonly matrix = new THREE.Matrix4();
+  /** Where each falling object has got to: world → world from where the world has it. */
+  private readonly poses = new Map<CutObject, Mat4>();
 
   constructor(
     private readonly rt: Runtime,
     private readonly view: Poser,
   ) {}
 
+  /** Is anything falling (drawn where its fall has got to)? */
   get active(): boolean {
     return this.falling.length > 0;
   }
 
-  /** Is `o` (or its group) falling? */
+  /** Is anything falling, or about to? */
+  get busy(): boolean {
+    return this.active || this.starting.size > 0;
+  }
+
+  /** How far a falling object has moved from where the world has it (world → world). */
+  poseOf(o: CutObject): Mat4 | undefined {
+    return this.poses.get(o);
+  }
+
+  /** Is `o` (or its group) falling, or about to? */
   has(o: CutObject): boolean {
-    return this.falling.some((f) => f.objects.includes(o));
+    return this.starting.has(o) || this.falling.some((f) => f.objects.includes(o));
   }
 
   /** Each group root (and its parts) falls, all together. */
@@ -277,18 +292,20 @@ export class Falls {
     // While it falls it is neither picked nor pickable (it isn't where the world has it).
     for (const g of groups)
       for (const o of g.objects) {
-        for (const f of rt.picked())
-          if (f === o || (f as { object?: CutObject }).object === o) rt.unpick(f);
-        if (rt.vm.props.has(o, P.Nonselectable)) continue;
-        rt.vm.props.add(o, P.Nonselectable);
+        rt.unpickNow(o); // out of its scale box too, or the next click picks the box
+        if (rt.outOfReach.has(o)) continue;
+        rt.outOfReach.add(o);
         g.held.push(o);
       }
+    for (const o of dropping) this.starting.add(o);
     let fall: Fall;
     try {
       fall = await simulate(bodies, obstacles);
     } catch (e) {
       for (const g of groups) this.release(g.held);
       throw e;
+    } finally {
+      for (const o of dropping) this.starting.delete(o);
     }
     const began = now();
     groups.forEach((g, body) => {
@@ -300,6 +317,7 @@ export class Falls {
 
   /** Each frame: every falling object drawn where its fall has got to; those at rest land. */
   tick(now: number = performance.now()): void {
+    this.poses.clear();
     if (this.falling.length === 0) return;
     const inWorld = new Set(subtree(this.rt.primary.root));
     this.falling = this.falling.filter((f) => {
@@ -321,13 +339,15 @@ export class Falls {
         return false;
       }
       this.matrix.fromArray(pose);
-      for (const o of f.objects) this.view.pose(o, this.matrix);
+      for (const o of f.objects) {
+        this.view.pose(o, this.matrix);
+        this.poses.set(o, pose);
+      }
       return true;
     });
   }
 
   private release(objects: CutObject[]): void {
-    for (const o of objects)
-      if (this.rt.vm.props.has(o, P.Nonselectable)) this.rt.vm.props.del(o, P.Nonselectable);
+    for (const o of objects) this.rt.outOfReach.delete(o);
   }
 }

@@ -51,6 +51,8 @@ describe('bindings (one set for a trackpad and either mouse)', () => {
     expect(commandFor('KeyH', held())).toBe('panTool');
     expect(commandFor('KeyP', held())).toBe('pencilTool');
     expect(commandFor('KeyZ', held())).toBe('zoomTool');
+    expect(commandFor('Period', held({ shift: true }), '>')).toBe('gravityTool');
+    expect(commandFor('Period', held(), '.')).toBeUndefined();
     expect(commandFor('KeyZ', held({ meta: true }))).toBe('undo');
     expect(commandFor('KeyW', held({ meta: true }))).toBeUndefined();
     expect(commandFor('Space', held({ meta: true }))).toBeUndefined();

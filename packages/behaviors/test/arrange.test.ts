@@ -204,6 +204,29 @@ describe('the globe (gravity.cpl)', () => {
     expect(tool.parent === pad).toBe(true);
   });
 
+  it('> brings it to the crosshair, and again puts it away', () => {
+    const w = setup();
+    const dropped: CutObject[] = [];
+    w.rt.dropper = (roots) => dropped.push(...roots);
+    const globe = w.rt.findObject('Globe')!;
+    const where = () =>
+      globe.parent === w.rt.cursorObj ? 'crosshair' : globe.parent === home ? 'home' : globe.parent?.name; // prettier-ignore
+    const home = globe.parent;
+    const key = () => {
+      w.controls.takeTool('Globe');
+      for (let i = 0; i < 6; i++) w.frame(); // (messages: the tool, its pad, the crosshair)
+    };
+    key();
+    expect(where()).toBe('crosshair');
+    w.click([60, 60]);
+    expect(dropped).toEqual([w.cube]);
+    expect(where()).toBe('home');
+    key();
+    expect(where()).toBe('crosshair');
+    key(); // again: put away
+    expect(where()).toBe('home');
+  });
+
   it('on something picked, everything picked falls, a group as its root', () => {
     const w = setup();
     const other = w.add('Other', 300, 0);

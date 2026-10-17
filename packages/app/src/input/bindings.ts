@@ -61,15 +61,19 @@ export type Command =
   | 'zoomTool'
   | 'panTool'
   | 'pencilTool'
-  | 'measureTool';
+  | 'measureTool'
+  | 'gravityTool';
 
-export function commandFor(code: string, h: Held): Command | undefined {
+/** `key`: the character typed, for a key bound by what it types (> wherever a layout has it). */
+export function commandFor(code: string, h: Held, key?: string): Command | undefined {
   // Undo and redo are new (the original's U key did nothing): ⌘Z / ⇧⌘Z, or Ctrl on other systems.
   if ((h.meta || h.ctrl) && code === 'KeyZ') return h.shift ? 'redo' : 'undo';
   if (h.ctrl && code === 'KeyY') return 'redo';
   // New: ⌘A / Ctrl+A picks everything in the world (then Delete clears it).
   if ((h.meta || h.ctrl) && code === 'KeyA') return 'selectAll';
   if (h.meta || h.ctrl) return undefined; // leave the other ⌘/Ctrl combinations to the browser
+  // New: > brings the globe (gravity), as M brings the ruler.
+  if (key === '>') return 'gravityTool';
   switch (code) {
     case 'Space':
       return 'planeJump';
@@ -138,7 +142,7 @@ export function bindingHints(mac: boolean): string[] {
     'G: group / ungroup',
     '\\: slice what is picked',
     'B: union what is picked',
-    'Z / H / P / M: magnifier / pan tool / pencil / ruler',
+    'Z / H / P / M / >: magnifier / pan tool / pencil / ruler / globe',
     '⌫: delete',
     '⌘Z / ⇧⌘Z: undo / redo',
   ];
@@ -166,7 +170,7 @@ export function helpLines(mac: boolean): { text: string; heading?: boolean }[] {
     { text: 'Pencil: draw a shape in the plane, or edge to edge across a face' },
     { text: 'Saw: cut in two at the plane    Drill: drop a cutter through' },
     { text: 'Magnifier (Z), group, pan (H), magnet, grabber, ruler (M): measure' },
-    { text: 'Globe: click on something and it falls to the floor' },
+    { text: 'Globe (>): click on something and it falls to the floor' },
     { text: 'Files', heading: true },
     { text: 'The floppy: load and save by name    Open, Save, Export: the top bar' },
   ];
