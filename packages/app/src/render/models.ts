@@ -296,6 +296,16 @@ export class ModelView {
     shade.matrixWorldNeedsUpdate = true;
   }
 
+  /** An object's triangles in the world, as drawn now (x y z × 3 a triangle). */
+  triangles(o: CutObject): Float32Array | null {
+    const mesh = this.models.find((x) => x.object === o)?.mesh;
+    if (!mesh) return null;
+    const out = Float32Array.from(mesh.geometry.getAttribute('position').array);
+    const d = mesh.position.toArray(); // moved since it was built
+    if (d.some((k) => k !== 0)) for (let i = 0; i < out.length; i++) out[i] = out[i]! + d[i % 3]!;
+    return out;
+  }
+
   /** Every vertex depth in the world, for plane snapping. */
   *depths(): IterableIterator<number> {
     for (const m of this.models) for (const v of m.object.brep.vertices()) yield m.world.z(v);

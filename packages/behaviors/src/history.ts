@@ -145,7 +145,8 @@ function ghostText(o: CutObject): string {
 /**
  * Gives the journal back the steps `saveHistory` kept, against the same world
  * read back from its .cut text (`objects` in the file's order). False, and the
- * journal left empty, if they don't fit this world.
+ * journal left empty, if they don't fit this world (or are far bigger than
+ * `saveHistory` keeps).
  */
 export function loadHistory(
   journal: Journal,
@@ -154,6 +155,12 @@ export function loadHistory(
   objects: readonly CutObject[],
 ): boolean {
   if (saved?.version !== 1) return false;
+  // One kept before there was a budget can be hundreds of megabytes: reading it all back
+  // would hang the page, so it's let go.
+  const size = (xs: readonly { cut: string }[]) => xs.reduce((n, x) => n + x.cut.length, 0);
+  let total = size(saved.ghosts);
+  for (const s of [...saved.undo, ...saved.redo]) total += size(s.before) + size(s.after);
+  if (total > HISTORY_BUDGET * 2) return false;
   try {
     const byId = new Map<number, CutObject>([[0, root]]);
     objects.forEach((o, i) => byId.set(i + 1, o));

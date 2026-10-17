@@ -5,12 +5,15 @@ import { P } from '@cutplane/cpl';
 import type { Runtime } from '@cutplane/behaviors';
 
 /**
- * The globe's gravity: objects fall to the room's floor as solids would,
- * tumbling, bouncing a little and coming to rest. Each falling group is one
- * rigid body made of a convex hull per part (what a solid lying on a floor can
- * touch it with), in Rapier (a physics engine, compiled to WebAssembly). The
- * room's floor, walls and ceiling hold them in. The whole fall is worked out
- * first, then played back in time; only where it ends is an edit (one undo).
+ * The globe's gravity: objects fall as solids would, tumbling, bouncing a
+ * little and coming to rest on the room's floor or on whatever is under them.
+ * Each falling group is one rigid body made of a convex hull per part (what a
+ * solid lying on something can touch it with), in Rapier (a physics engine,
+ * compiled to WebAssembly). The other objects in the world stand still, solid
+ * as they are drawn (their triangles), so things dropped on them stack. Only
+ * the floor of the room is solid: what is bigger than the room is too. The
+ * whole fall is worked out first, then played back in time; only where it ends
+ * is an edit (one undo).
  */
 
 /** Room units a second squared: a fall across the room's height takes about seven tenths of a second. */
@@ -72,43 +75,45 @@ function bounds(parts: Float32Array[]): [number[], number[]] {
   return [lo, hi];
 }
 
-/** The fall of every body together (they can land on each other), until all are at rest. */
-export async function simulate(bodies: Dropped[]): Promise<Fall> {
+/**
+ * The fall of every body together (they can land on each other), until all are at
+ * rest. `obstacles`: what stays put, each as triangles (x y z × 3 a triangle).
+ */
+export async function simulate(bodies: Dropped[], obstacles: Float32Array[] = []): Promise<Fall> {
   const R = await loadRapier();
   const world = new R.World({ x: 0, y: -GRAVITY, z: 0 });
   try {
     // A typical object is about a hundred room units across: Rapier's tolerances scale with it.
     world.lengthUnit = 100;
     world.timestep = 1 / (FPS * SUBSTEPS);
-    // The room: its floor, walls and ceiling, as slabs outside it.
+    // The floor, as a slab under it, out past the room's walls (things can be bigger than the room).
     const T = 200;
-    const lo = ROOM.min;
-    const hi = ROOM.max;
-    const mid = [0, 1, 2].map((k) => (lo[k]! + hi[k]!) / 2);
-    const half = [0, 1, 2].map((k) => (hi[k]! - lo[k]!) / 2 + T);
-    for (let k = 0; k < 3; k++)
-      for (const side of [-1, 1]) {
-        const h = [...half];
-        h[k] = T;
-        const at = [...mid];
-        at[k] = side < 0 ? lo[k]! - T : hi[k]! + T;
+    const FLOOR = ROOM.min[1];
+    world.createCollider(
+      R.ColliderDesc.cuboid(1e5, T, 1e5)
+        .setTranslation(0, FLOOR - T, 0)
+        .setFriction(GRIP)
+        .setRestitution(BOUNCE),
+    );
+    // Everything else, where it stands.
+    for (const tris of obstacles) {
+      if (tris.length < 9) continue;
+      const index = Uint32Array.from({ length: tris.length / 3 }, (_, i) => i);
+      try {
         world.createCollider(
-          R.ColliderDesc.cuboid(h[0]!, h[1]!, h[2]!)
-            .setTranslation(at[0]!, at[1]!, at[2]!)
-            .setFriction(GRIP)
-            .setRestitution(BOUNCE),
+          R.ColliderDesc.trimesh(tris, index).setFriction(GRIP).setRestitution(BOUNCE),
         );
+      } catch {
+        // (A shape Rapier can't take is left out.)
       }
+    }
 
     const rigid = bodies.map((b) => {
-      // Anything sticking out of the room is put back in first.
-      const [blo, bhi] = bounds(b.parts);
-      const shift = [0, 1, 2].map((k) =>
-        blo[k]! < lo[k]! ? lo[k]! - blo[k]! : bhi[k]! > hi[k]! ? Math.max(hi[k]! - bhi[k]!, lo[k]! - blo[k]!) : 0,
-      ); // prettier-ignore
+      // Anything through the floor is brought up onto it first.
+      const [blo] = bounds(b.parts);
       const body = world.createRigidBody(
         R.RigidBodyDesc.dynamic()
-          .setTranslation(shift[0]!, shift[1]!, shift[2]!)
+          .setTranslation(0, Math.max(0, FLOOR - blo[1]!), 0)
           .setCcdEnabled(true)
           .setLinearDamping(0.05)
           .setAngularDamping(SPIN_DAMPING),
@@ -188,6 +193,8 @@ function slab(R: typeof RAPIER, part: Float32Array): RAPIER.ColliderDesc | null 
 /** Where falling objects are drawn while they fall (the models' view). */
 export interface Poser {
   pose(o: CutObject, m: THREE.Matrix4 | null): void;
+  /** An object's triangles in the world, as drawn (x y z × 3 a triangle), if it's drawn. */
+  triangles(o: CutObject): Float32Array | null;
 }
 
 interface Falling {
@@ -236,19 +243,37 @@ export class Falls {
       start: root.xform,
       held: [] as CutObject[],
     }));
+    const solid = (o: CutObject) =>
+      o.brep.numFaces > 0 && rt.vm.props.has(o, P.Visible) && !rt.hasProp(o, 'Grouper');
     const bodies: Dropped[] = groups.map((g) => ({
-      parts: g.objects
-        .filter(
-          (o) => o.brep.numFaces > 0 && rt.vm.props.has(o, P.Visible) && !rt.hasProp(o, 'Grouper'),
-        ) // prettier-ignore
-        .map((o) => {
-          const w = rt.world(o);
-          const vs = o.brep.vertices();
-          const pts = new Float32Array(vs.length * 3);
-          vs.forEach((v, i) => pts.set([w.x(v), w.y(v), w.z(v)], i * 3));
-          return pts;
-        }),
+      parts: g.objects.filter(solid).map((o) => {
+        const w = rt.world(o);
+        const vs = o.brep.vertices();
+        const pts = new Float32Array(vs.length * 3);
+        vs.forEach((v, i) => pts.set([w.x(v), w.y(v), w.z(v)], i * 3));
+        return pts;
+      }),
     }));
+    // What they can land on: the world's other objects under where they fall (as far
+    // round as the biggest of them is across, for one tumbling off an edge).
+    const [lo, hi] = bounds(bodies.flatMap((b) => b.parts));
+    const reach = Math.max(...bodies.map((b) => {
+      const [a, z] = bounds(b.parts);
+      return Math.max(z[0]! - a[0]!, z[2]! - a[2]!);
+    })); // prettier-ignore
+    const dropping = new Set(groups.flatMap((g) => g.objects));
+    const obstacles: Float32Array[] = [];
+    for (const o of subtree(rt.primary.root)) {
+      if (dropping.has(o) || this.has(o) || !solid(o)) continue;
+      const tris = this.view.triangles(o);
+      if (!tris) continue;
+      const [a, z] = bounds([tris]);
+      const under =
+        z[0]! >= lo[0]! - reach && a[0]! <= hi[0]! + reach &&
+        z[2]! >= lo[2]! - reach && a[2]! <= hi[2]! + reach &&
+        a[1]! <= hi[1]!; // prettier-ignore
+      if (under) obstacles.push(tris);
+    }
     // While it falls it is neither picked nor pickable (it isn't where the world has it).
     for (const g of groups)
       for (const o of g.objects) {
@@ -260,7 +285,7 @@ export class Falls {
       }
     let fall: Fall;
     try {
-      fall = await simulate(bodies);
+      fall = await simulate(bodies, obstacles);
     } catch (e) {
       for (const g of groups) this.release(g.held);
       throw e;

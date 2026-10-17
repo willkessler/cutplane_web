@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readCut, writeCut } from '@cutplane/formats';
 import { historyOrder, loadHistory, saveHistory } from '../src/index.ts';
+import { HISTORY_BUDGET } from '../src/history.ts';
 import { world } from './world.ts';
 
 const text = (w: ReturnType<typeof world>) =>
@@ -97,5 +98,12 @@ describe('the undo history kept with an autosave', () => {
     // Nothing fits: nothing kept, and no ghost either.
     const none = saveHistory(rt.journal, rt.primary.root, historyOrder(rt.documentRoots()), 200, 0); // prettier-ignore
     expect(none).toEqual({ version: 1, ghosts: [], undo: [], redo: [] });
+  });
+
+  it('one far bigger than it would be kept is let go, not read back', () => {
+    const { rt } = world();
+    const saved = saveHistory(rt.journal, rt.primary.root, []);
+    saved.ghosts.push({ id: 1, cut: 'x'.repeat(HISTORY_BUDGET * 2 + 1) });
+    expect(loadHistory(rt.journal, saved, rt.primary.root, [])).toBe(false);
   });
 });

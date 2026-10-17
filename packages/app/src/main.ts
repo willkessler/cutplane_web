@@ -1202,8 +1202,8 @@ declare global {
       };
       /** The ring that turns while a file is read: up or not, and how far round it has turned. */
       loading(): { shown: boolean; turn: number };
-      /** Whether anything is falling (the globe), and how far above the floor the world's lowest point is. */
-      falls(): { active: boolean; aboveFloor: number };
+      /** Whether anything is falling (the globe), and how far above the floor the world's lowest point is (and each object's). */
+      falls(): { active: boolean; aboveFloor: number; lows: number[] };
       flyover(): {
         open: boolean;
         inRoom: boolean;
@@ -1411,10 +1411,12 @@ async function start(): Promise<void> {
     },
     loading: () => ({ shown: loading.shown, turn: loading.turn }),
     falls: () => {
-      let low = Infinity;
-      for (const m of models.models)
+      const lows = models.models.map((m) => {
+        let low = Infinity;
         for (const v of m.object.brep.vertices()) low = Math.min(low, m.world.y(v));
-      return { active: falls.active, aboveFloor: low - ROOM.min[1] };
+        return low - ROOM.min[1];
+      });
+      return { active: falls.active, aboveFloor: Math.min(...lows), lows };
     },
     flyover: () => ({
       open: cameraWindow.isOpen,

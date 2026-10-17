@@ -22,6 +22,9 @@ const edit = (page: Page) => page.evaluate(() => window.__cutplane!.edit());
 const falls = (page: Page) => page.evaluate(() => window.__cutplane!.falls());
 const locate = <T>(page: Page, what: string) =>
   page.evaluate((w) => window.__cutplane!.locate(w), what) as Promise<T>;
+/** Each object's lowest point above the floor, to the nearest unit, lowest first. */
+const lows = async (page: Page) =>
+  (await falls(page)).lows.map((y) => Math.round(y) + 0).sort((a, b) => a - b);
 const click = async (page: Page, at: [number, number]) => {
   await set(page, { x: at[0], y: at[1] });
   await page.evaluate(() => window.__cutplane!.press());
@@ -57,6 +60,37 @@ test('the globe drops the cube to the floor; undo lifts it back', async ({ page,
   // One edit: one undo puts it back up.
   await page.keyboard.press('ControlOrMeta+KeyZ');
   await expect.poll(async () => Math.round((await falls(page)).aboveFloor)).toBe(282);
+  expect(errors).toEqual([]);
+});
+
+test('dropped on another, it lands on top of it', async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: 0, pitch: 0, z: 0 });
+  const rail = await locate<P3>(page, 'arrangepads');
+  await click(page, [rail[0], rail[1]]);
+  const globe = () => locate<P3[]>(page, 'arrangers').then((p) => p[6]!);
+  const drop = async (at: [number, number]) => {
+    const g = await globe();
+    await click(page, [g[0], g[1]]);
+    await click(page, at);
+    await expect.poll(async () => (await falls(page)).active, { timeout: 30_000 }).toBe(false);
+  };
+  // The cube to the floor (its middle comes down from 0 to 282 lower).
+  await drop([0, 0]);
+  await expect.poll(async () => (await falls(page)).aboveFloor, { timeout: 30_000 }).toBeLessThan(1.5); // prettier-ignore
+  // A copy (100 across and up), taken over it and up clear of it.
+  await click(page, [0, -282]);
+  await page.keyboard.press('KeyD');
+  await set(page, { x: 150, y: -132 });
+  await page.evaluate(() => window.__cutplane!.press());
+  await set(page, { x: 100, y: -132 });
+  await set(page, { x: 50, y: 68 });
+  await page.evaluate(() => window.__cutplane!.release());
+  expect(await lows(page)).toEqual([0, 300]);
+  // Dropped, it comes to rest on the cube's top, not the floor.
+  await drop([50, 68]);
+  await expect.poll(() => lows(page), { timeout: 30_000 }).toEqual([0, 200]);
   expect(errors).toEqual([]);
 });
 

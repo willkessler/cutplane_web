@@ -285,8 +285,9 @@ undo away.
 - **Globe** (a little Earth, on the arranging rail). Click on something with it and it falls to
   the floor, tumbling and bouncing a little, and comes to rest as a solid of its shape would: a
   car or a rover held at a slant lands on its wheels. A group falls whole; on something picked,
-  everything picked falls, together (they can land on each other). Only the room's floor, walls
-  and ceiling stop it, not other objects yet. One undo lifts it back.
+  everything picked falls, together (they can land on each other). It lands on what is under it,
+  the floor or another object: drop one thing over another to stack them. Only the floor of the
+  room is solid, not its walls (things may be bigger than the room). One undo lifts it back.
 
 ![The pencil's triangle, extruded into a prism through the plane](images/m6-pencil.png)
 
@@ -360,9 +361,10 @@ covers the room while you work).
   - **Wavefront OBJ**: an `o` per object, polygon faces (a face with a hole goes as triangles),
     colours named `color_rrggbb`, which Cutplane reads back without an `.mtl`.
   - **STL** (binary): every triangle, for printing.
-- **Autosave.** Every change (an undo too) is kept in this browser a moment later, **with the
-  undo history**. Reload, close the tab or crash, and the next visit opens the world as you left
-  it, and undo and redo carry on from there (the last 200 steps). The model menu's _Unsaved
+- **Autosave.** Every change (an undo too) is kept in this browser once the mouse and keys have
+  been still for five seconds, **with the undo history**. Reload, close the tab or crash, and the next visit opens the world as you left
+  it, and undo and redo carry on from there (the last 200 steps, or as many as fit in 16 MB: a
+  big model's moves are big). The model menu's _Unsaved
   changes_ entry brings it back as well; choosing a model from the menu starts that model
   afresh. There's one autosave: changes to another model replace it, so **Save** anything you
   want to keep. (A saved `.cut` file holds the world, not its history.)
@@ -616,14 +618,19 @@ older versions of the format are normalised to the latest one on save.
     the 1/256 grid, as every committed vertex is.
 - **The app:** `ui/files.ts` sorts files by extension, reads models (a file of several parts
   under a grouper) and exports. `Runtime.addObjects` makes an import one undoable step. The
-  journal counts edits (`edits`); the app autosaves 800 ms after it changes, and at once when the
-  page is hidden.
+  journal counts edits (`edits`); the app autosaves once the mouse and keys have been still for 5 s
+  after it changes (writing a big world out takes a moment), and at once when the page is
+  hidden.
 - **Undo history in the autosave** (`behaviors/src/history.ts`): objects are numbered (the
   root, the world's objects in .cut order, then "ghosts" the history still holds, deleted ones),
   each snapshot is a one-object .cut text (written once and cached), and tree snapshots are
   number triples. The world and history go in IndexedDB (`ui/idb.ts`); localStorage keeps the
   menu's title and time, and the world alone if IndexedDB can't be had. A history that doesn't
-  fit the world it's loaded with is dropped whole.
+  fit the world it's loaded with is dropped whole. It keeps at most 16 MB of
+  snapshot text (`HISTORY_BUDGET`), the newest steps that fit: each move of the Mars rover was
+  two copies of it, 67 MB, written out again on every autosave (and still there after it was
+  deleted, in the steps that bring it back), which froze the page for seconds after each edit.
+  One far over that (kept before the budget) isn't read back at all.
 - **Old formats** (`mesh/inventor.ts`, `mesh/dxf.ts`): one parser for Inventor ASCII and both
   VRMLs (a node is `[DEF n] Type { fields children }`; field values are numbers, words, strings
   or nodes), in one pass over the text, numbers read straight into `Float64Array`s. Binary
@@ -652,8 +659,10 @@ older versions of the format are normalised to the latest one on save.
   groups clicked on to the app (`Runtime.dropper`). `app/src/world/gravity.ts` makes each group
   one rigid body, a convex hull per part (a flat part gets a thin box), in
   [Rapier](https://rapier.rs) (`@dimforge/rapier3d-compat`, a physics engine compiled to
-  WebAssembly: a chunk of its own, 1.6 MB compressed, loaded only when something first falls). The room's floor, walls and ceiling are
-  slabs round it. The whole fall is worked out first (120 steps a second, until everything has
+  WebAssembly: a chunk of its own, 1.6 MB compressed, loaded only when something first falls). The floor is a slab under
+  the room, out past its walls; the other objects under the fall (those within a falling one's
+  width of it) stand still as triangle meshes, their triangles as drawn (`ModelView.triangles`),
+  so things land on them as they look. The whole fall is worked out first (120 steps a second, until everything has
   been still for a quarter of a second, at most 8 s), then played back by the clock: the meshes
   are only moved (`ModelView.pose`, the shadow being the mesh squashed onto the floor), and the
   world changes once, where the fall ends, as one undo. Landings are made soft (restitution 0.1,

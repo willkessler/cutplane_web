@@ -122,8 +122,10 @@ lies flush on the second), the **grabber** (always picks whole objects), the **r
   tumbles, bounces a little and comes to rest as a solid of its shape would, so a car or a rover
   held at a slant lands on its wheels, and a chair on its legs. A group falls whole; click on
   something picked and everything picked falls (things dropped together can land on each
-  other). Then the globe goes back to its pad. One ⌘Z lifts it back to where it was. Only the
-  room's floor and walls stop a fall so far, not the other objects in it. A fall is worked out by
+  other). It lands on whatever is under it, the floor or another object, so stacking things is a
+  matter of dropping one over another. Only the room's floor is solid, not its walls: something
+  bigger than the room falls too. Then the globe goes back to its pad. One ⌘Z lifts it back to
+  where it was. A fall is worked out by
   [Rapier](https://rapier.rs), a physics engine, from each part's _convex hull_ (the part
   shrink-wrapped): the hull's underside is what a solid lying on a floor can touch it with.
 
@@ -194,7 +196,9 @@ Click the camera again, or close its window, to put the view away; the shots are
   or **STL** (for printing).
 - **Everything is autosaved** in this browser as you go, undo history and all. Close the tab and
   come back, and the world is as you left it; undo still works. Choosing a model from the menu
-  starts that model afresh, so Save what you want to keep.
+  starts that model afresh, so Save what you want to keep. (It's kept once the mouse and keys
+  have been left alone for five seconds, or as you leave the page. With a very big model, the
+  undo history kept is only its last few steps.)
 
 ## 9. Help in the room
 
