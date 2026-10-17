@@ -188,3 +188,37 @@ describe('the group tool (group.cpl)', () => {
     expect(other.parent).toBe(w.rt.primary.root);
   });
 });
+
+describe('the globe (gravity.cpl)', () => {
+  it('a click on something hands its group to the dropper, and the globe goes home', () => {
+    const w = setup();
+    const dropped: CutObject[] = [];
+    w.rt.dropper = (roots) => dropped.push(...roots);
+    const { pad, tool } = w.take(6);
+    expect(w.rt.hasProp(tool, 'Gravity')).toBe(true);
+    w.click([150, -250]); // nothing there: nothing falls, and the globe stays on the crosshair
+    expect(dropped).toEqual([]);
+    expect(tool.parent === w.rt.cursorObj).toBe(true);
+    w.click([60, 60]);
+    expect(dropped).toEqual([w.cube]);
+    expect(tool.parent === pad).toBe(true);
+  });
+
+  it('on something picked, everything picked falls, a group as its root', () => {
+    const w = setup();
+    const other = w.add('Other', 300, 0);
+    w.click([60, 60]);
+    w.at(350, 50);
+    w.controls.pressPick(true);
+    w.frame();
+    w.controls.releasePick();
+    w.frame();
+    expect(w.picked().sort()).toEqual(['Cube', 'Other']);
+    const dropped: CutObject[] = [];
+    w.rt.dropper = (roots) => dropped.push(...roots);
+    w.take(6);
+    w.click([60, 60]);
+    expect(dropped.map((o) => o.name).sort()).toEqual(['Cube', 'Other']);
+    void other;
+  });
+});

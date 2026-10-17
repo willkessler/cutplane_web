@@ -5,7 +5,8 @@
 ;
 ;	cutplane_web: a tool put away goes to its own pad (the one toolpad.cpl
 ;	CONNECTed it to), not the pad it was sent to; a tool with the Measure
-;	property lets picks through. Changes marked "cutplane_web".
+;	property lets picks through; a click on nothing no longer sends the
+;	tool a Fliptool message. Changes marked "cutplane_web".
 ;
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -318,8 +319,13 @@ _Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_tool& ; is Opcode a RELEAS?
 
 		REMPROP	A:R1*,Prop:Fliptool		; yes, unmark flipping
 
-		MAKEMSG	Msg:Fliptool
-		QMSG	A:R1*,Const:Prioritymsg		; send flip msg to any
+;		 cutplane_web: no flip message. Only the pencil's eraser (draw.cpl,
+;		 erase.cpl, not in here) turned a tool over; every other tool left
+;		 it at the head of its queue, where it stopped the tool reading the
+;		 messages it does read (the saw after a click on nothing never cut
+;		 again). These are the "bogus messages" above.
+;		MAKEMSG	Msg:Fliptool
+;		QMSG	A:R1*,Const:Prioritymsg		; send flip msg to any
 ;							; property that uses it
 _Wiperelease	WIPE	A:XOP*				; clear RELEAS
 		JUMP	A:_End_tool&

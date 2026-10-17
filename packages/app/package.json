@@ -17,6 +17,7 @@
     "@cutplane/cpl": "workspace:*",
     "@cutplane/formats": "workspace:*",
     "@cutplane/kernel": "workspace:*",
+    "@dimforge/rapier3d-compat": "^0.21.0",
     "manifold-3d": "^3.5.4",
     "three": "^0.186.1"
   },

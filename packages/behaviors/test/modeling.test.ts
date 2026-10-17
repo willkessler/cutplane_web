@@ -510,3 +510,18 @@ describe('the pencil (pencil.cpl, start_draw, extend_draw, end_draw)', () => {
     expect(w.rt.primary.root.children.filter((o) => o !== w.cube)).toEqual([]);
   });
 });
+
+describe('a tool after a click on nothing (tool.cpl)', () => {
+  it('the saw still cuts: the click left no message in its way', () => {
+    const w = setup();
+    const { tool } = w.take(1);
+    w.click([300, 200]);
+    w.click([300, 200]);
+    expect(tool.parent).toBe(w.rt.cursorObj);
+    expect(w.rt.vm.pending(tool)).toHaveLength(0);
+    w.at(40, 30, 0);
+    w.frame();
+    w.click([40, 30]);
+    expect(w.solids()).toHaveLength(2);
+  });
+});

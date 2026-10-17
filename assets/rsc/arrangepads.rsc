@@ -5,13 +5,14 @@ Headpad Icon File:arrange.icon
 Toolpad Color:255 110 10
 Padhandle Color:0 0 255
 Toolbar Color:40 40 60
-Number of Toolpads:6
+Number of Toolpads:7
 magnifier.icon
 group.icon
 pan.icon
 magnet.icon
 claw.icon
 ruler.icon
+globe.icon
 #calipers.icon
 #ungroup.icon
 #fence.icon

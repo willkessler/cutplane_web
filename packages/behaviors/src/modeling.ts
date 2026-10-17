@@ -169,4 +169,21 @@ export const MODELING_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => voi
     const onPicked = under.some((o) => branches.has(o) || branches.has(groupRoot(o)));
     vm.push(featuresWord(...(onPicked ? [...branches] : under)));
   },
+
+  /**
+   * CPL_drop_objects (new): (objects) → (): each one's group, whole, falls to the
+   * floor (the app's physics: rt.dropper). Only what is in the world being edited;
+   * what is picked sits in its scale box for now, and the group under the box falls.
+   */
+  drop_objects(rt, vm) {
+    const roots = new Set<CutObject>();
+    for (const f of vm.pop().list ?? []) {
+      const o = objectOf(f);
+      if (!o || rt.worldOf(o) !== rt.primary || rt.hasProp(o, 'Scalebbox')) continue;
+      let r = o;
+      while (r.parent && !(r.linked ?? false) && !rt.hasProp(r.parent, 'Scalebbox')) r = r.parent;
+      roots.add(r);
+    }
+    if (roots.size > 0) rt.dropper?.([...roots]);
+  },
 };

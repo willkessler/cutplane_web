@@ -65,6 +65,8 @@ export const CRTN_NAMES = [
   'clear_label',
   // cutplane_web: what the saw cuts (slice.cpl): everything picked, if it's on that.
   'saw_targets',
+  // cutplane_web: what the globe drops falls to the floor (gravity.cpl).
+  'drop_objects',
 ] as const;
 
 export type CrtnName = (typeof CRTN_NAMES)[number];

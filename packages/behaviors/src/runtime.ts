@@ -142,6 +142,14 @@ interface DragPlan {
  */
 export type FaceDrag = 'stretch' | 'extrude';
 
+/**
+ * New here: what a click on a group's part picks. 'parts' (the original's way): its
+ * vertex, edge or face, and the whole group only from inside its section. 'whole':
+ * the group, wherever it is clicked (an imported model is a group of many thin parts,
+ * whose sections have little inside to click). In the world being edited only.
+ */
+export type GroupPick = 'parts' | 'whole';
+
 /** The least an extruded face must stand out of its old place for its walls to stay. */
 const EXTRUDE_MIN = 1;
 
@@ -234,6 +242,10 @@ export class Runtime implements Host {
   hiddenEdges = false;
   /** How a dragged face moves its solid. */
   faceDrag: FaceDrag = 'stretch';
+  /** What a click on a part of a group picks. */
+  groupPick: GroupPick = 'parts';
+  /** Lets objects (group roots) fall to the floor: the app's physics (the globe, drop_objects). */
+  dropper: ((roots: CutObject[]) => void) | null = null;
 
   private readonly worldOfRoot = new Map<CutObject, WorldFeature>();
   private readonly geometry = new Map<CutObject, WorldGeometry>();
@@ -955,6 +967,13 @@ export class Runtime implements Host {
     for (const x of subtree(o)) this.changed(x);
   }
 
+  /** A branch moved by the world transform `m` (row vectors), as one edit (a fall, the globe). */
+  transformBranch(root: CutObject, m: Mat4): void {
+    for (const x of subtree(root)) if (this.worldOf(x) === this.primary) this.journal.touch(x);
+    transformTree(root, m);
+    for (const x of subtree(root)) this.changed(x);
+  }
+
   /** A branch scaled along x, y and z by `s` about `about` (the measure pad's resizing). */
   scaleBranch(root: CutObject, about: V3, s: V3): void {
     const m = mat4.scaleAbout(about, s);
@@ -1364,7 +1383,11 @@ export class Runtime implements Host {
     if (!pick) return undefined;
     let feature: Feature;
     let kind: number;
-    if (pick.kind === 'object' || this.vm.props.has(o, P.Lockedgeometry)) {
+    const wholeGroup =
+      this.groupPick === 'whole' &&
+      (o.children.length > 0 || groupRoot(o) !== o) &&
+      this.worldOf(o) === this.primary;
+    if (pick.kind === 'object' || wholeGroup || this.vm.props.has(o, P.Lockedgeometry)) {
       feature = o;
       kind = SelectKind.Obj;
     } else if (pick.kind === 'vertex') {

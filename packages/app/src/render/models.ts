@@ -247,6 +247,55 @@ export class ModelView {
     }
   }
 
+  /** The shadows of objects drawn somewhere else for now (pose). */
+  private readonly posed = new Map<CutObject, THREE.Mesh>();
+  private readonly squash = new THREE.Matrix4().set(
+    1, 0, 0, 0,
+    0, 0, 0, ROOM.min[1] + 0.5,
+    0, 0, 1, 0,
+    0, 0, 0, 1,
+  ); // prettier-ignore
+
+  /**
+   * Draws `o` moved by `m` (world → world) from where the world has it, without
+   * building it again (a fall: the globe); null puts it back. Its shadow is the
+   * whole object squashed onto the floor (for a solid, the same as its up-facing
+   * faces squashed, as the built shadow is).
+   */
+  pose(o: CutObject, m: THREE.Matrix4 | null): void {
+    const model = this.models.find((x) => x.object === o);
+    const mesh = model?.mesh;
+    let shade = this.posed.get(o);
+    if (!model || !mesh || !m) {
+      if (mesh) {
+        mesh.matrixAutoUpdate = true;
+        mesh.updateMatrix();
+      }
+      if (model?.shadow) model.shadow.visible = true;
+      if (shade) {
+        this.object.remove(shade);
+        this.posed.delete(o);
+      }
+      return;
+    }
+    mesh.matrixAutoUpdate = false;
+    mesh.matrix.makeTranslation(mesh.position.x, mesh.position.y, mesh.position.z).premultiply(m);
+    mesh.matrixWorldNeedsUpdate = true;
+    if (!model.shadow) return;
+    model.shadow.visible = false;
+    if (!shade || shade.geometry !== mesh.geometry) {
+      if (shade) this.object.remove(shade);
+      shade = new THREE.Mesh(mesh.geometry, this.shadowMaterial);
+      shade.frustumCulled = false;
+      shade.renderOrder = -1;
+      shade.matrixAutoUpdate = false;
+      this.object.add(shade);
+      this.posed.set(o, shade);
+    }
+    shade.matrix.copy(mesh.matrix).premultiply(this.squash);
+    shade.matrixWorldNeedsUpdate = true;
+  }
+
   /** Every vertex depth in the world, for plane snapping. */
   *depths(): IterableIterator<number> {
     for (const m of this.models) for (const v of m.object.brep.vertices()) yield m.world.z(v);

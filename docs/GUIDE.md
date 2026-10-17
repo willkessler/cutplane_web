@@ -57,6 +57,13 @@ outlined in white with a small yellow box where you'd take hold of it. What is p
 - **Inside** the section: the whole object. An object that belongs to a group is picked with its
   group.
 
+**Groups pick by part or whole** (top bar). _Groups pick by part_ is the original: a click on a
+grouped object's corner, edge or face picks just that, and only a click inside its section picks
+the group. With _Groups pick whole_, a click anywhere on a group's part picks the whole group.
+Use it for imported models: a model file comes in as a group of many thin parts, whose sections
+have little inside to click (the rover's wheels, say, and nothing else). Ungroup (**G**) to work
+on single faces again.
+
 **Press and drag** to move what is picked. It follows the crosshair in the plane; hold ⌥ while
 dragging to carry it in depth too. **Shift-click** adds to what is picked or takes something away.
 **Press on empty space and drag** to draw a **marquee**: a box that picks the objects inside it
@@ -108,7 +115,17 @@ tool rides on the crosshair; click its pad again, or call up another tool, to pu
 The headpad with **three bars** opens the arranging tools: the **magnifier** (**Z**: drag up to
 zoom in, down to zoom out), the **group** tool, the **pan** tool (**H**: drag to move the whole
 world), the **magnet** (press on a face of one object, let go on a face of another, and the first
-lies flush on the second), the **grabber** (always picks whole objects), and the **ruler**.
+lies flush on the second), the **grabber** (always picks whole objects), the **ruler**, and the
+**globe**.
+
+- **Globe** (a little Earth, the last pad): click on an object and it falls to the floor. It
+  tumbles, bounces a little and comes to rest as a solid of its shape would, so a car or a rover
+  held at a slant lands on its wheels, and a chair on its legs. A group falls whole; click on
+  something picked and everything picked falls (things dropped together can land on each
+  other). Then the globe goes back to its pad. One ⌘Z lifts it back to where it was. Only the
+  room's floor and walls stop a fall so far, not the other objects in it. A fall is worked out by
+  [Rapier](https://rapier.rs), a physics engine, from each part's _convex hull_ (the part
+  shrink-wrapped): the hull's underside is what a solid lying on a floor can touch it with.
 
 The **toolboxes** stand on the floor at the back (Space takes the plane there). Click one to open
 it. The primitives box holds a cube, cylinder, cone, sphere and pyramid: press on one and a copy
@@ -118,7 +135,7 @@ the colour, or drag the chip onto a face to paint it).
 
 ## 6. Measuring
 
-Take the **ruler** (the last pad on the arranging rail, or press **M**) and the **measure pad**
+Take the **ruler** (on the arranging rail, above the globe, or press **M**) and the **measure pad**
 comes out, bottom left beside the floppy. Put the ruler away and it goes.
 
 ![The measure pad: the cube picked, its length, width and height, the width field clicked](images/guide-measure.png)

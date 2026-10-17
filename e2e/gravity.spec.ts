@@ -1,0 +1,88 @@
+import { mkdirSync } from 'node:fs';
+import { expect, test, type Page } from '@playwright/test';
+
+// The globe on the arranging rail drops what it's clicked on to the floor; the
+// group-pick menu picks a group whole from any of its parts. Set SHOTS=dir to keep
+// screenshots.
+const SHOTS = process.env['SHOTS'];
+
+async function open(page: Page, query: string) {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.setViewportSize({ width: 1024, height: 700 });
+  await page.goto(`/?still=1&${query}`);
+  await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+  return errors;
+}
+
+type P3 = [number, number, number];
+type Pose = Partial<{ x: number; y: number; z: number; yaw: number; pitch: number }>;
+const set = (page: Page, p: Pose) => page.evaluate((pp) => window.__cutplane!.set(pp), p);
+const edit = (page: Page) => page.evaluate(() => window.__cutplane!.edit());
+const falls = (page: Page) => page.evaluate(() => window.__cutplane!.falls());
+const locate = <T>(page: Page, what: string) =>
+  page.evaluate((w) => window.__cutplane!.locate(w), what) as Promise<T>;
+const click = async (page: Page, at: [number, number]) => {
+  await set(page, { x: at[0], y: at[1] });
+  await page.evaluate(() => window.__cutplane!.press());
+  await page.evaluate(() => window.__cutplane!.release());
+};
+
+test('the globe drops the cube to the floor; undo lifts it back', async ({ page, browserName }) => {
+  test.setTimeout(60_000);
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 15, z: 0 });
+  // The cube is 200 across, about the middle of the room: 282 above the floor.
+  expect((await falls(page)).aboveFloor).toBeCloseTo(282, 0);
+  const rail = await locate<P3>(page, 'arrangepads');
+  await click(page, [rail[0], rail[1]]);
+  const pads = await locate<P3[]>(page, 'arrangers');
+  expect(pads).toHaveLength(7);
+  const globe = pads[6]!;
+  await click(page, [globe[0], globe[1]]);
+  await set(page, { x: 0, y: 0 });
+  if (SHOTS && browserName === 'chromium') {
+    mkdirSync(SHOTS, { recursive: true });
+    await page.screenshot({ path: `${SHOTS}/globe-held.png` });
+  }
+  await click(page, [0, 0]);
+  // (Software rendering, as in CI's containers, can take a while a frame.)
+  // (A fall can be over between two looks, so wait for where it ends.)
+  await expect
+    .poll(async () => (await falls(page)).aboveFloor, { timeout: 30_000 })
+    .toBeLessThan(1.5);
+  await expect.poll(async () => (await falls(page)).active, { timeout: 30_000 }).toBe(false);
+  if (SHOTS && browserName === 'chromium')
+    await page.screenshot({ path: `${SHOTS}/globe-dropped.png` });
+  // One edit: one undo puts it back up.
+  await page.keyboard.press('ControlOrMeta+KeyZ');
+  await expect.poll(async () => Math.round((await falls(page)).aboveFloor)).toBe(282);
+  expect(errors).toEqual([]);
+});
+
+test('"Groups pick whole": a click by a part\'s face picks its group', async ({ page }) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0 });
+  // A copy grouped with the cube (as tools.spec does it).
+  await click(page, [0, 0]);
+  await page.keyboard.press('KeyD');
+  await set(page, { x: -80, y: -80 });
+  await page.evaluate(() => window.__cutplane!.press(true));
+  await page.evaluate(() => window.__cutplane!.release());
+  await page.keyboard.press('KeyG');
+  expect((await edit(page)).objects).toBe(1);
+  await click(page, [300, -150]); // nothing there: nothing picked
+  // By the cube's right face: its face, as the original picks.
+  await set(page, { x: 95, y: 0 });
+  expect((await edit(page)).hover).toBe('face');
+  await page.locator('#groupPick').selectOption('whole');
+  await set(page, { x: 96, y: 0 });
+  expect((await edit(page)).hover).toBe('object');
+  await click(page, [96, 0]);
+  expect((await edit(page)).picked).toEqual(['object']);
+  // The choice is kept.
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+  await expect(page.locator('#groupPick')).toHaveValue('whole');
+  expect(errors).toEqual([]);
+});

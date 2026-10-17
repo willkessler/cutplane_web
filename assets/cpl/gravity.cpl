@@ -1,0 +1,79 @@
+;
+;		CPL Property Codes:Gravity
+;		cutplane_web, after slice.cpl (November 29,1990)
+;
+;	The globe: a click on something lets it fall to the floor (it tumbles,
+;	bounces and comes to rest as a solid of its shape would). On something
+;	picked, or a part of a picked group, everything picked falls, groups
+;	whole. Then the globe goes back to its pad, as the saw does.
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Gravity		DEFPROP
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main gravity code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+Gravity		STARTPROP
+
+		OWNER	A:R1,Const:Motherobj		; Get globe
+;		 Marqueed sets (a drag with the globe) fall too.
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+		CHKMSG	A:R2
+		BNEQUAL	A:R2,Msg:Marqueedset,A:_End_gravity&
+		UNQMSG	A:R2
+		UNQMSG	A:R3				; what was marqueed
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_gravity&
+		PUSH	A:R3
+		CRTN	Crtn:drop_objects
+		JUMP	A:_End_gravity&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	BWIPED	AA:XOP*,A:_End_gravity&		; Is event still active?
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_gravity&		; no,quit
+
+;		 Is Opcode a PICK?
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_End_gravity&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_gravity&
+
+;		Are there selectable toolpads?
+		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+		BNEMPTY	A:R3,A:_End_gravity&		; yes, let toolpad work
+
+;		Is the headpad selectable?
+		AND	Prop:Selectable*,Prop:Headpad*,A:R3
+		BNEMPTY	A:R3,A:_End_gravity&		; yes, let headpad work
+
+		ADDPROP	A:R1*,Prop:Toolused		; let toolpad know
+;							; the globe was used
+
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*,A:R2		; if no objects
+		BEMPTY	A:R2,A:_End_gravity&		; are selectable, quit
+
+;		 On what is picked, it all falls, groups whole (as the saw cuts)
+		PUSH	A:R2
+		CRTN	Crtn:saw_targets
+		CRTN	Crtn:drop_objects
+		WORLD	Const:WEnvironment_world
+		WIPE	A:XOP*				; no picking please!
+
+		MAKEMSG	Msg:Attachtool
+		MAKEMSG	A:R1*
+; 		 adopt me to any free toolpad
+		QMSG	Prop:Toolpadempty*,Const:Prioritymsg
+
+		JUMP	A:_End_gravity&
+
+_End_gravity	WORLD	Const:WEnvironment_world
+		RTS

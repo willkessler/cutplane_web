@@ -10,6 +10,7 @@ import {
   Controls,
   Runtime,
   type FaceDrag,
+  type GroupPick,
   installRotateTool,
   installToolboxes,
   bulbLightOf,
@@ -47,6 +48,7 @@ import { LabelView } from './render/labels.ts';
 import { PadView } from './render/pads.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
 import { SectionLines } from './render/sectionlines.ts';
+import { Falls } from './world/gravity.ts';
 import { createCamera, deeperOnScreen, fitFov, orbitCamera, unitsPerPixel } from './scene.ts';
 import { CLASSIC, rgb } from './viewer/palette.ts';
 import { CodePanel } from './ui/codepanel.ts';
@@ -150,6 +152,8 @@ const styleSelect = $<HTMLSelectElement>('planeStyle');
 styleSelect.value = (stored('planeStyle') as PlaneStyle | null) ?? 'classic';
 const faceDragSelect = $<HTMLSelectElement>('faceDrag');
 faceDragSelect.value = (stored('faceDrag') as FaceDrag | null) ?? 'stretch';
+const groupPickSelect = $<HTMLSelectElement>('groupPick');
+groupPickSelect.value = (stored('groupPick') as GroupPick | null) ?? 'parts';
 plane.style = styleSelect.value as PlaneStyle;
 
 const held: Held = { ...NOTHING_HELD };
@@ -181,6 +185,7 @@ const CPL_FILES = [
   'magnetic.cpl',
   'pan.cpl',
   'union.cpl',
+  'gravity.cpl',
 ];
 const cpl = new Map<string, string>();
 const source = (f: string): string => {
@@ -252,6 +257,7 @@ async function loadCpl(): Promise<void> {
     'tool.cpl',
     'toolpad.cpl',
     'union.cpl',
+    'gravity.cpl',
     'pencil.cpl',
     'measurepad.cpl',
     'textinput.cpl',
@@ -271,6 +277,7 @@ let stage!: AppStage;
 let rt!: Runtime;
 let controls!: Controls;
 let rotateTool!: ReturnType<typeof installRotateTool>;
+let falls!: Falls;
 let colorControl!: ReturnType<typeof installToolboxes>['colorControl'];
 let toolboxes!: ReturnType<typeof installToolboxes>;
 let ready = false;
@@ -280,6 +287,10 @@ function makeWorld(): void {
   stage.z = control.z;
   rt = new Runtime({ stage, source });
   rt.faceDrag = faceDragSelect.value as FaceDrag;
+  rt.groupPick = groupPickSelect.value as GroupPick;
+  falls = new Falls(rt, models);
+  rt.dropper = (roots) =>
+    void falls.drop(roots).catch((e: Error) => notify(`Couldn't drop it: ${e.message}`, true));
   rt.loadCode(source);
   rotateTool = installRotateTool(rt, source);
   rt.registerCrtns(COLOR_CRTNS);
@@ -323,6 +334,11 @@ faceDragSelect.addEventListener('change', () => {
   rt.faceDrag = faceDragSelect.value as FaceDrag;
   store('faceDrag', faceDragSelect.value);
   faceDragSelect.blur();
+});
+groupPickSelect.addEventListener('change', () => {
+  rt.groupPick = groupPickSelect.value as GroupPick;
+  store('groupPick', groupPickSelect.value);
+  groupPickSelect.blur();
 });
 
 // ---- models ----
@@ -516,7 +532,8 @@ function syncModels(): void {
     envView.rebuild(changed);
     dirty = envDirty = true;
   }
-  if (depthsStale && !controls.pickHeld) {
+  // (Not while things fall: they come to rest as one change, then the stops are taken.)
+  if (depthsStale && !controls.pickHeld && !falls.active) {
     control.plane.setDepths(models.depths());
     depthsStale = false;
   }
@@ -598,6 +615,9 @@ window.addEventListener('pagehide', () => cameraWindow.close());
 
 function render(): void {
   step();
+  // Falling objects are drawn where their fall has got to; those that land are moved there.
+  const falling = falls.active;
+  falls.tick();
   syncModels();
   autosaveTick();
   orbitCamera(camera, control.yaw, control.pitch);
@@ -610,8 +630,10 @@ function render(): void {
     envSection.update(envView.models, stage.z, camera.position);
     envDirty = false;
   }
-  if (dirty || key !== lastKey) {
-    section.update(models.models, stage.z, camera.position);
+  if (dirty || key !== lastKey || falling) {
+    // A falling object isn't where the world has it: it has no section until it lands.
+    const drawn = falling ? models.models.filter((m) => !falls.has(m.object)) : models.models;
+    section.update(drawn, stage.z, camera.position);
     lastKey = key;
     dirty = false;
     const s = section.stats;
@@ -1162,6 +1184,8 @@ declare global {
       };
       /** The ring that turns while a file is read: up or not, and how far round it has turned. */
       loading(): { shown: boolean; turn: number };
+      /** Whether anything is falling (the globe), and how far above the floor the world's lowest point is. */
+      falls(): { active: boolean; aboveFloor: number };
       flyover(): {
         open: boolean;
         inRoom: boolean;
@@ -1368,6 +1392,12 @@ async function start(): Promise<void> {
       };
     },
     loading: () => ({ shown: loading.shown, turn: loading.turn }),
+    falls: () => {
+      let low = Infinity;
+      for (const m of models.models)
+        for (const v of m.object.brep.vertices()) low = Math.min(low, m.world.y(v));
+      return { active: falls.active, aboveFloor: low - ROOM.min[1] };
+    },
     flyover: () => ({
       open: cameraWindow.isOpen,
       inRoom: cameraBlocked,

@@ -6,19 +6,19 @@ Screenshots go in `docs/images/`.
 
 ## Roadmap
 
-| Milestone | Scope                                                                                                            |
-| --------- | ---------------------------------------------------------------------------------------------------------------- |
-| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                                                           |
-| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation                                              |
-| **M2** ✅ | Room, plane, section and full-screen work mode                                                                   |
-| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                                                 |
-| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                                                              |
-| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                                                     |
-| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                                               |
-| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                                                 |
-| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, big and binary Inventor files, live on GitHub Pages |
-| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                                                      |
-| M10       | Language evolution (optional)                                                                                    |
+| Milestone | Scope                                                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                                                                    |
+| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation                                                       |
+| **M2** ✅ | Room, plane, section and full-screen work mode                                                                            |
+| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                                                          |
+| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                                                                       |
+| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                                                              |
+| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                                                        |
+| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                                                          |
+| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, big and binary Inventor files, gravity, live on GitHub Pages |
+| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                                                               |
+| M10       | Language evolution (optional)                                                                                             |
 
 ## Using Cutplane
 
@@ -93,6 +93,11 @@ picked is red. In order of priority, within a 10-unit box around the crosshair:
 4. a **face lying in the plane**, from anywhere inside it;
 5. the whole **object**, from inside its section. Objects marked `Lockedgeometry` are always
    picked whole, and an object is always picked with the group it belongs to.
+
+**Groups pick by part or whole**, as chosen in the toolbar. _Groups pick by part_ is the
+original's way, as above. With _Groups pick whole_ (new), any pick on a part of a group in the
+world (its vertex, edge or face) picks the group: an imported model is a group of many thin
+parts whose sections have little inside to click.
 
 **Press and drag** to move what is picked: a 5-unit dead zone first, so a click never nudges
 anything, then it follows the crosshair exactly. Everything moves rigidly, in the plane. **Moving
@@ -175,7 +180,7 @@ The room is laid out as in the 3Form photos. Everything in it runs on the origin
   that hammer out changes to objects; three bars in a row for the tools that look at and arrange
   them), and under it a rail of **toolpads**, each with its tool's picture.
   Click a headpad to open or close its rail. The arranging rail's headpad shows three bars in a
-  row; its pads hold the magnifier, group tool, pan tool, magnet, grabber and ruler.
+  row; its pads hold the magnifier, group tool, pan tool, magnet, grabber, ruler and globe.
   - Click a toolpad and its tool comes off it and rides on the crosshair, just in front of the
     plane. Click the pad again to put the tool back. Click another pad (or call up a tool by
     key) and the tool you hold goes back to its own pad.
@@ -277,6 +282,11 @@ undo away.
   subtract. (Group, G, is the other way to put parts together: they stay separate solids under
   one object, as the Discovery is built.)
 - **Pencil** (or **P**) comes to the crosshair, as the magnifier does with Z.
+- **Globe** (a little Earth, on the arranging rail). Click on something with it and it falls to
+  the floor, tumbling and bouncing a little, and comes to rest as a solid of its shape would: a
+  car or a rover held at a slant lands on its wheels. A group falls whole; on something picked,
+  everything picked falls, together (they can land on each other). Only the room's floor, walls
+  and ceiling stop it, not other objects yet. One undo lifts it back.
 
 ![The pencil's triangle, extruded into a prism through the plane](images/m6-pencil.png)
 
@@ -420,6 +430,14 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
 - **Faces can extrude.** The original only stretched a dragged face. A toolbar choice makes a
   face pulled outward grow walls of its own instead (_Faces extrude_), at the cost of the extra
   edges the SGI could not afford.
+- **A click on nothing doesn't jam a tool.** On a click with a tool that hit nothing,
+  `tool.cpl` sent the tool a `Fliptool` message, which only the pencil's eraser read; every other
+  tool (the saw) kept it at the head of its queue and stopped reading its own messages, so it
+  never worked again. The original's comment wonders where tools' "bogus messages" come from:
+  this was it. The message is no longer sent.
+- **Gravity, and groups picked whole.** New: the globe drops things to the floor, and a toolbar
+  choice picks a group whole from any of its parts. The globe's picture is the Earth, from
+  Natural Earth's coastlines.
 - **Far edges are dimmer.** A highlighted edge whose faces are all turned away is drawn at about
   half brightness.
 - **A union tool, and B unions.** The 1991 rails had no union tool (a later Cutplane did, with
@@ -629,6 +647,20 @@ older versions of the format are normalised to the latest one on save.
   plane's stops (every vertex depth) are taken again only when the world's models change, not on
   every redraw. `render/loadingring.ts` is the ring: drawn last on a cleared depth buffer, so it
   shows over everything, lit by a light fixed to the eye.
+- **Gravity:** the globe is a tool like the saw (`assets/icons/globe.icon`, its `Gravity`
+  property's code in `assets/cpl/gravity.cpl`), and its new C routine `drop_objects` hands the
+  groups clicked on to the app (`Runtime.dropper`). `app/src/world/gravity.ts` makes each group
+  one rigid body, a convex hull per part (a flat part gets a thin box), in
+  [Rapier](https://rapier.rs) (`@dimforge/rapier3d-compat`, a physics engine compiled to
+  WebAssembly: a chunk of its own, 1.6 MB compressed, loaded only when something first falls). The room's floor, walls and ceiling are
+  slabs round it. The whole fall is worked out first (120 steps a second, until everything has
+  been still for a quarter of a second, at most 8 s), then played back by the clock: the meshes
+  are only moved (`ModelView.pose`, the shadow being the mesh squashed onto the floor), and the
+  world changes once, where the fall ends, as one undo. Landings are made soft (restitution 0.1,
+  angular damping 8): a rigid drop from the room's height onto one corner flipped a four-legged
+  test body onto its back. The Mars rover, held up and tilted 20° or 35°, comes to rest on its
+  wheels within 0.7° of level, worked out in 100 to 300 ms. `docker/globe/make.mjs` makes the
+  globe's picture: 1,152 faces of sea, land and ice from Natural Earth's 1:110m land.
 - **Tests:** `formats/test/oldformats.test.ts` reads Inventor, VRML 1.0 and 2.0 and DXF written
   for the tests, and (locally, from the archive) `robot2.dxf`, a 1993 robot arm David Lees mailed
   Larry: 52 layers, each a solid. `formats/test/mesh.test.ts` round-trips a cube, a holed face and five samples

@@ -166,6 +166,7 @@ export function helpLines(mac: boolean): { text: string; heading?: boolean }[] {
     { text: 'Pencil: draw a shape in the plane, or edge to edge across a face' },
     { text: 'Saw: cut in two at the plane    Drill: drop a cutter through' },
     { text: 'Magnifier (Z), group, pan (H), magnet, grabber, ruler (M): measure' },
+    { text: 'Globe: click on something and it falls to the floor' },
     { text: 'Files', heading: true },
     { text: 'The floppy: load and save by name    Open, Save, Export: the top bar' },
   ];
