@@ -71,4 +71,31 @@ describe('the undo history kept with an autosave', () => {
     expect(loadHistory(rt.journal, saved, rt.primary.root, [])).toBe(false);
     expect(rt.journal.canUndo).toBe(false);
   });
+
+  it('keeps only the newest steps that fit its budget (a big deleted model is let go)', () => {
+    const a = world();
+    const { rt, controls, frame, at } = a;
+    at(0, 0, 0);
+    controls.pressPick(false);
+    frame();
+    controls.releasePick();
+    frame();
+    controls.duplicate(); // older: brings the copy
+    frame();
+    controls.delete(); // newer: the copy goes (a ghost)
+    frame();
+    frame();
+    const all = saveHistory(rt.journal, rt.primary.root, historyOrder(rt.documentRoots()));
+    expect(all.undo.length).toBe(rt.journal.stacks().undo.length);
+    const size = (h: typeof all) => JSON.stringify(h).length;
+    // Room for the newest step alone.
+    const last = all.undo.at(-1)!;
+    const one = [...last.before, ...last.after].reduce((n, x) => n + x.cut.length, 0);
+    const some = saveHistory(rt.journal, rt.primary.root, historyOrder(rt.documentRoots()), 200, one + all.ghosts[0]!.cut.length); // prettier-ignore
+    expect(some.undo).toEqual([last]);
+    expect(size(some)).toBeLessThan(size(all));
+    // Nothing fits: nothing kept, and no ghost either.
+    const none = saveHistory(rt.journal, rt.primary.root, historyOrder(rt.documentRoots()), 200, 0); // prettier-ignore
+    expect(none).toEqual({ version: 1, ghosts: [], undo: [], redo: [] });
+  });
 });

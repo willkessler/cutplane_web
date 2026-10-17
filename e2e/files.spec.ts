@@ -92,7 +92,10 @@ test('edits are autosaved with their undo history: a reload carries on where it 
   await page.keyboard.press('KeyD'); // two cubes
   expect((await edit(page)).faces).toBe(12);
   const menu = page.getByLabel('Model');
-  await expect(menu.locator('option[value="autosave:"]')).toHaveText(/Unsaved changes: New cube/);
+  // (Once the mouse and keys have been left alone a while.)
+  await expect(menu.locator('option[value="autosave:"]')).toHaveText(/Unsaved changes: New cube/, {
+    timeout: 15_000,
+  });
   // The menu still says what was opened.
   await expect(menu).toHaveValue('new:cube');
   await page.goto('/?still=1');

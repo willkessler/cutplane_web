@@ -551,6 +551,12 @@ function syncModels(): void {
 }
 let lastLight = '';
 
+/** Is `o` carried by the crosshair (a tool in hand, tool.cpl's ADOPT to Crosshair_part)? */
+function heldBy(o: CutObject, crosshair: CutObject): boolean {
+  for (let p = o.parent; p; p = p.parent) if (p === crosshair) return true;
+  return false;
+}
+
 /**
  * Renders until no CPL message is waiting. A command sent as a message (Jumplane,
  * Snaprotatetool, Delete) is queued by its RAM sentence and read by its feature's
@@ -650,6 +656,7 @@ function render(): void {
       models.models,
       camera.position,
       outlinedParts(rt, envView.models),
+      envView.models.filter((m) => heldBy(m.object, rt.cursorObj)),
     );
     lastHighlights = hkey;
     scribbles.update(rt);
@@ -1065,7 +1072,8 @@ exportSelect.addEventListener('change', async () => {
  * IndexedDB can't be had).
  */
 const AUTOSAVE = 'autosave:';
-const AUTOSAVE_DELAY = 800;
+/** How long the mouse and keys are left alone before an edit is autosaved (ms). */
+const AUTOSAVE_IDLE = 5000;
 interface Autosave {
   title: string;
   at: number;
@@ -1086,7 +1094,8 @@ function autosaved(): Autosave | null {
   }
 }
 let editsSaved = 0;
-let autosaveAt = 0;
+/** An edit not yet autosaved. */
+let unsaved = false;
 function listAutosave(): void {
   modelSelect.querySelector(`option[value="${AUTOSAVE}"]`)?.remove();
   const a = autosaved();
@@ -1096,7 +1105,7 @@ function listAutosave(): void {
   modelSelect.insertBefore(o, modelSelect.firstChild);
 }
 function autosave(): void {
-  autosaveAt = 0;
+  unsaved = false;
   const value = modelSelect.value;
   const title = worldTitle();
   const roots = rt.documentRoots();
@@ -1120,20 +1129,29 @@ async function autosavedWorld(): Promise<{ text: string; history: SavedHistory |
   if (r && r.at === a.at) return { text: r.text, history: r.history };
   return a.text !== undefined ? { text: a.text, history: null } : null;
 }
-/** Called every frame: an edit since the last autosave is kept once things settle. */
+/**
+ * Called every frame: an edit since the last autosave is kept once the hands have
+ * been still a while. (Writing out a big world takes a moment: not mid-work.)
+ */
 function autosaveTick(): void {
   if (rt.journal.edits !== editsSaved) {
     editsSaved = rt.journal.edits;
-    autosaveAt = performance.now() + AUTOSAVE_DELAY;
+    unsaved = true;
   }
-  if (autosaveAt && performance.now() >= autosaveAt && !controls.pickHeld) autosave();
+  if (unsaved && performance.now() - lastInput >= AUTOSAVE_IDLE && !controls.pickHeld) autosave();
 }
+let lastInput = 0;
+for (const type of ['pointermove', 'pointerdown', 'pointerup', 'keydown', 'keyup', 'wheel'])
+  window.addEventListener(type, () => (lastInput = performance.now()), {
+    capture: true,
+    passive: true,
+  });
 // Leaving the page with an edit not yet kept keeps it now.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden' && autosaveAt) autosave();
+  if (document.visibilityState === 'hidden' && unsaved) autosave();
 });
 window.addEventListener('pagehide', () => {
-  if (autosaveAt) autosave();
+  if (unsaved) autosave();
 });
 
 $<HTMLButtonElement>('resume').addEventListener('click', () => void work.resume());

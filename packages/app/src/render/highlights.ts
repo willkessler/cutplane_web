@@ -100,6 +100,16 @@ export class Highlights {
     renderOrder: 37,
   });
   private readonly marqueeShadow = new Lines({ color: CLASSIC.shadow, width: 2, renderOrder: 5 });
+  // New here: a tool in hand (the saw, the globe) shows through what it's in or
+  // behind as a dotted contour, as the crosshair does, so it's never lost.
+  private readonly heldThrough = new Lines({
+    color: CLASSIC.white,
+    width: 2,
+    dashed: true,
+    dash: 4,
+    depthTest: false,
+    renderOrder: 38,
+  });
   private readonly dot = new THREE.Mesh(
     new THREE.PlaneGeometry(2 * HOVER_VERTEX, 2 * HOVER_VERTEX),
     new THREE.MeshBasicMaterial({ color: rgb(CLASSIC.white), side: THREE.DoubleSide }),
@@ -120,18 +130,27 @@ export class Highlights {
         this.marquee,
         this.marqueeThrough,
         this.marqueeShadow,
+        this.heldThrough,
       ),
       this.dot,
     );
   }
 
-  /** `outlined`: other things under the crosshair (a goodie's part) to outline as hovered. */
+  /**
+   * `outlined`: other things under the crosshair (a goodie's part) to outline as
+   * hovered; `held`: the tool in hand.
+   */
   update(
     editor: HighlightState,
     models: readonly Model[],
     eye: THREE.Vector3,
     outlined: readonly Model[] = [],
+    held: readonly Model[] = [],
   ): void {
+    const through: number[] = [];
+    for (const m of held) silhouette(m, eye, through);
+    this.heldThrough.set(through);
+
     const modelOf = new Map(models.map((m) => [m.object, m]));
     this.dot.visible = false;
     for (const m of outlined) silhouette(m, eye, this.hover.pts);

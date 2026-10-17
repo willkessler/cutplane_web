@@ -61,14 +61,24 @@ const readOne = (cut: string): CutObject => {
 };
 
 /**
+ * How much .cut text a saved history holds at most (characters): the newest
+ * steps that fit. A big model's every move is the whole model twice over, and
+ * a deleted one stays in the steps that bring it back: the history kept with an
+ * autosave mustn't grow with each of them.
+ */
+export const HISTORY_BUDGET = 16_000_000;
+
+/**
  * The journal's steps, numbered against `objects` (the world's, in its .cut
- * order) under `root`. At most `limit` undo steps are kept, the newest.
+ * order) under `root`. At most `limit` undo steps are kept, the newest, and
+ * only as many (undo first, then redo, nearest first) as fit in `budget`.
  */
 export function saveHistory(
   journal: Journal,
   root: CutObject,
   objects: readonly CutObject[],
   limit = 200,
+  budget = HISTORY_BUDGET,
 ): SavedHistory {
   const ids = new Map<CutObject, number>([[root, 0]]);
   for (const o of objects) ids.set(o, ids.size);
@@ -78,7 +88,7 @@ export function saveHistory(
     if (n === undefined) {
       n = ids.size;
       ids.set(o, n);
-      ghosts.push({ id: n, cut: cutOf({ ...o, props: o.attrs.props }, { attrs: o.attrs }) });
+      ghosts.push({ id: n, cut: ghostText(o) });
     }
     return n;
   };
@@ -93,8 +103,43 @@ export function saveHistory(
     after: s.after.map((a) => ({ id: id(a.object), cut: snapText(a) })),
     ...(s.tree ? { tree: { before: tree(s.tree.before), after: tree(s.tree.after) } } : {}),
   });
+  // What a step costs: its snapshots, and the objects it holds that are gone from the world.
+  let left = budget;
+  const fits = (s: Step): boolean => {
+    let n = 0;
+    for (const b of [...s.before, ...s.after]) {
+      n += snapText(b).length;
+      if (!ids.has(b.object) && !counted.has(b.object)) {
+        counted.add(b.object);
+        n += ghostText(b.object).length;
+      }
+    }
+    if (n > left) return false;
+    left -= n;
+    return true;
+  };
+  const counted = new Set<CutObject>();
+  /** The newest steps of a stack (its last, the next to undo or redo) that fit. */
+  const newest = (stack: readonly Step[]): Step[] => {
+    let i = stack.length;
+    while (i > 0 && fits(stack[i - 1]!)) i--;
+    return stack.slice(i);
+  };
   const { undo, redo } = journal.stacks();
-  return { version: 1, ghosts, undo: undo.slice(-limit).map(step), redo: redo.map(step) };
+  const keptUndo = newest(undo.slice(-limit));
+  const keptRedo = newest(redo);
+  return { version: 1, ghosts, undo: keptUndo.map(step), redo: keptRedo.map(step) };
+}
+
+// A ghost's text, written again only when it has changed.
+const ghosts = new WeakMap<CutObject, { key: string; text: string }>();
+function ghostText(o: CutObject): string {
+  const key = `${o.brep.fingerprint()}|${o.xform.join()}|${o.color.join()}|${o.name}|${JSON.stringify(o.attrs)}`;
+  const had = ghosts.get(o);
+  if (had?.key === key) return had.text;
+  const text = cutOf({ ...o, props: o.attrs.props }, { attrs: o.attrs });
+  ghosts.set(o, { key, text });
+  return text;
 }
 
 /**
