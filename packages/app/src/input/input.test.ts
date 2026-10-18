@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { ROOM } from '@cutplane/kernel';
-import { HELP_WIDTH, helpLineWidth } from '@cutplane/behaviors';
+import { keysPlateSize } from '@cutplane/behaviors';
 import {
   LEFT,
   MIDDLE,
   NOTHING_HELD,
   RIGHT,
   commandFor,
-  helpLines,
+  keyLines,
   motionFor,
   type Held,
 } from './bindings.ts';
@@ -54,6 +54,7 @@ describe('bindings (one set for a trackpad and either mouse)', () => {
     expect(commandFor('KeyV', held())).toBe('gravityTool');
     expect(commandFor('Period', held({ shift: true }))).toBeUndefined(); // > no longer
     expect(commandFor('Digit1', held())).toBe('display');
+    expect(commandFor('Slash', held({ shift: true }))).toBe('help');
     expect(commandFor('KeyZ', held({ meta: true }))).toBe('undo');
     expect(commandFor('KeyW', held({ meta: true }))).toBeUndefined();
     expect(commandFor('Space', held({ meta: true }))).toBeUndefined();
@@ -202,12 +203,15 @@ describe('Controller', () => {
   });
 });
 
-describe('the help plate', () => {
-  it('every line fits the plate', () => {
-    for (const mac of [true, false])
-      for (const l of helpLines(mac)) {
-        expect(l.text).toMatch(/^[\x20-\x7e]*$/); // the Hershey font's ASCII
-        expect(helpLineWidth(l)).toBeLessThan(HELP_WIDTH - 40);
-      }
+describe('the keys plate', () => {
+  it('every line is plain ASCII, and the plate fits beside the room on a 16:10 screen', () => {
+    for (const mac of [true, false]) {
+      const lines = keyLines(mac);
+      for (const l of lines)
+        for (const t of 'heading' in l ? [l.heading] : l) expect(t).toMatch(/^[\x20-\x7e]*$/); // the Hershey font's ASCII
+      const [width, height] = keysPlateSize(lines);
+      expect(width).toBeLessThan(215);
+      expect(height).toBeLessThan(764); // the room's height
+    }
   });
 });

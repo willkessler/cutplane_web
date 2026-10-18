@@ -15,51 +15,83 @@ import { DECAL_GAP, DECAL_THICKNESS, applyFrontDecal, registerPadTechniques } fr
 
 /**
  * The help pad (new): an orange pad marked "?" at the bottom right. Like the
- * storage pad it is a Dialog (dialog.cpl): a click opens its plate, here lines of
- * help in the plane itself, and another click puts it away. Nothing flat is laid
- * over the room.
+ * storage pad it is a Dialog (dialog.cpl): a click opens its plate, the keys plate,
+ * and another click puts it away. The keys plate lists the shortcut keys, the tools
+ * and the files in headed groups, a key (or a tool's name) in yellow and what it does
+ * in white beside it. It hangs off the plane's right side, just outside the room,
+ * so nothing is laid over the room; it moves with the plane, and seen from far round
+ * to a side it is seen edge on.
  */
 
 export const HELP_SQUARE = 60; // as the storage pad (Storagesquare)
 const MAX_X = 510;
 const MIN_Y = -382;
-/** The plate: how wide, its margin, and each line's height. */
-export const HELP_WIDTH = 660;
-const MARGIN = 20;
-const LINE = 21;
-const TEXT_SCALE = 0.95;
-
-export interface HelpLine {
-  text: string;
-  /** A heading: yellow, a little bigger. */
-  heading?: boolean;
-}
 
 const WHITE: Rgb = [255, 255, 255];
 const YELLOW: Rgb = [255, 255, 0];
+const ORANGE: Rgb = [255, 140, 40];
 
-/** How wide a line is drawn (Hershey units times its scale). */
-export const helpLineWidth = (l: HelpLine): number =>
-  [...l.text].reduce((w, c) => w + charWidth(c.charCodeAt(0)), 0) * scaleOf(l);
-const scaleOf = (l: HelpLine) => (l.heading ? 1.1 : TEXT_SCALE);
+const KEYS_MARGIN = 14;
+const KEYS_LINE = 15;
+const KEYS_SCALE = 0.58;
+/** A heading's: a little bigger, with a little room above it. */
+const KEYS_HEADING_SCALE = 0.66;
+const KEYS_HEADING_GAP = 6;
+/** Clear of the room's right wall. */
+const KEYS_GAP = 16;
 
-function plateSpec(lines: readonly HelpLine[]): PlateSpec {
-  const height = MARGIN * 2 + lines.length * LINE;
+/** A key and what it does, or a group's heading. */
+export type KeysLine = readonly [string, string] | { readonly heading: string };
+
+const textWidth = (s: string, scale = KEYS_SCALE) =>
+  [...s].reduce((w, c) => w + charWidth(c.charCodeAt(0)), 0) * scale;
+const isKey = (l: KeysLine): l is readonly [string, string] => !('heading' in l);
+
+/** The keys plate's size: how wide (its widest line) and how tall. */
+export function keysPlateSize(lines: readonly KeysLine[]): [number, number] {
+  const keys = lines.filter(isKey);
+  const keyColumn = Math.max(...keys.map(([k]) => textWidth(k))) + 10;
+  const width =
+    KEYS_MARGIN * 2 +
+    Math.max(
+      keyColumn + Math.max(...keys.map(([, a]) => textWidth(a))),
+      ...lines.flatMap((l) => (isKey(l) ? [] : [textWidth(l.heading, KEYS_HEADING_SCALE)])),
+    );
+  const gaps = lines.filter((l, i) => !isKey(l) && i > 0).length;
+  return [width, KEYS_MARGIN * 2 + lines.length * KEYS_LINE + gaps * KEYS_HEADING_GAP];
+}
+
+/** The keys plate, `offset` from its pad. */
+function keysPlateSpec(lines: readonly KeysLine[], offset: (height: number) => V3): PlateSpec {
+  const [width, height] = keysPlateSize(lines);
+  const keyColumn = Math.max(...lines.filter(isKey).map(([k]) => textWidth(k))) + 10;
+  // Each line's baseline, down from the top; a heading after the first has a gap above.
+  const tops: number[] = [];
+  let y = KEYS_MARGIN;
+  lines.forEach((l, i) => {
+    if (!isKey(l) && i > 0) y += KEYS_HEADING_GAP;
+    y += KEYS_LINE;
+    tops.push(y);
+  });
+  const label = (text: string, x: number, i: number, color: Rgb, scale = KEYS_SCALE) => ({
+    text,
+    offset: [x, height - tops[i]! + 4, 5] as V3,
+    color,
+    pen: 1,
+    scale: [scale, scale * 1.2] as [number, number],
+    style: 'Plain' as const,
+  });
   return {
-    name: 'Help_Plate',
-    size: [HELP_WIDTH, height],
-    // Above the pad and leftward, so it stays in the room.
-    offset: [HELP_SQUARE - HELP_WIDTH - 25, HELP_SQUARE + 10, 5],
+    name: 'Keys_Plate',
+    size: [width, height],
+    offset: offset(height),
     color: [40, 40, 60],
     code: '<none>',
-    labels: lines.map((l, i) => ({
-      text: l.text,
-      offset: [MARGIN, height - MARGIN - (i + 1) * LINE + 6, 15] as V3,
-      color: l.heading ? YELLOW : WHITE,
-      pen: 1,
-      scale: [scaleOf(l), scaleOf(l) * 1.2],
-      style: 'Plain',
-    })),
+    labels: lines.flatMap((l, i) =>
+      isKey(l)
+        ? [label(l[0], KEYS_MARGIN, i, YELLOW), label(l[1], KEYS_MARGIN + keyColumn, i, WHITE)]
+        : [label(l.heading, KEYS_MARGIN, i, ORANGE, KEYS_HEADING_SCALE)],
+    ),
     inputs: [],
   };
 }
@@ -123,8 +155,8 @@ function questionMark(rt: Runtime): CutObject {
   return root!;
 }
 
-/** The help pad and its plate, in the plane at the bottom right. */
-export function installHelpPad(rt: Runtime, lines: readonly HelpLine[]): CutObject {
+/** The help pad, in the plane at the bottom right, and its keys plate. */
+export function installHelpPad(rt: Runtime, lines: readonly KeysLine[]): CutObject {
   registerPadTechniques(rt);
   const pad = rt.makeObj(rt.environment, [0, 0, 0], 'HelpPad', ['Nonmanifold', 'Noshadow'], {
     selectTechnique: 'set_normalpad_selectable',
@@ -136,68 +168,28 @@ export function installHelpPad(rt: Runtime, lines: readonly HelpLine[]): CutObje
   const mark = questionMark(rt);
   applyFrontDecal(rt, mark, pad, DECAL_THICKNESS, DECAL_GAP, HELP_SQUARE / 6);
   rt.discard(mark);
-  readPlate(rt, pad, plateSpec(lines), () => '');
+  const at: V3 = [MAX_X - HELP_SQUARE * 1.5, MIN_Y + HELP_SQUARE * 0.5, 0];
+  // The plate beside the room's right wall, its middle level with the room's, a
+  // little in front of the plane (the pad stands 10 off it).
+  readPlate(
+    rt,
+    pad,
+    keysPlateSpec(lines, (height) => [MAX_X + KEYS_GAP - at[0], -height / 2 - at[1], -7]),
+    () => '',
+  );
   rt.adopt(rt.cutplane, pad, true);
-  rt.translate(pad, [MAX_X - HELP_SQUARE * 1.5, MIN_Y + HELP_SQUARE * 0.5, rt.cutplane.xform[14]!]);
+  rt.translate(pad, [at[0], at[1], rt.cutplane.xform[14]!]);
   rt.addProp(pad, 'Dialog');
   for (const o of subtree(pad)) rt.addProp(o, 'Lockedgeometry');
   rt.vm.resolveObjectRefs();
   return pad;
 }
 
-/**
- * The keys plate (new): the shortcut keys and what they do, on a plate fixed to
- * the plane's right side, just outside the room, so that with nothing laid over
- * the room (full screen) they are still to hand. It moves with the plane; seen
- * from far round to a side it is seen edge on. Shown or not by showKeysPlate.
- */
-const KEYS_MARGIN = 14;
-const KEYS_LINE = 17;
-const KEYS_SCALE = 0.62;
-/** Clear of the room's right wall. */
-const KEYS_GAP = 16;
+/** The help pad's keys plate. */
+export const keysPlateOf = (pad: CutObject): CutObject =>
+  pad.children.find((c) => c.name === 'Keys_Plate')!;
 
-export function installKeysPlate(
-  rt: Runtime,
-  keys: readonly (readonly [string, string])[],
-): CutObject {
-  const width = (s: string) => [...s].reduce((w, c) => w + charWidth(c.charCodeAt(0)), 0) * KEYS_SCALE; // prettier-ignore
-  const keyColumn = Math.max(...keys.map(([k]) => width(k))) + 10;
-  const plateWidth = KEYS_MARGIN * 2 + keyColumn + Math.max(...keys.map(([, a]) => width(a)));
-  const height = KEYS_MARGIN * 2 + keys.length * KEYS_LINE;
-  const label = (text: string, x: number, i: number, color: Rgb) => ({
-    text,
-    offset: [x, height - KEYS_MARGIN - (i + 1) * KEYS_LINE + 5, 5] as V3,
-    color,
-    pen: 1,
-    scale: [KEYS_SCALE, KEYS_SCALE * 1.2] as [number, number],
-    style: 'Plain' as const,
-  });
-  const at = rt.cutplane.xform;
-  const plate = readPlate(
-    rt,
-    rt.cutplane,
-    {
-      name: 'Keys_Plate',
-      size: [plateWidth, height],
-      // Its middle level with the room's, a little in front of the plane.
-      offset: [MAX_X + KEYS_GAP - at[12]!, -height / 2 - at[13]!, 3],
-      color: [40, 40, 60],
-      code: '<none>',
-      labels: keys.flatMap(([k, a], i) => [
-        label(k, KEYS_MARGIN, i, YELLOW),
-        label(a, KEYS_MARGIN + keyColumn, i, WHITE),
-      ]),
-      inputs: [],
-    },
-    () => '',
-  );
-  for (const o of subtree(plate)) rt.addProp(o, 'Lockedgeometry');
-  rt.vm.resolveObjectRefs();
-  return plate;
-}
-
-/** The keys plate shown, or put out of sight. */
+/** The keys plate shown, or put out of sight (as the help pad's click does). */
 export function showKeysPlate(rt: Runtime, plate: CutObject, shown: boolean): void {
   for (const o of subtree(plate))
     if (rt.vm.props.has(o, P.Visible) !== shown) {

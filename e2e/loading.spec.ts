@@ -1,9 +1,12 @@
 import { mkdirSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 // A file that takes a while to read: a ring turns in the room, filling as the read goes,
 // and goes when the model is in. Set SHOTS=dir to keep a screenshot of it.
 const SHOTS = process.env['SHOTS'];
+
+/** The last notice: what an import did, or why it couldn't. */
+const notice = (page: Page) => page.evaluate(() => window.__cutplane!.notice().text);
 
 /** An Inventor terrain of n × n points: big enough to take a moment. */
 function terrain(n: number): string {
@@ -43,7 +46,7 @@ test('a long read shows a turning ring in the room, then the model comes in', as
     mkdirSync(SHOTS, { recursive: true });
     await page.screenshot({ path: `${SHOTS}/loading.png` });
   }
-  await expect(page.locator('#notice')).toContainText('from terrain.iv', { timeout: 60_000 });
+  await expect.poll(() => notice(page), { timeout: 60_000 }).toContain('from terrain.iv');
   await expect.poll(async () => (await loading()).shown, { timeout: 30_000 }).toBe(false);
   expect(errors).toEqual([]);
 });
@@ -60,7 +63,7 @@ test('Esc stops a read: nothing comes in', async ({ page }) => {
     .poll(() => page.evaluate(() => window.__cutplane!.loading().shown), { timeout: 30_000 })
     .toBe(true);
   await page.keyboard.press('Escape');
-  await expect(page.locator('#notice')).toHaveText('Stopped reading');
+  await expect.poll(() => notice(page)).toBe('Stopped reading');
   expect(await page.evaluate(() => window.__cutplane!.loading().shown)).toBe(false);
   expect((await page.evaluate(() => window.__cutplane!.edit())).objects).toBe(1);
 });

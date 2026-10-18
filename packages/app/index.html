@@ -76,28 +76,6 @@
         background: #0b6f6f;
         border-color: #13a0a0;
       }
-      #status {
-        bottom: 12px;
-        left: 12px;
-        right: 12px;
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        gap: 4px 16px;
-        color: var(--dim);
-        pointer-events: none;
-      }
-      #status b {
-        color: var(--ink);
-        font-weight: 600;
-        font-variant-numeric: tabular-nums;
-      }
-      #notice {
-        color: var(--accent);
-      }
-      #notice.error {
-        color: #ff8a80;
-      }
       /* Files dragged over the page: it will take them. */
       #app.dropping::after {
         content: 'Drop to open: .cut worlds, or OBJ, STL, glTF, Inventor, VRML and DXF models to add';
@@ -111,9 +89,6 @@
         font-size: 18px;
         background: rgba(0, 0, 0, 0.35);
         pointer-events: none;
-      }
-      #hints span + span::before {
-        content: ' · ';
       }
       #pause {
         inset: 0;
@@ -130,13 +105,9 @@
         margin: 0 0 12px;
         font-size: 16px;
       }
-      /* Working, nothing flat sits over the room: no toolbar, no status bar. */
+      /* Working, nothing flat sits over the room: no toolbar. */
       .working #hud,
-      .working #status {
-        display: none;
-      }
-      .demo #hud,
-      .demo #status {
+      .demo #hud {
         display: none;
       }
       /* The CPL editor (outside work mode only). */
@@ -248,11 +219,6 @@
         <button id="work" class="primary" title="Full screen with the pointer captured (F)">
           Start working (F)
         </button>
-      </div>
-      <div id="status" class="panel">
-        <div id="readout"></div>
-        <div id="notice" role="status"></div>
-        <div id="hints"></div>
       </div>
       <div id="code" class="panel" aria-label="CPL editor">
         <div class="row">

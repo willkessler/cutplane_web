@@ -30,8 +30,10 @@ New in 2026: none of these were in the 1991 original.
   picked mid-fall. What isn't picked falls on.
 - **Double click puts things away.** A double click on the colour control's base or the camera's
   body puts it back in the goodies box.
-- **The keys plate.** In full-screen work mode the shortcut keys are on a plate at the side of
-  the plane, so they don't need a 2D panel.
+- **The keys plate.** The ? pad, or the ? key, opens a plate of every key and tool at the side
+  of the plane, in groups (the plane, the view, picking and moving, changing what is picked,
+  tools, goodies and files), windowed and in full screen alike. It replaces the help plate and
+  the 2D status bar.
 - **A new hand.** The pan tool's 1991 hand shaded in broken pieces. It is redrawn as one smooth,
   rounded shape with a cuff at the wrist.
 - **The group tool works in hand.** A click with it groups or ungroups what is picked, and a

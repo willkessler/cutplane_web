@@ -20,8 +20,10 @@ Nothing to install. It works in Chrome, Edge, Firefox and Safari on a desktop or
 - Around the edges of the plane ride the tools: the **toolbars** top left (orange headpads with a
   hammer and with three bars), the **rotate tool** top right, the **floppy disk** and the **?**
   along the bottom. They move with the plane, so they're always within reach.
-- Above the room is the **top bar** (models, plane style, files) and below it a **status
-  line** with the controls. Both disappear when you start working (section 2).
+- The **?** pad (or the ? key) opens the **keys plate** beside the room: every key and tool, in
+  groups (section 9).
+- Above the room is the **top bar** (models, plane style, files). It disappears when you start
+  working (section 2).
 
 A trackpad, a two-button mouse and the SGI's three-button mouse all work as they are, with
 nothing to set up: hold ⌘ or right-drag to turn the room, hold ⌥ (Option, Alt) or middle-drag to
@@ -44,10 +46,8 @@ ready to take hold of. Move fast and it flies straight through. Hold **Ctrl** to
 without clicking.
 
 **Work mode** (F) goes full screen and captures the pointer, as the SGI did: nothing flat covers
-the room, and the pointer can't run off the edge of the window. The shortcut keys are then on a
-dark plate fixed to the plane's right side, just outside the room; it moves with the plane (turn
-the room far round and you see it edge on). Press **?** in the room (bottom right) any time for
-the controls on a plate in the plane.
+the room, and the pointer can't run off the edge of the window. Press **?** (the key, or the pad
+at the bottom right) any time for the keys plate.
 
 ## 3. Picking and moving
 
@@ -214,7 +214,7 @@ Click the camera again, or close its window, to put the view away; the shots are
     the way in, and scaled to fit the room if need be.
   - A big file takes a few seconds: a **ring turns in the room** while it's read, filling as it
     goes. **Esc** stops it. A model of more than 400,000 faces is simplified to about that many,
-    so the room stays quick to work in (the status line says so); add `?faces=all` to the page's
+    so the room stays quick to work in; add `?faces=all` to the page's
     address to keep every face.
     Free models to try: [Poly Pizza](https://poly.pizza/) (glTF, CC0 and CC-BY) and
     [Sketchfab](https://sketchfab.com/) (filter by downloadable).
@@ -231,9 +231,13 @@ Click the camera again, or close its window, to put the view away; the shots are
 
 ## 9. Help in the room
 
-![The help plate, opened from the ? pad](images/guide-help.png)
+![The keys plate, opened from the ? pad](images/guide-help.png)
 
-Click the **?** pad (bottom right) for a plate of the controls in the plane. Click ? again to put it away.
+Press **?**, or click the **?** pad (bottom right), for the **keys plate**: every key and tool, and
+what each does, in groups (the plane, the view, picking and moving, changing what is picked, the
+tools, goodies and files). It hangs off the plane's right side, just outside the room, and moves
+with the plane; turn the room far round and you see it edge on. Press ? or click the pad again to
+put it away. A window narrower than a usual laptop screen cuts off its right side.
 
 ## 10. If something doesn't work
 

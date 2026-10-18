@@ -1,3 +1,5 @@
+import type { KeysLine } from '@cutplane/behaviors';
+
 /**
  * Physical input → the original's logical actions (controls.h), so nothing
  * downstream sees devices. A pure mapping from what is held (buttons, modifier
@@ -63,7 +65,8 @@ export type Command =
   | 'pencilTool'
   | 'measureTool'
   | 'gravityTool'
-  | 'display';
+  | 'display'
+  | 'help';
 
 export function commandFor(code: string, h: Held): Command | undefined {
   // Undo and redo are new (the original's U key did nothing): ⌘Z / ⇧⌘Z, or Ctrl on other systems.
@@ -118,6 +121,9 @@ export function commandFor(code: string, h: Held): Command | undefined {
     // New: 1 steps through how the rest is drawn (as wire, out of sight) and back.
     case 'Digit1':
       return 'display';
+    // New: ? (shifted or not) shows the keys plate, as the help pad does, or puts it away.
+    case 'Slash':
+      return 'help';
     case 'Backspace':
     case 'Delete':
       return 'delete';
@@ -126,97 +132,58 @@ export function commandFor(code: string, h: Held): Command | undefined {
   }
 }
 
-/** Human-readable bindings for the help line. */
-export function bindingHints(mac: boolean): string[] {
-  return [
-    'Move: crosshair',
-    `Hold ${mac ? '⌥' : 'Alt'} + move, or middle-drag: plane depth`,
-    mac ? 'Hold ⌘ + move, or right-drag: rotate room' : 'Right-drag: rotate room',
-    'Click: pick',
-    'Drag: move what is picked',
-    'Shift-click: add or remove',
-    '⌘A: pick everything',
-    'Ctrl: one axis',
-    'Scroll: plane depth',
-    'Space: plane jump',
-    '← → ↑ ↓: rotate 10°',
-    '0: reset view',
-    'R: rotate tool here (again on it: put away)',
-    'D: duplicate',
-    'G: group / ungroup',
-    '\\: slice what is picked',
-    'B: union what is picked',
-    'Z / H / P / M / V: magnifier / pan tool / pencil / ruler / globe',
-    '1: the rest as wire, out of sight, back',
-    '⌫: delete',
-    '⌘Z / ⇧⌘Z: undo / redo',
-  ];
-}
-
 /**
- * The keys plate's lines (new: on the plane's side in full screen, where the help
- * line isn't): a key, and what it does, in the Hershey font's plain ASCII.
+ * The keys plate's lines (new: the help pad's plate, on the plane's side, so nothing
+ * flat is laid over the room): headed groups of a key, or a tool, and what it does,
+ * in the Hershey font's plain ASCII.
  */
-export function keyLines(mac: boolean): [string, string][] {
+export function keyLines(mac: boolean): KeysLine[] {
   const cmd = mac ? 'Cmd' : 'Ctrl';
   const alt = mac ? 'Opt' : 'Alt';
   return [
-    ['Click', 'pick'],
-    ['Shift-click', 'add, remove'],
-    ['Drag', 'move what is picked'],
-    [`${alt} + move`, 'plane depth'],
-    [mac ? 'Cmd + move' : 'Right-drag', 'turn the room'],
-    ['Scroll', 'plane depth'],
-    ['Space', 'plane jump'],
-    ['Arrows', 'turn 10 degrees'],
-    ['0', 'face the room'],
-    ['Ctrl', 'one axis'],
+    { heading: 'The plane' },
+    [`${alt} + move`, 'push it in depth'],
+    ['Scroll, swipe', 'push it in depth'],
+    ['Middle-drag', 'push it in depth'],
+    ['Space', 'jump to the walls'],
+    { heading: 'The view' },
+    ...(mac ? [['Cmd + move', 'turn the room'] as const] : []),
+    ['Right-drag', 'turn the room'],
+    ['Arrows', 'turn it 10 degrees'],
+    ['0', 'face the room again'],
+    ['1', 'others: wire, hidden'],
+    ['F, Esc', 'full screen, leave it'],
+    ['?', 'these keys, or not'],
+    { heading: 'Picking and moving' },
+    ['Click', 'pick an item or part'],
+    ['Shift-click', 'pick more, or unpick'],
     [`${cmd}-A`, 'pick everything'],
-    ['R', 'rotate tool'],
-    ['D', 'duplicate'],
-    ['G', 'group, ungroup'],
-    ['\\', 'slice at the plane'],
-    ['B', 'union'],
-    ['Z', 'magnifier'],
-    ['H', 'pan'],
-    ['P', 'pencil'],
-    ['M', 'ruler'],
-    ['V', 'globe (gravity)'],
-    ['1', 'the rest: wire, gone'],
-    ['Delete', 'delete'],
+    ['Drag', 'move what is picked'],
+    [`${alt} + drag`, 'carry it in depth too'],
+    ['Hold Ctrl', 'keep to one axis'],
+    { heading: 'Changing what is picked' },
+    ['D', 'duplicate it'],
+    ['Delete', 'delete it'],
+    ['G', 'group or ungroup it'],
+    ['B', 'union it'],
+    ['\\', 'slice it at the plane'],
     [`${cmd}-Z`, 'undo'],
     [`Shift-${cmd}-Z`, 'redo'],
-    ['F, Esc', 'leave full screen'],
-  ];
-}
-
-/** The help plate's lines (in the room, so in the Hershey font's plain ASCII). */
-export function helpLines(mac: boolean): { text: string; heading?: boolean }[] {
-  const cmd = mac ? 'Cmd' : 'Ctrl';
-  return [
-    { text: 'The plane cuts what it passes through.  Click ? again to close.', heading: true },
-    { text: 'Moving', heading: true },
-    { text: 'Move: the crosshair' },
-    { text: `Hold ${mac ? 'Option' : 'Alt'} and move, or middle-drag: the plane, in depth` },
-    { text: mac ? 'Hold Cmd and move, or right-drag: turn the room' : 'Right-drag: turn the room' },
-    { text: 'Scroll: the plane    Space: jump to the back wall, back, the front, back' },
-    { text: 'Arrow keys: turn the room 10 degrees    0: face it again' },
-    { text: 'Ctrl held: keep to one axis    F: full screen    Esc: leave it' },
-    { text: 'Picking and changing', heading: true },
-    { text: 'Click: pick a vertex, edge, face or object    Shift-click: add or remove' },
-    { text: 'Drag: move what is picked (faces stretch or extrude: see the top bar)' },
-    { text: `${cmd}-A: pick everything    D: duplicate    Backspace: delete` },
-    { text: 'G: group or ungroup    B: union    \\: slice at the plane' },
-    { text: `R: the rotate tool (R on it again puts it away)    ${cmd}-Z: undo` },
-    { text: 'Tools (the orange rails, top left: click one open, click a pad)', heading: true },
-    { text: 'Pencil: draw a shape in the plane, or edge to edge across a face' },
-    { text: 'Saw: cut in two at the plane    Drill: drop a cutter through' },
-    { text: 'Magnifier (Z), group, pan (H), magnet, grabber, ruler (M): measure' },
-    { text: 'Magnifier: double-click to fit everything in the room' },
-    { text: 'Globe (V): click on something and it falls; double-click: gravity always' },
-    { text: 'Key 1: all but what is picked as wire, then out of sight, then back' },
-    { text: 'Double-click the colour control or camera: back in its box' },
-    { text: 'Files', heading: true },
-    { text: 'The floppy: load and save by name    Open, Save, Export: the top bar' },
+    { heading: 'Tools: the rails, top left' },
+    ['R', 'rotate tool'],
+    ['Z', 'magnifier; 2-click: fit'],
+    ['H', 'pan hand: move it all'],
+    ['P', 'pencil: draw, split faces'],
+    ['M', 'ruler: measure'],
+    ['V', 'globe: drop things'],
+    ['Saw', 'cut in two at the plane'],
+    ['Drill', 'cut with a red copy'],
+    ['Magnet', 'snap face to face'],
+    ['Grabber', 'pick objects whole'],
+    ['Key again', 'put the tool away'],
+    { heading: 'Goodies and files' },
+    ['2-click', 'put a goody back'],
+    ['Floppy', 'load, save by name'],
+    ['Top bar', 'open, save, export'],
   ];
 }

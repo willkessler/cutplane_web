@@ -29,7 +29,7 @@ import {
   setCameraShown,
   installStoragePad,
   installHelpPad,
-  installKeysPlate,
+  keysPlateOf,
   showKeysPlate,
   installMeasurePad,
   installToolbars,
@@ -43,14 +43,7 @@ import {
   type V3,
 } from '@cutplane/behaviors';
 import { DEMO_SECONDS, demoPose } from './demo.ts';
-import {
-  NOTHING_HELD,
-  bindingHints,
-  helpLines,
-  keyLines,
-  commandFor,
-  type Held,
-} from './input/bindings.ts';
+import { NOTHING_HELD, keyLines, commandFor, type Held } from './input/bindings.ts';
 import { Controller, isMouseWheel } from './input/controller.ts';
 import { WorkMode } from './input/workmode.ts';
 import { Crosshair } from './render/crosshair.ts';
@@ -337,19 +330,16 @@ function makeWorld(): void {
     },
   });
   installMeasurePad(rt, resource, source);
-  installHelpPad(rt, helpLines(MAC));
-  keysPlate = installKeysPlate(rt, keyLines(MAC));
-  showKeys();
+  keysPlate = keysPlateOf(installHelpPad(rt, keyLines(MAC)));
   controls = new Controls(rt);
   ready = true;
 }
 
-/** The keys plate on the plane's side: shown in full screen, where the help line isn't. */
+/** The help pad's keys plate, on the plane's side: put away until ? or the pad shows it. */
 let keysPlate: CutObject | null = null;
-/** The test hooks' say, over full screen's. */
-let keysWanted: boolean | null = null;
-function showKeys(): void {
-  if (keysPlate) showKeysPlate(rt, keysPlate, keysWanted ?? work.state !== 'off');
+const keysShown = (): boolean => keysPlate !== null && rt.vm.props.has(keysPlate, P.Visible);
+function showKeys(shown: boolean): void {
+  if (keysPlate) showKeysPlate(rt, keysPlate, shown);
 }
 
 function pressPick(shift: boolean): void {
@@ -869,7 +859,6 @@ function catchUp(): void {
     settle();
 }
 
-const readout = $<HTMLDivElement>('readout');
 // ---- the camera goodie's window and its fly-over ----
 let cameraWanted = false;
 let cameraBlocked = false;
@@ -954,11 +943,6 @@ function render(): void {
     section.update(drawn, stage.z, camera.position);
     lastKey = key;
     dirty = false;
-    const s = section.stats;
-    readout.innerHTML =
-      `plane <b>${stage.z.toFixed(1)}</b>${control.plane.isSnapped ? ' (on a vertex depth)' : ''} · ` +
-      `room <b>${control.yaw.toFixed(0)}°</b> / <b>${control.pitch.toFixed(0)}°</b> · ` +
-      `section <b>${s.loops}</b> loop${s.loops === 1 ? '' : 's'} in <b>${s.objects}</b> object${s.objects === 1 ? '' : 's'}`;
   }
   // Highlights follow the VM's Selectable and Picked properties.
   const hkey = `${rt.vm.props.version}|${rt.version}|${section.version}|${key}|${stage.x}|${stage.y}|${falls.busy}|${magnet.key()}`;
@@ -1011,12 +995,6 @@ function render(): void {
     cameraWindow.isOpen,
   );
   renderer.render(scene, camera);
-}
-
-function showHints(): void {
-  $<HTMLDivElement>('hints').innerHTML = bindingHints(MAC)
-    .map((h) => `<span>${h}</span>`)
-    .join('');
 }
 
 // ---- input ----
@@ -1184,6 +1162,7 @@ window.addEventListener('keydown', (e) => {
   else if (c === 'measureTool') controls.takeTool('Ruler');
   else if (c === 'gravityTool') controls.takeTool('Globe');
   else if (c === 'display') stepDisplay();
+  else if (c === 'help') showKeys(!keysShown());
   else if (c === 'delete') controls.delete();
   else if (c === 'selectAll') controls.selectAll();
   else if (c === 'planeJump')
@@ -1241,14 +1220,12 @@ fileInput.addEventListener('change', () => {
   void openFiles(files);
 });
 
-/** A line in the status bar for a few seconds (what an import did, or why it couldn't). */
-let noticeTimer = 0;
+/** What an import did, or why it couldn't: to the console (nothing flat is laid over the room). */
+let lastNotice = { text: '', error: false };
 function notify(text: string, error = false): void {
-  const el = $<HTMLDivElement>('notice');
-  el.textContent = text;
-  el.classList.toggle('error', error);
-  clearTimeout(noticeTimer);
-  noticeTimer = window.setTimeout(() => (el.textContent = ''), error ? 10000 : 6000);
+  lastNotice = { text, error };
+  if (error) console.warn(text);
+  else console.info(text);
 }
 
 /**
@@ -1481,8 +1458,6 @@ work.onChange((s) => {
   app.classList.toggle('working', s !== 'off');
   $<HTMLDivElement>('pause').classList.toggle('shown', s === 'paused');
   Object.assign(held, NOTHING_HELD);
-  showHints();
-  showKeys();
 });
 
 // ---- test and recording hooks ----
@@ -1526,8 +1501,10 @@ declare global {
       };
       /** The ring that turns while a file is read: up or not, and how far round it has turned. */
       loading(): { shown: boolean; turn: number };
-      /** Shows the keys plate or not (null: as full screen has it); whether it is shown. */
-      keysPlate(show?: boolean | null): boolean;
+      /** The last notice: what an import did, or why it couldn't. */
+      notice(): { text: string; error: boolean };
+      /** Shows the keys plate or not; whether it is shown. */
+      keysPlate(show?: boolean): boolean;
       /** Whether the magnet is in hand; a magnet drag's face to snap to (its object's name), and its ghost's box middle. */
       magnet(): { held: boolean; target: string | null; ghost: number[] | null };
       /** Whether anything is falling (the globe), and how far above the floor the world's lowest point is (and each object's). */
@@ -1552,7 +1529,6 @@ declare global {
 async function start(): Promise<void> {
   resize();
   window.addEventListener('resize', resize);
-  showHints();
   // The booleans' WebAssembly (manifold-3d) loads alongside the CPL and resources.
   await Promise.all([loadCpl(), loadResources(), initBooleans(manifoldWasm)]);
   makeWorld();
@@ -1706,7 +1682,7 @@ async function start(): Promise<void> {
         },
         // The help pad, and whether its plate is open.
         help: () => {
-          const plate = rt.findObject('Help_Plate');
+          const plate = rt.findObject('Keys_Plate');
           return {
             pad: box(rt.findObject('HelpPad') ?? undefined),
             open: !!plate && rt.vm.props.has(plate, P.Visible),
@@ -1767,9 +1743,9 @@ async function start(): Promise<void> {
       };
     },
     loading: () => ({ shown: loading.shown, turn: loading.turn }),
+    notice: () => lastNotice,
     keysPlate(show) {
-      if (show !== undefined) keysWanted = show;
-      showKeys();
+      if (show !== undefined) showKeys(show);
       render();
       return keysPlate !== null && rt.vm.props.has(keysPlate, P.Visible);
     },

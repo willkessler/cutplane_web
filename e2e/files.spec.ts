@@ -12,6 +12,9 @@ async function open(page: Page, query: string) {
   return errors;
 }
 
+/** The last notice: what an import did, or why it couldn't. */
+const notice = (page: Page) => page.evaluate(() => window.__cutplane!.notice().text);
+
 type Pose = Partial<{ x: number; y: number; z: number; yaw: number; pitch: number }>;
 const set = (page: Page, p: Pose) => page.evaluate((pp) => window.__cutplane!.set(pp), p);
 const click = async (page: Page, x: number, y: number) => {
@@ -41,7 +44,7 @@ test('an STL dropped on the page is added to the world; undo takes it out', asyn
   }, tetra(-150));
   await expect.poll(async () => (await edit(page)).objects).toBe(2);
   await expect.poll(async () => (await edit(page)).faces).toBe(6 + 4); // drawn the next frame
-  await expect(page.locator('#notice')).toContainText('Added 1 object from tetra.stl');
+  await expect.poll(() => notice(page)).toContain('Added 1 object from tetra.stl');
   await expect(page.locator('#app')).not.toHaveClass(/dropping/);
   await page.evaluate(() => window.__cutplane!.undo());
   expect((await edit(page)).objects).toBe(1);
@@ -116,8 +119,8 @@ test('edits are autosaved with their undo history: a reload carries on where it 
 test('a file Cutplane cannot read says so, and changes nothing', async ({ page }) => {
   const errors = await open(page, 'sample=cube');
   await page.locator('#file').setInputFiles({ name: 'broken.glb', mimeType: 'model/gltf-binary', buffer: Buffer.from('not a glb') }); // prettier-ignore
-  await expect(page.locator('#notice')).toContainText("Couldn't open broken.glb");
-  await expect(page.locator('#notice')).toHaveClass(/error/);
+  await expect.poll(() => notice(page)).toContain("Couldn't open broken.glb");
+  expect(await page.evaluate(() => window.__cutplane!.notice().error)).toBe(true);
   expect((await edit(page)).objects).toBe(1);
   expect(errors).toEqual([]);
 });
@@ -239,8 +242,8 @@ test('a model of open, textured parts comes in as one group of solids, coloured 
 }) => {
   const errors = await open(page, 'sample=cube');
   await page.locator('#file').setInputFiles({ name: 'parts.glb', mimeType: 'model/gltf-binary', buffer: texturedParts() }); // prettier-ignore
-  await expect(page.locator('#notice')).toContainText('Added a group of 2 from parts.glb');
-  await expect(page.locator('#notice')).toContainText('2 holes closed to make solids');
+  await expect.poll(() => notice(page)).toContain('Added a group of 2 from parts.glb');
+  await expect.poll(() => notice(page)).toContain('2 holes closed to make solids');
   expect((await edit(page)).objects).toBe(2); // the cube, and the group
   // The texture's red and blue (the cube is the world's own colour).
   await expect.poll(() => page.evaluate(() => window.__cutplane!.palette())).toEqual(expect.arrayContaining(['0,0,255', '255,0,0'])); // prettier-ignore
@@ -258,7 +261,7 @@ test('Inventor, VRML and DXF files open too', async ({ page }) => {
     await page
       .locator('#file')
       .setInputFiles({ name: f.name, mimeType: 'text/plain', buffer: Buffer.from(f.text) });
-    await expect(page.locator('#notice')).toContainText(`from ${f.name}`);
+    await expect.poll(() => notice(page)).toContain(`from ${f.name}`);
     await expect.poll(async () => (await edit(page)).objects).toBe(2 + i);
   }
   await expect.poll(() => page.evaluate(() => window.__cutplane!.palette())).toEqual(expect.arrayContaining(['255,0,0', '0,0,255', '0,255,0'])); // prettier-ignore
@@ -272,7 +275,7 @@ test('binary Inventor opens, and gzipped files (.iv.gz) open as they are', async
   await page
     .locator('#file')
     .setInputFiles({ name: 'scene.iv', mimeType: 'application/octet-stream', buffer: binary });
-  await expect(page.locator('#notice')).toContainText('from scene.iv');
+  await expect.poll(() => notice(page)).toContain('from scene.iv');
   const after = (await edit(page)).objects;
   expect(after).toBeGreaterThan(1);
   await page.locator('#file').setInputFiles({
@@ -280,7 +283,7 @@ test('binary Inventor opens, and gzipped files (.iv.gz) open as they are', async
     mimeType: 'application/gzip',
     buffer: gzipSync(binary),
   });
-  await expect(page.locator('#notice')).toContainText('from scene.iv.gz');
+  await expect.poll(() => notice(page)).toContain('from scene.iv.gz');
   await expect.poll(async () => (await edit(page)).objects).toBe(after + (after - 1));
   expect(errors).toEqual([]);
 });

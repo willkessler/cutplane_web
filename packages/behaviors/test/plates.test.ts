@@ -8,7 +8,7 @@ import {
   charstreamOf,
   decalOf,
   installHelpPad,
-  installKeysPlate,
+  keysPlateOf,
   installStoragePad,
   showKeysPlate,
   type PlateFiles,
@@ -137,51 +137,40 @@ describe('the storage pad through dialog.cpl, textinput.cpl, load.cpl and save.c
   });
 });
 
-describe('the help pad (new): a Dialog like the storage pad', () => {
-  it('a click opens its plate of help lines in the plane; another puts it away', () => {
+describe('the help pad (new): a Dialog like the storage pad, its plate the keys plate', () => {
+  it('a click opens its plate of keys beside the room; another puts it away', () => {
     const w = setup();
-    const help = installHelpPad(w.rt, [{ text: 'Moving', heading: true }, { text: 'Move: the crosshair' }]); // prettier-ignore
+    const help = installHelpPad(w.rt, [{ heading: 'Changing' }, ['D', 'duplicate'], ['G', 'group, ungroup']]); // prettier-ignore
     w.frame();
-    const plate = help.children.find((c) => c.name === 'Help_Plate')!;
+    const plate = keysPlateOf(help);
     expect(decalOf(w.rt, help)?.length).toBe(2); // the ? in solid: its hook and its dot
     expect(w.rt.vm.props.has(plate, P.Visible)).toBe(false);
-    // At the bottom right, in the plane.
+    // The pad at the bottom right, in the plane.
     expect(help.parent).toBe(w.rt.cutplane);
     expect(w.rt.bbox(help)![0][0]).toBeGreaterThan(400);
     w.click(help);
     expect(w.rt.vm.props.has(plate, P.Visible)).toBe(true);
-    expect(w.rt.labelItems(plate).map((l) => l.text)).toEqual(['Moving', 'Move: the crosshair']);
-    expect(w.rt.labelItems(plate)[0]!.color).toEqual([255, 255, 0]);
-    w.click(help);
-    expect(w.rt.vm.props.has(plate, P.Visible)).toBe(false);
-    // Nothing in the world was picked or changed by it.
-    expect(w.rt.picked()).toEqual([]);
-  });
-});
-
-describe("the keys plate (new): the shortcut keys, on the plane's side", () => {
-  it('rides with the plane just outside the room on the right; shown or not', () => {
-    const w = setup();
-    const plate = installKeysPlate(w.rt, [['D', 'duplicate'], ['G', 'group, ungroup']]); // prettier-ignore
-    w.frame();
-    expect(plate.parent).toBe(w.rt.cutplane);
-    expect(w.rt.vm.props.has(plate, P.Visible)).toBe(false);
+    // The plate just outside the room on the right, level with its middle.
     const b = w.rt.bbox(plate)!;
     expect(b[0][0]).toBeGreaterThan(510); // clear of the right wall
-    expect((b[0][1] + b[1][1]) / 2).toBeCloseTo(0, 0); // level with the room's middle
-    // Each key in yellow, what it does in white beside it.
+    expect((b[0][1] + b[1][1]) / 2).toBeCloseTo(0, 0);
+    // A group's heading in orange above; each key in yellow, what it does in white beside it.
     const items = w.rt.labelItems(plate);
-    expect(items.map((l) => l.text)).toEqual(['D', 'duplicate', 'G', 'group, ungroup']);
-    expect(items[0]!.color).toEqual([255, 255, 0]);
-    expect(items[1]!.color).toEqual([255, 255, 255]);
-    showKeysPlate(w.rt, plate, true);
-    expect(w.rt.vm.props.has(plate, P.Visible)).toBe(true);
+    expect(items.map((l) => l.text)).toEqual(['Changing', 'D', 'duplicate', 'G', 'group, ungroup']);
+    expect(items[0]!.color).toEqual([255, 140, 40]);
+    expect(items[1]!.color).toEqual([255, 255, 0]);
+    expect(items[2]!.color).toEqual([255, 255, 255]);
     // With the plane.
     const z = w.rt.bbox(plate)![0][2];
     w.at(0, 0, w.rt.cutplane.xform[14]! - 200);
     expect(w.rt.bbox(plate)![0][2]).toBeCloseTo(z - 200);
-    showKeysPlate(w.rt, plate, false);
+    w.click(help);
     expect(w.rt.vm.props.has(plate, P.Visible)).toBe(false);
+    // Shown and put away as the ? key does, the pad's click still knows which it is.
+    showKeysPlate(w.rt, plate, true);
+    w.click(help);
+    expect(w.rt.vm.props.has(plate, P.Visible)).toBe(false);
+    // Nothing in the world was picked or changed by it.
     expect(w.rt.picked()).toEqual([]);
   });
 });

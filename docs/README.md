@@ -10,19 +10,19 @@ beside it, by date ([ENHANCEMENTS_10_17_26.md](ENHANCEMENTS_10_17_26.md)).
 
 ## Roadmap
 
-| Milestone | Scope                                                                                                                                                                                                                                                                                                                                                                     |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                                                                                                                                                                                                                                                                                                                    |
-| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation                                                                                                                                                                                                                                                                                                       |
-| **M2** ✅ | Room, plane, section and full-screen work mode                                                                                                                                                                                                                                                                                                                            |
-| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                                                                                                                                                                                                                                                                                                          |
-| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                                                                                                                                                                                                                                                                                                                       |
-| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                                                                                                                                                                                                                                                                                                              |
-| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                                                                                                                                                                                                                                                                                                        |
-| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                                                                                                                                                                                                                                                                                                          |
-| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, big and binary Inventor files, gravity, live on GitHub Pages; Oct 17 wave: fit to room, the 1 key's wire views, gravity always with dangling, double-click to put goodies away; then: the magnet shows its snap with a ghost, falling things can be taken hold of, the keys plate in full screen, a new hand |
-| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                                                                                                                                                                                                                                                                                                               |
-| M10       | Language evolution (optional)                                                                                                                                                                                                                                                                                                                                             |
+| Milestone | Scope                                                                                                                                                                                                                                                                                                                                                                                          |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                                                                                                                                                                                                                                                                                                                                         |
+| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation                                                                                                                                                                                                                                                                                                                            |
+| **M2** ✅ | Room, plane, section and full-screen work mode                                                                                                                                                                                                                                                                                                                                                 |
+| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                                                                                                                                                                                                                                                                                                                               |
+| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                                                                                                                                                                                                                                                                                                                                            |
+| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                                                                                                                                                                                                                                                                                                                                   |
+| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                                                                                                                                                                                                                                                                                                                             |
+| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                                                                                                                                                                                                                                                                                                                               |
+| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, big and binary Inventor files, gravity, live on GitHub Pages; Oct 17 wave: fit to room, the 1 key's wire views, gravity always with dangling, double-click to put goodies away; then: the magnet shows its snap with a ghost, falling things can be taken hold of, the keys plate behind ? (in groups, no status bar), a new hand |
+| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                                                                                                                                                                                                                                                                                                                                    |
+| M10       | Language evolution (optional)                                                                                                                                                                                                                                                                                                                                                                  |
 
 ## Using Cutplane
 
@@ -223,8 +223,8 @@ The room is laid out as in the 3Form photos. Everything in it runs on the origin
     `stapler`...).
   - In any field, the first key you type replaces what it said (the text is outlined until
     then); Backspace clears it; an arrow key first lets you edit it in place.
-- **The ? pad** (bottom right, in the plane) opens the **help plate**: the controls, in the
-  room's own lettering. Click ? again to put it away.
+- **The ? pad** (bottom right, in the plane), or the **?** key, opens the **keys plate**: every
+  key and tool, in the room's own lettering. Click ? again to put it away.
 - **The measure pad** comes out with the **ruler** (the last pad on the arranging rail, or
   **M**), bottom left beside the floppy, and goes when the ruler is put away. While it's out:
   - pick an object and the cube plate above it shows its **length** (front to back), **width**
@@ -359,7 +359,7 @@ covers the room while you work).
     turns in the room** while it's read, its arc filling as it goes, the file's name under it.
     **Esc** stops the read. A file of more than **400,000 faces** is simplified to about that
     many (meshoptimizer's simplifier, each colour on its own, its borders kept), since every face
-    is drawn, cut by the plane and kept in the undo history; the status line says it was.
+    is drawn, cut by the plane and kept in the undo history.
     `?faces=all` keeps every face, `?faces=N` sets another budget.
   - Triangles that lie in one plane come back as one face, holes and all, so an imported box
     has six faces to grab, not twelve triangles.
@@ -370,14 +370,13 @@ covers the room while you work).
     its wheels are open on the inside. Cutplane picks a whole object from inside its section,
     which only closes round a solid, so on the way in, slits where one triangle's corner sits on
     another's edge are stitched shut, and every hole left gets a face of its own (one polygon if
-    it's flat, else triangles). A lone sheet becomes a thin solid. The status line says how many
-    holes were closed. Where three pieces meet at one edge, it can't be closed, and the section
+    it's flat, else triangles). A lone sheet becomes a thin solid. Where three pieces meet at one edge, it can't be closed, and the section
     there stays open.
   - **One file, one group.** A file with several parts (a car's body, glass and wheels) comes in
     as a group named after the file, so it moves as one. **G** ungroups it.
   - A room unit is a millimetre. A model that doesn't fit the room (a building), or takes up less
     than a quarter of it (one in metres, a 160-unit fish), is scaled to fill most of it and set in
-    the middle; the status line says by how much. One that fits and isn't small stays where it is.
+    the middle. One that fits and isn't small stays where it is.
   - A file of only lines (a mesh drawn as its edges, as SGI's IVREAD wrote VRML) has its closed
     lines read as faces. A face drawn twice is kept once.
   - A glTF node with no mesh that holds others comes in as a group, as the group tool would make
@@ -402,9 +401,10 @@ covers the room while you work).
 **Start working** (or F) goes full screen and captures the pointer, like the SGI: the cursor
 can't leave the window, and the plane and room can be pushed as far as you like without hitting a
 screen edge. Input is raw relative motion, unaccelerated where the browser allows. Nothing flat
-covers the room while you work: the toolbar and the status bar disappear. The shortcut keys,
-which the status bar listed, are on the **keys plate** instead: a dark plate fixed to the
-plane's right side, just outside the room, each key in yellow and what it does beside it. It
+covers the room while you work: the toolbar disappears. The ? key or pad, windowed or not,
+opens the **keys plate**: a dark plate fixed to the plane's right side, just outside the room,
+in groups under orange headings (the plane, the view, picking and moving, changing what is
+picked, tools, goodies and files), each key or tool in yellow and what it does beside it. It
 moves with the plane; turned far round, the room shows it edge on.
 
 - **Leaving:** tap Esc (or F).
@@ -486,7 +486,8 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   `magnetic.cpl` with these changes made (marked "cutplane_web").
 - **Falls can be interrupted.** A press stops what is falling where it is, to be picked; what
   isn't picked falls on.
-- **The keys plate.** New: in work mode the shortcut keys are on a plate at the plane's side.
+- **The keys plate.** New: the ? pad or key opens a plate of the keys and tools at the plane's
+  side, in groups, in place of a flat status bar.
 - **A new hand.** The pan tool's picture, drawn in 1991, was an outline that doubled back on
   itself, its sides joining its front to its back at the wrong points, so it shaded in broken
   pieces. It is drawn again (`assets/icons/pan.icon`, made by `docker/hand/make.mjs`): one
@@ -514,8 +515,8 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   pictures in `assets/icons/`.
 - **H is the pan tool, P the pencil, M the ruler.** The original's P brought the pan tool.
 - **⌘A picks everything** (as `cursor.cpl`'s marquee release does, over the whole world).
-- **A help plate.** The ? pad opens a plate of the controls in the plane, a Dialog as the
-  storage pad is (`behaviors/src/tools/help.ts`). The original had none.
+- **A help pad.** The ? pad opens the keys plate, a Dialog as the storage pad is
+  (`behaviors/src/tools/help.ts`). The original had none.
 - **The measure pad comes with a ruler.** The original's pad (`create_measure_pad`, with
   `measurepad.cpl`, `cubeplate.cpl`, `distanceplate.cpl`, `sizer.cpl` and `namer.cpl`) was always
   there, and a click on it opened or shut all its plates at once. Here it comes out with the
@@ -638,8 +639,8 @@ older versions of the format are normalised to the latest one on save.
 
 - **The site** is the static build on GitHub Pages (`.github/workflows/pages.yml`), rebuilt on
   every push to `main`. The Render and Railway configs stay in the repo, unused for now.
-- **Help, measure and text:** `behaviors/src/tools/help.ts` (the ? pad: a Dialog with a plate
-  built in code from `helpLines` in `app/src/input/bindings.ts`), `tools/measure.ts` (the measure
+- **Help, measure and text:** `behaviors/src/tools/help.ts` (the ? pad: a Dialog whose plate
+  is the keys plate, built in code from `keyLines` in `app/src/input/bindings.ts`), `tools/measure.ts` (the measure
   pad, its plates from the original resources, and the C routines its CPL calls; a frame hook
   shows it while the ruler is held), and `clear_label` for `textinput.cpl`.
 - **Kernel:** `ops/split.ts` (`splitEdge`, `drawAcrossFace`) for the pencil on a surface;
@@ -761,9 +762,11 @@ older versions of the format are normalised to the latest one on save.
   between them, as an axis and angle a second). After the pick (once no CPL message waits), the
   groups not picked are dropped again with that motion (`Dropped.motion`: Rapier's linear and
   angular velocity).
-- **The keys plate** (`installKeysPlate`, `showKeysPlate` in `behaviors/src/tools/help.ts`;
-  `keyLines` in `bindings.ts`): a plate, as `read_plate` makes them, adopted to the plane at its
-  right, two Hershey labels a line. `main.ts` shows it while work mode is on.
+- **The keys plate** (`installHelpPad`, `showKeysPlate` in `behaviors/src/tools/help.ts`;
+  `keyLines` in `bindings.ts`): a plate, as `read_plate` makes them, the help pad's Dialog plate,
+  set off from the pad to sit at the plane's right, two Hershey labels a line (one for a
+  heading). The ? key shows it or puts it away directly, as the pad's click would. There is no
+  status bar: an import's notices go to the console.
 - **The hand** (`docker/hand/make.mjs`): a signed distance field of a palm, four finger
   capsules and a thumb, smoothly unioned; traced by marching squares, spaced evenly round (240
   points), and extruded through rings inset along each point's inward normal so both edges

@@ -81,7 +81,10 @@ test('Save keeps a copy in the browser; the model menu brings it back after a re
   expect(errors).toEqual([]);
 });
 
-test('the ? pad opens a help plate in the plane, and closes it', async ({ page, browserName }) => {
+test('the ? pad opens the keys plate beside the room, and closes it', async ({
+  page,
+  browserName,
+}) => {
   const errors = await open(page, 'sample=discovery');
   await set(page, { yaw: 0, pitch: 0, z: 0 });
   const help = () =>
@@ -92,7 +95,7 @@ test('the ? pad opens a help plate in the plane, and closes it', async ({ page, 
   await click(page, pad[0]!, pad[1]!);
   expect((await help()).open).toBe(true);
   if (process.env['SHOTS'] && browserName === 'chromium')
-    await page.screenshot({ path: `${process.env['SHOTS']}/help-plate.png` });
+    await page.screenshot({ path: `${process.env['SHOTS']}/keys-plate-pad.png` });
   await click(page, pad[0]!, pad[1]!);
   expect((await help()).open).toBe(false);
   const after = await edit(page);
