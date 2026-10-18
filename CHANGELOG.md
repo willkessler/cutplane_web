@@ -37,6 +37,9 @@ New in 2026: none of these were in the 1991 original.
 - **A tool in hand is outlined only where it's hidden.** Its dotted white outline covered small
   tools, so it was hard to see which one you held. Now it shows only where something is in
   front of the tool.
+- **The 1 key, with nothing picked, takes one press there and one back.** It goes straight to
+  every edge (back ones too) and then back to solids, with no front-faces step between. Its
+  wire is a deeper grey, which was too faint to see on the room's colours.
 
 ### October 17, 2026
 
@@ -48,7 +51,7 @@ New in 2026: none of these were in the 1991 original.
   hand until it is put away.
 - **Fit to room.** A double click with the magnifier fits everything into the room, with a 10%
   margin. Undo puts it back.
-- **The 1 key's wire views.** What isn't picked is drawn as light grey wire, then put out of
+- **The 1 key's wire views.** What isn't picked is drawn as grey wire, then put out of
   sight, then shown again. With nothing picked, everything is drawn as wire (front faces, then
   all), then back to normal.
 - **Gravity always, and dangling.** A double click with the globe keeps gravity on: everything

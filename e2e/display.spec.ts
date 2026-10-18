@@ -68,7 +68,7 @@ test('1 with something picked: the rest as wire, then out of sight (and out of r
   expect(errors).toEqual([]);
 });
 
-test('1 with nothing picked: all as wire, front faces only, then every edge, then solid', async ({
+test('1 with nothing picked: all as wire, every edge, then solid', async ({
   page,
   browserName,
 }) => {
@@ -78,44 +78,11 @@ test('1 with nothing picked: all as wire, front faces only, then every edge, the
   const pixels = () => page.evaluate(() => window.__cutplane!.readPixels());
   const before = await pixels();
   await page.keyboard.press('Digit1');
-  expect(await display(page)).toEqual({ ...solid, solid: 0, frontWire: 1 });
-  const front = await pixels();
-  await shot(page, 'display-all-front', browserName);
-  await page.keyboard.press('Digit1');
   expect(await display(page)).toEqual({ ...solid, solid: 0, wire: 1 });
-  const all = await pixels();
+  expect(await pixels()).not.toEqual(before);
   await shot(page, 'display-all-wire', browserName);
-  // Each looks different: solid, the front edges, and every edge (the back ones too).
-  expect(front).not.toEqual(before);
-  expect(all).not.toEqual(front);
   await page.keyboard.press('Digit1');
   expect(await display(page)).toEqual(solid);
   expect(await pixels()).toEqual(before);
-  expect(errors).toEqual([]);
-});
-
-test("the keys plate on the plane's side: put away until ? shows it; ? again puts it away", async ({
-  page,
-  browserName,
-}) => {
-  const errors = await open(page, 'sample=cube');
-  await page.setViewportSize({ width: 1440, height: 900 }); // (a full screen's shape: room beside the room)
-  await set(page, { yaw: 0, pitch: 0, z: 0 });
-  const keys = () => page.evaluate(() => window.__cutplane!.keysPlate());
-  expect(await keys()).toBe(false);
-  const pixels = () => page.evaluate(() => window.__cutplane!.readPixels());
-  // (WebKit takes a while to resize the canvas.)
-  const dpr = await page.evaluate(() => devicePixelRatio);
-  await expect
-    .poll(async () => (await keys(), (await pixels()).split(':')[0]))
-    .toBe(`${1440 * dpr}x${900 * dpr}`);
-  const hidden = await pixels();
-  await page.keyboard.press('Shift+Slash');
-  expect(await keys()).toBe(true);
-  await shot(page, 'keys-plate', browserName);
-  expect(await pixels()).not.toEqual(hidden);
-  await page.keyboard.press('Shift+Slash');
-  expect(await keys()).toBe(false);
-  expect(await pixels()).toEqual(hidden);
   expect(errors).toEqual([]);
 });

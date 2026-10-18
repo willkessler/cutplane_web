@@ -584,7 +584,7 @@ function redo(): void {
 /**
  * How the rest is drawn. With something picked: all else as wire (the edges of the
  * faces turned towards you), then out of sight, then as it was. With nothing picked:
- * everything as wire, then as wire with every edge, then as it was.
+ * everything as wire with every edge, then as it was.
  */
 let display: { step: 0 | 1 | 2; picked: boolean; keep: Set<CutObject> } = {
   step: 0,
@@ -594,12 +594,13 @@ let display: { step: 0 | 1 | 2; picked: boolean; keep: Set<CutObject> } = {
 function styleOf(o: CutObject): DrawStyle {
   const { step, picked, keep } = display;
   if (step === 0 || keep.has(o)) return 'solid';
-  if (step === 1) return 'frontWire';
-  return picked ? 'hidden' : 'wire';
+  if (step === 1) return picked ? 'frontWire' : 'wire';
+  return 'hidden';
 }
 function stepDisplay(): void {
-  const step = ((display.step + 1) % 3) as 0 | 1 | 2;
   const picked = rt.pickedObjects().filter((o) => rt.worldOf(o) === rt.primary);
+  // Begun with nothing picked, there's no second step: wire, then back.
+  const step = (display.step === 0 ? 1 : display.step === 1 && display.picked ? 2 : 0) as 0 | 1 | 2;
   const keep = new Set(picked.flatMap((o) => [...subtree(o)]));
   display = {
     step,

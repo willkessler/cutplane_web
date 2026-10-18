@@ -41,13 +41,13 @@ export interface Model {
 }
 
 /**
- * How an object is drawn (the 1 key): solid; as light grey wire, only the edges of
+ * How an object is drawn (the 1 key): solid; as grey wire, only the edges of
  * the faces turned towards the viewer, or every edge; or not at all.
  */
 export type DrawStyle = 'solid' | 'frontWire' | 'wire' | 'hidden';
 
-/** The wire's light grey. */
-const WIRE = 0xc8c8c8;
+/** The wire's grey: dark enough to see on the room's colours and through the plane. */
+const WIRE = 0x5a5a5a;
 
 /**
  * Lines along each face's edges (each edge twice: once for either face), each with its

@@ -164,11 +164,11 @@ light bulb and the colour control (three bars and a paint chip: drag a bar and w
 the colour, or drag the chip onto a face to paint it). **Double-click** the colour control's base
 or the camera's body to put it away: it goes back into its box, which closes.
 
-**1** clears the view. With something picked, the first press draws everything else as light grey
-wire (the edges of the faces turned towards you), the second puts it out of sight (and out of
-reach: it can't be picked or cut), and the third brings it all back. With nothing picked, the
-first press draws everything as wire, the second shows every edge, back ones too, and the third
-brings back the solids.
+**1** clears the view. With something picked, the first press draws everything else as grey wire
+(the edges of the faces turned towards you), the second puts it out of sight (and out of reach:
+it can't be picked or cut), and the third brings it all back. With nothing picked, the first
+press draws everything as wire, every edge, back ones too, and the second brings back the
+solids.
 
 ## 6. Measuring
 
