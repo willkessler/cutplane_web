@@ -10,19 +10,19 @@ beside it, by date ([ENHANCEMENTS_10_17_26.md](ENHANCEMENTS_10_17_26.md)).
 
 ## Roadmap
 
-| Milestone | Scope                                                                                                                                                                                                                                                                                                                                                                                          |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                                                                                                                                                                                                                                                                                                                                         |
-| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation                                                                                                                                                                                                                                                                                                                            |
-| **M2** ✅ | Room, plane, section and full-screen work mode                                                                                                                                                                                                                                                                                                                                                 |
-| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                                                                                                                                                                                                                                                                                                                               |
-| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                                                                                                                                                                                                                                                                                                                                            |
-| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                                                                                                                                                                                                                                                                                                                                   |
-| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                                                                                                                                                                                                                                                                                                                             |
-| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                                                                                                                                                                                                                                                                                                                               |
-| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, big and binary Inventor files, gravity, live on GitHub Pages; Oct 17 wave: fit to room, the 1 key's wire views, gravity always with dangling, double-click to put goodies away; then: the magnet shows its snap with a ghost, falling things can be taken hold of, the keys plate behind ? (in groups, no status bar), a new hand |
-| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                                                                                                                                                                                                                                                                                                                                    |
-| M10       | Language evolution (optional)                                                                                                                                                                                                                                                                                                                                                                  |
+| Milestone | Scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **M2** ✅ | Room, plane, section and full-screen work mode                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, big and binary Inventor files, gravity, live on GitHub Pages; Oct 17 wave: fit to room, the 1 key's wire views, gravity always with dangling, double-click to put goodies away; Oct 18: the room as you left it, a turned first view, Ctrl scales evenly by a scale box's handle, a picked object's faces stay pickable, the plane sticks to parallel faces; then: the magnet shows its snap with a ghost, falling things can be taken hold of, the keys plate behind ? (in groups, no status bar), a new hand |
+| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| M10       | Language evolution (optional)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 ## Using Cutplane
 
@@ -40,6 +40,12 @@ a vertex lands exactly on it, and the next move carries on. Fast moves fly strai
 dense model never slows you down (the original's `snap_plane_to_nearestpt`). That is how faces and
 edges come to lie in the plane, ready to grab. Holding **Ctrl** moves the plane slowly with no
 snapping.
+
+The depths of **faces parallel to the plane are sticky** (new): they catch moves of up to the
+stick distance, not just slow ones, and hold the plane until it has been pushed that far again,
+either way. Then it carries on by what was pushed past the hold. The top bar's choice sets the
+distance: none, 5 (the original's `Freedomforplane`), 15 (the default) or 30 room units. This is
+the original's `do_sticking`, which nothing there called.
 
 ### Controls
 
@@ -395,6 +401,11 @@ covers the room while you work).
   changes_ entry brings it back as well; choosing a model from the menu starts that model
   afresh. There's one autosave: changes to another model replace it, so **Save** anything you
   want to keep. (A saved `.cut` file holds the world, not its history.)
+- **The room as you left it.** The next visit also finds the room as it was: the plane and
+  crosshair, the room's turn, the rails open or shut, the rotate tool where it was left, the
+  toolboxes open or closed, the goodies out in the room, the keys plate, permanent gravity,
+  and the top bar's choices. The very first visit sees the room turned a little (20° round, 5°
+  down), so it reads as a room, with the keys plate open.
 
 ### Work mode
 
@@ -425,6 +436,8 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
 **New things**
 
 - **Undo and redo** (⌘Z / ⇧⌘Z). The original's U key did nothing.
+- **The plane sticks to parallel faces**, switched on from the original's unused `do_sticking`,
+  with its distance chosen in the top bar (see the plane's stops above).
 - **Broken drags are put back.** A drag that would leave a solid broken (an edge squashed to
   nothing, a face folded flat) is undone on release, and a delete that would do the same is
   refused. The original let both happen.
@@ -447,6 +460,9 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
 - **Mesh files, drag and drop, autosave.** The original read and wrote only its own `.cut`
   format. Cutplane also adds OBJ, STL and glTF models to a world, exports to them, takes files
   dropped on the page, and keeps every change in the browser as it's made.
+- **The room as you left it.** The original always started afresh, facing the room straight on.
+  Cutplane keeps the session (the plane, the view and every tool and goodie where it was left)
+  and opens the first visit turned a little, with the keys plate open.
 - **The pencil tidies its stroke.** Steps too small to see and points along straight runs are
   merged before the stroke is closed. A stroke that crosses itself becomes the largest region it
   encloses, and one that closes on less than 25 square units is thrown away. The original kept
@@ -626,7 +642,6 @@ older versions of the format are normalised to the latest one on save.
   a dead constant in the original and Ctrl does nothing to rotation. The only snaps are the face
   magnet and the two stops above.
 - **Code the original never ran isn't ported:**
-  - `do_sticking`;
   - the z-pause while constraining (only `do_cursor_notifications` sent it, and nothing calls
     that);
   - `recombine_affected_coplanar_fves`;

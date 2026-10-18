@@ -1,5 +1,12 @@
 import * as THREE from 'three';
-import { ROOM, WorldGeometry, preorder, type Brep, type CutObject } from '@cutplane/kernel';
+import {
+  DEPTH_MERGE,
+  ROOM,
+  WorldGeometry,
+  preorder,
+  type Brep,
+  type CutObject,
+} from '@cutplane/kernel';
 import type { CutDocument } from '@cutplane/formats';
 import { CLASSIC, rgb, shadeFace, type PointLight } from '../viewer/palette.ts';
 
@@ -444,6 +451,17 @@ export class ModelView {
   /** Every vertex depth in the world, for plane snapping. */
   *depths(): IterableIterator<number> {
     for (const m of this.models) for (const v of m.object.brep.vertices()) yield m.world.z(v);
+  }
+
+  /** The depths of faces parallel to the plane (all their corners at one depth): where it sticks. */
+  *flatDepths(): IterableIterator<number> {
+    for (const m of this.models) {
+      const b = m.object.brep;
+      for (const f of b.faces()) {
+        const zs = b.loopHalfEdges(b.faceLoop(f)).map((h) => m.world.z(b.heVertex(h)));
+        if (zs.length >= 3 && Math.max(...zs) - Math.min(...zs) < DEPTH_MERGE) yield zs[0]!;
+      }
+    }
   }
 }
 

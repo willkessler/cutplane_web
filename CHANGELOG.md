@@ -10,6 +10,27 @@ has the detail on each.
 
 New in 2026: none of these were in the 1991 original.
 
+### October 18, 2026
+
+- **The room as you left it.** Close the tab and come back, and the plane, the crosshair, the
+  room's turn, the open rails, the rotate tool, the toolboxes, the goodies out in the room, the
+  keys plate, permanent gravity and the top bar's choices are where they were. The world itself
+  was already autosaved.
+- **A turned first view.** The first visit sees the room turned 20° and tipped 5°, so it reads
+  as a 3D room, with the keys plate open. 0 still faces it straight on.
+- **Ctrl on a scale box's handle scales evenly.** Ctrl's lock to one axis fought the handle, and
+  could shrink an object to nothing. The handle now has the crosshair to itself.
+- **A picked object's faces stay pickable.** With groups picked whole, the scale box round a
+  picked object counted as its group, so its faces couldn't be taken until it was unpicked. As
+  in the original, you can go from the whole object to a face at any time.
+- **The plane sticks to parallel faces.** Slide the plane up to a face parallel to it and the plane
+  catches there, holding until you push a little further, so the whole face is easy to take.
+  The top bar sets how firmly. The original had this (`do_sticking`) but never switched it on.
+- **G on the parts of one group ungroups it.** With two parts of a group picked (by part, or
+  by a marquee), G wrapped the group in another group instead of taking it apart, so it took
+  two G's to undo, and the first seemed to do nothing. G now ungroups whenever all that is
+  picked belongs to one group.
+
 ### October 17, 2026
 
 - **The magnet shows where it will snap.** Taken by a face, what it drags stays on the

@@ -76,6 +76,10 @@
         background: #0b6f6f;
         border-color: #13a0a0;
       }
+      /* Only "Export…" shows when closed: not as wide as its longest format's name. */
+      #hud #export {
+        width: 7em;
+      }
       /* Files dragged over the page: it will take them. */
       #app.dropping::after {
         content: 'Drop to open: .cut worlds, or OBJ, STL, glTF, Inventor, VRML and DXF models to add';
@@ -198,6 +202,16 @@
         >
           <option value="whole">Groups pick whole</option>
           <option value="parts">Groups pick by part</option>
+        </select>
+        <select
+          id="planeStick"
+          aria-label="Plane stickiness"
+          title="How far you push the plane before it comes off a face parallel to it"
+        >
+          <option value="0">Faces don't stick</option>
+          <option value="5">Faces stick a little</option>
+          <option value="15">Faces stick</option>
+          <option value="30">Faces stick firmly</option>
         </select>
         <button
           id="open"

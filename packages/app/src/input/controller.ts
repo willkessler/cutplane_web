@@ -19,6 +19,11 @@ export const PLANE_UP_BIAS = 0.3;
 export const PLANE_PER_WHEEL = 0.5;
 /** Arrow keys rotate the room in 10° steps. */
 export const KEY_STEP = 10;
+/**
+ * How far (room units) the plane is pushed before it comes off a face parallel to it
+ * (PlaneSnapper's sticky stops; the original's Freedomforplane was 5). The top bar picks.
+ */
+export const PLANE_STICK = 15;
 /** Ctrl (Constrain) slows the plane and the room down for fine work and turns plane stops off. */
 export const CONSTRAIN_SLOW = 0.25;
 /**
@@ -57,6 +62,11 @@ export class Controller {
   private free: [number, number] | undefined;
   private anchor: [number, number] | undefined;
   private axis: 'x' | 'y' | undefined;
+  /**
+   * Ctrl leaves the crosshair free for this drag: a scale box's handle (scalebbox.cpl)
+   * keeps the scaling even itself, and puts the crosshair on its corner's path.
+   */
+  unlocked = false;
 
   constructor(held: Held) {
     this.held = held;
@@ -127,7 +137,7 @@ export class Controller {
    * calls this with the point under the pointer; pointer-locked motion adds up deltas.
    */
   pointTo(x: number, y: number): void {
-    if (!this.held.ctrl) {
+    if (!this.held.ctrl || this.unlocked) {
       this.free = this.anchor = this.axis = undefined;
       this.setCursor(x, y);
       return;

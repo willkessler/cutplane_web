@@ -39,12 +39,16 @@ import {
   loadHistory,
   saveHistory,
   scaleBoxes as scaleBoxesIn,
+  markRoom,
+  restoreRoom,
+  snapshotRoom,
+  type RoomSnapshot,
   type SavedHistory,
   type V3,
 } from '@cutplane/behaviors';
 import { DEMO_SECONDS, demoPose } from './demo.ts';
 import { NOTHING_HELD, keyLines, commandFor, type Held } from './input/bindings.ts';
-import { Controller, isMouseWheel } from './input/controller.ts';
+import { Controller, PLANE_STICK, isMouseWheel } from './input/controller.ts';
 import { WorkMode } from './input/workmode.ts';
 import { Crosshair } from './render/crosshair.ts';
 import { Highlights } from './render/highlights.ts';
@@ -169,11 +173,17 @@ const faceDragSelect = $<HTMLSelectElement>('faceDrag');
 faceDragSelect.value = (stored('faceDrag') as FaceDrag | null) ?? 'stretch';
 const groupPickSelect = $<HTMLSelectElement>('groupPick');
 groupPickSelect.value = (stored('groupPick') as GroupPick | null) ?? 'whole';
+const stickSelect = $<HTMLSelectElement>('planeStick');
+stickSelect.value = stored('planeStick') ?? String(PLANE_STICK);
+if (stickSelect.selectedIndex < 0) stickSelect.value = String(PLANE_STICK);
 plane.style = styleSelect.value as PlaneStyle;
+/** Nothing kept from a visit before: the keys plate is shown, to start with. */
+const firstVisit = stored('model') === null && stored('session') === null;
 
 const held: Held = { ...NOTHING_HELD };
 const MAC = /mac/i.test(navigator.platform);
 const control = new Controller(held);
+control.plane.stick = Number(stickSelect.value);
 const work = new WorkMode(app, canvas);
 const base = import.meta.env.BASE_URL;
 
@@ -331,6 +341,7 @@ function makeWorld(): void {
   });
   installMeasurePad(rt, resource, source);
   keysPlate = keysPlateOf(installHelpPad(rt, keyLines(MAC)));
+  markRoom(rt); // the room as built: what a session left is put back on it
   controls = new Controls(rt);
   ready = true;
 }
@@ -351,6 +362,10 @@ function pressPick(shift: boolean): void {
     rt.commit();
   }
   control.resetConstrain();
+  // A scale box's handle under the crosshair: Ctrl scales evenly, without the axis lock.
+  const handle = rt.vm.props.features(rt.primary, P.Selectable).find((f) => !isObject(f));
+  const of = (handle as { object?: CutObject } | undefined)?.object;
+  control.unlocked = !!of && rt.vm.props.has(of, P.Scalebbox);
   controls.pressPick(shift);
   // Taken by a face, the magnet's drag shows where it would snap by that face.
   if (magnetInHand()) magnet.grab(rt.vm.props.features(rt.primary, P.Selectable));
@@ -365,6 +380,7 @@ function releasePick(): void {
   // A magnet drag with a ghost showing: what it dragged goes there.
   magnet.release();
   controls.releasePick();
+  control.unlocked = false;
   hold = dangle = null;
 }
 
@@ -610,6 +626,17 @@ groupPickSelect.addEventListener('change', () => {
   store('groupPick', groupPickSelect.value);
   groupPickSelect.blur();
 });
+stickSelect.addEventListener('change', () => {
+  control.plane.stick = Number(stickSelect.value);
+  store('planeStick', stickSelect.value);
+  stickSelect.blur();
+});
+
+/** The plane's stops: every vertex depth, and (sticky) the depths of faces parallel to it. */
+function setStops(): void {
+  control.plane.setDepths(models.depths());
+  control.plane.setStickyDepths(models.flatDepths());
+}
 
 // ---- models ----
 interface Entry {
@@ -701,7 +728,7 @@ function loadDocument(doc: CutDocument): void {
     if (rt.vm.props.has(o, P.Nonselectable)) rt.vm.props.del(o, P.Nonselectable);
   models.load(doc);
   applyDisplay();
-  control.plane.setDepths(models.depths());
+  setStops();
   control.plane.set(ROOM.max[2]);
   dirty = true;
   editsSaved = rt.journal.edits; // a world just loaded has nothing to autosave yet
@@ -818,7 +845,7 @@ function syncModels(): void {
   }
   // (Not while things fall: they come to rest as one change, then the stops are taken.)
   if (depthsStale && !controls.pickHeld && !falls.active) {
-    control.plane.setDepths(models.depths());
+    setStops();
     depthsStale = false;
   }
   // The light bulb lights the room while it's out (set_light).
@@ -919,6 +946,7 @@ function render(): void {
   gravityTick();
   syncModels();
   autosaveTick();
+  sessionTick();
   orbitCamera(camera, control.yaw, control.pitch);
   control.planeAxis = deeperOnScreen(camera);
   plane.z = stage.z;
@@ -1444,7 +1472,82 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('pagehide', () => {
   if (unsaved) autosave();
+  saveSession();
 });
+
+// ---- the session (new here) ----
+/**
+ * How the room was left, for the next visit: where the plane and crosshair were,
+ * how the room was turned, permanent gravity, and the room itself (the rails open
+ * or shut, the toolboxes, the goodies out, the rotate tool, the keys plate). The
+ * world being edited comes back by the autosave; the menus' choices by their own.
+ */
+interface Session {
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+  pitch: number;
+  gravity: boolean;
+  room: RoomSnapshot | null;
+}
+/** How the room is seen with no session to go on: turned a little, so it reads as a room. */
+const START_VIEW = { yaw: -20, pitch: 5 };
+/** How long the hands are still before the session is kept (ms). */
+const SESSION_IDLE = 1000;
+/** Tests and recordings start from nothing, and keep nothing. */
+const sessions = !still && !demo;
+let sessionKept = '';
+function saveSession(): void {
+  if (!sessions || !ready) return;
+  const s: Session = {
+    x: stage.x,
+    y: stage.y,
+    z: stage.z,
+    yaw: control.yaw,
+    pitch: control.pitch,
+    gravity: permanentGravity,
+    room: snapshotRoom(rt),
+  };
+  store('session', JSON.stringify(s));
+}
+/** Called every frame: a change, once the hands have been still a moment, is kept. */
+function sessionTick(): void {
+  const key = `${stage.x}|${stage.y}|${stage.z}|${control.yaw}|${control.pitch}|${rt.version}|${permanentGravity}`;
+  if (key === sessionKept || controls.pickHeld || performance.now() - lastInput < SESSION_IDLE)
+    return;
+  sessionKept = key;
+  saveSession();
+}
+/** The last visit's session put back, or a first look at the room. */
+function startSession(): void {
+  if (!sessions) return;
+  let s: Session | null = null;
+  try {
+    s = JSON.parse(stored('session') ?? 'null') as Session | null;
+  } catch {
+    /* kept by another version: start afresh */
+  }
+  if (!s || typeof s.z !== 'number') {
+    control.yaw = START_VIEW.yaw;
+    control.pitch = START_VIEW.pitch;
+    if (firstVisit) showKeys(true);
+    return;
+  }
+  control.setCursor(s.x, s.y);
+  control.plane.set(s.z);
+  control.yaw = s.yaw;
+  control.pitch = s.pitch;
+  // The room as it was, crosshair and plane with it; else they get there by CPL, as when steered.
+  if (s.room && restoreRoom(rt, s.room)) {
+    stage.x = control.x;
+    stage.y = control.y;
+    stage.z = control.z;
+  }
+  if (s.gravity) setPermanentGravity(true);
+  aim = [control.x, control.y];
+  regrip = true;
+}
 
 $<HTMLButtonElement>('resume').addEventListener('click', () => void work.resume());
 $<HTMLButtonElement>('leave').addEventListener('click', () => work.exit());
@@ -1505,6 +1608,8 @@ declare global {
       notice(): { text: string; error: boolean };
       /** Shows the keys plate or not; whether it is shown. */
       keysPlate(show?: boolean): boolean;
+      /** Keeps the session now; how long it is (characters). */
+      saveSession(): number;
       /** Whether the magnet is in hand; a magnet drag's face to snap to (its object's name), and its ghost's box middle. */
       magnet(): { held: boolean; target: string | null; ghost: number[] | null };
       /** Whether anything is falling (the globe), and how far above the floor the world's lowest point is (and each object's). */
@@ -1561,6 +1666,7 @@ async function start(): Promise<void> {
     if (src !== 'samples/discovery.cut')
       await loadModel((modelSelect.value = 'samples/discovery.cut'));
   }
+  startSession();
 
   let lastT = 0;
   const renderFrame = (t: number) => {
@@ -1666,6 +1772,12 @@ async function start(): Promise<void> {
         // A rail's headpad, and its pads in order (toolpads: pencil, saw, drill).
         toolpads: () => box(rt.findObject('Toolpads') ?? undefined),
         arrangepads: () => box(rt.findObject('Arrangepads') ?? undefined),
+        // Which rails are open (their bars shown).
+        rails: () =>
+          ['Toolpads', 'Arrangepads'].filter((h) => {
+            const bar = rt.findObject(h)?.children[0];
+            return !!bar && rt.vm.props.has(bar, P.Visible);
+          }),
         pads: () => padsOf('Toolpads'),
         arrangers: () => padsOf('Arrangepads'),
         // The measure pad: which of its plates show, and what its fields say.
@@ -1744,6 +1856,10 @@ async function start(): Promise<void> {
     },
     loading: () => ({ shown: loading.shown, turn: loading.turn }),
     notice: () => lastNotice,
+    saveSession() {
+      saveSession();
+      return stored('session')?.length ?? 0;
+    },
     keysPlate(show) {
       if (show !== undefined) showKeys(show);
       render();

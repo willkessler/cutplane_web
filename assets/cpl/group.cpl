@@ -72,9 +72,12 @@ _End_ungroupsub	RTS
 
 _Group_or_ungroup POP	A:_Group_set
 		ANCEST	A:_Group_set*,A:R4
-		COUNT	A:R4,A:R5
-		BEQUAL	A:R5,Const:I1,A:_Do_ungroup_set& ; ungroup if
-;							; only one ancestor
+;		 Ungroup if they all have one ancestor. (Not by counting: the
+;		 ancestors are listed once per member, so two parts of one group
+;		 picked counted as two, and G grouped the group again.)
+		INDEX	A:R4,A:R5,Const:I1		; the first
+		NOT	A:R4*,A:R5*,A:R6		; any other?
+		BEMPTY	A:R6,A:_Do_ungroup_set&
 		PUSH	A:_Group_set
 		JSR	A:_Group_sub&
 		RTS

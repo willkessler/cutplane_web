@@ -118,6 +118,23 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     expect(rt.vm.props.has(cube, P.Grabbed)).toBe(false);
   });
 
+  it('groups picked whole: a picked object in its scale box still offers its faces', () => {
+    const { rt, controls, frame, at, move } = world();
+    rt.groupPick = 'whole';
+    at(0, 0, 0);
+    controls.pressPick(false);
+    frame();
+    move(50, 0);
+    controls.releasePick();
+    frame();
+    expect(scaleBoxes(rt, rt.primary.root)).toHaveLength(1);
+    at(150, 0, 0); // the moved cube's right side
+    expect(kinds(rt.selected())).toEqual(['face']);
+    controls.pressPick(false);
+    frame();
+    expect(kinds(rt.picked())).toEqual(['face']);
+  });
+
   it('pressing on nothing starts a marquee; releasing picks what is inside it', () => {
     const { rt, cube, controls, frame, at, move } = world();
     at(-300, -300, 0);

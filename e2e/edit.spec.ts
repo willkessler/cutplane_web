@@ -195,3 +195,18 @@ test('windowed: moving with ⌘ or ⌥ held mid-drag does not make the drag jump
   expect((await edit(page)).hover).toBe('object');
   expect(errors).toEqual([]);
 });
+
+test('a cube dragged whole, then one of its faces taken at once (no unpick between)', async ({
+  page,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await page.locator('#groupPick').selectOption('whole');
+  await drag(page, { x: 0, y: 0, z: 0 }, { x: 25 }, { x: 50 });
+  expect(await edit(page)).toMatchObject({ picked: ['object'], boxes: 1 });
+  await set(page, { x: 150 }); // the moved cube's right side
+  expect((await edit(page)).hover).toBe('face');
+  await page.evaluate(() => window.__cutplane!.press());
+  expect((await edit(page)).picked).toEqual(['face']);
+  await page.evaluate(() => window.__cutplane!.release());
+  expect(errors).toEqual([]);
+});

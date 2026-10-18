@@ -175,7 +175,7 @@ describe('PlaneSnapper', () => {
     expect(p.move(-6)).toBe(54);
     expect(p.move(-6)).toBe(50); // would have passed 50
     expect(p.isSnapped).toBe(true);
-    expect(p.move(-1)).toBe(49); // no holding: the next move leaves at once
+    expect(p.move(-1)).toBe(49); // no holding (a vertex, not a face): the next move leaves at once
     expect(p.isSnapped).toBe(false);
     expect(p.move(-6, true)).toBe(43); // constrain: no stops
   });
@@ -193,5 +193,32 @@ describe('PlaneSnapper', () => {
     expect(p.move(7)).toBe(-300);
     p.set(400);
     expect(p.move(1000)).toBe(500);
+  });
+
+  it("sticks to a parallel face's depth until pushed `stick` further (do_sticking, new here)", () => {
+    const p = new PlaneSnapper(130);
+    p.setDepths([100, 50]);
+    p.setStickyDepths([100]);
+    p.stick = 20;
+    expect(p.move(-15)).toBe(115); // too fast for a plain stop, but not for a sticky one
+    expect(p.move(-18)).toBe(100); // caught
+    expect(p.isStuck).toBe(true);
+    expect(p.move(-8)).toBe(100);
+    expect(p.move(4)).toBe(100); // either way counts
+    expect(p.move(-6)).toBe(100); // 18 of 20
+    expect(p.move(-5)).toBe(97); // free, going on by the 3 past the hold
+    expect(p.isStuck).toBe(false);
+    expect(p.move(-50)).toBe(47); // fast: through the plain stop at 50
+    // Back up through it: caught again, from the other side.
+    p.set(90);
+    expect(p.move(12)).toBe(100);
+    expect(p.isStuck).toBe(true);
+    expect(p.move(5, true)).toBe(105); // Ctrl: no holding
+    // Off: a sticky stop is a plain one.
+    p.stick = 0;
+    p.set(103);
+    expect(p.move(-6)).toBe(100);
+    expect(p.isStuck).toBe(false);
+    expect(p.move(-1)).toBe(99);
   });
 });

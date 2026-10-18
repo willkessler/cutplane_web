@@ -1477,9 +1477,13 @@ export class Runtime implements Host {
     if (!pick) return undefined;
     let feature: Feature;
     let kind: number;
+    // In a group: it has parts, or moves with something (a picked object's scale box,
+    // which holds it as an unlinked child, isn't a group: its faces stay pickable).
+    const root = groupRoot(o);
+    const grouped = root !== o && !(root === o.parent && this.vm.props.has(root, P.Scalebbox));
     const wholeGroup =
       this.groupPick === 'whole' &&
-      (o.children.length > 0 || groupRoot(o) !== o || this.dangling) &&
+      (o.children.length > 0 || grouped || this.dangling) &&
       this.worldOf(o) === this.primary;
     if (wholeGroup) this.wholePicks.set(o, pick);
     if (pick.kind === 'object' || wholeGroup || this.vm.props.has(o, P.Lockedgeometry)) {

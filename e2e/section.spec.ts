@@ -131,3 +131,38 @@ test('scroll pushes the plane and the crosshair follows the pointer', async ({ p
     .poll(async () => (await page.evaluate(() => window.__cutplane!.state())).z)
     .toBeLessThan(z0);
 });
+
+test('the plane sticks to a face parallel to it for a moment, as set in the top bar (new)', async ({
+  page,
+}) => {
+  test.slow(); // (many small swipes, each waited for)
+  await page.setViewportSize({ width: 1024, height: 700 });
+  await page.goto('/?still=1&sample=cube');
+  await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+  const box = (await page.locator('#viewport').boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  // Small swipes deeper from in front of the cube's front face (z = 100), counting
+  // the swipes the plane stays on it for. (Which way is deeper: Chromium takes
+  // Playwright's wheel for a mouse wheel, the others for a trackpad's swipe.)
+  await page.evaluate(() => window.__cutplane!.set({ z: 200 }));
+  await page.mouse.wheel(0, 2);
+  const deeper = (await page.evaluate(() => window.__cutplane!.state())).z < 200 ? 2 : -2;
+  const held = async () => {
+    await page.evaluate(() => window.__cutplane!.set({ z: 110 }));
+    const zs: number[] = [];
+    for (let i = 0; i < 100; i++) {
+      await page.mouse.wheel(0, deeper);
+      const z = (await page.evaluate(() => window.__cutplane!.state())).z;
+      zs.push(z);
+      if (z < 95) break;
+    }
+    expect(zs.at(-1)!).toBeLessThan(100); // it does come off
+    return zs.filter((z) => z === 100).length;
+  };
+  await expect(page.locator('#planeStick')).toHaveValue('15');
+  const firm = await held();
+  await page.locator('#planeStick').selectOption('0');
+  const none = await held();
+  expect(none).toBe(1); // a plain stop: on it, then off at the next swipe
+  expect(firm).toBeGreaterThan(2);
+});

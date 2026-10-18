@@ -16,3 +16,4 @@ export * from './tools/measure.ts';
 export * from './tools/pencil.ts';
 export * from './text/hershey.ts';
 export * from './modeling.ts';
+export * from './session.ts';

@@ -262,6 +262,39 @@ describe('the group tool (group.cpl)', () => {
     expect(w.cube.parent).toBe(w.rt.primary.root);
     expect(other.parent).toBe(w.rt.primary.root);
   });
+
+  it('G on two parts of one group, each picked by part, ungroups them (not a group in a group)', () => {
+    const w = setup();
+    const other = w.add('Other', 250, -50);
+    const shiftClick = (at: [number, number]) => {
+      w.at(...at);
+      w.controls.pressPick(true);
+      w.frame();
+      w.controls.releasePick();
+      w.frame();
+      w.frame();
+    };
+    const group = () => {
+      w.controls.group();
+      w.frame();
+      w.frame();
+      w.frame();
+    };
+    shiftClick([0, 0]);
+    shiftClick([300, 0]);
+    group();
+    expect(w.rt.hasProp(w.cube.parent!, 'Grouper')).toBe(true);
+    w.click([150, -250]); // nothing picked
+    shiftClick([0, 0]);
+    shiftClick([300, 0]);
+    expect(w.picked().sort()).toEqual(['Cube', 'Other']);
+    group();
+    const groupers = [...w.rt.primary.root.children].flatMap((o) => [...subtree(o)]).filter((o) => w.rt.hasProp(o, 'Grouper')); // prettier-ignore
+    expect(groupers).toEqual([]);
+    w.click([150, -250]);
+    expect(w.cube.parent).toBe(w.rt.primary.root);
+    expect(other.parent).toBe(w.rt.primary.root);
+  });
 });
 
 describe('the globe (gravity.cpl)', () => {

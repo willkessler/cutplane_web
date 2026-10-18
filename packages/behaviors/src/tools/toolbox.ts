@@ -304,6 +304,11 @@ export interface BulbLight {
 }
 const lights = new WeakMap<Runtime, BulbLight>();
 export const bulbLightOf = (rt: Runtime): BulbLight | undefined => lights.get(rt);
+/** Puts back the bulb's light as it was (a room restored). */
+export function setBulbLight(rt: Runtime, light: BulbLight): void {
+  lights.set(rt, { at: [...light.at], color: [...light.color] as Rgb });
+  rt.version++;
+}
 
 /** The camera's view and whether its slide shows (set_camera, toggle_slide). */
 export interface CameraView {

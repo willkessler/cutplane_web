@@ -610,3 +610,42 @@ test('the group tool: a click on what is picked groups it, a marquee groups what
   expect((await edit(page)).boxes).toBe(1);
   expect(errors).toEqual([]);
 });
+
+test('Ctrl on a scale box handle scales evenly, not locked to one axis', async ({ page }) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: 0, pitch: 0, z: 0, x: 0, y: 0 });
+  await press(page);
+  await release(page);
+  const spans = async () =>
+    (await page.evaluate(() => window.__cutplane!.falls())).spans[0]!.map(Math.round);
+  expect(await spans()).toEqual([200, 200, 200]);
+  // The pointer on the edge handle, at (121, 121) in the plane.
+  const at = async (px: number, py: number) => {
+    await page.mouse.move(px, py);
+    const s = await page.evaluate(() => window.__cutplane!.state());
+    return [s.x, s.y];
+  };
+  const [x0, y0] = await at(500, 400);
+  const [x1, y1] = await at(600, 300);
+  const [sx, sy] = [(x1! - x0!) / 100, (y1! - y0!) / 100]; // room units per pixel right, up
+  const hx = 500 + (121 - x0!) / sx;
+  const hy = 400 - (121 - y0!) / sy;
+  await at(hx, hy);
+  expect((await edit(page)).hover).toBeNull(); // the handle, not the cube
+  // (A frame or two between, as by hand: the scale box hears of Ctrl before the press.)
+  const frames = () =>
+    page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await page.keyboard.down('Control');
+  await frames();
+  await page.mouse.down();
+  // Mostly rightwards, a little up: the crosshair alone would be locked to x.
+  for (let i = 1; i <= 12; i++) await page.mouse.move(hx + 6 * i, hy - 2 * i);
+  await frames();
+  await page.mouse.up();
+  await page.keyboard.up('Control');
+  const [w, h, d] = await spans();
+  expect(w).toBeGreaterThan(220);
+  expect(h).toBe(w);
+  expect(d).toBe(w);
+  expect(errors).toEqual([]);
+});

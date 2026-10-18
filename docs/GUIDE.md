@@ -24,6 +24,8 @@ Nothing to install. It works in Chrome, Edge, Firefox and Safari on a desktop or
   groups (section 9).
 - Above the room is the **top bar** (models, plane style, files). It disappears when you start
   working (section 2).
+- The first time, the room is turned a little and the keys plate is open. After that, Cutplane
+  opens as you left it (section 8).
 
 A trackpad, a two-button mouse and the SGI's three-button mouse all work as they are, with
 nothing to set up: hold ⌘ or right-drag to turn the room, hold ⌥ (Option, Alt) or middle-drag to
@@ -36,7 +38,7 @@ move the plane. Every held key or button is **spring-loaded**: it lasts only whi
 | move the crosshair      | move the pointer                                          |
 | move the plane in depth | hold ⌥ and move, middle-drag, or scroll                   |
 | turn the room           | hold ⌘ and move, right-drag, or the arrow keys            |
-| face the room again     | 0                                                         |
+| face the room straight  | 0                                                         |
 | jump to the back wall   | Space (again comes back; the next goes to the front wall) |
 | work full screen        | **F**, or _Start working_; Esc leaves                     |
 
@@ -44,6 +46,10 @@ Push the plane slowly through a model and watch the section change. Moving slowl
 **clicks onto the depths of vertices**, so a face or an edge comes to lie exactly in the plane,
 ready to take hold of. Move fast and it flies straight through. Hold **Ctrl** to move it slowly
 without clicking.
+
+A face **parallel to the plane holds it** for a moment: the plane catches on it and stays until
+you've pushed a little further, so it's easy to stop right on the face and take it whole. The top
+bar sets how firmly (_Faces stick_, or not at all).
 
 **Work mode** (F) goes full screen and captures the pointer, as the SGI did: nothing flat covers
 the room, and the pointer can't run off the edge of the window. Press **?** (the key, or the pad
@@ -228,6 +234,9 @@ Click the camera again, or close its window, to put the view away; the shots are
   starts that model afresh, so Save what you want to keep. (It's kept once the mouse and keys
   have been left alone for five seconds, or as you leave the page. With a very big model, the
   undo history kept is only its last few steps.)
+- **So is the room.** The plane and crosshair, the way the room is turned, which rails are open,
+  where the rotate tool is, the toolboxes, the goodies out in the room, the keys plate and the
+  top bar's choices all come back as they were.
 
 ## 9. Help in the room
 
