@@ -456,11 +456,11 @@ test('a double click on the colour control or the camera puts it back in its box
   expect(errors).toEqual([]);
 });
 
-test('the magnet: what it drags stops where it meets another, and slides along it', async ({
-  page,
-  browserName,
-}) => {
-  test.setTimeout(60_000);
+type Ghost = { held: boolean; target: string | null; ghost: number[] | null };
+const ghostOf = (page: Page) => page.evaluate(() => window.__cutplane!.magnet()) as Promise<Ghost>;
+
+/** The cube (-100 to 100 across and up), a copy to its right (300 to 500, 0 to 200), the magnet in hand. */
+async function magnetScene(page: Page) {
   const errors = await open(page, 'sample=cube');
   await set(page, { yaw: -30, pitch: 20, z: 0 });
   const click = async (at: P3 | [number, number]) => {
@@ -468,126 +468,100 @@ test('the magnet: what it drags stops where it meets another, and slides along i
     await press(page);
     await release(page);
   };
-  // A copy, off to the right: 300 to 500 across, 0 to 200 up.
   await click([0, 0]);
   await page.keyboard.press('KeyD');
   await set(page, { x: 150, y: 150 });
   await press(page);
   for (const x of [250, 350, 450]) await set(page, { x, y: 150 });
   await release(page);
-  const xs = (await falls(page)).mids.map((m) => Math.round(m[0]!));
-  expect([...xs].sort((a, b) => a - b)).toEqual([0, 400]);
-  // The copy: on the right, wherever it's listed.
-  const right = async () => (await falls(page)).mids.reduce((a, b) => (b[0]! > a[0]! ? b : a));
   await click([300, -250]);
-  // The magnet (the arranging rail's fourth pad), by the copy's left face.
+  // The magnet: the arranging rail's fourth pad.
   await click(await locate<P3>(page, 'arrangepads'));
   await click((await locate<P3[]>(page, 'arrangers'))[3]!);
+  /** The copy's box middle: the rightmost or leftmost object. */
+  const copy = async (side: 1 | -1 = 1) =>
+    (await falls(page)).mids.reduce((a, b) => (side * b[0]! > side * a[0]! ? b : a));
+  return { errors, copy };
+}
+
+test('the magnet: what it drags passes through; let go with no ghost, it stays', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const { errors, copy } = await magnetScene(page);
+  // By the copy's left face, into the cube: it stays on the crosshair, through the cube.
   await set(page, { x: 300, y: 50 });
   await press(page);
-  // Dragged left, into the cube and past it: it stops, flush with the cube's right face...
-  for (let x = 290; x >= 0; x -= 10) await set(page, { x, y: 50 });
-  const copy = await right();
-  expect(copy[0]!).toBeCloseTo(200, 0);
-  // ...and down as well as on: it slides down along it.
-  for (let y = 40; y >= -10; y -= 10) await set(page, { x: y - 60, y });
-  const slid = await right();
-  expect(slid[0]!).toBeCloseTo(200, 0);
-  expect(slid[1]!).toBeCloseTo(40, 0);
-  await shot(page, 'magnet-flush', browserName);
+  for (let x = 290; x >= -50; x -= 10) await set(page, { x, y: 50 });
+  expect((await copy())[0]!).toBeCloseTo(50, 0);
+  // Inside the cube no face is under the crosshair: no ghost, and no snap on release.
+  expect((await ghostOf(page)).ghost).toBeNull();
   await release(page);
+  expect((await copy())[0]!).toBeCloseTo(50, 0);
+  // Let go of, it takes it again at the first press, by its top face now.
+  expect((await edit(page)).picked).toEqual([]);
+  await set(page, { x: 50, y: 200 });
+  await press(page);
+  for (let y = 210; y <= 260; y += 10) await set(page, { x: 50, y });
+  await release(page);
+  expect((await copy())[1]!).toBeCloseTo(160, 0);
+  expect((await ghostOf(page)).held).toBe(true);
   expect(errors).toEqual([]);
 });
 
-test('the magnet: taken by a face, it turns to meet what it touches with that face', async ({
+test('the magnet: near a face, a ghost shows the snap; let go, it goes there', async ({
   page,
   browserName,
 }) => {
   test.setTimeout(60_000);
-  const errors = await open(page, 'sample=cube');
-  await set(page, { yaw: -30, pitch: 20, z: 0 });
-  const click = async (at: P3 | [number, number]) => {
-    await set(page, { x: at[0], y: at[1] });
-    await press(page);
-    await release(page);
-  };
-  // A copy, off to the right: 300 to 500 across, 0 to 200 up.
-  await click([0, 0]);
-  await page.keyboard.press('KeyD');
-  await set(page, { x: 150, y: 150 });
-  await press(page);
-  for (const x of [250, 350, 450]) await set(page, { x, y: 150 });
-  await release(page);
-  const right = async () => (await falls(page)).mids.reduce((a, b) => (b[0]! > a[0]! ? b : a));
-  await click([300, -250]);
-  // The magnet, by the copy's top face...
-  await click(await locate<P3>(page, 'arrangepads'));
-  await click((await locate<P3[]>(page, 'arrangers'))[3]!);
+  const { errors, copy } = await magnetScene(page);
+  // By the copy's top face, to just off the cube's right face.
   await set(page, { x: 400, y: 200 });
   await press(page);
-  // ...dragged left: its left face touches the cube first, and it turns a quarter so
-  // the top meets the cube's right face instead, flush; it stays stuck there.
-  for (let x = 390; x >= 0; x -= 10) await set(page, { x, y: 200 });
-  const stuck = await right();
-  expect(stuck[0]!).toBeCloseTo(200, 0);
-  expect(stuck[1]!).toBeCloseTo(200, 0);
-  await shot(page, 'magnet-stuck', browserName);
-  // Let go, it stays as it was stuck (whatever is under the crosshair).
+  for (let x = 380; x >= 120; x -= 20) await set(page, { x, y: 200 - (400 - x) / 2 });
+  await set(page, { x: 108, y: 50 });
+  // The copy is on the crosshair, unturned; its ghost is turned a quarter, its top on the
+  // cube's right face, where the crosshair has it.
+  const held = await copy();
+  expect(held[0]!).toBeCloseTo(108, 0);
+  expect(held[1]!).toBeCloseTo(-50, 0);
+  const g = await ghostOf(page);
+  expect(g.target).not.toBeNull();
+  expect(g.ghost![0]!).toBeCloseTo(200, 0);
+  expect(g.ghost![1]!).toBeCloseTo(50, 0);
+  await shot(page, 'magnet-ghost', browserName);
   await release(page);
-  const left = await right();
-  expect(left[0]!).toBeCloseTo(200, 0);
-  expect(left[1]!).toBeCloseTo(200, 0);
+  const snapped = await copy();
+  expect(snapped[0]!).toBeCloseTo(200, 0);
+  expect(snapped[1]!).toBeCloseTo(50, 0);
+  // The magnet stays in hand (the original put it away after a snap).
+  expect((await ghostOf(page)).held).toBe(true);
   expect(errors).toEqual([]);
 });
 
-test('the magnet: held, it lets go when drawn off and sticks to the next face it comes near', async ({
+test('the magnet: drawn off, the ghost goes; near another face, it shows there', async ({
   page,
-  browserName,
 }) => {
   test.setTimeout(60_000);
-  const errors = await open(page, 'sample=cube');
-  await set(page, { yaw: -30, pitch: 20, z: 0 });
-  const click = async (at: P3 | [number, number]) => {
-    await set(page, { x: at[0], y: at[1] });
-    await press(page);
-    await release(page);
-  };
-  // A copy, off to the right: 300 to 500 across, 0 to 200 up.
-  await click([0, 0]);
-  await page.keyboard.press('KeyD');
-  await set(page, { x: 150, y: 150 });
-  await press(page);
-  for (const x of [250, 350, 450]) await set(page, { x, y: 150 });
-  await release(page);
-  const right = async () => (await falls(page)).mids.reduce((a, b) => (b[0]! > a[0]! ? b : a));
-  await click([300, -250]);
-  await click(await locate<P3>(page, 'arrangepads'));
-  await click((await locate<P3[]>(page, 'arrangers'))[3]!);
+  const { errors, copy } = await magnetScene(page);
   await set(page, { x: 400, y: 200 });
   await press(page);
-  // By its top face, left to the cube: it turns, the top flush on the cube's right face.
-  for (let x = 390; x >= 200; x -= 10) await set(page, { x, y: 200 });
-  const stuck = await right();
-  expect(stuck[0]!).toBeCloseTo(200, 0);
-  expect(stuck[1]!).toBeCloseTo(200, 0);
-  // Drawn off to the right, it lets go: back as it was taken, the top up again.
-  for (let x = 225; x <= 300; x += 25) await set(page, { x, y: 200 });
-  const free = await right();
-  expect(free[0]!).toBeCloseTo(300, 0);
-  expect(free[1]!).toBeCloseTo(100, 0);
-  // Down, under the cube and up its far side, then on to its left face: it turns
-  // again, its top flush on that face now.
-  for (let y = 150; y >= -250; y -= 50) await set(page, { x: 300, y });
-  for (let x = 250; x >= -300; x -= 50) await set(page, { x, y: -250 });
-  for (let y = -200; y <= 100; y += 50) await set(page, { x: -300, y });
-  for (let x = -290; x <= -100; x += 10) await set(page, { x, y: 100 });
-  const left = async () => (await falls(page)).mids.reduce((a, b) => (b[0]! < a[0]! ? b : a));
-  const again = await left();
-  expect(again[0]!).toBeCloseTo(-200, 0);
-  expect(again[1]!).toBeCloseTo(100, 0);
-  await shot(page, 'magnet-again', browserName);
+  for (let x = 380; x >= 120; x -= 20) await set(page, { x, y: 200 - (400 - x) / 2 });
+  await set(page, { x: 108, y: 50 });
+  expect((await ghostOf(page)).ghost).not.toBeNull();
+  // Off again: no ghost.
+  await set(page, { x: 140, y: 50 });
+  expect((await ghostOf(page)).ghost).toBeNull();
+  // Round to the cube's left face (through it: nothing stops the drag).
+  for (let x = 100; x >= -100; x -= 20) await set(page, { x, y: 50 });
+  await set(page, { x: -108, y: 50 });
+  const g = await ghostOf(page);
+  expect(g.ghost![0]!).toBeCloseTo(-200, 0);
+  expect(g.ghost![1]!).toBeCloseTo(50, 0);
   await release(page);
-  expect((await left())[0]!).toBeCloseTo(-200, 0);
+  const snapped = await copy(-1);
+  expect(snapped[0]!).toBeCloseTo(-200, 0);
+  expect(snapped[1]!).toBeCloseTo(50, 0);
   expect(errors).toEqual([]);
 });
 

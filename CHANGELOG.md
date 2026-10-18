@@ -12,11 +12,12 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 17, 2026
 
-- **The magnet works like a magnet.** Drags with it are solid: what it drags stops where it
-  meets another object and slides along it. Taken by a face, it sticks by that face for as long
-  as the button is held. Near another object's face, it turns so the face dragged lies flush on
-  it. Drawn off, it lets go and turns back the way it was taken, and near another face it sticks
-  to that one.
+- **The magnet shows where it will snap.** Taken by a face, what it drags stays on the
+  crosshair, passing through anything. The face of another object under the crosshair is
+  highlighted, and a see-through ghost shows the dragged object snapped onto it, turned so the
+  face taken lies flush. Move off and the ghost goes; near another face it shows there. Let go
+  and the object goes to the ghost, or, with none showing, stays where it is. The magnet stays in
+  hand until it is put away.
 - **Fit to room.** A double click with the magnifier fits everything into the room, with a 10%
   margin. Undo puts it back.
 - **The 1 key's wire views.** What isn't picked is drawn as light grey wire, then put out of

@@ -10,19 +10,19 @@ beside it, by date ([ENHANCEMENTS_10_17_26.md](ENHANCEMENTS_10_17_26.md)).
 
 ## Roadmap
 
-| Milestone | Scope                                                                                                                                                                                                                                                                                                                                                                                            |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                                                                                                                                                                                                                                                                                                                                           |
-| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation                                                                                                                                                                                                                                                                                                                              |
-| **M2** ✅ | Room, plane, section and full-screen work mode                                                                                                                                                                                                                                                                                                                                                   |
-| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                                                                                                                                                                                                                                                                                                                                 |
-| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                                                                                                                                                                                                                                                                                                                                              |
-| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                                                                                                                                                                                                                                                                                                                                     |
-| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                                                                                                                                                                                                                                                                                                                               |
-| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                                                                                                                                                                                                                                                                                                                                 |
-| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, big and binary Inventor files, gravity, live on GitHub Pages; Oct 17 wave: fit to room, the 1 key's wire views, gravity always with dangling, the magnet's push-back, double-click to put goodies away; then: the magnet sticks by the face dragged, falling things can be taken hold of, the keys plate in full screen, a new hand |
-| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                                                                                                                                                                                                                                                                                                                                      |
-| M10       | Language evolution (optional)                                                                                                                                                                                                                                                                                                                                                                    |
+| Milestone | Scope                                                                                                                                                                                                                                                                                                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0** ✅ | Scaffold: workspace, Docker dev/prod images, tests, CI                                                                                                                                                                                                                                                                                                                    |
+| **M1** ✅ | Kernel and `.cut` I/O: half-edge B-rep, Euler operators, validation                                                                                                                                                                                                                                                                                                       |
+| **M2** ✅ | Room, plane, section and full-screen work mode                                                                                                                                                                                                                                                                                                                            |
+| **M3** ✅ | Direct manipulation: pick, drag, constrain, carry, marquee, undo                                                                                                                                                                                                                                                                                                          |
+| **M4** ✅ | Rotate tool, duplicate, delete, scale boxes, colour                                                                                                                                                                                                                                                                                                                       |
+| **M5** ✅ | CPL VM and environment: code stored in objects, live editing                                                                                                                                                                                                                                                                                                              |
+| **M6** ✅ | Modeling operations: slice, booleans, drill, pencil, arrange tools                                                                                                                                                                                                                                                                                                        |
+| **M7** ✅ | Formats: OBJ, STL, glTF, drag and drop, autosave                                                                                                                                                                                                                                                                                                                          |
+| **M8** 🚧 | Ship: user guide, help plate, measure pad, camera fly-overs, big and binary Inventor files, gravity, live on GitHub Pages; Oct 17 wave: fit to room, the 1 key's wire views, gravity always with dangling, double-click to put goodies away; then: the magnet shows its snap with a ghost, falling things can be taken hold of, the keys plate in full screen, a new hand |
+| M9        | Acceptance: load and rebuild the stapler, fan and Discovery                                                                                                                                                                                                                                                                                                               |
+| M10       | Language evolution (optional)                                                                                                                                                                                                                                                                                                                                             |
 
 ## Using Cutplane
 
@@ -271,14 +271,15 @@ undo away.
 - **Magnet.** Press on a face of one object (where the plane cuts it: its outline in the plane)
   and let go on a face of another. The first object turns and moves so its face lies flush on
   the second's, facing it. An edge snaps to an edge the same way. Pressing inside an object, not
-  on its outline, does nothing, as in the original. New: while it's dragged, the object is
-  solid. It can't go into another: it stops where they touch and slides along the other as the
-  drag goes on, so two objects are slapped together quickly. Taken by a face, it sticks by that
-  face like a magnet, for as long as the button is held: come within 20 of another object's
-  face (whatever side comes near) and it turns (as the release's snap would) so the face dragged
-  lies flush on that face, and slides on stuck there. Draw it 30 away and it lets go, back as it
-  was taken; bring it near another face and it sticks to that one. Let go of the button and it
-  stays as it is.
+  on its outline, does nothing, as in the original. New: taken by a face, it shows where it
+  will snap. What it drags stays on the crosshair where it was taken, passing through anything.
+  The face of another object under the crosshair (through the section, as a face is highlighted
+  to be picked) is highlighted, and a ghost of what is dragged (drawn faintly, 15% opaque, its
+  edges light grey) shows it there: the face taken turned flush onto it, the point taken on the
+  point highlighted. Move off and the ghost goes; near another face it shows there. Let go with a
+  ghost showing and what was dragged goes to it; with none, it stays where it is let go. Either
+  way it is let go of (unpicked), and the magnet stays in hand: the original sent it back to a
+  pad after a snap.
 - **Union** (the two green blocks, on the tools' rail). The drill's twin: press on an object
   with it and the object itself comes away with the tool. Carry it into another and let go, and
   the two become one solid, each part keeping its colours. Let go over nothing and it's just put
@@ -470,16 +471,19 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
 - **Gravity, and groups picked whole.** New: the globe drops things to the floor, and a toolbar
   choice picks a group whole from any of its parts. The globe's picture is the Earth, from
   Natural Earth's coastlines. A double click with it keeps gravity on, and what is dragged
-  dangles; the magnet's drags are solid.
+  dangles.
 - **The group tool works in hand.** In the original, `group.cpl` took only an Activate message,
   sent by G or by a push-button pad, but `arrangepads.rsc` put the tool on an ordinary pad, so
   taken from its pad it did nothing. Here a click with it on what is picked groups or ungroups,
   and a marquee with it groups what it touches (`assets/cpl/group.cpl`; `tool.cpl` lets its
   presses through, as the ruler's; `cursor.cpl` asks `touching_marquee` for the set).
-- **The magnet sticks by its face.** The original's magnet snapped only on release, to whatever
-  face was under the crosshair. Here its drag is solid, and taken by a face it snaps as it comes
-  near another face: the face dragged turns flush onto it, lets go again when drawn off, and
-  snaps to the next face it nears, until the release leaves it as it is.
+- **The magnet shows its snap.** The original's magnet snapped on release to whatever face was
+  under the crosshair, unseen until then. Here, taken by a face, the face it would snap to is
+  highlighted as the drag goes, and a see-through ghost of what is dragged shows it snapped there.
+  What is dragged stays on the crosshair (through anything); the release takes it to the ghost.
+  The magnet stays in hand after a snap, and takes something already picked at the first press
+  (the original's press picked it again, then unpicked it). `assets/cpl/magnetic.cpl` is
+  `magnetic.cpl` with these changes made (marked "cutplane_web").
 - **Falls can be interrupted.** A press stops what is falling where it is, to be picked; what
   isn't picked falls on.
 - **The keys plate.** New: in work mode the shortcut keys are on a plate at the plane's side.
@@ -739,19 +743,18 @@ older versions of the format are normalised to the latest one on save.
   edge held (a hinge), under gravity and the crosshair's acceleration, damped, integrated four
   steps a frame. The click's vertex, edge, face or inside comes from `Runtime.wholePicks`, kept
   as a click is collapsed to the whole object (`Runtime.dangling` makes every object pick whole).
-- **The magnet's push-back** (`world/collide.ts`): with the magnet in hand, `Runtime.moveGuard`
-  limits each drag step. The dragged group's parts are convex hulls, cast (Rapier's shape casts)
-  against the other objects' triangles; it stops 0.05 short of what it hits and slides the rest
-  of the step along it, up to four times. Touching something and moving along it or away is free.
-  A press with the magnet tells it what it took (`Blocker.grab`). Taken by a face, the drag keeps
-  where the object would be as taken (the casts above, from its pose at the press, which the
-  session keeps), and each step puts it there, then picks a face to stick to (`Blocker.near`):
-  the one it's stuck to while that object is within 30 of the dragged one's vertices (Rapier's
-  point projections), else what the step hit, else the nearest face within 20 (the face of that
-  object whose plane holds the nearest point, facing most nearly out towards the vertex). That
-  face gets `Runtime.snapFeatures`, the magnet's own snap; with none it stays as taken. So a
-  stick is undone by drawing off, and another taken, all through one drag. `Runtime.snapTo`
-  sends the release's snap to the face it's stuck to, whatever is under the crosshair.
+- **The magnet's ghost** (`world/magnet.ts`): a press with the magnet tells it what it took
+  (`Magnet.grab`): a face, and the point taken on it (the Selectable's point, kept in the
+  object's own coordinates). Each frame of the drag, `Runtime.faceUnder` runs the picking
+  (`pickAt`, the pick size) on every object but the dragged group's, keeping face picks, and
+  `Runtime.faceSnap` gives the world move that turns the face taken about the point taken to
+  face that one and carries the point onto the one picked. The highlights draw that face as the
+  hover, and the dragged parts' meshes (shared, 15% opaque) and edges moved by it
+  (`HighlightState.ghost`). The release
+  applies the move (`Magnet.release`, before CPL's release): `magnetic.cpl` snaps only when a
+  face is selectable under the crosshair at release, and there the dragged object, picked whole,
+  is. `Runtime.magnetSnap` then tells `snapFeatures` the release has been seen to. An edge taken
+  snaps on release as in the original.
 - **Catching a fall** (`Falls.catchAll`): a press (not with the globe) ends every fall under way
   at the frame it has got to, as one edit, before the pick. Each fall's motion there is read off
   its recorded poses (`motionAt`: its box's middle from one frame to the next, and the turn

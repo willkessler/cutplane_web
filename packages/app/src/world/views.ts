@@ -12,7 +12,7 @@ import {
   type Sub,
   type V3,
 } from '@cutplane/behaviors';
-import { mat4, type CutObject } from '@cutplane/kernel';
+import { mat4, subtree, type CutObject, type Mat4 } from '@cutplane/kernel';
 import type { HighlightState, Picked } from '../render/highlights.ts';
 import type { Model } from '../render/models.ts';
 import type { Bar, ToolDrawing, ToolPart } from '../render/rotatetool.ts';
@@ -33,13 +33,32 @@ const KIND: Record<number, 'vertex' | 'edge' | 'face' | 'inPlaneFace' | 'object'
   [SelectKind.Obj]: 'object',
 };
 
-/** The hover (primary-world selectable), picks and marquee. */
-export function highlightState(rt: Runtime, models: readonly Model[]): HighlightState {
+/**
+ * The hover (primary-world selectable), picks and marquee. `magnet`: a magnet drag's
+ * face to snap to, which is the hover, and the ghost of what it drags there.
+ */
+export function highlightState(
+  rt: Runtime,
+  models: readonly Model[],
+  magnet?: {
+    target: { face: Sub; at: V3 } | null;
+    ghost: Mat4 | null;
+    dragged(): CutObject | null;
+  },
+): HighlightState {
   const modelOf = new Map(models.map((m) => [m.object, m]));
   let hover: HighlightState['hover'];
+  let ghost: HighlightState['ghost'];
+  const target = magnet?.target && modelOf.get(magnet.target.face.object);
+  const dragged = magnet?.dragged();
+  if (magnet?.target && magnet.ghost && target && dragged) {
+    hover = { model: target, pick: { kind: 'face', id: magnet.target.face.id, at: magnet.target.at } }; // prettier-ignore
+    const parts = [...subtree(dragged)].flatMap((o) => modelOf.get(o) ?? []);
+    ghost = { models: parts, move: magnet.ghost };
+  }
   // A tool or goodie under the crosshair takes it: its code eats the press (env runs first).
   const envBusy = rt.selected(rt.environment).length > 0;
-  if (!envBusy)
+  if (!envBusy && !hover)
     for (const m of models) {
       const s = rt.selectableOf(m.object);
       const kind = KIND[s.kind];
@@ -58,7 +77,7 @@ export function highlightState(rt: Runtime, models: readonly Model[]): Highlight
       else if (f.type === T.Fve) picked.push({ kind: 'face', model: m, id: f.id });
     }
   }
-  return { hover, picked, marquee: marqueeOf(rt) };
+  return { hover, picked, marquee: marqueeOf(rt), ghost };
 }
 
 /** cursor.cpl's marquee: an environment object of two vertices, drawn as a box between them. */

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { NONE, ROOM, type Brep, type CutObject } from '@cutplane/kernel';
+import { NONE, ROOM, mat4, type Brep, type CutObject, type Mat4 } from '@cutplane/kernel';
 import { CLASSIC, rgb } from '../viewer/palette.ts';
 import { Lines, closedPolyline, group, type LineStyle } from './lines.ts';
 import type { Model } from './models.ts';
@@ -8,6 +8,9 @@ import type { Model } from './models.ts';
 const HOVER_VERTEX = 8;
 const PICKED_VERTEX = 12;
 const PICK_BOX = 10;
+/** The magnet's ghost: its edges light grey, as the 1 key's wire, its faces faint (15% opaque). */
+const GHOST = [200, 200, 200] as const;
+const GHOST_OPACITY = 0.15;
 /** How bright an edge turned away from the eye is drawn, against one facing it. */
 const BACK_DIM = 0.45;
 const dim = (c: readonly number[]) => c.map((k) => Math.round(k * BACK_DIM)) as [number, number, number]; // prettier-ignore
@@ -64,6 +67,8 @@ export interface HighlightState {
     | undefined;
   picked: readonly Picked[];
   marquee: { from: V3; to: V3 } | undefined;
+  /** A magnet drag's ghost: what it drags, moved by `move` (world, row vectors) to where it would snap. */
+  ghost?: { models: readonly Model[]; move: Mat4 } | undefined;
 }
 
 /**
@@ -75,6 +80,17 @@ export class Highlights {
   readonly object = new THREE.Group();
   private readonly hover = new Pen({ color: CLASSIC.white, width: 4, renderOrder: 31 });
   private readonly picked = new Pen({ color: CLASSIC.red, width: 3, renderOrder: 33 });
+  // New here: the magnet's ghost where its release would put it: drawn as it is, but faint
+  // seen through, every edge in light grey.
+  private readonly ghost = new Pen({ color: GHOST, width: 2, renderOrder: 29 });
+  private readonly ghostFaces = new THREE.Group();
+  private readonly ghostMaterial = new THREE.MeshBasicMaterial({
+    vertexColors: true,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: GHOST_OPACITY,
+    depthWrite: false,
+  });
   // New here: an edge on the far side of its object (its faces all turned away) is
   // drawn dimmer, so it isn't taken for one on the near side.
   private readonly hoverBack = new Pen({ color: dim(CLASSIC.white), width: 3, renderOrder: 30 });
@@ -118,6 +134,8 @@ export class Highlights {
   constructor() {
     this.dot.renderOrder = 32;
     this.object.add(
+      this.ghostFaces,
+      this.ghost.object,
       this.hover.object,
       this.picked.object,
       this.hoverBack.object,
@@ -178,6 +196,35 @@ export class Highlights {
     }
     this.hover.flush();
     this.hoverBack.flush();
+
+    // The magnet's ghost: each model's mesh (its triangles shared), moved.
+    const ghost = editor.ghost;
+    this.ghostFaces.clear();
+    if (ghost) {
+      const move = new THREE.Matrix4().fromArray(ghost.move);
+      for (const m of ghost.models) {
+        if (!m.mesh) continue;
+        const face = new THREE.Mesh(m.mesh.geometry, this.ghostMaterial);
+        face.frustumCulled = false;
+        face.renderOrder = 28;
+        face.matrixAutoUpdate = false;
+        // (A mesh is built in world space, then shifted as its object moves.)
+        face.matrix.makeTranslation(m.mesh.position).premultiply(move);
+        this.ghostFaces.add(face);
+      }
+    }
+    if (ghost)
+      for (const m of ghost.models) {
+        const at = this.ghost.pts.length;
+        for (const e of m.object.brep.edges()) pushEdge(m, e, this.ghost.pts);
+        const p: [number, number, number] = [0, 0, 0];
+        for (let i = at; i < this.ghost.pts.length; i += 3) {
+          const [x, y, z] = this.ghost.pts.slice(i, i + 3) as V3;
+          mat4.transformPoint(ghost.move, x, y, z, p);
+          this.ghost.pts.splice(i, 3, ...p);
+        }
+      }
+    this.ghost.flush();
     this.box.set(box);
     this.boxThrough.set(box);
     this.boxShadow.set(shadow);

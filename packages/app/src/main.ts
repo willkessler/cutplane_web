@@ -70,7 +70,7 @@ import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
 import { SectionLines } from './render/sectionlines.ts';
 import { Falls, type Caught } from './world/gravity.ts';
 import { Dangle } from './world/dangle.ts';
-import { Blocker } from './world/collide.ts';
+import { Magnet } from './world/magnet.ts';
 import { createCamera, deeperOnScreen, fitFov, orbitCamera, unitsPerPixel } from './scene.ts';
 import { CLASSIC, rgb } from './viewer/palette.ts';
 import { CodePanel } from './ui/codepanel.ts';
@@ -285,6 +285,7 @@ async function loadCpl(): Promise<void> {
     'textinput.cpl',
     'slice.cpl',
     'group.cpl',
+    'magnetic.cpl',
   ]);
   await Promise.all(
     CPL_FILES.map(async (f) => {
@@ -301,7 +302,7 @@ let rt!: Runtime;
 let controls!: Controls;
 let rotateTool!: ReturnType<typeof installRotateTool>;
 let falls!: Falls;
-let blocker!: Blocker;
+let magnet!: Magnet;
 let colorControl!: ReturnType<typeof installToolboxes>['colorControl'];
 let toolboxes!: ReturnType<typeof installToolboxes>;
 let ready = false;
@@ -313,8 +314,8 @@ function makeWorld(): void {
   rt.faceDrag = faceDragSelect.value as FaceDrag;
   rt.groupPick = groupPickSelect.value as GroupPick;
   falls = new Falls(rt, models);
-  blocker = new Blocker(rt, models);
-  rt.snapTo = blocker.snapTo;
+  magnet = new Magnet(rt);
+  rt.magnetSnap = magnet.snap;
   rt.dropper = (roots) =>
     void falls.drop(roots).catch((e: Error) => notify(`Couldn't drop it: ${e.message}`, true));
   rt.loadCode(source);
@@ -361,8 +362,8 @@ function pressPick(shift: boolean): void {
   }
   control.resetConstrain();
   controls.pressPick(shift);
-  // Taken by a face, the magnet's drag sticks it by that face to what it meets.
-  if (magnetInHand()) blocker.grab(rt.vm.props.features(rt.primary, P.Selectable));
+  // Taken by a face, the magnet's drag shows where it would snap by that face.
+  if (magnetInHand()) magnet.grab(rt.vm.props.features(rt.primary, P.Selectable));
   // Where an object picked whole is taken hold of (it dangles from there: permanent gravity).
   const part = rt.vm.props.features(rt.primary, P.Selectable).find(isObject);
   const pick = part && rt.wholePicks.get(part);
@@ -371,6 +372,8 @@ function pressPick(shift: boolean): void {
 }
 function releasePick(): void {
   if (!ready) return;
+  // A magnet drag with a ghost showing: what it dragged goes there.
+  magnet.release();
   controls.releasePick();
   hold = dangle = null;
 }
@@ -782,12 +785,7 @@ function applyDemo(t: number): void {
  * wherever it left them.
  */
 function step(): void {
-  // The magnet in hand: what it drags can't go into anything (its solid push-back).
-  const magnet = magnetInHand();
-  if (magnet) blocker.ready();
-  else blocker.forget();
-  rt.moveGuard = magnet ? blocker.guard : null;
-  if (!magnet || !controls.pickHeld) blocker.end();
+  if (!magnetInHand()) magnet.forget();
   const plane = control.motion === 'plane';
   if (plane !== planeHeld) {
     planeHeld = plane;
@@ -799,6 +797,8 @@ function step(): void {
   const d: V3 = [control.x - stage.x, control.y - stage.y, control.z - stage.z];
   controls.moveCrosshair(d, (dd) => stage.preview(...dd));
   controls.frame();
+  // The magnet's drag: the face it would snap to, and its ghost there.
+  if (controls.pickHeld && magnetInHand()) magnet.update();
   if (!messagesWaiting()) fallOn(); // (once the pick has been made)
   // CPL may have held the crosshair back or put it somewhere else (a tool's bar, a dial).
   if (stage.x !== control.x || stage.y !== control.y) placeCrosshair(stage.x, stage.y);
@@ -961,11 +961,11 @@ function render(): void {
       `section <b>${s.loops}</b> loop${s.loops === 1 ? '' : 's'} in <b>${s.objects}</b> object${s.objects === 1 ? '' : 's'}`;
   }
   // Highlights follow the VM's Selectable and Picked properties.
-  const hkey = `${rt.vm.props.version}|${rt.version}|${section.version}|${key}|${stage.x}|${stage.y}|${falls.busy}`;
+  const hkey = `${rt.vm.props.version}|${rt.version}|${section.version}|${key}|${stage.x}|${stage.y}|${falls.busy}|${magnet.key()}`;
   if (hkey !== lastHighlights) {
     const steady = stillModels();
     highlights.update(
-      highlightState(rt, steady),
+      highlightState(rt, steady, magnet),
       steady,
       camera.position,
       outlinedParts(rt, envView.models),
@@ -1528,6 +1528,8 @@ declare global {
       loading(): { shown: boolean; turn: number };
       /** Shows the keys plate or not (null: as full screen has it); whether it is shown. */
       keysPlate(show?: boolean | null): boolean;
+      /** Whether the magnet is in hand; a magnet drag's face to snap to (its object's name), and its ghost's box middle. */
+      magnet(): { held: boolean; target: string | null; ghost: number[] | null };
       /** Whether anything is falling (the globe), and how far above the floor the world's lowest point is (and each object's). */
       falls(): {
         active: boolean;
@@ -1770,6 +1772,29 @@ async function start(): Promise<void> {
       showKeys();
       render();
       return keysPlate !== null && rt.vm.props.has(keysPlate, P.Visible);
+    },
+    magnet: () => {
+      const root = magnet.dragged();
+      const m = magnet.ghost;
+      const held = magnetInHand();
+      if (!root || !m) return { held, target: null, ghost: null };
+      const lo = [Infinity, Infinity, Infinity];
+      const hi = [-Infinity, -Infinity, -Infinity];
+      for (const o of subtree(root)) {
+        const g = rt.world(o);
+        for (const v of o.brep.vertices()) {
+          const p = mat4.transformPoint(m, g.x(v), g.y(v), g.z(v));
+          for (let k = 0; k < 3; k++) {
+            lo[k] = Math.min(lo[k]!, p[k]!);
+            hi[k] = Math.max(hi[k]!, p[k]!);
+          }
+        }
+      }
+      return {
+        held,
+        target: magnet.target?.face.object.name ?? '',
+        ghost: lo.map((l, k) => (l + hi[k]!) / 2),
+      };
     },
     falls: () => {
       const lows = models.models.map((m) => {

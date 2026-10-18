@@ -177,7 +177,7 @@ describe('the magnet (magnetic.cpl, snap_features_together)', () => {
     other.invXform = mat4.invert(other.xform)!;
     w.rt.changed(other);
     w.frame();
-    w.take(3);
+    const { tool } = w.take(3);
     // Grab the cube's right face (x = 100) and let go on the other's left face.
     w.drag([100, 0], [200, 0]);
     // The cube's right face now faces the other's left face, in its plane.
@@ -189,6 +189,22 @@ describe('the magnet (magnetic.cpl, snap_features_together)', () => {
     expect(Math.max(...along)).toBeCloseTo(200, 3);
     expect(Math.min(...along)).toBeCloseTo(0, 3);
     expect(w.rt.bbox(w.cube)![1][2] - w.rt.bbox(w.cube)![0][2]).toBeCloseTo(200, 3);
+    // (The original put the magnet away after a snap; it stays in hand.)
+    expect(tool.parent).toBe(w.rt.cursorObj);
+  });
+
+  it('it stays in hand, and takes what is picked, or was dragged, again at the first press', () => {
+    const w = setup();
+    w.click([0, 0]); // picked by the crosshair first
+    const { tool } = w.take(3);
+    const low = () => w.rt.bbox(w.cube)![0][1];
+    // By the right face, up, three times over: each press takes it.
+    for (let n = 1; n <= 3; n++) {
+      w.drag([100, low() + 100], [0, 50]);
+      expect(low()).toBeCloseTo(-100 + 50 * n, 3);
+      expect(w.rt.picked()).toEqual([]);
+      expect(tool.parent).toBe(w.rt.cursorObj);
+    }
   });
 
   it('grabbing an object (not a face or an edge) does nothing', () => {

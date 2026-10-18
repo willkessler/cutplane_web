@@ -262,15 +262,10 @@ export class Runtime implements Host {
   /** Where each object picked whole was clicked: its vertex, edge or face, or inside it. */
   readonly wholePicks = new WeakMap<CutObject, KernelPick>();
   /**
-   * Can hold back an object being dragged whole (the magnet's solid push-back): given
-   * the group's root and the offset asked for, how far it may go.
+   * New here: the magnet's release, given what it grabbed and what is under the
+   * crosshair. True if it saw to the snap itself (its drag showed where it would go).
    */
-  moveGuard: ((root: CutObject, d: V3) => V3) | null = null;
-  /**
-   * New here: what the magnet's release snaps to, given what it grabbed and what is
-   * under the crosshair (its drag may have stuck the grabbed face to another already).
-   */
-  snapTo: ((source: Feature, target: Feature) => Feature) | null = null;
+  magnetSnap: ((source: Feature, under: Feature) => boolean) | null = null;
 
   private readonly worldOfRoot = new Map<CutObject, WorldFeature>();
   private readonly geometry = new Map<CutObject, WorldGeometry>();
@@ -916,9 +911,7 @@ export class Runtime implements Host {
     const d: V3 = [offset[0] ?? 0, offset[1] ?? 0, offset[2] ?? 0];
     if (isObject(f) || (isSub(f) && f.type === T.Shell)) {
       const o = isObject(f) ? f : (f as Sub).object;
-      const root = groupRoot(o);
-      const guard = this.moveGuard && this.worldOf(o) === this.primary ? this.moveGuard : null;
-      this.moveBranch(root, guard ? guard(root, d) : d);
+      this.moveBranch(groupRoot(o), d);
       return;
     }
     if (!isSub(f)) return;
@@ -1044,18 +1037,15 @@ export class Runtime implements Host {
    * `target`. Face to face: the faces end up flush, facing each other. An edge to an
    * edge or a face: the edges line up, the grabbed edge's first end on the other's.
    */
-  snapFeatures(source: Feature, under: Feature): void {
-    const target = this.snapTo?.(source, under) ?? under;
+  snapFeatures(source: Feature, target: Feature): void {
+    if (this.magnetSnap?.(source, target)) return;
     if (!isSub(source) || !isSub(target)) return;
     const o = groupRoot(source.object);
     if (o === groupRoot(target.object)) return;
     const turn = (axis: V3, angle: number, about: V3) => {
       const len = Math.hypot(...axis);
       if (len < 1e-9 || Math.abs(angle) < 1e-9) return;
-      const m = mat4.rotationAbout(about, [axis[0] / len, axis[1] / len, axis[2] / len], angle);
-      for (const x of subtree(o)) if (this.worldOf(x) === this.primary) this.journal.touch(x);
-      transformTree(o, m);
-      for (const x of subtree(o)) this.changed(x);
+      this.transformBranch(o, mat4.rotationAbout(about, [axis[0] / len, axis[1] / len, axis[2] / len], angle)); // prettier-ignore
     };
     if (source.type === T.Fve && target.type === T.Fve) {
       const t = this.worldFace(target.object, target.id);
@@ -1079,6 +1069,45 @@ export class Runtime implements Host {
     turn(axis, angle, s0[0]);
     const s = this.worldEdge(source.object, source.id)!;
     this.moveBranch(o, sub3(t[0], s[0]));
+  }
+
+  /**
+   * New here, for the magnet: the world move that turns `source`'s face about `about`
+   * (a point on it) to face `target`'s, and carries `about` to `at` (a point on that
+   * face), so the two lie flush.
+   */
+  faceSnap(source: Sub, target: Sub, about: V3, at: V3): Mat4 | null {
+    const s = this.worldFace(source.object, source.id);
+    const t = this.worldFace(target.object, target.id);
+    if (!s || !t) return null;
+    const { axis, angle } = between(s.normal, [-t.normal[0], -t.normal[1], -t.normal[2]]);
+    const len = Math.hypot(...axis);
+    const turn =
+      len < 1e-9 || Math.abs(angle) < 1e-9
+        ? mat4.identity()
+        : mat4.rotationAbout(about, [axis[0] / len, axis[1] / len, axis[2] / len], angle);
+    return mat4.multiply(turn, mat4.translation(...sub3(at, about)));
+  }
+
+  /**
+   * New here, for the magnet: the face under the crosshair through the section (as it
+   * would be highlighted), of any object in the world being edited but those `skip`ped.
+   */
+  faceUnder(skip: (o: CutObject) => boolean): { face: Sub; at: V3 } | null {
+    let best: { o: CutObject; pick: KernelPick } | null = null;
+    for (const f of this.vm.props.features(this.primary, P.Visible)) {
+      if (!isObject(f) || skip(f) || this.vm.props.has(f, P.Nonselectable)) continue;
+      if (this.outOfReach.has(f) || this.unseen.has(f) || this.vm.props.has(f, P.Sectioninvisible)) continue; // prettier-ignore
+      if (f.brep.numFaces === 0 || this.vm.props.has(f, P.Lockedgeometry)) continue;
+      const s = this.section(f);
+      if (!s) continue;
+      const [x, y, z] = this.cursor();
+      const pick = pickAt(this.world(f), s, x, y, z, this.picksize);
+      if (!pick || (pick.kind !== 'face' && pick.kind !== 'inPlaneFace')) continue;
+      if (!best || betterPick(pick, best.pick)) best = { o: f, pick };
+    }
+    if (!best) return null;
+    return { face: this.features.face(best.o, best.pick.id) as Sub, at: best.pick.at };
   }
 
   /** A face's world normal and centre. */
