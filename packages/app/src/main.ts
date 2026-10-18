@@ -26,7 +26,6 @@ import {
   installToolboxes,
   bulbLightOf,
   cameraViewOf,
-  setCameraShown,
   installStoragePad,
   installHelpPad,
   keysPlateOf,
@@ -56,10 +55,7 @@ import { RotateToolView } from './render/rotatetool.ts';
 import { ScaleBoxView } from './render/scalebox.ts';
 import { setLineResolution } from './render/lines.ts';
 import { ModelView, type DrawStyle, type Model } from './render/models.ts';
-import { CameraSlide, lensShot } from './render/cameraslide.ts';
-import { CameraWindow } from './render/camerawindow.ts';
-import { CameraPathView } from './render/camerapath.ts';
-import type { Shot } from './camera/flyover.ts';
+import { CameraSlide } from './render/cameraslide.ts';
 import { ScribbleView } from './render/scribbles.ts';
 import { LabelView } from './render/labels.ts';
 import { PadView } from './render/pads.ts';
@@ -128,14 +124,26 @@ const envView = new ModelView();
 const envSection = new SectionLines();
 const padView = new PadView();
 const labelView = new LabelView();
-const cameraSlide = new CameraSlide();
-const cameraPath = new CameraPathView();
+// The camera sees the world being made, in its room: not the plane, the tools or itself.
+const cameraSlide = new CameraSlide(() => [
+  loading.object,
+  scribbles.object,
+  padView.object,
+  labelView.object,
+  envView.object,
+  envSection.object,
+  toolView.object,
+  boxView.object,
+  plane.object,
+  section.object,
+  highlights.object,
+  crosshair.object,
+]);
 const scribbles = new ScribbleView();
 /** The ring that turns in the room while a file is read. */
 const loading = new LoadingRing();
 scene.add(
   loading.object,
-  cameraPath.object,
   scribbles.object,
   cameraSlide.object,
   padView.object,
@@ -886,49 +894,6 @@ function catchUp(): void {
     settle();
 }
 
-// ---- the camera goodie's window and its fly-over ----
-let cameraWanted = false;
-let cameraBlocked = false;
-const cameraWindow = new CameraWindow({
-  scene,
-  // The camera sees the world being made, in its room: not the plane, the tools or itself.
-  hidden: [
-    loading.object,
-    cameraPath.object,
-    scribbles.object,
-    cameraSlide.object,
-    padView.object,
-    labelView.object,
-    envView.object,
-    envSection.object,
-    toolView.object,
-    boxView.object,
-    plane.object,
-    section.object,
-    highlights.object,
-    crosshair.object,
-  ],
-  live: () => {
-    const v = cameraViewOf(rt);
-    return v && rt.vm.props.has(v.camera, P.Visible) ? lensShot(rt, v.camera) : null;
-  },
-  onClose: () => {
-    cameraWanted = false;
-    setCameraShown(rt, false);
-  },
-  onShots: (shots, perShot) => store('flyover', JSON.stringify({ shots, perShot })),
-});
-try {
-  const saved = JSON.parse(stored('flyover') ?? 'null') as {
-    shots: Shot[];
-    perShot: number;
-  } | null;
-  if (saved?.shots) cameraWindow.setShots(saved.shots, saved.perShot);
-} catch {
-  /* nothing kept */
-}
-window.addEventListener('pagehide', () => cameraWindow.close());
-
 /** The models not falling: a falling one isn't hovered or picked (it isn't where the world has it). */
 function stillModels(): Model[] {
   const shown = display.step === 0 ? models.models : models.models.filter((m) => models.shows(m.object)); // prettier-ignore
@@ -1002,26 +967,10 @@ function render(): void {
       lastBoxes = bkey;
     }
   }
-  // The camera's view: its own window, or, if the browser won't open one, the slide.
-  cameraWindow.poll();
+  // The camera's view: a screen in the room above the camera, while it's out and turned on.
   const view = cameraViewOf(rt);
-  const out = view && rt.vm.props.has(view.camera, P.Visible) ? view.camera : undefined;
-  const wanted = !!(view?.shown && out);
-  if (wanted !== cameraWanted) {
-    cameraWanted = wanted;
-    if (wanted) cameraBlocked = demo || !cameraWindow.open();
-    else {
-      cameraWindow.close();
-      cameraBlocked = false;
-    }
-  }
-  cameraSlide.update(rt, cameraBlocked ? out : undefined, renderer, scene);
-  cameraPath.update(
-    cameraWindow.shots,
-    cameraWindow.secondsPerShot,
-    cameraWindow.flying,
-    cameraWindow.isOpen,
-  );
+  const out = view?.shown && rt.vm.props.has(view.camera, P.Visible) ? view.camera : undefined;
+  cameraSlide.update(rt, out, renderer, scene);
   renderer.render(scene, camera);
 }
 
@@ -1620,12 +1569,8 @@ declare global {
         mids: number[][];
         spans: number[][];
       };
-      flyover(): {
-        open: boolean;
-        inRoom: boolean;
-        shots: number;
-        playing: boolean;
-      };
+      /** Whether the camera's view shows, on its screen in the room. */
+      cameraView(): boolean;
       demoSeconds: number;
     };
   }
@@ -1918,12 +1863,7 @@ async function start(): Promise<void> {
       const spans = boxes.map(([lo, hi]) => lo!.map((a, k) => hi![k]! - a));
       return { active: falls.active, aboveFloor: Math.min(...lows), lows, mids, spans };
     },
-    flyover: () => ({
-      open: cameraWindow.isOpen,
-      inRoom: cameraBlocked,
-      shots: cameraWindow.shots.length,
-      playing: cameraWindow.playing,
-    }),
+    cameraView: () => cameraSlide.shown,
     demoSeconds: DEMO_SECONDS,
   };
   const t0 = performance.now();

@@ -187,28 +187,19 @@ comes out, bottom left beside the floppy. Put the ruler away and it goes.
 - **Pick an edge** to see its length.
 - **Drag out a marquee** and its size shows as it grows.
 
-## 7. The camera and fly-overs
+## 7. The camera
 
-The camera gives you a second point of view, and can fly over what you've made.
+The camera gives you a second point of view.
 
 1. **Take it out.** Space takes the plane to the toolboxes; click the goodies box (the one with the
    camera on it), then drag the magenta camera out and carry it forward (⌥ and move).
-2. **Open its window.** Click the camera. A window opens beside the main one, **Camera's View**,
-   showing what the lens sees, live as you carry the camera. Put it on a second screen if you have
-   one. (If nothing opens, let the page open pop-ups; until then the view stands on a slide in the
-   room above the camera.)
+2. **Turn its view on.** Click the camera. A small screen comes up in the room above it, with a
+   thin black border, showing what the lens sees, live as you carry the camera.
 3. **Aim it.** It comes out of its box looking out of the room, at you. Put the plane through the
    lens (the grey cylinder at its front) and drag the lens: the camera turns to follow. To turn
    it round to face the world, hold the lens and take the plane back past the camera (⌥ and move).
-4. **Place shots.** In the camera's window, click **Add shot** (or press Return) to keep where the
-   camera is and where it looks. Move and aim it again and add another; three or four make a good
-   fly-over. Each shot shows in the room as a magenta cross, with a dashed line through them all.
-   _Remove last_ and _Clear_ take shots away.
-5. **Fly.** Click **Play** (or Space in the camera's window): the view flies smoothly through the
-   shots and the path's white mark travels with it. _Seconds per shot_ sets the pace.
-   **Record video** plays it into a video file, which downloads when it ends.
 
-Click the camera again, or close its window, to put the view away; the shots are kept.
+Click the camera again to put the view away.
 
 ## 8. Files
 

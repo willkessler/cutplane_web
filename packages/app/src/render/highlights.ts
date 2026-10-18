@@ -123,7 +123,7 @@ export class Highlights {
     width: 2,
     dashed: true,
     dash: 4,
-    depthTest: false,
+    depthTest: true,
     renderOrder: 38,
   });
   private readonly dot = new THREE.Mesh(
@@ -133,6 +133,8 @@ export class Highlights {
 
   constructor() {
     this.dot.renderOrder = 32;
+    // Only where something hides it: where the tool shows, its own look does.
+    this.heldThrough.material.depthFunc = THREE.GreaterDepth;
     this.object.add(
       this.ghostFaces,
       this.ghost.object,

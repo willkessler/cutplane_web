@@ -41,10 +41,10 @@
 
 - The magnet tool object collision works well, but it doesn't exactly
   do what a user might want. It's sensitive to dragging an object via
-  its face (not its body). What the user expects therefore is *that*
+  its face (not its body). What the user expects therefore is _that_
   face would snap to the target object's face, but it doesn't if that
-  would create a collision *on the way there*. So that means the
-  dragged object must reorient so that the face the user is *dragging*
+  would create a collision _on the way there_. So that means the
+  dragged object must reorient so that the face the user is _dragging_
   snaps to the target object's face. It should feel like you can just
   stick the object to another object along the surfaces you're
   dragging, as if you temporarily magnetized both objects' faces.
@@ -70,4 +70,3 @@
   pretty poor. There are some polygon breaks that make it not render
   smoothly. those need to be repaired or a new fresh hand icon object
   should be created instead to replace the one we had back then.
-

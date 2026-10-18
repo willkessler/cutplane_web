@@ -22,8 +22,7 @@ see their cross-sections. Vertices, edges and faces are picked and edited where 
 > original CPL scripts in a CPL virtual machine; the cutting is done by manifold-3d and comes back
 > as the original's kind of polygon faces. The saw, pencil (in the plane or across a face), union
 > tool, magnet, grabber, pan tool, magnifier, group tool and the measure pad all work too. The
-> camera opens a window on what it sees, and flies over the world through shots you place, into
-> a video if you like. A
+> camera shows what it sees on a small screen in the room above it. A
 > **?** in the room shows the controls. Models in glTF, OBJ, STL, Open Inventor, VRML and DXF can
 > be dropped on the page, the world exports to glTF (it opens in Blender), OBJ and STL, and every
 > change is autosaved in the browser with its undo history.

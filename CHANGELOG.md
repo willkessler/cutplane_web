@@ -30,6 +30,13 @@ New in 2026: none of these were in the 1991 original.
   by a marquee), G wrapped the group in another group instead of taking it apart, so it took
   two G's to undo, and the first seemed to do nothing. G now ungroups whenever all that is
   picked belongs to one group.
+- **The camera's view is a screen in the room.** Its own window got lost behind the browser and
+  had no room on a laptop; now a click on the camera brings up a small screen with a thin black
+  border, standing in the room above it like the plates. The fly-over's shots, play and video
+  went with the window, to come back as a path the camera follows.
+- **A tool in hand is outlined only where it's hidden.** Its dotted white outline covered small
+  tools, so it was hard to see which one you held. Now it shows only where something is in
+  front of the tool.
 
 ### October 17, 2026
 
@@ -85,7 +92,8 @@ New in 2026: none of these were in the 1991 original.
 - **Faces can extrude** instead of only stretching.
 - **The pencil draws on surfaces**, splitting a face from edge to edge, and tidies its strokes.
 - **The saw cuts what is picked**, groups whole, and parts a group's halves.
-- **The camera flies over the world** through shots you place, and can record a video.
+- **The camera flies over the world** through shots you place, and can record a video (until
+  October 18, when the view moved into the room).
 - **The measure pad comes with a ruler** (M): every object is measured, sizes can be typed, and
   marquees are measured while they're dragged.
 - **A help plate** behind the ? pad, and **⌘A** picks everything.
