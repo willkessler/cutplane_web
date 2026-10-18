@@ -68,7 +68,8 @@ have little inside to click (the rover's wheels, say, and nothing else). Ungroup
 on single faces again.
 
 **Press and drag** to move what is picked. It follows the crosshair in the plane; hold ⌥ while
-dragging to carry it in depth too. **Shift-click** adds to what is picked or takes something away.
+dragging to carry it in depth too. (A trackpad can't swipe mid-drag: while it's pressed, macOS
+sends no scrolling, so ⌥ is the way to carry things in depth there.) **Shift-click** adds to what is picked or takes something away.
 **Press on empty space and drag** to draw a **marquee**: a box that picks the objects inside it
 (move the plane while dragging for a 3D box). **⌘A** picks everything; **⌫** deletes what is
 picked. **⌘Z** undoes, one drag at a time, and **⇧⌘Z** redoes.
