@@ -18,6 +18,8 @@ export interface FeatureAttrs {
   privateCode?: string;
   /** Private CPL code kept in the file itself (new: the original saved only references). */
   privateSource?: string;
+  /** An object's face colours are a photo's, its light already in them: lit softly (new). */
+  photo?: boolean;
 }
 
 /** A pool as plain arrays. */

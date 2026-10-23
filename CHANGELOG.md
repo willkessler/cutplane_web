@@ -40,6 +40,38 @@ New in 2026: none of these were in the 1991 original.
 - **The 1 key, with nothing picked, takes one press there and one back.** It goes straight to
   every edge (back ones too) and then back to solids, with no front-faces step between. Its
   wire is a deeper grey, which was too faint to see on the room's colours.
+- **Tools in hand are bigger, and alike in size.** A long, thin tool (pencil, saw, drill) is 120
+  long in hand, twice its pad size; any other (union, magnifier, group tool, hand, magnet,
+  grabber, globe) is 75 across, so a bulky tool doesn't dwarf a thin one. On its pad a tool is
+  the size it was.
+- **Esc puts the tool in hand away**, back on its pad: the key you reach for to get out of a
+  tool. (In full screen the browser keeps Esc to leave it.)
+- **A tool left in hand comes back in hand, and goes away again.** The room as you left it
+  brought the tool back on the crosshair but not as the one in hand, so nothing could put it
+  away.
+- **Big STLs are simplified.** A model of more than 400,000 faces is brought down to about that
+  many, but an STL (each triangle with its own three corners) came in whole: 2.7 million faces
+  of a 3D-printing figure, with seconds to cut. The simplifier is now handed only the corners in
+  use.
+- **An STL stands up.** STL's up is Z, a printer's; the room's is Y. A figure made for printing
+  came in lying on its back; it now stands, and STL exports stand up on a printer's bed.
+- **A big world reads back.** A world saved with a solid of hundreds of thousands of faces (an
+  import) couldn't be opened again, the next visit stopping with "Maximum call stack size
+  exceeded".
+- **Inventor face sets with their own points.** A face set can carry its points and colours
+  itself (Inventor 2.1's `vertexProperty`), as JPL's Mars terrain meshes do; those came in empty,
+  or stopped the simplifier with "Assertion failed".
+- **Textures from the SGI era, and Mars on a slab.** An Inventor file's `Texture2` colours its
+  faces when its image is dropped with it: an SGI `.rgb` (read in Cutplane, which the browser
+  can't), a `.png` or a `.jpg`. A photo's colours go on once the model is simplified, so
+  texture doesn't stop the simplifier. Terrain made with Z up, as NASA JPL's Mars rover meshes
+  are, is laid flat and stood on a slab of ground (its edge closed with one face cut up through
+  the ground), so the plane cuts its profile.
+- **Photos are lit softly.** A rover's picture already has the sun in it, so a face coloured
+  from one shows the photo's own colour when level, and no less than 60% of it however it
+  faces, where the room's lights would darken it by a third or more.
+- **The top bar's settings are in one menu.** The plane's look, what dragging a face does, how
+  groups pick and how firmly the plane sticks are under _Settings_, so the bar fits on one line.
 
 ### October 17, 2026
 

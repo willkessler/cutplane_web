@@ -22,7 +22,7 @@ Nothing to install. It works in Chrome, Edge, Firefox and Safari on a desktop or
   along the bottom. They move with the plane, so they're always within reach.
 - The **?** pad (or the ? key) opens the **keys plate** beside the room: every key and tool, in
   groups (section 9).
-- Above the room is the **top bar** (models, plane style, files). It disappears when you start
+- Above the room is the **top bar** (models, _Settings_, files). It disappears when you start
   working (section 2).
 - The first time, the room is turned a little and the keys plate is open. After that, Cutplane
   opens as you left it (section 8).
@@ -49,7 +49,7 @@ without clicking.
 
 A face **parallel to the plane holds it** for a moment: the plane catches on it and stays until
 you've pushed a little further, so it's easy to stop right on the face and take it whole. The top
-bar sets how firmly (_Faces stick_, or not at all).
+bar's _Settings_ menu sets how firmly (_Faces stick_, or not at all).
 
 **Work mode** (F) goes full screen and captures the pointer, as the SGI did: nothing flat covers
 the room, and the pointer can't run off the edge of the window. Press **?** (the key, or the pad
@@ -65,7 +65,7 @@ outlined in white with a small yellow box where you'd take hold of it. What is p
 - **Inside** the section: the whole object. An object that belongs to a group is picked with its
   group.
 
-**Groups pick whole or by part** (top bar). With _Groups pick whole_, the first choice, a click
+**Groups pick whole or by part** (top bar, _Settings_). With _Groups pick whole_, the first choice, a click
 anywhere on a group's part picks the whole group. _Groups pick by part_ is the original: a click
 on a grouped object's corner, edge or face picks just that, and only a click inside its section
 picks the group.
@@ -86,7 +86,7 @@ up again when you put the corner back.
 
 ![A face of the cube pulled out with Faces extrude](images/guide-extrude.png)
 
-**Faces stretch or extrude** (top bar). _Faces stretch_ is the original: drag a face and the faces
+**Faces stretch or extrude** (top bar, _Settings_). _Faces stretch_ is the original: drag a face and the faces
 around it stretch to follow. With _Faces extrude_, a face pulled outward grows walls of its own,
 so the cube above has grown a box out of its right side. Push it back and the walls go.
 
@@ -103,7 +103,8 @@ so the cube above has grown a box out of its right side. Push it back and the wa
 ## 5. Tools
 
 Click the **hammer** headpad (top left) to open its rail, and click a pad to take its tool. A
-tool rides on the crosshair; click its pad again, or call up another tool, to put it back.
+tool rides on the crosshair, bigger than on its pad; click its pad again, press **Esc**, or call up
+another tool, to put it back.
 
 - **Pencil** (or **P**): press and draw a shape in the plane. Let go and it becomes a solid 50
   deep. Or draw **on a surface**: press on a corner of an object's section, and a white line
@@ -208,7 +209,17 @@ Click the camera again to put the view away.
   - **models** are added to it: glTF (`.glb`, `.gltf`), OBJ (with its `.mtl`), STL, and the SGI
     era's Open Inventor (`.iv`, text or binary), VRML (`.wrl`) and DXF, gzipped or not
     (`.iv.gz`). A file comes in as one group; **G** takes it apart. Models are made into solids on
-    the way in, and scaled to fit the room if need be.
+    the way in, and scaled to fit the room if need be. An STL's up is Z, as a 3D printer's is,
+    so a figure made for printing stands up in the room.
+  - **Textures** come along when dropped with the model: an Inventor file's `Texture2` (an SGI
+    `.rgb`, or a `.png` or `.jpg`) colours its faces. Without it the model comes in grey, and
+    the notice names the file it wanted.
+  - **Terrain** made with Z up, such as NASA JPL's Mars rover meshes (an `.iv` with its `.rgb`),
+    is laid flat and stood on a slab of ground, so the plane cuts its profile.
+  - A **Blender** file (`.blend`) can't be read directly; Blender turns it into glTF without
+    opening its window:
+    `/Applications/Blender.app/Contents/MacOS/Blender -b model.blend --python-expr "import bpy; bpy.ops.export_scene.gltf(filepath='model.glb', export_apply=True)"`
+    (`export_apply` applies its modifiers), then drop the `.glb`.
   - A big file takes a few seconds: a **ring turns in the room** while it's read, filling as it
     goes. **Esc** stops it. A model of more than 400,000 faces is simplified to about that many,
     so the room stays quick to work in; add `?faces=all` to the page's
@@ -219,7 +230,7 @@ Click the camera again to put the view away.
   menu). The **floppy** pad in the room does the same by name: click it, click _Save to:_ or
   _Load from:_, type a name and press Return.
 - **Export…** writes **glTF** (`.glb`, which opens in Blender: _File → Import → glTF 2.0_), **OBJ**
-  or **STL** (for printing).
+  or **STL** (for printing, Z up).
 - **Everything is autosaved** in this browser as you go, undo history and all. Close the tab and
   come back, and the world is as you left it; undo still works. Choosing a model from the menu
   starts that model afresh, so Save what you want to keep. (It's kept once the mouse and keys

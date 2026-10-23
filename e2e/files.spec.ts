@@ -268,6 +268,56 @@ test('Inventor, VRML and DXF files open too', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+/** A JPL-style terrain (new): an n × n grid made Z up, textured from ground.rgb. */
+function terrain(n: number): string {
+  const pts: string[] = [];
+  const uv: string[] = [];
+  for (let i = 0; i < n; i++)
+    for (let j = 0; j < n; j++) {
+      pts.push(`${i} ${j} ${(Math.sin(i * 0.3) * 0.5).toFixed(3)}`);
+      uv.push(`${i / (n - 1)} ${j / (n - 1)}`);
+    }
+  const idx: string[] = [];
+  for (let i = 0; i + 1 < n; i++)
+    for (let j = 0; j + 1 < n; j++) {
+      const a = i * n + j;
+      idx.push(`${a} ${a + 1} ${a + n} -1 ${a + 1} ${a + n + 1} ${a + n} -1`);
+    }
+  return `#Inventor V2.1 ascii\nSeparator { Texture2 { filename "ground.rgb" } Material { diffuseColor 1 1 1 }
+  ShapeHints { vertexOrdering COUNTERCLOCKWISE }
+  IndexedFaceSet { vertexProperty VertexProperty { vertex [ ${pts.join(',')} ] texCoord [ ${uv.join(',')} ] }
+  coordIndex [ ${idx.join(' ')} ] } }`;
+}
+
+/** An SGI image (.rgb) one row high: red on the left, blue on the right. */
+function redBlueRgb(): Buffer {
+  const head = Buffer.alloc(512);
+  head.writeUInt16BE(474, 0);
+  head[3] = 1; // a byte a channel, not run-length encoded
+  head.writeUInt16BE(3, 4);
+  head.writeUInt16BE(2, 6);
+  head.writeUInt16BE(1, 8);
+  head.writeUInt16BE(3, 10);
+  return Buffer.concat([head, Buffer.from([255, 0, 0, 0, 0, 255])]); // R, G, B planes
+}
+
+test('a terrain made Z up lies on a slab, coloured by the SGI image dropped with it (new)', async ({
+  page,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  const iv = { name: 'ground.iv', mimeType: 'text/plain', buffer: Buffer.from(terrain(30)) };
+  // Alone, it says what it wanted.
+  await page.locator('#file').setInputFiles(iv);
+  await expect.poll(() => notice(page)).toContain('uncoloured: drop ground.rgb with it');
+  expect(await notice(page)).toContain('laid flat');
+  await page.locator('#file').setInputFiles([iv, { name: 'ground.rgb', mimeType: 'image/x-rgb', buffer: redBlueRgb() }]); // prettier-ignore
+  await expect
+    .poll(() => notice(page))
+    .toMatch(/Added 1 object from ground\.iv, .*laid flat(?!.*uncoloured)/);
+  await expect.poll(() => page.evaluate(() => window.__cutplane!.palette())).toEqual(expect.arrayContaining(['255,0,0', '0,0,255'])); // prettier-ignore
+  expect(errors).toEqual([]);
+});
+
 test('binary Inventor opens, and gzipped files (.iv.gz) open as they are', async ({ page }) => {
   const errors = await open(page, 'sample=cube');
   // Written by Coin3D (docker/coin/make.sh): a red tetrahedron and a cube, among other things.

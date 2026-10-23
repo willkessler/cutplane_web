@@ -184,6 +184,7 @@ function readObject(L: Lines, warn: (m: string) => void): { object: CutObject; p
   if (draw) object.drawTechnique = rest(draw);
   const bbox = L.maybe(/^Object Screenbboxtechnique:(.*)$/);
   if (bbox) object.screenBBoxTechnique = rest(bbox);
+  if (L.maybe(/^Object Photo colours$/)) object.attrs.photo = true;
   const code = L.maybe(/^Object CPL private code:\s*(\d+)/);
   if (code) object.attrs.privateSource = L.code(n(code));
 
@@ -219,8 +220,16 @@ function readShell(L: Lines, b: Brep, warn: (m: string) => void): void {
     faces.push(loops);
   }
   // Indices are 1-based; a few converted files are 0-based throughout.
-  const all = faces.flat(2);
-  const zeroBased = all.length > 0 && Math.min(...all) === 0 && Math.max(...all) < nv;
+  // (Not Math.min(...all): a shell of a million indices is more arguments than a call takes.)
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const loops of faces)
+    for (const loop of loops)
+      for (const k of loop) {
+        if (k < lo) lo = k;
+        if (k > hi) hi = k;
+      }
+  const zeroBased = lo === 0 && hi < nv;
   if (zeroBased) warn('shell uses 0-based vertex indices; read as such');
   for (const loops of faces)
     for (const loop of loops) loop.forEach((k, i) => (loop[i] = zeroBased ? k : k - 1));

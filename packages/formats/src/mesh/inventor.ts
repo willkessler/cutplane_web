@@ -3,6 +3,9 @@ import type { V3 } from './faces.ts';
 import { soupObjects, type Soup } from './polygonize.ts';
 import { parseBinary } from './inventorbin.ts';
 import { part, type MeshOptions } from './options.ts';
+import type { Pixels } from './gltf.ts';
+import { layFlat } from './terrain.ts';
+import { paintSoups, quantize, texel } from './texture.ts';
 
 /**
  * Open Inventor (.iv, ASCII) and VRML (.wrl, 1.0 and 2.0). VRML 1.0 is
@@ -263,6 +266,11 @@ const triples = (a: ArrayLike<number>): V3[] => {
   for (let k = 0, j = 0; k + 2 < a.length; k += 3) out[j++] = [a[k]!, a[k + 1]!, a[k + 2]!];
   return out;
 };
+const pairs = (a: ArrayLike<number>): [number, number][] => {
+  const out = new Array<[number, number]>(Math.floor(a.length / 2));
+  for (let k = 0, j = 0; k + 1 < a.length; k += 2) out[j++] = [a[k]!, a[k + 1]!];
+  return out;
+};
 const rgb = (c: readonly number[]): Rgb =>
   c.map((v) => Math.round(Math.min(1, Math.max(0, v)) * 255)) as Rgb;
 /** Faces of an index list, each ended by -1 (the last may not be). */
@@ -355,9 +363,33 @@ interface State {
   materials: Rgb[];
   binding: string;
   ordering: string;
+  /** The Texture2 in force (its file's name), and the texture coordinates. */
+  texture: string | null;
+  texCoords: (readonly [number, number])[];
 }
 
 const GREY: Rgb = [204, 204, 204]; // Inventor's default diffuse 0.8
+
+/**
+ * A shape's own points and colours (Inventor 2.1's `vertexProperty` field, a
+ * VertexProperty node), in place of the Coordinate3 and Material before it.
+ */
+function ownVertices(n: VNode, st: State): State {
+  const vp = child(n, 'vertexProperty');
+  if (!vp) return st;
+  const out = { ...st };
+  const v = list(vp, 'vertex');
+  if (v.length) out.coords = triples(v);
+  const t = list(vp, 'texCoord');
+  if (t.length) out.texCoords = pairs(t);
+  // Colours packed as 0xRRGGBBAA, bound by the VertexProperty's own materialBinding.
+  const c = list(vp, 'orderedRGBA');
+  if (c.length) {
+    out.materials = Array.from(c, (x) => [(x >>> 24) & 255, (x >>> 16) & 255, (x >>> 8) & 255] as Rgb); // prettier-ignore
+    out.binding = word(vp, 'materialBinding', 'OVERALL');
+  }
+  return out;
+}
 /** The share of the time reading the text takes; the rest is making solids of it. */
 const READING = 0.15;
 
@@ -381,6 +413,18 @@ export function readInventor(file: string | Uint8Array, opts: MeshOptions = {}):
     ? parseBinary(file as Uint8Array, part(progress, 0, READING))
     : parseText(typeof file === 'string' ? file : latin1(file), part(progress, 0, READING)); // prettier-ignore
 
+  // Textures by name: a Texture2's file, found among those dropped with this one by its last part.
+  const images = new Map<string, Pixels | undefined>();
+  const image = (file: string): Pixels | undefined => {
+    const base = file.split(/[\\/]/).pop()!;
+    if (!images.has(base)) {
+      const got = opts.images?.(base);
+      if (!got) opts.missingImage?.(base);
+      images.set(base, got);
+    }
+    return images.get(base);
+  };
+
   const shape = (
     st: State,
     pts: V3[],
@@ -388,6 +432,7 @@ export function readInventor(file: string | Uint8Array, opts: MeshOptions = {}):
     colors: (Rgb | null)[],
     ccw: boolean | null,
     name: string | null,
+    tcFaces?: number[][],
   ): Soup => {
     const m = st.matrix;
     const det =
@@ -396,6 +441,13 @@ export function readInventor(file: string | Uint8Array, opts: MeshOptions = {}):
     // Only the points its faces use: face sets often share one long list of points.
     const at = new Int32Array(pts.length).fill(-1);
     const positions: V3[] = [];
+    // Its texture, if it has one and coordinates on it: by vertex, or (tcFaces) corner by corner.
+    const img = st.texture && st.texCoords.length ? image(st.texture) : undefined;
+    const tc = st.texCoords;
+    const uvs: ([number, number] | null)[] | null = img && !tcFaces ? [] : null;
+    // Inventor's textures have (0, 0) at the bottom left; a texture's rows go from the top.
+    const uvOf = (t: readonly [number, number] | undefined): [number, number] | null =>
+      t ? [t[0], 1 - t[1]] : null;
     const polygons = faces.map((f) => {
       const g = f.map((v) => {
         let k = at[v];
@@ -404,13 +456,31 @@ export function readInventor(file: string | Uint8Array, opts: MeshOptions = {}):
           const p = pts[v]!;
           k = at[v] = positions.length;
           positions.push([...mat4.transformPoint(m, p[0], p[1], p[2])] as V3);
+          uvs?.push(uvOf(tc[v]));
         }
         return k;
       });
       const ok = g.every((k) => k >= 0) ? g : g.filter((k) => k >= 0);
       return flip ? ok.reverse() : ok;
     });
-    return { name, positions, polygons, colors, ...(ccw === null ? { unordered: true } : {}) };
+    if (img && tcFaces) {
+      // Coordinates of their own a corner: each face coloured now, from the middle of its.
+      colors = colors.map((c, i) => {
+        const ts = (tcFaces[i] ?? []).map((k) => uvOf(tc[k])).filter((t) => t !== null);
+        if (!ts.length) return c;
+        const u = ts.reduce((a, t) => a + t[0], 0) / ts.length;
+        const v = ts.reduce((a, t) => a + t[1], 0) / ts.length;
+        return texel(img, u, v).map((x, k) => quantize(c ? (x * c[k]!) / 255 : x)) as Rgb;
+      });
+    }
+    return {
+      name,
+      positions,
+      polygons,
+      colors,
+      ...(ccw === null ? { unordered: true } : {}),
+      ...(uvs ? { texture: img!, uvs } : {}),
+    };
   };
   /** A face set's shape: one of several in a row may join the others (see `joined`). */
   const faceSet = (soup: Soup): Soup[] => {
@@ -451,6 +521,7 @@ export function readInventor(file: string | Uint8Array, opts: MeshOptions = {}):
       return out;
     };
     const copy = (): State => ({ ...st, coords: st.coords, materials: st.materials });
+    const vs = vrml2 ? st : ownVertices(n, st); // (a shape's own points, if it has them)
     switch (n.type) {
       // ---- Inventor and VRML 1.0 ----
       case 'Separator':
@@ -504,6 +575,12 @@ export function readInventor(file: string | Uint8Array, opts: MeshOptions = {}):
       case 'Coordinate3':
         st.coords = triples(list(n, 'point'));
         return [];
+      case 'Texture2':
+        st.texture = word(n, 'filename') || null;
+        return [];
+      case 'TextureCoordinate2':
+        st.texCoords = pairs(list(n, 'point'));
+        return [];
       case 'Material':
         if (!vrml2) st.materials = triples(nums(n, 'diffuseColor', [0.8, 0.8, 0.8])).map(rgb);
         return [];
@@ -519,42 +596,46 @@ export function readInventor(file: string | Uint8Array, opts: MeshOptions = {}):
       case 'IndexedLineSet':
         if (vrml2) return [];
         {
-          const faces = loops(list(n, 'coordIndex'), st.coords);
+          const faces = loops(list(n, 'coordIndex'), vs.coords);
           return lineShape([
-            shape(st, st.coords, faces, faceColors(st, faces.length, []), null, name),
+            shape(vs, vs.coords, faces, faceColors(vs, faces.length, []), null, name),
           ]);
         }
       case 'IndexedFaceSet':
         if (vrml2) return [];
         {
           const faces = runs(list(n, 'coordIndex'));
+          // Texture coordinates go by the points' indices, unless it has indices of its own for them.
+          const tci = list(n, 'textureCoordIndex');
+          const own = tci.length > 1 || (tci.length === 1 && tci[0] !== -1);
           return faceSet(
             shape(
-              st,
-              st.coords,
+              vs,
+              vs.coords,
               faces,
-              faceColors(st, faces.length, list(n, 'materialIndex')),
-              ordering(st),
+              faceColors(vs, faces.length, list(n, 'materialIndex')),
+              ordering(vs),
               name,
+              own ? runs(tci) : undefined,
             ),
           );
         }
       case 'FaceSet': {
         let at = nums(n, 'startIndex', [0])[0]!;
         const faces = nums(n, 'numVertices', [-1]).map((c) => {
-          const count = c < 0 ? st.coords.length - at : c;
+          const count = c < 0 ? vs.coords.length - at : c;
           const f = [...Array(count).keys()].map((k) => at + k);
           at += count;
           return f;
         });
         return faceSet(
-          shape(st, st.coords, faces, faceColors(st, faces.length, []), ordering(st), name),
+          shape(vs, vs.coords, faces, faceColors(vs, faces.length, []), ordering(vs), name),
         );
       }
       case 'IndexedTriangleStripSet': {
-        const faces = strips(st, runs(list(n, 'coordIndex')));
+        const faces = strips(vs, runs(list(n, 'coordIndex')));
         return faceSet(
-          shape(st, st.coords, faces, faceColors(st, faces.length, []), ordering(st), name),
+          shape(vs, vs.coords, faces, faceColors(vs, faces.length, []), ordering(vs), name),
         );
       }
       case 'TriangleStripSet': {
@@ -564,9 +645,9 @@ export function readInventor(file: string | Uint8Array, opts: MeshOptions = {}):
           at += c;
           return s;
         });
-        const faces = strips(st, list);
+        const faces = strips(vs, list);
         return faceSet(
-          shape(st, st.coords, faces, faceColors(st, faces.length, []), ordering(st), name),
+          shape(vs, vs.coords, faces, faceColors(vs, faces.length, []), ordering(vs), name),
         );
       }
       case 'Cube': {
@@ -701,8 +782,10 @@ export function readInventor(file: string | Uint8Array, opts: MeshOptions = {}):
     }
   };
 
-  const st: State = { matrix: mat4.identity(), coords: [], materials: [], binding: 'OVERALL', ordering: 'UNKNOWN_ORDERING' }; // prettier-ignore
+  const st: State = { matrix: mat4.identity(), coords: [], materials: [], binding: 'OVERALL', ordering: 'UNKNOWN_ORDERING', texture: null, texCoords: [] }; // prettier-ignore
   const soups = joined(roots.flatMap((r) => visit(r, st)));
+  // Inventor's up is Y; a terrain made with Z up is laid on the floor.
+  if (!vrml2 && layFlat(soups)) opts.laidFlat?.();
   // Line sets count only when there's nothing else: a wireframe of a mesh (IVREAD wrote them).
   const faced = (list: readonly Soup[]): boolean =>
     list.some((x) => (!fromLines.has(x) && x.polygons.length > 0) || faced(x.children ?? []));
@@ -733,13 +816,14 @@ function joined(list: Soup[]): Soup[] {
       const positions: V3[] = [];
       const polygons: number[][] = [];
       const colors: (Rgb | null)[] = [];
-      for (const s of run) {
+      const painted = paintSoups(run);
+      for (const s of painted) {
         const base = positions.length;
         for (const p of s.positions) positions.push(p);
         for (const p of s.polygons) polygons.push(p.map((v) => v + base));
         s.polygons.forEach((_, i) => colors.push(s.colors?.[i] ?? null));
       }
-      const one: Soup = { name: null, positions, polygons, colors, ...(run[0]!.unordered ? { unordered: true } : {}) }; // prettier-ignore
+      const one: Soup = { name: null, positions, polygons, colors, ...(run[0]!.unordered ? { unordered: true } : {}), ...(painted.some((s) => s.photo) ? { photo: true } : {}) }; // prettier-ignore
       faceSets.add(one);
       out.push(one);
     }

@@ -124,6 +124,7 @@ export function duplicateTree(o: CutObject): CutObject {
     attrs: {
       props: [...o.attrs.props],
       ...(o.attrs.decalFile ? { decalFile: o.attrs.decalFile } : {}),
+      ...(o.attrs.photo ? { photo: true } : {}),
     },
     brep: o.brep.clone(),
     parent: null,

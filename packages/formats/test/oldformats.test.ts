@@ -2,7 +2,16 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { preorder, validate, volume, type CutObject } from '@cutplane/kernel';
-import { aciColor, readDxf, readInventor, roomBox } from '../src/index.ts';
+import {
+  aciColor,
+  readCut,
+  readDxf,
+  readInventor,
+  readSgi,
+  roomBox,
+  writeCut,
+  type Pixels,
+} from '../src/index.ts';
 import { CORPUS, read } from './files.ts';
 
 const solid = (o: CutObject) => validate(o.brep).closedManifold;
@@ -110,6 +119,26 @@ Separator {
     expect(g!.children).toHaveLength(2);
     expect(g!.children[0]!.name).toBe('part');
   });
+
+  it("reads a face set's own points and colours (vertexProperty), as JPL's terrain meshes have", () => {
+    const objs = readInventor(`#Inventor V2.1 ascii
+Separator {
+  Coordinate3 { point [ 99 99 99, 98 99 99, 99 98 99 ] }
+  IndexedFaceSet {
+    vertexProperty VertexProperty {
+      vertex [ 0 0 0, 3 0 0, 0 3 0, 0 0 3 ]
+      orderedRGBA [ 0xff000000, 0x0000ff00 ]
+      materialBinding PER_FACE
+    }
+    coordIndex [ 0 2 1 -1 0 1 3 -1 0 3 2 -1 1 2 3 -1 ]
+  }
+}`);
+    expect(objs).toHaveLength(1);
+    const [o] = objs as [CutObject];
+    expect(vol(o)).toBeCloseTo(4.5); // its own tetrahedron, not the Coordinate3's points
+    const colors = new Set(o.brep.faces().map((f) => (o.brep.faceColors.get(f) ?? o.color).join()));
+    expect(colors).toEqual(new Set(['255,0,0', '0,0,255']));
+  });
 });
 
 describe('binary Open Inventor', () => {
@@ -150,6 +179,127 @@ describe('binary Open Inventor', () => {
     expect(() => readInventor(bad.subarray(0, 200))).toThrow(
       /binary Inventor: the file ends too soon \(at byte \d+\)/,
     );
+  });
+});
+
+/** An SGI image (.rgb) of w × h, RGB, its rows given from the top; run-length encoded or not. */
+function sgi(
+  w: number,
+  h: number,
+  rgbAt: (x: number, y: number) => number[],
+  rle: boolean,
+): Uint8Array {
+  const head = new Uint8Array(512);
+  const dv = new DataView(head.buffer);
+  dv.setUint16(0, 474);
+  head[2] = rle ? 1 : 0;
+  head[3] = 1;
+  dv.setUint16(4, 3);
+  dv.setUint16(6, w);
+  dv.setUint16(8, h);
+  dv.setUint16(10, 3);
+  // Channel by channel, the bottom row first.
+  const rows: number[][] = [];
+  for (let z = 0; z < 3; z++)
+    for (let r = 0; r < h; r++) rows.push([...Array(w).keys()].map((x) => rgbAt(x, h - 1 - r)[z]!));
+  if (!rle) return Uint8Array.from([...head, ...rows.flat()]);
+  // Each row as one literal run then the end: the reader must follow the offset table.
+  const packed = rows.map((row) => [0x80 | row.length, ...row, 0]);
+  const tables = new Uint8Array(rows.length * 8);
+  const tv = new DataView(tables.buffer);
+  let at = 512 + tables.length;
+  packed.forEach((p, i) => {
+    tv.setUint32(i * 4, at);
+    tv.setUint32(rows.length * 4 + i * 4, p.length);
+    at += p.length;
+  });
+  return Uint8Array.from([...head, ...tables, ...packed.flat()]);
+}
+
+describe('SGI images and Inventor textures', () => {
+  const red = [250, 10, 10];
+  const blue = [10, 10, 250];
+  // Red on the left, blue on the right, a green top row.
+  const art = (x: number, y: number) => (y === 0 ? [10, 250, 10] : x < 4 ? red : blue);
+
+  it.each([false, true])('reads an SGI image, its top row first (run-length: %s)', (rle) => {
+    const img = readSgi(sgi(8, 4, art, rle));
+    expect([img.width, img.height]).toEqual([8, 4]);
+    const px = (x: number, y: number) => Array.from(img.data).slice((y * 8 + x) * 4, (y * 8 + x) * 4 + 4); // prettier-ignore
+    expect(px(0, 0)).toEqual([10, 250, 10, 255]);
+    expect(px(0, 3)).toEqual([...red, 255]);
+    expect(px(7, 3)).toEqual([...blue, 255]);
+  });
+
+  /** A JPL-style terrain: a gently rolling n × n grid, Z up (its faces facing −Z, JPL's up), textured. */
+  const terrain = (n: number) => {
+    const pts: string[] = [];
+    const uv: string[] = [];
+    for (let i = 0; i < n; i++)
+      for (let j = 0; j < n; j++) {
+        pts.push(`${i} ${j} ${(Math.sin(i * 0.3) * Math.cos(j * 0.2) * 0.5).toFixed(4)}`);
+        uv.push(`${i / (n - 1)} ${j / (n - 1)}`); // u across i, v (from the bottom) along j
+      }
+    const idx: string[] = [];
+    for (let i = 0; i + 1 < n; i++)
+      for (let j = 0; j + 1 < n; j++) {
+        const a = i * n + j;
+        idx.push(`${a} ${a + 1} ${a + n} -1 ${a + 1} ${a + n + 1} ${a + n} -1`);
+      }
+    return `#Inventor V2.1 ascii
+Separator {
+  Texture2 { filename "/some/where/ground.rgb" }
+  Material { diffuseColor 1 1 1 }
+  ShapeHints { vertexOrdering COUNTERCLOCKWISE }
+  IndexedFaceSet {
+    vertexProperty VertexProperty { vertex [ ${pts.join(',\n')} ] texCoord [ ${uv.join(',\n')} ] }
+    coordIndex [ ${idx.join('\n')} ]
+    textureCoordIndex -1
+  }
+}`;
+  };
+
+  it('colours a face set from its texture, and lays a terrain made Z up on the floor', () => {
+    const img: Pixels = readSgi(sgi(8, 4, art, true));
+    let flat = false;
+    const asked: string[] = [];
+    const [o] = readInventor(terrain(30), {
+      images: (name) => (asked.push(name), name === 'ground.rgb' ? img : undefined),
+      laidFlat: () => (flat = true),
+    });
+    expect(asked).toEqual(['ground.rgb']); // by its last part, once
+    expect(flat).toBe(true);
+    // Lying down: its height (0.5 either way) is now Y, and its faces face up.
+    // On a slab: a solid, its flat bottom 5% of its width below its lowest point.
+    expect(solid(o!)).toBe(true);
+    const b = roomBox([o!])!;
+    expect(b.lo[1]!).toBeCloseTo(-0.5 - 0.05 * 29, 1);
+    expect(b.hi[1]!).toBeLessThan(0.51);
+    expect(b.hi[0]! - b.lo[0]!).toBeCloseTo(29);
+    expect(b.hi[2]! - b.lo[2]!).toBeCloseTo(29);
+    const up = o!.brep.faces().filter((f) => o!.brep.faceNormal(f)[1]! > 0.5);
+    const colors = new Set(up.map((f) => (o!.brep.faceColors.get(f) ?? o!.color).join()));
+    // Left red, right blue, and at the far end of v (the image's top row) green.
+    expect(colors).toEqual(new Set(['248,8,8', '8,8,248', '8,248,8']));
+    // Its colours are a photo's, and stay so in a .cut file.
+    expect(o!.attrs.photo).toBe(true);
+    const [back] = readCut(writeCut({ title: 't', contains: 'World', name: null, roots: [o!] })).doc.roots; // prettier-ignore
+    expect(back!.attrs.photo).toBe(true);
+  });
+
+  it('without its texture it comes in uncoloured, and says which file it wanted', () => {
+    const missing: string[] = [];
+    const [o] = readInventor(terrain(30), { missingImage: (n) => missing.push(n) });
+    expect(missing).toEqual(['ground.rgb']);
+    expect(new Set(o!.brep.faces().map((f) => o!.brep.faceColors.get(f) ?? null))).toEqual(
+      new Set([null]),
+    );
+  });
+
+  it("doesn't turn a solid, or a small sheet", () => {
+    let flat = false;
+    readInventor(terrain(8), { laidFlat: () => (flat = true) }); // 98 faces: a picture, not ground
+    expect(flat).toBe(false);
   });
 });
 

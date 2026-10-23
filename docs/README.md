@@ -73,6 +73,7 @@ trackpad's swipe follows the plane's direction on screen.
 | ← → ↑ ↓ | Rotate the room 10° (±90° side to side, 0–90° from above)                                                    |
 | 0       | Reset the view                                                                                               |
 | F       | Start or stop working (full screen, pointer captured)                                                        |
+| Esc     | Put the tool in hand away (in full screen, Esc leaves it)                                                    |
 | R       | Rotate tool to the crosshair (on its centre: put it away)                                                    |
 | D       | Duplicate what is picked                                                                                     |
 | G       | Group what is picked (on one group: ungroup it)                                                              |
@@ -350,7 +351,11 @@ covers the room while you work).
   - So are the **SGI era's formats**: **Open Inventor** (`.iv`, ASCII or binary), **VRML 1.0
     and 2.0** (`.wrl`), and **DXF** (`.dxf`: polyface and
     polygon meshes, 3DFACEs, blocks placed by INSERT, an object per layer in AutoCAD's colours,
-    z up). Inventor's face sets, triangle strips, cubes, spheres, cylinders and cones come in
+    z up). A face set's own points, colours and texture coordinates (`vertexProperty`) are
+    read, and a `Texture2` (an SGI `.rgb`, a `.png` or `.jpg` dropped with it) colours its
+    faces. A terrain made with Z up (an open sheet of a thousand faces or more, nearly all facing
+    along Z, as JPL's Mars meshes are) is laid flat and stood on a slab: its outer edge taken
+    straight down to a flat bottom. Inventor's face sets, triangle strips, cubes, spheres, cylinders and cones come in
     under their transforms and materials, and each Separator holding several shapes is a group.
     Face sets one after another in a Separator (a model of thousands of parts, each its own
     material, as the Mars rover is) come in as one object, coloured face by face.
@@ -387,7 +392,7 @@ covers the room while you work).
     Khronos glTF validator.
   - **Wavefront OBJ**: an `o` per object, polygon faces (a face with a hole goes as triangles),
     colours named `color_rrggbb`, which Cutplane reads back without an `.mtl`.
-  - **STL** (binary): every triangle, for printing.
+  - **STL** (binary): every triangle, for printing, Z up (the room's Y): a printer's up.
 - **Autosave.** Every change (an undo too) is kept in this browser once the mouse and keys have
   been still for five seconds, **with the undo history**. Reload, close the tab or crash, and the next visit opens the world as you left
   it, and undo and redo carry on from there (the last 200 steps, or as many as fit in 16 MB: a
@@ -558,6 +563,10 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   pad that gives it out (`CONNECT`, an empty stub in the original, now does what its comment
   says) and takes back only its own; `tool.cpl` puts a tool away on its own pad
   (`assets/cpl/tool.cpl`, `toolpad.cpl`, marked "cutplane_web").
+- **Tools in hand are bigger, and alike in size.** `tool.cpl`'s `Activate_tool` scales a tool
+  up as the crosshair takes it (the new `tool_to_hand`: a long, thin tool to 120 long, any other
+  to 75 across) and `Put_away_tool` scales it back (`tool_to_pad`). **Esc** puts it away too (the original had
+  no key for that but the tool's own).
 - **A drill click does nothing.** Pressed and let go on one object, the drill's cutter is an
   exact copy of it, and `CPBOOLEAN` took the whole object away. A subtraction that would leave
   nothing now leaves the object as it was.
@@ -668,7 +677,7 @@ older versions of the format are normalised to the latest one on save.
   - **Out:** `faces.ts` turns each face into room-space loops and triangles (earcut, holes cut
     out, wound with the face). `writeObj`, `writeStl` and `writeGlb` (built with
     `@gltf-transform/core`) write from those.
-  - **In:** `readObj`, `readStl` (binary or ASCII) and `readGltf` (.glb, or .gltf with its
+  - **In:** `readObj`, `readStl` (binary or ASCII, Z up turned to the room's Y up) and `readGltf` (.glb, or .gltf with its
     buffers) hand `polygonize` a mesh. It welds equal positions, joins neighbours that lie in one
     plane (normals within about 0.06°) and share a colour, and chains each group's boundary into
     an outer loop and holes. A boundary that pinches leaves its triangles as they were. Each

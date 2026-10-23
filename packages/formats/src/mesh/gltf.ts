@@ -12,6 +12,7 @@ import { meshFaces, type V3 } from './faces.ts';
 import { nameOf } from './objects.ts';
 import type { MeshOptions } from './options.ts';
 import { soupObjects, type Soup } from './polygonize.ts';
+import { quantize, texel } from './texture.ts';
 
 /** A room unit is a millimetre: glTF's metres are a thousand of them. */
 export const UNITS_PER_METRE = 1000;
@@ -147,10 +148,6 @@ export interface Pixels {
 /** Decodes a texture's PNG or JPEG bytes (the browser's job: formats has no image codecs). */
 export type DecodeImage = (bytes: Uint8Array, mimeType: string) => Promise<Pixels | null>;
 
-/** Colours sampled from a photo-like texture are rounded to steps of this, so flat faces still join. */
-const COLOR_STEP = 8;
-const quantize = (c: number) => Math.min(255, Math.round(c / COLOR_STEP) * COLOR_STEP);
-
 /**
  * Reads glTF: a .glb, or .gltf JSON with its buffers (embedded, or in `resources`
  * by URI). Every node with a mesh becomes an object, under the nearest such node
@@ -206,11 +203,8 @@ export async function readGltf(
         u += a! / corners.length;
         v += b! / corners.length;
       }
-      // Repeat wrapping; (0, 0) is the image's top left.
-      const x = Math.min(img.width - 1, Math.floor((u - Math.floor(u)) * img.width));
-      const y = Math.min(img.height - 1, Math.floor((v - Math.floor(v)) * img.height));
-      const o = (y * img.width + x) * 4;
-      for (let k = 0; k < 3; k++) lin[k]! *= toLinear(img.data[o + k]!);
+      const t = texel(img, u, v);
+      for (let k = 0; k < 3; k++) lin[k]! *= toLinear(t[k]!);
       return [quantize(toSrgb(lin[0]!)), quantize(toSrgb(lin[1]!)), quantize(toSrgb(lin[2]!))];
     }
     return [toSrgb(lin[0]!), toSrgb(lin[1]!), toSrgb(lin[2]!)];

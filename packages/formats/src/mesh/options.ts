@@ -1,3 +1,5 @@
+import type { Pixels } from './gltf.ts';
+
 /** How far a long read has got, 0 to 1. */
 export type Progress = (fraction: number) => void;
 
@@ -16,4 +18,10 @@ export interface MeshOptions {
   budget?: number | undefined;
   /** Told, when the budget simplified the file, how many polygons it had and has now. */
   simplified?: ((from: number, to: number) => void) | undefined;
+  /** Images dropped with the file, by name: the textures it names (an Inventor Texture2's). */
+  images?: ((name: string) => Pixels | undefined) | undefined;
+  /** Told the name of a texture the file names that didn't come with it. */
+  missingImage?: ((name: string) => void) | undefined;
+  /** Told when a terrain, made with Z up, was laid flat. */
+  laidFlat?: (() => void) | undefined;
 }

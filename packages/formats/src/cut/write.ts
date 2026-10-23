@@ -87,6 +87,7 @@ function writeObject(w: (s: string) => void, o: CutObject, label: number, parent
   w(`Object Selectechnique:${o.selectTechnique}\n`);
   w(`Object Drawtechnique:${o.drawTechnique}\n`);
   w(`Object Screenbboxtechnique:${o.screenBBoxTechnique}\n`);
+  if (o.attrs.photo) w('Object Photo colours\n'); // new
   if (o.attrs.privateSource !== undefined) {
     w(`Object CPL private code:${codeLines(o.attrs.privateSource)} lines\n`);
     writeCode(w, o.attrs.privateSource);

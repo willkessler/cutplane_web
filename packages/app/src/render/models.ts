@@ -367,7 +367,7 @@ export class ModelView {
       at = at?.applyMatrix4(turn);
     }
     const color = m.object.brep.faceColors.get(f) ?? m.object.color;
-    return shadeFace(n.toArray(), color, at?.toArray(), this.light);
+    return shadeFace(n.toArray(), color, at?.toArray(), this.light, m.object.attrs.photo);
   }
 
   /** Shades a model's mesh again, turned by `turn` (or not: as built). */

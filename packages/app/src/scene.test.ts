@@ -80,4 +80,11 @@ describe('shadeFace (shade.c)', () => {
     const [r] = shadeFace([k, k, k], [255, 0, 0]);
     expect(r).toBeCloseTo(Math.min(1, (80 + 125 + 50 * (1 / 3)) / 255));
   });
+
+  it("shows a photo's colour as it is on a level face, and most of it on any (new)", () => {
+    const c: [number, number, number] = [96, 72, 60];
+    expect(shadeFace([0, 1, 0], c, undefined, undefined, true).map((x) => x * 255)).toEqual([96, 72, 60].map((x) => expect.closeTo(x, 6))); // prettier-ignore
+    expect(shadeFace([0, -1, 0], c, undefined, undefined, true)[0]! * 255).toBeCloseTo(96 * 0.6);
+    expect(shadeFace([0, 1, 0], c)[0]! * 255).toBeLessThan(96 * 0.75); // the room's own light, as before
+  });
 });

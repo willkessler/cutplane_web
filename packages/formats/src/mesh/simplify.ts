@@ -46,25 +46,39 @@ function simplifySoup(s: Soup, keep: number): Soup {
   s.positions.forEach((p, i) => pos.set(p, i * 3));
   // Corners at one place are one vertex, so the simplifier sees the surface whole.
   const same = MeshoptSimplifier.generatePositionRemap(pos, 3);
+  // ...and only those vertices are handed over: an STL's corners are three a triangle,
+  // and given millions of them unused, the simplifier quietly collapses nothing.
+  const at = new Map<number, number>();
+  const used: number[] = [];
+  const vertex = (i: number): number => {
+    const v = same[i]!;
+    let k = at.get(v);
+    if (k === undefined) at.set(v, (k = used.push(v) - 1));
+    return k;
+  };
   // Each colour simplified apart, its border kept, so colours keep their edges.
   const byColor = new Map<string, { color: Rgb | null; tris: number[]; polys: number }>();
   s.polygons.forEach((poly, i) => {
     const color = s.colors?.[i] ?? null;
-    const k = color ? color.join() : '';
+    // (A textured soup's colours come from its texture afterwards: simplified as one.)
+    const k = color && !s.texture ? color.join() : '';
     let g = byColor.get(k);
     if (!g) byColor.set(k, (g = { color, tris: [], polys: 0 }));
     g.polys++;
     for (let j = 1; j + 1 < poly.length; j++)
-      g.tris.push(same[poly[0]!]!, same[poly[j]!]!, same[poly[j + 1]!]!);
+      g.tris.push(vertex(poly[0]!), vertex(poly[j]!), vertex(poly[j + 1]!));
   });
+  const compact = new Float32Array(used.length * 3);
+  used.forEach((v, k) => compact.set(pos.subarray(v * 3, v * 3 + 3), k * 3));
   const polygons: number[][] = [];
   const colors: (Rgb | null)[] = [];
   for (const { color, tris, polys } of byColor.values()) {
     // Polygons are kept in proportion: a quad's two triangles count as the one face it was.
-    const target = Math.max(3, Math.round(polys * keep) * 3);
-    const [out] = MeshoptSimplifier.simplify(Uint32Array.from(tris), pos, 3, target, 1, ['LockBorder']); // prettier-ignore
+    if (tris.length === 0) continue; // (polygons of fewer than three corners)
+    const target = Math.min(tris.length, Math.max(3, Math.round(polys * keep) * 3));
+    const [out] = MeshoptSimplifier.simplify(Uint32Array.from(tris), compact, 3, target, 1, ['LockBorder']); // prettier-ignore
     for (let k = 0; k + 2 < out.length; k += 3) {
-      polygons.push([out[k]!, out[k + 1]!, out[k + 2]!]);
+      polygons.push([used[out[k]!]!, used[out[k + 1]!]!, used[out[k + 2]!]!]);
       colors.push(color);
     }
   }

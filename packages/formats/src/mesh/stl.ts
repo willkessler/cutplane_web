@@ -4,7 +4,11 @@ import { exportable } from './objects.ts';
 import type { MeshOptions } from './options.ts';
 import { soupObjects, type Soup } from './polygonize.ts';
 
-/** Binary STL: every object's triangles, in room units, with their faces' normals. */
+// An STL's up is Z (a printer's bed is XY); the room's up is Y. (0 - c: never -0.)
+const fromStl = (x: number, y: number, z: number): V3 => [x, z, 0 - y];
+const toStl = ([x, y, z]: readonly number[]): V3 => [x!, 0 - z!, y!];
+
+/** Binary STL: every object's triangles, in room units (Z up), with their faces' normals. */
 export function writeStl(
   roots: readonly CutObject[],
   title = 'Cutplane world',
@@ -22,7 +26,7 @@ export function writeStl(
   dv.setUint32(80, tris.length, true);
   tris.forEach((t, i) => {
     let at = 84 + 50 * i;
-    for (const v of [t.n, ...t.p])
+    for (const v of [t.n, ...t.p].map(toStl))
       for (const c of v) {
         dv.setFloat32(at, c, true);
         at += 4;
@@ -38,7 +42,7 @@ function isBinary(bytes: Uint8Array): boolean {
   return 84 + 50 * n === bytes.length;
 }
 
-/** Reads an STL (binary or ASCII), welding its triangles into solids: one per `solid` block. */
+/** Reads an STL (binary or ASCII), Z up, welding its triangles into solids: one per `solid` block. */
 export function readStl(bytes: Uint8Array, opts: MeshOptions = {}): CutObject[] {
   const soups: Soup[] = [];
   if (isBinary(bytes)) {
@@ -50,11 +54,9 @@ export function readStl(bytes: Uint8Array, opts: MeshOptions = {}): CutObject[] 
       const tri: number[] = [];
       for (let k = 0; k < 3; k++) {
         const o = at + 12 * k;
-        s.positions.push([
-          dv.getFloat32(o, true),
-          dv.getFloat32(o + 4, true),
-          dv.getFloat32(o + 8, true),
-        ]);
+        s.positions.push(
+          fromStl(dv.getFloat32(o, true), dv.getFloat32(o + 4, true), dv.getFloat32(o + 8, true)),
+        );
         tri.push(s.positions.length - 1);
       }
       s.polygons.push(tri);
@@ -72,7 +74,8 @@ export function readStl(bytes: Uint8Array, opts: MeshOptions = {}): CutObject[] 
         soups.push((s = { name: rest.join(' ') || null, positions: [], polygons: [] }));
       else if (k === 'vertex') {
         s ??= soups[soups.push({ name: null, positions: [], polygons: [] }) - 1]!;
-        s.positions.push(rest.slice(0, 3).map(Number) as V3);
+        const [x, y, z] = rest.slice(0, 3).map(Number);
+        s.positions.push(fromStl(x!, y!, z!));
         tri.push(s.positions.length - 1);
       } else if (k === 'endloop') {
         if (s && tri.length >= 3) s.polygons.push(tri);

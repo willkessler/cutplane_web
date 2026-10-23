@@ -12,6 +12,16 @@ import { roomBox } from './fit.ts';
 import { flattener, newell, triangulate, type V3 } from './faces.ts';
 import { part, type MeshOptions, type Progress } from './options.ts';
 import { polygonCount, simplifySoups } from './simplify.ts';
+import { slab } from './terrain.ts';
+import { paintSoups } from './texture.ts';
+import type { Pixels } from './gltf.ts';
+
+/** Terrains stood on their slabs (see terrain.ts). */
+const slabs = (list: readonly Soup[]): Soup[] =>
+  list.map((s) => {
+    const out = slab(s);
+    return s.children ? { ...out, children: slabs(s.children) } : out;
+  });
 
 /**
  * A mesh as the formats hand it over: positions and polygons (often
@@ -28,6 +38,17 @@ export interface Soup {
   unordered?: boolean;
   /** Local → room placement (rigid) when the format had one; the positions are local. */
   xform?: Mat4;
+  /**
+   * A texture, and where each position is on it ((0, 0) its top left): each
+   * polygon is coloured from it once simplified (see texture.ts), its colour
+   * then the texture's times its own.
+   */
+  texture?: Pixels;
+  uvs?: (readonly [number, number] | null)[];
+  /** A terrain, to stand on a slab of ground (terrain.ts). */
+  slab?: boolean;
+  /** Its colours are a photo's (painted from its texture): its object is lit softly. */
+  photo?: boolean;
   children?: Soup[];
 }
 
@@ -541,6 +562,7 @@ export function polygonize(soup: Soup, progress?: Progress): CutObject | null {
     name: soup.name,
     ...(main ? { color: [...main] } : {}),
     ...(soup.xform ? { xform: soup.xform } : {}),
+    ...(soup.photo ? { attrs: { props: ['Visible'], photo: true } } : {}),
   });
   if (holes) holesClosed.set(o, holes);
   return o;
@@ -559,6 +581,7 @@ export function soupObjects(soups: readonly Soup[], opts: MeshOptions = {}): Cut
       opts.simplified?.(from, polygonCount(soups));
     }
   }
+  soups = paintSoups(slabs(soups));
   if (!progress) return objectsOf(soups);
   const size = (list: readonly Soup[]): number =>
     list.reduce((n, s) => n + s.polygons.length + size(s.children ?? []), 0);

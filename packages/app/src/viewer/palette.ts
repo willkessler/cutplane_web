@@ -28,16 +28,26 @@ export type Rgb8 = readonly [number, number, number];
 
 export const rgb = ([r, g, b]: readonly number[]) => ((r! << 16) | (g! << 8) | b!) >>> 0;
 
+/** The light on a level face (facing straight up). */
+const LEVEL = 80 + 175 / Math.sqrt(3);
+/** Of a photo's colour, what a face turned away from the lights shows. */
+const PHOTO_LEAST = 0.6;
+
 /**
  * Flat face shading from shade.c's compute_reflected_color: ambient 80 plus
  * two directional lights fixed to the room, <1,1,1> at 125 and <-1,1,1> at
  * 50. Faces pointing down get ambient only. Returns 0..1 per channel.
+ *
+ * New: a `photo`'s colours (a rover's picture of the ground) have their light
+ * in them already, so a level face shows its colour as it is, and the faces
+ * turned furthest from the lights PHOTO_LEAST of it.
  */
 export function shadeFace(
   n: readonly number[],
   color: Rgb8,
   at?: readonly number[],
   bulb?: PointLight,
+  photo = false,
 ): [number, number, number] {
   const [nx, ny, nz] = n as [number, number, number];
   let light = 80;
@@ -47,7 +57,7 @@ export function shadeFace(
     const d2 = Math.min(1, Math.max(0, (-nx + ny + nz) * k));
     light += 125 * d1 + 50 * d2;
   }
-  const f = light / 255;
+  const f = photo ? PHOTO_LEAST + ((1 - PHOTO_LEAST) * (light - 80)) / (LEVEL - 80) : light / 255;
   // The light bulb (setup_light_source(2, ...)): a point light in the bulb's colour.
   let lit = [0, 0, 0];
   if (bulb && at) {

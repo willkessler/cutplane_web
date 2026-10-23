@@ -6,6 +6,8 @@ import {
   readGltf,
   readInventor,
   readMtl,
+  readSgi,
+  isSgiName,
   readObj,
   readStl,
   simplifierReady,
@@ -13,12 +15,12 @@ import {
   writeObj,
   writeStl,
 } from '@cutplane/formats';
-import type { DecodeImage, MeshOptions, Progress } from '@cutplane/formats';
+import type { DecodeImage, MeshOptions, Pixels, Progress } from '@cutplane/formats';
 import { preorder, type CutObject, type Rgb } from '@cutplane/kernel';
 
 /** What a file is to Cutplane, by its extension. */
 export type FileKind =
-  'cut' | 'obj' | 'mtl' | 'stl' | 'glb' | 'gltf' | 'bin' | 'iv' | 'dxf' | 'other';
+  'cut' | 'obj' | 'mtl' | 'stl' | 'glb' | 'gltf' | 'bin' | 'iv' | 'dxf' | 'image' | 'other';
 
 /** A file's name without .gz: model.iv.gz is a model.iv, gzipped. */
 const ungz = (name: string) => name.replace(/\.gz$/i, '');
@@ -29,6 +31,8 @@ export function kindOf(name: string): FileKind {
   if (['obj', 'mtl', 'stl', 'glb', 'gltf', 'bin', 'dxf'].includes(ext)) return ext as FileKind;
   // VRML's own gzipped files are .wrz.
   if (ext === 'iv' || ext === 'wrl' || ext === 'vrml' || ext === 'wrz') return 'iv';
+  // A model's textures, dropped with it: the SGI's own images, and the web's.
+  if (isSgiName(name) || ['png', 'jpg', 'jpeg'].includes(ext)) return 'image';
   return 'other';
 }
 
@@ -36,7 +40,8 @@ export function kindOf(name: string): FileKind {
 export const MESH_KINDS: readonly FileKind[] = ['obj', 'stl', 'glb', 'gltf', 'iv', 'dxf'];
 
 /** Files Open and drag and drop take. */
-export const ACCEPT = '.cut,.rsc,.icon,.obj,.mtl,.stl,.glb,.gltf,.bin,.iv,.wrl,.vrml,.wrz,.dxf,.gz';
+export const ACCEPT =
+  '.cut,.rsc,.icon,.obj,.mtl,.stl,.glb,.gltf,.bin,.iv,.wrl,.vrml,.wrz,.dxf,.gz,.rgb,.rgba,.bw,.sgi,.png,.jpg,.jpeg';
 
 /** A file's bytes, unzipped if it was gzipped (by its first two bytes, whatever its name). */
 async function bytes(f: File): Promise<Uint8Array<ArrayBuffer>> {
@@ -66,6 +71,15 @@ const decodeImage: DecodeImage = async (data, mimeType) => {
   return { width, height, data: ctx.getImageData(0, 0, width, height).data };
 };
 
+/** An SGI image's pixels, or null if it can't be read (its model then comes in uncoloured). */
+function readSgiOrNull(b: Uint8Array): Pixels | null {
+  try {
+    return readSgi(b);
+  } catch {
+    return null;
+  }
+}
+
 /** What reading mesh files gives: the objects, already fitted into the room. */
 export interface Imported {
   objects: CutObject[];
@@ -76,6 +90,10 @@ export interface Imported {
   holes: number;
   /** When there were more faces than the budget: how many, and how many came in. */
   simplified: { from: number; to: number } | null;
+  /** Textures the files name that weren't dropped with them. */
+  missing: string[];
+  /** Whether a terrain made with Z up was laid on the floor. */
+  laidFlat: boolean;
 }
 
 /**
@@ -123,8 +141,21 @@ export async function readMeshFiles(
       simplified: (a, b) => {
         simplified = { from: (simplified?.from ?? 0) + a, to: (simplified?.to ?? 0) + b };
       },
+      images: (name) => pictures.get(name.toLowerCase()) ?? undefined,
+      missingImage: (name) => missing.add(name),
+      laidFlat: () => (laidFlat = true),
     };
   };
+  // Images dropped with the models, by name, decoded when a model asks for one.
+  const pictures = new Map<string, Pixels | null>();
+  for (const f of files) {
+    if (kindOf(f.name) !== 'image') continue;
+    const b = await bytes(f);
+    const type = /\.png$/i.test(f.name) ? 'image/png' : 'image/jpeg';
+    pictures.set(f.name.toLowerCase(), isSgiName(f.name) ? readSgiOrNull(b) : await decodeImage(b, type).catch(() => null)); // prettier-ignore
+  }
+  const missing = new Set<string>();
+  let laidFlat = false;
   const materials = new Map<string, Rgb>();
   for (const f of files) if (kindOf(f.name) === 'mtl') for (const [k, v] of readMtl(await utf8(f))) materials.set(k, v); // prettier-ignore
   const objects: CutObject[] = [];
@@ -171,7 +202,7 @@ export async function readMeshFiles(
   let holes = 0;
   for (const o of preorder(objects)) holes += holesClosed.get(o) ?? 0;
   progress?.(1);
-  return { objects, names, scale: objects.length ? fitToRoom(objects) : 1, holes, simplified };
+  return { objects, names, scale: objects.length ? fitToRoom(objects) : 1, holes, simplified, missing: [...missing], laidFlat }; // prettier-ignore
 }
 
 export type ExportFormat = 'glb' | 'obj' | 'stl';

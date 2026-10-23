@@ -179,6 +179,19 @@ describe('STL', () => {
     const objs = readStl(new TextEncoder().encode(`${tet('a', 0)}\n${tet('b', 50)}\n`));
     expect(objs.map((o) => o.name)).toEqual(['a', 'b']);
     for (const o of objs) expect(volume(o.brep)).toBeCloseTo(1000 / 6);
+    // An STL's up is Z, the room's Y: the corner at z 10 is 10 up.
+    const top = Math.max(...roomPoints([objs[0]!]).map((p) => p[1]!));
+    expect(top).toBeCloseTo(10);
+  });
+
+  it('writes Z up, so a printer stands it up', () => {
+    const bytes = writeStl([cube()]);
+    const dv = new DataView(bytes.buffer);
+    const zs: number[] = [];
+    for (let i = 0; i < 12; i++)
+      for (let k = 0; k < 3; k++) zs.push(dv.getFloat32(84 + 50 * i + 12 + 12 * k + 8, true));
+    const ys = roomPoints([cube()]).map((p) => p[1]!);
+    expect(Math.max(...zs) - Math.min(...zs)).toBeCloseTo(Math.max(...ys) - Math.min(...ys), 3);
   });
 });
 

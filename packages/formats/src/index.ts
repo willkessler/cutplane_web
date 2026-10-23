@@ -19,3 +19,4 @@ export { readDxf, aciColor } from './mesh/dxf.ts';
 export { readInventor } from './mesh/inventor.ts';
 export type { MeshOptions, Progress } from './mesh/options.ts';
 export { simplifierReady } from './mesh/simplify.ts';
+export { readSgi, isSgiName } from './mesh/sgi.ts';
