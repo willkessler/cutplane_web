@@ -13,6 +13,7 @@ import {
 } from '@cutplane/cpl';
 import {
   Brep,
+  FINE,
   NONE,
   ROOM,
   betterPick,
@@ -253,6 +254,13 @@ export class Runtime implements Host {
   readonly outOfReach = new Set<CutObject>();
   /** Objects put out of sight (the 1 key): not drawn, so not pickable either. */
   readonly unseen = new Set<CutObject>();
+  /**
+   * New here: fine meshes being moved or turned (a terrain, a scan), drawn as
+   * stand-ins until they settle and not pickable meanwhile: finding what's
+   * under the crosshair would place and index all of one anew each frame. The
+   * drawing takes them out once they have settled.
+   */
+  readonly moving = new Set<CutObject>();
   /**
    * New here: permanent gravity is on (a double click with the globe). With "Groups
    * pick whole", a click on any object picks it whole (it dangles from where it is
@@ -845,6 +853,12 @@ export class Runtime implements Host {
     return s;
   }
 
+  /** `o` was moved or turned by hand (a drag, the rotate tool): a fine mesh is `moving`. */
+  private placed(o: CutObject): void {
+    this.changed(o);
+    if (o.brep.numVertices > FINE) this.moving.add(o);
+  }
+
   /** The geometry or placement of `o` changed. */
   changed(o: CutObject): void {
     this.geometry.delete(o);
@@ -895,7 +909,7 @@ export class Runtime implements Host {
       if (this.worldOf(o) === this.primary) this.journal.touch(o);
       o.xform = mat4.multiply(o.xform, m);
       o.invXform = mat4.invert(o.xform) ?? o.invXform;
-      this.changed(o);
+      this.placed(o);
     }
   }
 
@@ -904,7 +918,7 @@ export class Runtime implements Host {
     if (this.worldOf(o) === this.primary) this.journal.touch(o);
     o.xform = mat4.multiply(o.xform, mat4.translation(...d));
     o.invXform = mat4.invert(o.xform) ?? o.invXform;
-    this.changed(o);
+    this.placed(o);
   }
 
   translate(f: Feature, offset: Vec3): void {
@@ -984,7 +998,7 @@ export class Runtime implements Host {
     );
     for (const x of subtree(o)) if (this.worldOf(x) === this.primary) this.journal.touch(x);
     transformTree(o, m);
-    for (const x of subtree(o)) this.changed(x);
+    for (const x of subtree(o)) this.placed(x);
   }
 
   /** A branch moved by the world transform `m` (row vectors), as one edit (a fall, the globe). */
@@ -1097,7 +1111,7 @@ export class Runtime implements Host {
     let best: { o: CutObject; pick: KernelPick } | null = null;
     for (const f of this.vm.props.features(this.primary, P.Visible)) {
       if (!isObject(f) || skip(f) || this.vm.props.has(f, P.Nonselectable)) continue;
-      if (this.outOfReach.has(f) || this.unseen.has(f) || this.vm.props.has(f, P.Sectioninvisible)) continue; // prettier-ignore
+      if (this.outOfReach.has(f) || this.unseen.has(f) || this.moving.has(f) || this.vm.props.has(f, P.Sectioninvisible)) continue; // prettier-ignore
       if (f.brep.numFaces === 0 || this.vm.props.has(f, P.Lockedgeometry)) continue;
       const s = this.section(f);
       if (!s) continue;
@@ -1431,7 +1445,7 @@ export class Runtime implements Host {
     const candidates: { o: CutObject; s: Selectable; pick: KernelPick }[] = [];
     for (const f of visible) {
       if (!isObject(f) || this.vm.props.has(f, P.Nonselectable)) continue;
-      if (this.outOfReach.has(f) || this.unseen.has(f)) {
+      if (this.outOfReach.has(f) || this.unseen.has(f) || this.moving.has(f)) {
         this.applySelectable(f, NOTHING);
         continue;
       }

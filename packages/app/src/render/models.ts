@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import {
   DEPTH_MERGE,
+  FINE,
   ROOM,
   WorldGeometry,
+  mat4,
   preorder,
   type Brep,
   type CutObject,
@@ -38,6 +40,75 @@ export interface Model {
   built?: ArrayLike<number> | undefined;
   /** Its faces' edges, for when it's drawn as wire (built the first time it is). */
   wire?: THREE.LineSegments | undefined;
+  /**
+   * New here: a fine mesh being moved or turned is its mesh as built, put where
+   * it now is by its matrix (turned, drawn in grey) till it settles (`world` is
+   * still where it was built): when it last moved.
+   */
+  moving?: number | undefined;
+}
+
+/** How long a fine mesh moved is held still before it's built where it now is. */
+export const SETTLE_MS = 1000;
+
+/**
+ * A turned stand-in's grey, lit from above as it lies (each pixel's face
+ * from the screen's slopes), so its shape still reads without shading its
+ * faces again each frame.
+ */
+function standInMaterial(): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: 1,
+    polygonOffsetUnits: 2,
+    vertexShader: `
+      varying vec3 at;
+      void main() {
+        at = (modelMatrix * vec4(position, 1.0)).xyz;
+        gl_Position = projectionMatrix * viewMatrix * vec4(at, 1.0);
+      }`,
+    fragmentShader: `
+      varying vec3 at;
+      void main() {
+        vec3 n = normalize(cross(dFdx(at), dFdy(at)));
+        if (dot(n, cameraPosition - at) < 0.0) n = -n;
+        float light = 0.55 + 0.4 * max(dot(n, normalize(vec3(0.3, 1.0, 0.5))), 0.0);
+        gl_FragColor = vec4(vec3(0.62 * light), 1.0);
+      }`,
+  });
+}
+
+/**
+ * A stand-in's section at depth `z`: where each of its triangles, as
+ * its matrix now has them, crosses the plane (x y z pairs), straight from the
+ * mesh, so a turn isn't held up placing and cutting the whole B-rep.
+ */
+export function standInSection(m: Model, z: number, out: number[]): void {
+  const mesh = m.mesh;
+  if (!mesh) return;
+  const p = mesh.geometry.getAttribute('position').array;
+  const e = mesh.matrix.elements;
+  const at = (i: number, k: number) => e[k]! * p[i]! + e[k + 4]! * p[i + 1]! + e[k + 8]! * p[i + 2]! + e[k + 12]!; // prettier-ignore
+  const d = [0, 0, 0];
+  for (let t = 0; t < p.length; t += 9) {
+    let above = 0;
+    for (let k = 0; k < 3; k++) {
+      d[k] = at(t + 3 * k, 2) - z;
+      if (d[k]! > 0) above++;
+    }
+    if (above === 0 || above === 3) continue;
+    for (let k = 0; k < 3; k++) {
+      const j = (k + 1) % 3;
+      const a = d[k]!;
+      const b = d[j]!;
+      if (a > 0 === b > 0) continue;
+      const s = a / (a - b);
+      const i = t + 3 * k;
+      const n = t + 3 * j;
+      out.push(at(i, 0) + s * (at(n, 0) - at(i, 0)), at(i, 1) + s * (at(n, 1) - at(i, 1)), z);
+    }
+  }
 }
 
 /**
@@ -104,7 +175,7 @@ function wireMaterial(frontOnly: boolean): THREE.ShaderMaterial {
  * only told it changed (a pick, a release) is kept as drawn.
  */
 export function shapeKey(o: CutObject): string {
-  return `${o.brep.fingerprint()}:${o.color.join()}:${o.attrs.props.includes('Noshadow')}`;
+  return `${o.brep.shapeFingerprint()}:${o.color.join()}:${o.attrs.props.includes('Noshadow')}`;
 }
 
 /** How far `now` moves things from `then`, if that is all it does (no turn, no scaling). */
@@ -198,6 +269,7 @@ export class ModelView {
     depthWrite: false,
   });
   private readonly wireMaterials = { frontWire: wireMaterial(true), wire: wireMaterial(false) };
+  private readonly standIn = standInMaterial();
   /** How each object is drawn: `styleOf`, else solid. */
   private styleOf: (o: CutObject) => DrawStyle = () => 'solid';
 
@@ -286,6 +358,17 @@ export class ModelView {
     for (const m of this.models) {
       if (!set.has(m.object)) continue;
       const o = m.object;
+      // A fine mesh moved is a stand-in till it settles (its shape, kept, isn't keyed again each frame).
+      const same = m.mesh && m.built && m.world.brep === o.brep && (m.moving !== undefined || m.key === shapeKey(o)); // prettier-ignore
+      if (same && o.brep.numVertices > FINE) {
+        const d = shift(m.built!, o.xform);
+        if (m.moving !== undefined || !d || d.some((k) => k !== 0)) {
+          any = true;
+          this.move(m, d);
+          continue;
+        }
+      }
+      if (m.moving !== undefined) this.unturn(m);
       if (m.mesh && m.built && m.world.brep === o.brep && m.key === shapeKey(o)) {
         const d = shift(m.built, o.xform);
         const still = d !== null && d[0] === 0 && d[1] === 0 && d[2] === 0;
@@ -305,6 +388,74 @@ export class ModelView {
       this.build(m);
     }
     return any;
+  }
+
+  /**
+   * Draws a fine mesh where its object now is, as a stand-in (see `moving`):
+   * only moved (`d`, from where it was built), as it is, its shadow along with
+   * it; turned, in grey, without one.
+   */
+  private move(m: Model, d: [number, number, number] | null): void {
+    const mesh = m.mesh!;
+    const move = mat4.multiply(mat4.invert(Float64Array.from(m.built!))!, m.object.xform);
+    mesh.matrixAutoUpdate = false;
+    mesh.matrix.fromArray(move);
+    mesh.matrixWorldNeedsUpdate = true;
+    this.applyStyle(m);
+    if (d && !this.light) {
+      if (m.shadow) {
+        m.shadow.position.set(d[0], 0, d[2]); // a shadow lies on the floor
+        m.shadow.visible = this.styleOf(m.object) === 'solid';
+      }
+    } else if (this.styleOf(m.object) === 'solid') mesh.material = this.standIn;
+    m.moving = performance.now();
+  }
+
+  /** A stand-in put back as it was built, its matrix none. */
+  private unturn(m: Model): void {
+    m.moving = undefined;
+    if (!m.mesh) return;
+    m.mesh.matrixAutoUpdate = true;
+    m.mesh.updateMatrix();
+    this.applyStyle(m);
+  }
+
+  /** Is `o` drawn as a stand-in, moving? */
+  isMoving(o: CutObject): boolean {
+    return this.models.some((m) => m.object === o && m.moving !== undefined);
+  }
+
+  /**
+   * Builds stand-ins where their objects now are: all of them once `holding` is
+   * over (the drag or turn let go), else those still for SETTLE_MS. Returns the
+   * objects built.
+   */
+  settle(holding: boolean, now = performance.now()): CutObject[] {
+    const done: CutObject[] = [];
+    for (const m of this.models) {
+      if (m.moving === undefined || (holding && now - m.moving < SETTLE_MS)) continue;
+      this.finish(m);
+      done.push(m.object);
+    }
+    return done;
+  }
+
+  private finish(m: Model): void {
+    m.moving = undefined;
+    // Only moved: shifted, as any object moved is.
+    const d = shift(m.built!, m.object.xform);
+    if (d && !this.light && m.mesh) {
+      m.mesh.matrixAutoUpdate = true;
+      m.mesh.position.set(...d);
+      m.mesh.updateMatrix();
+      m.shadow?.position.set(d[0], 0, d[2]);
+      this.applyStyle(m);
+      m.world = new WorldGeometry(m.object.brep, m.object.xform);
+      return;
+    }
+    this.drop(m);
+    m.world = new WorldGeometry(m.object.brep, m.object.xform);
+    this.build(m);
   }
 
   private drop(m: Model): void {
@@ -402,6 +553,7 @@ export class ModelView {
    */
   pose(o: CutObject, m: THREE.Matrix4 | null): void {
     const model = this.models.find((x) => x.object === o);
+    if (model?.moving !== undefined) this.finish(model);
     const mesh = model?.mesh;
     let shade = this.posed.get(o);
     if (!model || !mesh || !m) {
@@ -440,7 +592,9 @@ export class ModelView {
 
   /** An object's triangles in the world, as drawn now (x y z × 3 a triangle). */
   triangles(o: CutObject): Float32Array | null {
-    const mesh = this.models.find((x) => x.object === o)?.mesh;
+    const model = this.models.find((x) => x.object === o);
+    if (model?.moving !== undefined) this.finish(model);
+    const mesh = model?.mesh;
     if (!mesh) return null;
     const out = Float32Array.from(mesh.geometry.getAttribute('position').array);
     const d = mesh.position.toArray(); // moved since it was built
@@ -448,22 +602,40 @@ export class ModelView {
     return out;
   }
 
-  /** Every vertex depth in the world, for plane snapping. */
+  /**
+   * Every vertex depth in the world, for plane snapping; of a mesh too fine to
+   * stop at each (a scan's, a terrain's: its stops a fraction apart, the plane
+   * would creep from one to the next), only its front and back (new).
+   */
   *depths(): IterableIterator<number> {
-    for (const m of this.models) for (const v of m.object.brep.vertices()) yield m.world.z(v);
+    for (const m of this.models) {
+      const b = m.object.brep;
+      if (b.numVertices > FINE) yield* [m.world.zMin, m.world.zMax];
+      else for (const v of b.vertices()) yield m.world.z(v);
+    }
   }
 
-  /** The depths of faces parallel to the plane (all their corners at one depth): where it sticks. */
+  /**
+   * The depths of faces parallel to the plane (all their corners at one depth,
+   * the face turned along the plane's axis): where it sticks. (A tiny face's
+   * corners are all at about one depth whichever way it faces; a fine mesh's
+   * flat faces are its own small facets, too many to stop at (new).)
+   */
   *flatDepths(): IterableIterator<number> {
     for (const m of this.models) {
       const b = m.object.brep;
+      if (b.numVertices > FINE) continue;
       for (const f of b.faces()) {
         const zs = b.loopHalfEdges(b.faceLoop(f)).map((h) => m.world.z(b.heVertex(h)));
-        if (zs.length >= 3 && Math.max(...zs) - Math.min(...zs) < DEPTH_MERGE) yield zs[0]!;
+        if (zs.length < 3 || Math.max(...zs) - Math.min(...zs) >= DEPTH_MERGE) continue;
+        if (Math.abs(m.world.faceNormal(f)[2]) >= FACING_PLANE) yield zs[0]!;
       }
     }
   }
 }
+
+/** How squarely a face faces along the plane's axis to hold it (about 8°). */
+const FACING_PLANE = 0.99;
 
 /** A face's centre (the mean of its outer loop's vertices). */
 function faceCenter(m: Model, f: number): number[] {

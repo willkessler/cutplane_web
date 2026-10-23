@@ -86,10 +86,31 @@ export function pickAt(
 ): Pick | undefined {
   if (g.zMin > z + ON_PLANE_PICK || g.zMax < z - ON_PLANE_PICK) return undefined;
   const b = g.brep;
+  // A big brep's vertices and edges near the plane are those of its faces near it (new).
+  const near = g.near(z);
+  let vertices: number[];
+  let edges: number[];
+  if (!near) {
+    vertices = b.vertices();
+    edges = b.edges();
+  } else {
+    const vs = new Set<number>();
+    const es = new Set(near.loose);
+    for (const e of near.loose) for (const v of b.edgeVertices(e)) vs.add(v);
+    for (const f of near.faces)
+      for (const l of b.faceLoops(f))
+        for (const h of b.loopHalfEdges(l)) {
+          vs.add(b.heVertex(h));
+          const e = b.heEdge(h);
+          if (e !== NONE) es.add(e);
+        }
+    vertices = [...vs].sort((p, q) => p - q);
+    edges = [...es].sort((p, q) => p - q);
+  }
 
   // 1. Vertices on the plane.
   let best: Pick | undefined;
-  for (const v of b.vertices()) {
+  for (const v of vertices) {
     if (Math.abs(g.z(v) - z) >= ON_PLANE_PICK) continue;
     const d = box(g.x(v) - x, g.y(v) - y);
     if (d <= size && (!best || d < best.dist))
@@ -99,7 +120,7 @@ export function pickAt(
 
   // 2. Edges: in the plane, or piercing it.
   const onPlane = (v: number) => Math.abs(g.z(v) - z) < ON_PLANE_PICK;
-  for (const e of b.edges()) {
+  for (const e of edges) {
     const [p, q] = b.edgeVertices(e);
     if (!onPlane(p) || !onPlane(q)) continue;
     const { t, fx, fy } = foot(g.x(p), g.y(p), g.x(q), g.y(q), x, y);

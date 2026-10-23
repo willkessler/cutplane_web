@@ -120,6 +120,95 @@ export class WorldGeometry {
     }
     return n;
   }
+
+  private index: DepthIndex | null | undefined;
+
+  /**
+   * The faces the plane at depth `c` might meet (every face reaching within
+   * ON_PLANE of it), in ID order, and the edges without a face; null: look at
+   * every face (a brep too small to index).
+   */
+  near(c: number): { faces: number[]; loose: readonly number[] } | null {
+    if (this.index === undefined) this.index = depthIndex(this);
+    return this.index && this.index.near(c);
+  }
+}
+
+/**
+ * A mesh with more vertices than this is fine (a scan's, a terrain's): too
+ * fine for the plane to stop at each vertex, or to be cut and drawn anew each
+ * frame it turns.
+ */
+export const FINE = 20_000;
+
+/** Below this many faces, a section looks at every face. */
+const INDEXED = 512;
+/** Of the faces, the deepest ones looked at every time rather than sorted (a terrain's bottom). */
+const LONG = 0.01;
+
+interface DepthIndex {
+  near(c: number): { faces: number[]; loose: readonly number[] };
+}
+
+/**
+ * Each face's depth range, sorted by its shallow end, so a plane looks only at
+ * the faces near it: a big mesh is crossed by a few thousand of its faces.
+ * The deepest faces (a slab's bottom, a long side) would make every face
+ * near, so those few are kept apart and always looked at.
+ */
+function depthIndex(g: WorldGeometry): DepthIndex | null {
+  const b = g.brep;
+  const faces = b.faces();
+  if (faces.length < INDEXED) return null;
+  const n = faces.length;
+  const lo = new Float64Array(n);
+  const hi = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    let a = Infinity;
+    let z = -Infinity;
+    for (const l of b.faceLoops(faces[i]!))
+      for (const h of b.loopHalfEdges(l)) {
+        const d = g.z(b.heVertex(h));
+        if (d < a) a = d;
+        if (d > z) z = d;
+      }
+    lo[i] = a;
+    hi[i] = z;
+  }
+  const spans = hi.map((z, i) => z - lo[i]!).sort();
+  const wide = spans[Math.floor((1 - LONG) * (n - 1))]!;
+  const long: number[] = [];
+  const short: number[] = [];
+  for (let i = 0; i < n; i++) (hi[i]! - lo[i]! > wide ? long : short).push(i);
+  short.sort((p, q) => lo[p]! - lo[q]!);
+  const order = Int32Array.from(short);
+  const starts = Float64Array.from(short, (i) => lo[i]!);
+  // Edges no face has (a wire): too few to index, and on no face to find them by.
+  const loose = b.edges().filter((e) => {
+    const h2 = b.edgeHe2(e);
+    return b.heFace(b.edgeHe1(e)) === NONE && (h2 === NONE || b.heFace(h2) === NONE);
+  });
+  return {
+    near(c) {
+      const top = c + ON_PLANE;
+      const bottom = c - ON_PLANE;
+      // The first face starting deep enough to reach the plane: no shorter face starts further back.
+      let i = 0;
+      let j = starts.length;
+      while (i < j) {
+        const m = (i + j) >> 1;
+        if (starts[m]! < bottom - wide) i = m + 1;
+        else j = m;
+      }
+      const out: number[] = [];
+      for (; i < starts.length && starts[i]! <= top; i++) {
+        const k = order[i]!;
+        if (hi[k]! >= bottom) out.push(k);
+      }
+      for (const k of long) if (lo[k]! <= top && hi[k]! >= bottom) out.push(k);
+      return { faces: out.sort((p, q) => p - q).map((k) => faces[k]!), loose };
+    },
+  };
 }
 
 interface Crossing {
@@ -167,7 +256,14 @@ export function computeSection(g: WorldGeometry, c: number): ObjectSection {
     return [g.x(p) + t * (g.x(q) - g.x(p)), g.y(p) + t * (g.y(q) - g.y(p)), c];
   };
 
-  for (const [shell, faces] of b.facesByShell()) {
+  // A big brep is looked at only where the plane might meet it.
+  const near = g.near(c);
+  let byShell: Map<number, number[]>;
+  if (near) {
+    byShell = new Map(b.shells().map((sh) => [sh, [] as number[]]));
+    for (const f of near.faces) byShell.get(b.faceShell(f))?.push(f);
+  } else byShell = b.facesByShell();
+  for (const [shell, faces] of byShell) {
     const segs: Seg[] = [];
     for (const f of faces) {
       const loops = b.faceLoops(f);
@@ -241,7 +337,20 @@ export function computeSection(g: WorldGeometry, c: number): ObjectSection {
     chain(segs, shell, out.loops);
   }
 
-  for (const e of b.edges()) {
+  // An edge in the plane is on a face near it (or on none).
+  let edges: number[];
+  if (!near) edges = b.edges();
+  else {
+    const on = new Set(near.loose);
+    for (const f of near.faces)
+      for (const l of b.faceLoops(f))
+        for (const h of b.loopHalfEdges(l)) {
+          const e = b.heEdge(h);
+          if (e !== NONE) on.add(e);
+        }
+    edges = [...on].sort((p, q) => p - q);
+  }
+  for (const e of edges) {
     const [p, q] = b.edgeVertices(e);
     if (side(p) === 0 && side(q) === 0) out.inPlaneEdges.push(e);
   }

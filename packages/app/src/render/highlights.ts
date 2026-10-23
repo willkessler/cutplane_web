@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { NONE, ROOM, mat4, type Brep, type CutObject, type Mat4 } from '@cutplane/kernel';
+import { FINE, NONE, ROOM, mat4, type Brep, type CutObject, type Mat4 } from '@cutplane/kernel';
 import { CLASSIC, rgb } from '../viewer/palette.ts';
 import { Lines, closedPolyline, group, type LineStyle } from './lines.ts';
 import type { Model } from './models.ts';
@@ -13,6 +13,17 @@ const GHOST = [200, 200, 200] as const;
 const GHOST_OPACITY = 0.15;
 /** How bright an edge turned away from the eye is drawn, against one facing it. */
 const BACK_DIM = 0.45;
+/** The stencil value where a fine mesh outlined is on the screen. */
+const MASKED = 1;
+
+/**
+ * A fine mesh (a terrain, a scan) is outlined round its outside only (new): its
+ * contour runs round every bump on it, each small facet turned away from the
+ * eye, and drawn as a box's is, would cover it in white. Its contour is drawn
+ * twice as wide, where the mesh isn't on the screen: only its outer half, at
+ * the mesh's own outline, shows.
+ */
+const isFine = (m: Model) => m.object.brep.numVertices > FINE;
 const dim = (c: readonly number[]) => c.map((k) => Math.round(k * BACK_DIM)) as [number, number, number]; // prettier-ignore
 
 /**
@@ -26,7 +37,8 @@ class Pen {
   private readonly through: Lines;
   readonly pts: number[] = [];
 
-  constructor(style: LineStyle) {
+  /** `outside`: drawn only off the fine meshes masked (see `Highlights.masks`). */
+  constructor(style: LineStyle, outside = false) {
     this.seen = new Lines(style);
     this.through = new Lines({
       ...style,
@@ -36,6 +48,13 @@ class Pen {
       depthTest: false,
       renderOrder: (style.renderOrder ?? 30) - 1,
     });
+    if (outside)
+      for (const m of [this.seen.material, this.through.material]) {
+        // (three tests the stencil only for a material that writes it; this one keeps it as it is.)
+        m.stencilWrite = true;
+        m.stencilFunc = THREE.NotEqualStencilFunc;
+        m.stencilRef = MASKED;
+      }
     this.object = group(this.through, this.seen);
   }
 
@@ -96,6 +115,35 @@ export class Highlights {
   private readonly hoverBack = new Pen({ color: dim(CLASSIC.white), width: 3, renderOrder: 30 });
   private readonly pickedBack = new Pen({ color: dim(CLASSIC.red), width: 3, renderOrder: 32 });
   private readonly contour = new Pen({ color: CLASSIC.pickedContour, width: 3, renderOrder: 33 });
+  private readonly hoverOutside = new Pen({ color: CLASSIC.white, width: 8, renderOrder: 31 }, true); // prettier-ignore
+  private readonly contourOutside = new Pen({ color: CLASSIC.pickedContour, width: 6, renderOrder: 33 }, true); // prettier-ignore
+  /** Where the fine meshes outlined are on the screen, marked in the stencil before the outlines. */
+  private readonly masks = new THREE.Group();
+  private readonly maskMaterial = new THREE.MeshBasicMaterial({
+    colorWrite: false,
+    depthWrite: false,
+    depthTest: false,
+    side: THREE.DoubleSide,
+    stencilWrite: true,
+    stencilRef: MASKED,
+    stencilFunc: THREE.AlwaysStencilFunc,
+    stencilZPass: THREE.ReplaceStencilOp,
+  });
+
+  /** Masks `m`'s mesh (once), and returns the pen's points its outline goes in. */
+  private outside(m: Model, pen: Pen): number[] {
+    const mesh = m.mesh;
+    if (mesh && !this.masks.children.some((c) => (c as THREE.Mesh).geometry === mesh.geometry)) {
+      const mask = new THREE.Mesh(mesh.geometry, this.maskMaterial);
+      mask.frustumCulled = false;
+      mask.renderOrder = 27;
+      mask.matrixAutoUpdate = false;
+      if (mesh.matrixAutoUpdate) mesh.updateMatrix();
+      mask.matrix.copy(mesh.matrix);
+      this.masks.add(mask);
+    }
+    return pen.pts;
+  }
   private readonly boxShadow = new Lines({ color: CLASSIC.black, width: 2, renderOrder: 34 });
   private readonly box = new Lines({ color: CLASSIC.yellow, width: 2, renderOrder: 35 });
   private readonly boxThrough = new Lines({
@@ -143,6 +191,9 @@ export class Highlights {
       this.hoverBack.object,
       this.pickedBack.object,
       this.contour.object,
+      this.masks,
+      this.hoverOutside.object,
+      this.contourOutside.object,
       group(
         this.boxThrough,
         this.boxShadow,
@@ -171,6 +222,7 @@ export class Highlights {
     for (const m of held) silhouette(m, eye, through);
     this.heldThrough.set(through);
 
+    this.masks.clear();
     const modelOf = new Map(models.map((m) => [m.object, m]));
     this.dot.visible = false;
     for (const m of outlined) silhouette(m, eye, this.hover.pts);
@@ -185,7 +237,7 @@ export class Highlights {
         this.dot.visible = true;
         this.dot.position.set(...pick.at);
       } else if (pick.kind === 'object' || model.object.attrs.props.includes('Lockedgeometry'))
-        silhouette(model, eye, this.hover.pts);
+        silhouette(model, eye, isFine(model) ? this.outside(model, this.hoverOutside) : this.hover.pts); // prettier-ignore
       else {
         const kind = pick.kind === 'inPlaneFace' ? 'face' : pick.kind;
         outline(model, kind, pick.id, eye, this.hover.pts, this.hoverBack.pts);
@@ -198,6 +250,7 @@ export class Highlights {
     }
     this.hover.flush();
     this.hoverBack.flush();
+    this.hoverOutside.flush();
 
     // The magnet's ghost: each model's mesh (its triangles shared), moved.
     const ghost = editor.ghost;
@@ -236,7 +289,7 @@ export class Highlights {
       if (f.kind === 'object') {
         for (const o of subtree(f.object)) {
           const m = modelOf.get(o);
-          if (m) silhouette(m, eye, this.contour.pts);
+          if (m) silhouette(m, eye, isFine(m) ? this.outside(m, this.contourOutside) : this.contour.pts); // prettier-ignore
         }
       } else if (f.kind === 'vertex') {
         const g = f.model.world;
@@ -246,6 +299,7 @@ export class Highlights {
     this.picked.flush();
     this.pickedBack.flush();
     this.contour.flush();
+    this.contourOutside.flush();
 
     // Marquee: a box between the press point and the crosshair, and its shadow on the floor.
     const mq = editor.marquee;
@@ -304,6 +358,44 @@ function outline(
   out: number[],
   back: number[],
 ): void {
+  const [o, k] = remembered(m, eye, `${kind} ${id}`, (o, k) => outlineOf(m, kind, id, eye, o, k));
+  for (const x of o) out.push(x);
+  for (const x of k) back.push(x);
+}
+
+/**
+ * Each model's outlines and contour as last drawn, while neither it nor the eye
+ * moves: a big mesh's take a pass over all its edges, and the crosshair and the
+ * plane move far more often than they change.
+ */
+const drawn = new WeakMap<Model['world'], { eye: string; lines: Map<string, [number[], number[]]> }>(); // prettier-ignore
+
+function remembered(
+  m: Model,
+  eye: THREE.Vector3,
+  key: string,
+  make: (out: number[], back: number[]) => void,
+): [number[], number[]] {
+  const at = `${eye.x},${eye.y},${eye.z}`;
+  let d = drawn.get(m.world);
+  if (d?.eye !== at) drawn.set(m.world, (d = { eye: at, lines: new Map() }));
+  let lines = d.lines.get(key);
+  if (!lines) {
+    lines = [[], []];
+    make(...lines);
+    d.lines.set(key, lines);
+  }
+  return lines;
+}
+
+function outlineOf(
+  m: Model,
+  kind: 'edge' | 'face',
+  id: number,
+  eye: THREE.Vector3,
+  out: number[],
+  back: number[],
+): void {
   const b = m.object.brep;
   const faces = facingFrom(m, eye);
   const push = (e: number) => {
@@ -343,6 +435,10 @@ function facingFrom(m: Model, eye: THREE.Vector3): (f: number) => boolean {
 
 /** grafx.c's contour: edges between a face turned toward the eye and one turned away. */
 function silhouette(m: Model, eye: THREE.Vector3, out: number[]): void {
+  for (const x of remembered(m, eye, 'contour', (o) => contourOf(m, eye, o))[0]) out.push(x);
+}
+
+function contourOf(m: Model, eye: THREE.Vector3, out: number[]): void {
   const b = m.object.brep;
   const faces = facingFrom(m, eye);
   for (const e of b.edges()) {

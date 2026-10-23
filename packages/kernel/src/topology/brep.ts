@@ -265,15 +265,28 @@ export class Brep {
    * whoever drew or wrote it can keep what they made.
    */
   fingerprint(): string {
+    return this.hash(true);
+  }
+
+  /**
+   * The same of what it looks like (new): its feature attributes left out, as a
+   * pick (a picked face's property) changes those and nothing drawn.
+   */
+  shapeFingerprint(): string {
+    return this.hash(false);
+  }
+
+  private hash(attrs: boolean): string {
     const h = new Uint32Array([0x811c9dc5, 0x9747b28c]);
     for (const p of [this.v, this.h, this.e, this.l, this.f, this.s]) p.hash(h);
     for (const [k, c] of this.faceColors) for (const x of [k, ...c]) mix(h, x);
     for (const [k, t] of this.faceSurface) for (const x of [k, t]) mix(h, x);
     for (const [k, t] of this.surfaceSlack) mixText(h, `${k}:${t}`);
-    for (const m of [this.vertexAttrs, this.edgeAttrs, this.faceAttrs]) {
-      mix(h, m.size);
-      for (const [k, a] of m) mixText(h, `${k}:${JSON.stringify(a)}`);
-    }
+    if (attrs)
+      for (const m of [this.vertexAttrs, this.edgeAttrs, this.faceAttrs]) {
+        mix(h, m.size);
+        for (const [k, a] of m) mixText(h, `${k}:${JSON.stringify(a)}`);
+      }
     return `${h[0]!.toString(36)}.${h[1]!.toString(36)}`;
   }
 

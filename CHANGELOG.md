@@ -10,6 +10,28 @@ has the detail on each.
 
 New in 2026: none of these were in the 1991 original.
 
+### October 23, 2026
+
+Big meshes (a Mars terrain of 400 thousand faces) are quick to work with. The 1991 SGIs could
+never draw a model this size, so the original never had to be.
+
+- **The plane cuts only what it meets.** Each object's faces are sorted by depth, so a plane
+  move looks at the few thousand faces near it, not all of them: the Mars terrain's section
+  takes 4 ms instead of 330, and is exactly the same. Finding what's under the crosshair uses
+  the same index.
+- **A fine mesh doesn't hold the plane back.** A mesh of more than 20,000 vertices stops the
+  plane only at its front and back, and only faces really facing along the plane are sticky,
+  not every tiny facet, so the plane no longer creeps through a terrain.
+- **A big mesh moves and turns as a stand-in.** While you drag or turn it, the mesh already
+  built is moved by a matrix (turned, it's grey and has no shadow), and its section comes
+  straight from its triangles, dotted. A second after it stops, or when you let go, it's built
+  where it now is. Turning the terrain went from over a second a frame to under 10 ms.
+- **A pick no longer rebuilds a big mesh.** Picking a face or vertex marks it in the B-rep,
+  which made it look reshaped; the drawing now keys on its shape alone.
+- **A fine mesh is outlined round its outside.** Its contour ran round every bump on it, each
+  facet turned away from the eye, and covered a terrain in white; now only its outer outline
+  shows, drawn off the mesh's own place on the screen.
+
 ### October 18, 2026
 
 - **The room as you left it.** Close the tab and come back, and the plane, the crosshair, the

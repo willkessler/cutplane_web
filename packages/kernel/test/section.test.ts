@@ -15,6 +15,7 @@ import {
   createSphere,
   loopArea,
   mat4,
+  pickAt,
   type Mat4,
 } from '../src/index.ts';
 
@@ -164,6 +165,72 @@ describe('computeSection', () => {
       ),
       { numRuns: 400 },
     );
+  });
+});
+
+describe('a big brep, sectioned only where the plane meets it (new)', () => {
+  /** The section as every face is looked at. */
+  const everyFace = (b: Brep, z: number, xf: Mat4) => {
+    const g = new WorldGeometry(b, xf);
+    g.near = () => null;
+    return computeSection(g, z);
+  };
+  const sphere = createSphere(300, 48); // 2304 faces
+  const cylinder = createOvalCylinder(200, 120, 400, 600); // long sides and two big caps
+  it.each([
+    ['a sphere', sphere],
+    ['a cylinder', cylinder],
+  ])('cuts %s as it would looking at every face', (_, b) => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: -3.2, max: 3.2, noNaN: true }),
+        fc.double({ min: -3.2, max: 3.2, noNaN: true }),
+        fc.double({ min: -450, max: 450, noNaN: true }),
+        (ax, ay, z) => {
+          const xf = placement(ax, ay, 0);
+          expect(section(b, z, xf)).toEqual(everyFace(b, z, xf));
+        },
+      ),
+      { numRuns: 60 },
+    );
+  });
+  it.each([
+    ['a sphere', sphere],
+    ['a cylinder', cylinder],
+  ])('picks on %s what it would looking at every vertex and edge', (_, b) => {
+    const full = (xf: Mat4) => {
+      const g = new WorldGeometry(b, xf);
+      g.near = () => null;
+      return g;
+    };
+    fc.assert(
+      fc.property(
+        fc.double({ min: -3.2, max: 3.2, noNaN: true }),
+        fc.double({ min: -400, max: 400, noNaN: true }),
+        fc.double({ min: -400, max: 400, noNaN: true }),
+        fc.constantFrom(0, 0.2, 400, 133.7, -151.2),
+        (ax, x, y, z) => {
+          const xf = placement(ax, 0, 0);
+          const g = new WorldGeometry(b, xf);
+          const f = full(xf);
+          expect(pickAt(g, computeSection(g, z), x, y, z)).toEqual(
+            pickAt(f, computeSection(f, z), x, y, z),
+          );
+        },
+      ),
+      { numRuns: 150 },
+    );
+    // On the cylinder's cap at 0, its rim's corners and edges.
+    const g = new WorldGeometry(cylinder, mat4.identity());
+    expect(pickAt(g, computeSection(g, 0), 200, 0, 0)?.kind).toBe('vertex');
+  });
+  it('finds faces and edges lying in the plane', () => {
+    // The cylinder's caps lie at 0 and 400: the plane on one has its face and edges.
+    for (const z of [0, 400, 0.3, 399.8]) {
+      const s = section(cylinder, z);
+      expect(s.inPlaneFaces.length).toBe(1);
+      expect(s).toEqual(everyFace(cylinder, z, mat4.identity()));
+    }
   });
 });
 

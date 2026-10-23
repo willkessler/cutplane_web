@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { computeSection, type ObjectSection, type WorldGeometry } from '@cutplane/kernel';
 import { CLASSIC } from '../viewer/palette.ts';
 import { Lines, group } from './lines.ts';
-import type { Model } from './models.ts';
+import { standInSection, type Model } from './models.ts';
 
 /** grafx.h's Sectionlinewidth. */
 const WIDTH = 3;
@@ -99,8 +99,14 @@ export class SectionLines {
     };
     this.sections = new Map();
     this.version++;
+    // A moving stand-in's section, straight from its triangles: dotted, as a face turned away is.
+    const turning: number[] = [];
     for (const m of models) {
       if (m.object.attrs.props.includes('Sectioninvisible')) continue;
+      if (m.moving !== undefined) {
+        standInSection(m, z, turning);
+        continue;
+      }
       let c = this.cache.get(m.world);
       if (c?.z !== z) this.cache.set(m.world, (c = { z, s: computeSection(m.world, z) }));
       const s = c.s;
@@ -134,11 +140,11 @@ export class SectionLines {
       }
     }
     this.stats = stats;
-    this.through.set([...all, ...edges]);
+    this.through.set([...all, ...edges, ...turning]);
     this.outline.set([...fronts, ...edges]);
-    this.backOutline.set(backs);
+    this.backOutline.set([...backs, ...turning]);
     this.front.set(fronts);
-    this.back.set(backs);
+    this.back.set([...backs, ...turning]);
     this.inPlane.set(edges);
   }
 }

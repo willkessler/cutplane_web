@@ -105,7 +105,8 @@ if (demo) document.documentElement.classList.add('demo');
 
 // The original wrote 8-bit colours straight to the framebuffer; so do we.
 THREE.ColorManagement.enabled = false;
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: demo });
+// (A stencil: a fine mesh is outlined only off itself.)
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, stencil: true, preserveDrawingBuffer: demo }); // prettier-ignore
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 renderer.setPixelRatio(window.devicePixelRatio);
 
@@ -852,6 +853,10 @@ function syncModels(): void {
     envView.rebuild(changed);
     dirty = envDirty = true;
   }
+  // Fine meshes moved or turned are built where they now are once let go, or held still
+  // a while; then they can be picked again.
+  if (models.settle(controls.pickHeld).length) dirty = depthsStale = true;
+  for (const o of rt.moving) if (!models.isMoving(o)) rt.moving.delete(o);
   // (Not while things fall: they come to rest as one change, then the stops are taken.)
   if (depthsStale && !controls.pickHeld && !falls.active) {
     setStops();
@@ -898,7 +903,9 @@ function catchUp(): void {
 /** The models not falling: a falling one isn't hovered or picked (it isn't where the world has it). */
 function stillModels(): Model[] {
   const shown = display.step === 0 ? models.models : models.models.filter((m) => models.shows(m.object)); // prettier-ignore
-  return falls.busy ? shown.filter((m) => !falls.has(m.object)) : shown;
+  // (Nor a moving stand-in: its world is where it was built.)
+  const steady = shown.some((m) => m.moving !== undefined) ? shown.filter((m) => m.moving === undefined) : shown; // prettier-ignore
+  return falls.busy ? steady.filter((m) => !falls.has(m.object)) : steady;
 }
 
 function render(): void {
