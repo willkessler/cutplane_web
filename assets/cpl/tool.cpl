@@ -6,7 +6,8 @@
 ;	cutplane_web: a tool put away goes to its own pad (the one toolpad.cpl
 ;	CONNECTed it to), not the pad it was sent to; a tool with the Measure
 ;	property lets picks through; a click on nothing no longer sends the
-;	tool a Fliptool message. Changes marked "cutplane_web".
+;	tool a Fliptool message; a tool is bigger in hand than on its pad. Changes
+;	marked "cutplane_web".
 ;
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -105,6 +106,10 @@ Activate_tool	POP	A:_Toolstore			; Tool passed on stack
 ;		 Free the tool from the parent pad
 ;		 Attach tool to environment's crosshair
 		ADOPT	Env:Crosshair_part,A:_Toolstore*,Const:TRUE
+;		 cutplane_web: bigger in hand, to be read at a glance
+		PUSH	A:_Toolstore
+		CRTN	Crtn:tool_to_hand
+		POP	A:_Toolstore
 
 		ADDPROP	A:_Toolstore*,Prop:Active	; Make tool active
 
@@ -145,7 +150,11 @@ _Preflip	REMPROP	A:_Toolstore*,Prop:Active
 		POP	A:_Toolstore			; use other side
 
 ;		 Does tool get oriented?
-_Re_adopt	HASPROP	A:_Toolstore*,Prop:Oriented,A:R8,Const:Self 
+;		 cutplane_web: back to its pad size
+_Re_adopt	PUSH	A:_Toolstore
+		CRTN	Crtn:tool_to_pad
+		POP	A:_Toolstore
+		HASPROP	A:_Toolstore*,Prop:Oriented,A:R8,Const:Self 
 		BFALSE	A:R8,A:_Attachtopad&
 
 		PUSH	A:_Toolstore

@@ -181,6 +181,7 @@ export function keyLines(mac: boolean): KeysLine[] {
     ['Magnet', 'snap face to face'],
     ['Grabber', 'pick objects whole'],
     ['Key again', 'put the tool away'],
+    ['Esc', 'puts it away too'],
     { heading: 'Goodies and files' },
     ['2-click', 'put a goody back'],
     ['Floppy', 'load, save by name'],

@@ -280,6 +280,26 @@ export function createToolbar(
  */
 export const TOOL_MOST = 60;
 
+/**
+ * New here: how big a tool is in hand, by its shape on its pad. A long, thin tool (the pencil,
+ * saw, drill, ruler) is HAND_LONG long; any other HAND_WIDE across, as a bulky tool that long
+ * looks far bigger than a thin one.
+ */
+export const HAND_LONG = 120;
+export const HAND_WIDE = 75;
+/** Thin: its second size no more than this much of its first. */
+const THIN = 0.45;
+/** The property a tool in hand keeps its scale in, so putting it away undoes it exactly. */
+const HANDSCALE = 'Handscale';
+
+function handScale(rt: Runtime, tool: CutObject): number {
+  const b = groupBox(rt, tool);
+  if (!b) return 1;
+  const [most, next] = [0, 1, 2].map((k) => b[1][k]! - b[0][k]!).sort((x, y) => y - x) as V3;
+  if (!(most > 0)) return 1;
+  return (next / most <= THIN ? HAND_LONG : HAND_WIDE) / most;
+}
+
 function fitInHand(rt: Runtime, tool: CutObject): void {
   const lo: V3 = [Infinity, Infinity, Infinity];
   const hi: V3 = [-Infinity, -Infinity, -Infinity];
@@ -435,6 +455,33 @@ export const TOOLBAR_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void
         }
       }
     vm.push(featuresWord(found));
+  },
+
+  /** New, CPL_tool_to_hand: (tool) → (tool), at its size in hand (taken on its pad). */
+  tool_to_hand(rt, vm) {
+    const rec = vm.pop();
+    const tool = objectOf(first(rec));
+    if (tool && !rt.hasProp(tool, HANDSCALE)) {
+      const f = handScale(rt, tool);
+      rt.scaleObject(tool, f);
+      let p = rt.vm.props.find(HANDSCALE);
+      if (p < 0) p = rt.vm.props.defineNew(HANDSCALE);
+      rt.vm.props.add(tool, p, f);
+    }
+    vm.push(rec);
+  },
+
+  /** New, CPL_tool_to_pad: (tool) → (tool), back at its pad size. */
+  tool_to_pad(rt, vm) {
+    const rec = vm.pop();
+    const tool = objectOf(first(rec));
+    const p = rt.vm.props.find(HANDSCALE);
+    if (tool && p >= 0 && rt.vm.props.has(tool, p)) {
+      const f = Number(rt.vm.props.get(tool, p));
+      if (f > 0) rt.scaleObject(tool, 1 / f);
+      rt.vm.props.del(tool, p);
+    }
+    vm.push(rec);
   },
 
   /** CPL_tool_off_plane: (tool) → the move that puts the tool just in front of the plane. */

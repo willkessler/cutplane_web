@@ -649,3 +649,18 @@ test('Ctrl on a scale box handle scales evenly, not locked to one axis', async (
   expect(d).toBe(w);
   expect(errors).toEqual([]);
 });
+
+test('Esc puts the tool in hand back on its pad, at its pad size', async ({ page }) => {
+  const errors = await open(page, 'sample=cube');
+  const inHand = () => locate<string[]>(page, 'inHand');
+  for (const key of ['KeyP', 'KeyZ', 'KeyH']) {
+    await page.keyboard.press(key);
+    expect((await inHand()).length).toBe(1);
+    await page.keyboard.press('Escape');
+    expect(await inHand()).toEqual([]);
+  }
+  // Nothing in hand: Esc does nothing.
+  await page.keyboard.press('Escape');
+  expect(await inHand()).toEqual([]);
+  expect(errors).toEqual([]);
+});

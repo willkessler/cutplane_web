@@ -52,6 +52,7 @@ test('a later visit finds the room as it was left: view, plane, rails, rotate to
   const out = await locate<number[]>(page, 'base');
   expect(out[0]!).toBeLessThan(base[0]! - 200);
   // A menu's choice, the room turned, the plane and crosshair somewhere.
+  await page.locator('#settings summary').click();
   await page.locator('#groupPick').selectOption('parts');
   await set(page, { yaw: 35, pitch: 25, z: -120, x: 40, y: -60 });
   const before = await state(page);

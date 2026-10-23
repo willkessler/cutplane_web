@@ -200,6 +200,7 @@ test('a cube dragged whole, then one of its faces taken at once (no unpick betwe
   page,
 }) => {
   const errors = await open(page, 'sample=cube');
+  await page.locator('#settings summary').click();
   await page.locator('#groupPick').selectOption('whole');
   await drag(page, { x: 0, y: 0, z: 0 }, { x: 25 }, { x: 50 });
   expect(await edit(page)).toMatchObject({ picked: ['object'], boxes: 1 });

@@ -161,7 +161,9 @@ test('the plane sticks to a face parallel to it for a moment, as set in the top 
   };
   await expect(page.locator('#planeStick')).toHaveValue('15');
   const firm = await held();
+  await page.locator('#settings summary').click();
   await page.locator('#planeStick').selectOption('0');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); // back over the room
   const none = await held();
   expect(none).toBe(1); // a plain stop: on it, then off at the next swipe
   expect(firm).toBeGreaterThan(2);

@@ -201,6 +201,7 @@ test('"Groups pick whole" (the first choice): a click by a part\'s face picks it
   expect((await edit(page)).picked).toEqual(['object']);
   await click(page, [300, -150]);
   // By part: its face, as the original picks.
+  await page.locator('#settings summary').click();
   await page.locator('#groupPick').selectOption('parts');
   await set(page, { x: 96, y: 0 });
   expect((await edit(page)).hover).toBe('face');

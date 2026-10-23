@@ -57,6 +57,37 @@
         align-items: center;
         max-width: calc(100% - 48px);
       }
+      #settings {
+        position: relative;
+      }
+      #settings summary {
+        list-style: none;
+        cursor: pointer;
+        color: var(--ink);
+        background: #34363e;
+        border: 1px solid #4a4c55;
+        border-radius: 6px;
+        padding: 3px 8px;
+      }
+      #settings summary::-webkit-details-marker {
+        display: none;
+      }
+      #settings summary::after {
+        content: ' ▾';
+      }
+      #settings .menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        z-index: 5;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px;
+        background: var(--panel);
+        border-radius: 8px;
+        backdrop-filter: blur(6px);
+      }
       #hud strong {
         letter-spacing: 0.04em;
         margin-right: 4px;
@@ -187,32 +218,41 @@
       <div id="hud" class="panel">
         <strong>CUTPLANE</strong>
         <select id="model" aria-label="Model"></select>
-        <select id="planeStyle" aria-label="Plane style">
-          <option value="classic">Stippled plane</option>
-          <option value="modern">Translucent plane</option>
-        </select>
-        <select id="faceDrag" aria-label="Face drag" title="What dragging a face does">
-          <option value="stretch">Faces stretch</option>
-          <option value="extrude">Faces extrude</option>
-        </select>
-        <select
-          id="groupPick"
-          aria-label="Group pick"
-          title="What clicking a part of a group picks"
-        >
-          <option value="whole">Groups pick whole</option>
-          <option value="parts">Groups pick by part</option>
-        </select>
-        <select
-          id="planeStick"
-          aria-label="Plane stickiness"
-          title="How far you push the plane before it comes off a face parallel to it"
-        >
-          <option value="0">Faces don't stick</option>
-          <option value="5">Faces stick a little</option>
-          <option value="15">Faces stick</option>
-          <option value="30">Faces stick firmly</option>
-        </select>
+        <details id="settings">
+          <summary
+            title="How the plane looks, what dragging a face does, how groups pick, how the plane sticks"
+          >
+            Settings
+          </summary>
+          <div class="menu">
+            <select id="planeStyle" aria-label="Plane style">
+              <option value="classic">Stippled plane</option>
+              <option value="modern">Translucent plane</option>
+            </select>
+            <select id="faceDrag" aria-label="Face drag" title="What dragging a face does">
+              <option value="stretch">Faces stretch</option>
+              <option value="extrude">Faces extrude</option>
+            </select>
+            <select
+              id="groupPick"
+              aria-label="Group pick"
+              title="What clicking a part of a group picks"
+            >
+              <option value="whole">Groups pick whole</option>
+              <option value="parts">Groups pick by part</option>
+            </select>
+            <select
+              id="planeStick"
+              aria-label="Plane stickiness"
+              title="How far you push the plane before it comes off a face parallel to it"
+            >
+              <option value="0">Faces don't stick</option>
+              <option value="5">Faces stick a little</option>
+              <option value="15">Faces stick</option>
+              <option value="30">Faces stick firmly</option>
+            </select>
+          </div>
+        </details>
         <button
           id="open"
           title="Open a .cut world, or add OBJ, STL, glTF, Inventor, VRML or DXF models to this one (or drop files on the page)"

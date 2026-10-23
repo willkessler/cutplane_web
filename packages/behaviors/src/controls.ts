@@ -230,6 +230,27 @@ export class Controls {
   }
 
   /**
+   * New: Esc puts whatever tool the crosshair holds back on its pad. Activatetool to a
+   * tool already in hand does it (tool.cpl). False: nothing was in hand.
+   */
+  putToolInHandAway(): boolean {
+    const vm = this.vm;
+    const held = this.rt.cursorObj.children.filter(
+      (o) => vm.props.has(o, P.Tool) && vm.props.has(o, P.Active),
+    );
+    if (held.length === 0) return false;
+    let msg = vm.messages.indexOf('Activatetool');
+    if (msg < 0) msg = vm.messages.push('Activatetool') - 1;
+    for (const t of held) {
+      vm.enterMessage(messageWord(msg));
+      vm.queueMessage(t, true);
+      vm.messageBlockReset();
+    }
+    this.events = true;
+    return true;
+  }
+
+  /**
    * New: a goodie (the camera, the colour control) goes back into its box and the box
    * closes, as when it's dropped on the box (goodies.cpl's _Try_dunk).
    */

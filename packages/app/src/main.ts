@@ -1061,6 +1061,7 @@ canvas.addEventListener('pointerenter', () => {
 });
 canvas.addEventListener('pointerdown', (e) => {
   syncHeld(e);
+  $<HTMLDetailsElement>('settings').open = false; // a click in the room closes the settings menu
   if (e.button === 1) e.preventDefault(); // no middle-click autoscroll
   if (work.state === 'paused') {
     void work.resume();
@@ -1117,6 +1118,14 @@ window.addEventListener('keydown', (e) => {
     if (code !== undefined) {
       e.preventDefault();
       controls.typeChar(code);
+      settle();
+    }
+    return;
+  }
+  // Esc puts the tool in hand away (in full screen the browser keeps Esc to leave it).
+  if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    if (controls.putToolInHandAway()) {
+      e.preventDefault();
       settle();
     }
     return;
@@ -1259,13 +1268,15 @@ async function openFiles(files: File[]): Promise<void> {
       got.scale === 1 ? '' : `, scaled ×${Number(got.scale.toPrecision(3))} to fit the room`;
     const holes = got.holes ? `, ${got.holes} hole${got.holes === 1 ? '' : 's'} closed to make solids` : ''; // prettier-ignore
     const fewer = got.simplified ? `, simplified from ${count(got.simplified.from)} faces to ${count(got.simplified.to)}` : ''; // prettier-ignore
+    const flat = got.laidFlat ? ', laid flat (its up was Z)' : '';
+    const bare = got.missing.length ? `, uncoloured: drop ${got.missing.join(', ')} with it for its colours` : ''; // prettier-ignore
     const one = got.objects[0]!;
     const what =
       n === 1 && one.attrs.props.includes('Grouper')
         ? `a group of ${one.children.length}` // G ungroups it
         : `${n} object${n === 1 ? '' : 's'}`;
     notify(
-      `Added ${what} from ${got.names.join(', ')}${scaled}${fewer}${holes} (undo takes ${n === 1 ? 'it' : 'them'} out)`,
+      `Added ${what} from ${got.names.join(', ')}${scaled}${flat}${fewer}${holes}${bare} (undo takes ${n === 1 ? 'it' : 'them'} out)`,
     );
   } catch (err) {
     if (err instanceof Cancelled) {
@@ -1724,6 +1735,8 @@ async function start(): Promise<void> {
             const bar = rt.findObject(h)?.children[0];
             return !!bar && rt.vm.props.has(bar, P.Visible);
           }),
+        // The tools the crosshair holds, by name.
+        inHand: () => rt.cursorObj.children.filter((c) => rt.hasProp(c, 'Tool')).map((c) => c.name),
         pads: () => padsOf('Toolpads'),
         arrangers: () => padsOf('Arrangepads'),
         // The measure pad: which of its plates show, and what its fields say.

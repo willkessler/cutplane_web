@@ -71,6 +71,9 @@ export const CRTN_NAMES = [
   // what a marquee takes in at least partly.
   'group_targets',
   'touching_marquee',
+  // cutplane_web: a tool's size in hand, and back on its pad (tool.cpl).
+  'tool_to_hand',
+  'tool_to_pad',
 ] as const;
 
 export type CrtnName = (typeof CRTN_NAMES)[number];

@@ -3,7 +3,16 @@ import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { P } from '@cutplane/cpl';
 import { subtree, validate, type CutObject } from '@cutplane/kernel';
-import { TOOL_MOST, decalOf, installToolbars } from '../src/index.ts';
+import {
+  HAND_LONG,
+  HAND_WIDE,
+  TOOL_MOST,
+  decalOf,
+  installToolbars,
+  markRoom,
+  restoreRoom,
+  snapshotRoom,
+} from '../src/index.ts';
 import { world } from './world.ts';
 
 const ASSETS = resolve(import.meta.dirname, '../../../assets');
@@ -215,6 +224,85 @@ describe('toolbars through headpad, toolpad, padhandle and tool.cpl', () => {
     }
     for (const pad of pads)
       expect(pad.children.filter((c) => w.rt.hasProp(c, 'Tool'))).toHaveLength(1);
+  });
+
+  it(
+    'in hand a long tool is HAND_LONG long, any other HAND_WIDE across; on its pad its own size (Esc too)',
+    { timeout: 30_000 },
+    () => {
+      const w = setup();
+      // Its spread: the widest two of its points apart, however it's turned.
+      const across = (tool: CutObject) => {
+        const pts: number[][] = [];
+        for (const o of subtree(tool)) {
+          const g = w.rt.world(o);
+          for (const v of o.brep.vertices()) pts.push([g.x(v), g.y(v), g.z(v)]);
+        }
+        let most = 0;
+        for (const a of pts)
+          for (const b of pts)
+            most = Math.max(most, Math.hypot(a[0]! - b[0]!, a[1]! - b[1]!, a[2]! - b[2]!));
+        return most;
+      };
+      const pads = [w.tools, w.arrangers].flatMap((head) => {
+        w.click(head);
+        return head.children[0]!.children.map((h) => h.children[0]!);
+      });
+      expect(w.controls.putToolInHandAway()).toBe(false);
+      for (const pad of pads) {
+        const tool = pad.children.find((c) => w.rt.hasProp(c, 'Tool'))!;
+        const home = across(tool);
+        const box = (() => {
+          const lo = [Infinity, Infinity, Infinity];
+          const hi = [-Infinity, -Infinity, -Infinity];
+          for (const o of subtree(tool)) {
+            const b = w.rt.bbox(o);
+            if (!b) continue;
+            for (let k = 0; k < 3; k++) {
+              lo[k] = Math.min(lo[k]!, b[0][k]!);
+              hi[k] = Math.max(hi[k]!, b[1][k]!);
+            }
+          }
+          return [0, 1, 2].map((k) => hi[k]! - lo[k]!).sort((x, y) => y - x);
+        })();
+        const long = ['Pencil', 'Saw', 'Bit', 'Ruler'].includes(tool.name ?? '');
+        expect(box[1]! / box[0]! <= 0.45, tool.name!).toBe(long);
+        const f = (long ? HAND_LONG : HAND_WIDE) / box[0]!;
+        w.click(pad);
+        expect(across(tool), tool.name!).toBeCloseTo(home * f, 3);
+        w.click(pad);
+        expect(across(tool), tool.name!).toBeCloseTo(home, 3);
+        // Esc: whatever is in hand goes home.
+        w.click(pad);
+        expect(w.controls.putToolInHandAway()).toBe(true);
+        for (let i = 0; i < 4; i++) w.frame();
+        expect(tool.parent, tool.name!).toBe(pad);
+        expect(across(tool), tool.name!).toBeCloseTo(home, 3);
+        expect(w.rt.hasProp(tool, 'Active')).toBe(false);
+      }
+    },
+  );
+
+  it('a tool left in hand comes back in hand on the next visit, and goes away again', () => {
+    const a = setup();
+    markRoom(a.rt);
+    a.controls.takeTool('Pencil');
+    for (let i = 0; i < 4; i++) a.frame();
+    const snap = JSON.parse(JSON.stringify(snapshotRoom(a.rt)));
+    const b = setup();
+    markRoom(b.rt);
+    expect(restoreRoom(b.rt, snap)).toBe(true);
+    b.frame();
+    const pencil = b.rt.findObject('Pencil')!;
+    expect(pencil.parent).toBe(b.rt.cursorObj);
+    expect(b.rt.hasProp(pencil, 'Active')).toBe(true);
+    expect(b.controls.putToolInHandAway()).toBe(true);
+    for (let i = 0; i < 4; i++) b.frame();
+    expect(b.rt.hasProp(pencil.parent!, 'Toolpad')).toBe(true);
+    // A room kept before Active was: not put back (its tool would be stuck in hand).
+    const c = setup();
+    markRoom(c.rt);
+    expect(restoreRoom(c.rt, { ...snap, version: undefined })).toBe(false);
   });
 
   it('a padhandle pulled off the rail floats where it is let go', () => {

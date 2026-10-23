@@ -26,9 +26,19 @@ interface Kept {
 }
 type PropValue = number | string | boolean;
 
+/**
+ * Not kept: what only means something while the program runs. A tool's Active is
+ * kept, unlike in a .cut file: the tool comes back in hand, and in hand it must be
+ * Active to be put away.
+ */
+const UNKEPT = new Set([...TRANSIENT_PROPS].filter((n) => n !== 'Active'));
+/** Snapshots of another version (before Active was kept, tools in hand at pad size) don't fit. */
+const VERSION = 2;
+
 export interface RoomSnapshot {
   /** The built objects' names, in order: a snapshot fits only the room it came from. */
   names: string;
+  version?: number;
   objects: (Kept | null)[];
   /** The light the bulb set, if it has been moved (it stays where it was set). */
   light?: BulbLight;
@@ -62,7 +72,7 @@ function propsOf(
   const out: [string, PropValue][] = [];
   for (const p of rt.vm.props.of(f).reverse()) {
     const name = rt.vm.props.names[p] ?? '';
-    if (!name || TRANSIENT_PROPS.has(name)) continue;
+    if (!name || UNKEPT.has(name)) continue;
     const v = rt.vm.props.get(f, p);
     out.push([name, typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean' ? v : 0]); // prettier-ignore
   }
@@ -77,7 +87,7 @@ function setProps(
   const names = new Set(want.map(([n]) => n));
   for (const p of rt.vm.props.of(f)) {
     const name = rt.vm.props.names[p] ?? '';
-    if (!TRANSIENT_PROPS.has(name) && !names.has(name)) rt.vm.props.del(f, p);
+    if (!UNKEPT.has(name) && !names.has(name)) rt.vm.props.del(f, p);
   }
   for (const [name, v] of want) {
     let p = rt.vm.props.find(name);
@@ -115,13 +125,18 @@ export function snapshotRoom(rt: Runtime): RoomSnapshot | null {
     };
   });
   const light = bulbLightOf(rt);
-  return { names: signature(b.objects), objects, ...(light ? { light } : {}) };
+  return { names: signature(b.objects), version: VERSION, objects, ...(light ? { light } : {}) };
 }
 
 /** Puts the room back as a snapshot had it. False (nothing changed) if it doesn't fit. */
 export function restoreRoom(rt: Runtime, snap: RoomSnapshot): boolean {
   const b = built.get(rt);
-  if (!b || snap.names !== signature(b.objects) || snap.objects.length !== b.objects.length)
+  if (
+    !b ||
+    snap.version !== VERSION ||
+    snap.names !== signature(b.objects) ||
+    snap.objects.length !== b.objects.length
+  )
     return false;
   const env = rt.environment.root;
   // The tree first: each object under its parent, in the order it had there.
