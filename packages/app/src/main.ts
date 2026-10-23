@@ -79,6 +79,7 @@ import {
   FACE_BUDGET,
   type ExportFormat,
 } from './ui/files.ts';
+import { droppedFiles } from './ui/drop.ts';
 import { Cancelled, readInBackground } from './ui/importer.ts';
 import { LoadingRing } from './render/loadingring.ts';
 import { AppStage } from './world/stage.ts';
@@ -1309,7 +1310,7 @@ let reading: { names: string; cancel(): void } | null = null;
 const count = (n: number) =>
   n >= 1e6 ? `${Number((n / 1e6).toPrecision(2))} million` : n >= 1e4 ? `${Math.round(n / 1e3)} thousand` : `${n}`; // prettier-ignore
 
-// Drag and drop: files dropped anywhere on the page open as Open does.
+// Drag and drop: files (or folders of them) dropped anywhere on the page open as Open does.
 let dragDepth = 0;
 const hasFiles = (e: DragEvent) => [...(e.dataTransfer?.types ?? [])].includes('Files');
 window.addEventListener('dragenter', (e) => {
@@ -1334,7 +1335,8 @@ window.addEventListener('drop', (e) => {
   e.preventDefault();
   dragDepth = 0;
   app.classList.remove('dropping');
-  void openFiles([...(e.dataTransfer?.files ?? [])]);
+  // A folder dropped opens as all its files would.
+  void droppedFiles(e.dataTransfer).then(openFiles);
 });
 
 // Export: the world's objects as glTF, OBJ or STL.

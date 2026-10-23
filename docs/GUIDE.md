@@ -204,7 +204,10 @@ Click the camera again to put the view away.
 
 ## 8. Files
 
-- **Open…** (top bar), or drop files anywhere on the page:
+- **Open…** (top bar), or drop files anywhere on the page. Drop a **folder** and everything in
+  it (folders inside it too) comes in as if its files were dropped together, so a model that
+  comes as several files (an OBJ with its `.mtl` and textures, a `.gltf` with its `.bin`, a
+  terrain with its `.rgb`) can be dropped as the folder it came in:
   - a **`.cut`** world from 3Form or Cutplane replaces the world;
   - **models** are added to it: glTF (`.glb`, `.gltf`), OBJ (with its `.mtl`), STL, and the SGI
     era's Open Inventor (`.iv`, text or binary), VRML (`.wrl`) and DXF, gzipped or not

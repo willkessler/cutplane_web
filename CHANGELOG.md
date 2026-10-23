@@ -31,6 +31,9 @@ never draw a model this size, so the original never had to be.
 - **A fine mesh is outlined round its outside.** Its contour ran round every bump on it, each
   facet turned away from the eye, and covered a terrain in white; now only its outer outline
   shows, drawn off the mesh's own place on the screen.
+- **Drop a folder.** Everything in it, folders inside it too, opens as if its files had been
+  dropped together: a model that comes as several files can be dropped as the folder it came
+  in. Hidden files (`.DS_Store`) are left out.
 
 ### October 18, 2026
 
