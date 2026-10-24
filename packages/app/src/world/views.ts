@@ -5,6 +5,7 @@ import {
   SelectKind,
   isObject,
   isSub,
+  rotateToolHeld,
   scaleBoxes,
   type ColorControl,
   type RotateTool,
@@ -141,6 +142,7 @@ export function toolDrawing(rt: Runtime, t: RotateTool): ToolDrawing {
     center: xy(c),
     show,
     hover: partOf(P.Active) ?? partOf(P.Selectable),
+    held: rotateToolHeld(rt) && toolActive(rt, t),
     barDir(bar) {
       const [a] = ends(bars[bar]);
       const d = [a!.p[0] - c[0], a!.p[1] - c[1]];

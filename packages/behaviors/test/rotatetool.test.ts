@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { P, T } from '@cutplane/cpl';
 import { mat4 } from '@cutplane/kernel';
-import { ROTATE_DOCK, ROTATE_RADIUS, installRotateTool } from '../src/index.ts';
+import {
+  PERP_HOLD,
+  ROTATE_DOCK,
+  ROTATE_RADIUS,
+  installRotateTool,
+  rotateToolHeld,
+} from '../src/index.ts';
 import { source, world } from './world.ts';
 
 function setup() {
@@ -139,6 +145,85 @@ describe('the rotate tool through rotatecircle, rotatexbar and rotatebauble.cpl'
     w.move(0, 2);
     expect(n()[2]).toBeCloseTo(1, 9);
     expect(w.rt.picked()).toEqual([]);
+    w.controls.releasePick();
+    w.frame();
+  });
+  it('a face rolled to stand across the plane stops there, and holds until pushed on (new: firmer)', () => {
+    const w = setup();
+    // Tip the cube 20° about y: its +x face crosses the plane at z = 0 along x = 100/cos 20°.
+    const tilt = mat4.rotationAbout([0, 0, 0], [0, 1, 0], (20 * Math.PI) / 180);
+    w.cube.xform = mat4.multiply(w.cube.xform, tilt);
+    w.cube.invXform = mat4.invert(w.cube.xform)!;
+    w.rt.changed(w.cube);
+    const x = 100 / Math.cos((20 * Math.PI) / 180);
+    w.at(x, 0, 0);
+    w.r();
+    const [face] = w.rt.picked();
+    expect(face?.type).toBe(T.Fve);
+    const nz = () => w.rt.world(w.cube).faceNormal((face as { id: number }).id)[2];
+    expect(nz()).toBeCloseTo(-Math.sin((20 * Math.PI) / 180), 9);
+    // Roll along the bar across the section line, 1° a unit, toward standing.
+    w.at(x + 60, 0, 0);
+    w.controls.pressPick(false);
+    w.frame();
+    let i = 0;
+    while (Math.abs(nz()) > 1e-9 && i++ < 30) w.move(-1, 0);
+    expect(i).toBe(16); // caught 5° short of 90°
+    const at = w.stage.x;
+    // Five moves are the original's pause; then PERP_HOLD more units of push hold it.
+    for (let k = 0; k < 5 + PERP_HOLD - 1; k++) w.move(-1, 0);
+    expect(Math.abs(nz())).toBeLessThan(1e-9);
+    expect(w.stage.x).toBe(at); // the crosshair held too
+    w.move(-1, 0);
+    w.move(-1, 0);
+    expect(nz()).toBeGreaterThan(0.01); // through
+    // Back the other way it stops again.
+    for (let k = 0; k < 10; k++) w.move(1, 0);
+    expect(Math.abs(nz())).toBeLessThan(1e-9);
+    w.controls.releasePick();
+    w.frame();
+  });
+  it('the dial stops every 45° and holds until pushed on (new: the original stopped only at level)', () => {
+    const w = setup();
+    w.at(0, 0, 0);
+    w.tap(); // pick the cube
+    w.at(-300, 0, 0);
+    w.r();
+    w.at(0, 0, 0);
+    w.tap();
+    w.at(-300 + ROTATE_RADIUS, 0, 0);
+    w.controls.pressPick(false);
+    w.frame();
+    /** A step of `d` along the circle, from where the crosshair is. */
+    const step = (d: number) => {
+      const r = Math.hypot(w.stage.x + 300, w.stage.y);
+      w.move((-w.stage.y / r) * d, ((w.stage.x + 300) / r) * d);
+    };
+    const toStop = (deg: number) => {
+      let i = 0;
+      while (!rotateToolHeld(w.rt) && i++ < 200) step(2);
+      // At it, not past (to within the tool's grid: its baubles sit on 1/256ths).
+      expect(turned(w, 'z')).toBeCloseTo(deg, 1);
+      const a = (deg * Math.PI) / 180;
+      expect(w.stage.x).toBeCloseTo(-300 + ROTATE_RADIUS * Math.cos(a), 1); // the crosshair on it
+      expect(w.stage.y).toBeCloseTo(ROTATE_RADIUS * Math.sin(a), 1);
+    };
+    toStop(45);
+    // rotatebauble.cpl's three-move pause, then PERP_HOLD more units of push hold it.
+    for (let k = 0; k < 3; k++) step(2);
+    for (let k = 0; k < PERP_HOLD / 2 - 1; k++) step(2);
+    expect(turned(w, 'z')).toBeCloseTo(45, 1);
+    step(2);
+    step(2);
+    expect(turned(w, 'z')).toBeGreaterThan(45.5); // through
+    expect(rotateToolHeld(w.rt)).toBe(false);
+    toStop(90);
+    for (let k = 0; k < 3 + PERP_HOLD / 2 + 1; k++) step(2);
+    expect(turned(w, 'z')).toBeGreaterThan(90.5);
+    // Back the other way it stops again.
+    for (let k = 0; k < 4; k++) step(-2);
+    expect(rotateToolHeld(w.rt)).toBe(true);
+    expect(turned(w, 'z')).toBeCloseTo(90, 1);
     w.controls.releasePick();
     w.frame();
   });

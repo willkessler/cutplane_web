@@ -1550,7 +1550,7 @@ declare global {
       display(): { solid: number; frontWire: number; wire: number; hidden: number; unseen: number };
       /** Whether gravity is always on, and whether something dangles from the crosshair. */
       gravity(): { always: boolean; dangling: boolean };
-      tool(): { center: number[]; hover: string | null; rotating: boolean };
+      tool(): { center: number[]; hover: string | null; rotating: boolean; held: boolean };
       color(): { rgb: number[]; hover: string | null; base: number[] };
       locate(what: string): unknown;
       scribble(): { segments: number; start: number[]; line: boolean };
@@ -1789,6 +1789,7 @@ async function start(): Promise<void> {
         center: [...t.center],
         hover: t.hover?.kind ?? null,
         rotating: toolActive(rt, rotateTool),
+        held: t.held,
       };
     },
     undo() {

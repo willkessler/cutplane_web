@@ -13,12 +13,16 @@ export interface ToolDrawing {
   center: V2;
   show: { hbar: boolean; vbar: boolean; hbaubles: boolean; vbaubles: boolean };
   hover: ToolPart | undefined;
+  /** Held at a stop (new): the baubles and the crosshair's ring are drawn half as big again. */
+  held: boolean;
   barDir(bar: Bar): V2;
   bauble(bar: Bar, end: 1 | -1): V2;
 }
 
 /** Rotatetooldepth: the white copy sits this far right, down and toward the viewer of the black. */
 const DEPTH = 2;
+/** How much bigger the baubles are drawn while the tool is held at a stop (new). */
+const HELD_SCALE = 1.5;
 
 /**
  * The rotate tool as grafx.c drew it, in the plane: white with a black drop
@@ -62,6 +66,7 @@ export class RotateToolView {
     const hot: number[] = [];
     const hotShadow: number[] = [];
     const d = DEPTH;
+    const bauble = BAUBLE_SIZE * (tool.held ? HELD_SCALE : 1);
 
     // The centre ring and the outer circle: black, with the white copy offset.
     const centerHot = tool.hover?.kind === 'center';
@@ -90,17 +95,17 @@ export class RotateToolView {
       if (tool.show[`${bar}baubles`])
         for (const end of [1, -1] as const) {
           const [bx, by] = tool.bauble(bar, end);
-          circle(bx, by, z, BAUBLE_SIZE, 16, through);
-          circle(bx, by, z, BAUBLE_SIZE, 16, white);
-          circle(bx + d, by - d, z + d, BAUBLE_SIZE, 16, black);
+          circle(bx, by, z, bauble, 16, through);
+          circle(bx, by, z, bauble, 16, white);
+          circle(bx + d, by - d, z + d, bauble, 16, black);
         }
     }
 
     // draw_big_circular_selectbox: a ring at the crosshair over a bar or bauble.
     if (tool.hover && tool.hover.kind !== 'center') {
       const [x, y] = crosshair;
-      circle(x, y, z, BAUBLE_SIZE, 16, hotShadow);
-      circle(x + d, y - d, z + d, BAUBLE_SIZE, 16, hot);
+      circle(x, y, z, bauble, 16, hotShadow);
+      circle(x + d, y - d, z + d, bauble, 16, hot);
     }
 
     this.through.set(through);

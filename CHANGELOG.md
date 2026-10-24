@@ -21,6 +21,16 @@ New in 2026: none of these were in the 1991 original.
   in about its axis, into a truncated cone of any slant (the sides of the 2001 pods), where
   before it had to be sliced off a cone. Sides that would bend are split, and merge back where
   they come out flat.
+- **A face stood across the plane holds.** Rolled on the rotate tool's bar from its section line,
+  a face catches at 90° to the plane and stays until the bar is pushed on 15 units, so two
+  parts (a duplicate and its flip) are easily stood parallel. The original's stop there lasted
+  five mouse events, too brief to feel.
+- **The rotate tool's dial stops every 45°.** Turning the outer circle, the bars catch level,
+  upright and diagonal and hold until pushed on, so a face's section line is easily made
+  vertical. The original meant to stop every 45°, but a rounding slip left only horizontal, and
+  that for three mouse events.
+- **A stop can be seen.** While the rotate tool is held at any of its stops, its baubles (the
+  little circles at the bars' ends) and the ring at the crosshair are drawn half as big again.
 
 ### October 23, 2026
 

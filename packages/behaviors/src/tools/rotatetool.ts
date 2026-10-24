@@ -35,8 +35,9 @@ import { SelectKind, type Runtime, type V3 } from '../runtime.ts';
  * Deliberate fixes, as in M4: the in-plane face snap's 7.5° input test uses
  * |angle| (the original let any negative angle through); bar and dial angles
  * keep their fractions (the original truncated each step to a whole tenth or
- * degree, losing slow motion); the dial's stop at horizontal brings the
- * crosshair to horizontal with the object; R over a vertex or an in-plane
+ * degree, losing slow motion); the dial's stops (every 45°, where the
+ * original's rounding left only horizontal) bring the crosshair there with
+ * the object, and hold, as the bar's stop with a face across the plane does; R over a vertex or an in-plane
  * face brings the tool there (the original left it where it was).
  */
 
@@ -55,6 +56,19 @@ const DRAG_BAUBLE_SIZE = PK * 1.3; // Dragbaublesize
 export const CENTER_SIZE = PK * 2; // Rotateiconctrsize
 /** rotateobj.h's tolznorm. */
 const TOLZNORM = 0.996;
+/**
+ * How far (along the bar, 1° a unit) the face stood across the plane holds
+ * before it turns on (new: the original's 5-event pause is gone in a blink at a
+ * browser's event rate). As firm as the plane's stick (PLANE_STICK).
+ */
+export const PERP_HOLD = 15;
+/** The dial's stops: compute_snapped_rotangle's snapangle (45). */
+export const DIAL_STEP = 45;
+/**
+ * How near (degrees) a bauble is to a stop to count as on it: the tool sits on
+ * the 1/256 grid, a few thousandths of a degree out at its radius.
+ */
+const STOP_TOL = 0.01;
 const DEG = 180 / Math.PI;
 
 export interface RotateTool {
@@ -73,6 +87,10 @@ interface ToolState {
   otherAxis: V3 | null;
   /** Where snap_rotatetool puts the centre. */
   placePt: V3;
+  /** Push along the bar so far against the stop with the face across the plane (new). */
+  held: number | null;
+  /** Push along the dial so far against one of its stops (new). */
+  dialHeld: number | null;
 }
 const states = new WeakMap<Runtime, ToolState>();
 
@@ -149,7 +167,14 @@ export function createRotateTool(rt: Runtime): RotateTool {
   });
   rt.adopt(inner, outer, false);
   const tool = { inner, outer, hbar, vbar };
-  states.set(rt, { tool, snapFace: null, otherAxis: null, placePt: [0, 0, 0] });
+  states.set(rt, {
+    tool,
+    snapFace: null,
+    otherAxis: null,
+    placePt: [0, 0, 0],
+    held: null,
+    dialHeld: null,
+  });
   resetTool(rt, tool);
   rt.translate(inner, [ROTATE_DOCK[0], ROTATE_DOCK[1], rt.cursor()[2]]);
   for (const o of [inner, hbar, vbar, outer])
@@ -283,6 +308,15 @@ function xbarSelectable(rt: Runtime, bar: CutObject): void {
   rt.applySelectable(bar, NOTHING);
 }
 
+/**
+ * Is the tool held at one of its stops (new)? The baubles and the crosshair's ring
+ * are drawn half as big again there, so the stop can be seen as well as felt.
+ */
+export function rotateToolHeld(rt: Runtime): boolean {
+  const st = states.get(rt);
+  return !!st && (st.held !== null || st.dialHeld !== null);
+}
+
 // ---- the C routines ----
 
 /** A rotate record: (axis, point, tenths of a degree). */
@@ -345,6 +379,15 @@ function xbarRotation(rt: Runtime, bar: CutObject, trans: V3): XbarRot {
   let snapped = false;
   let paused = false;
   const f = st.snapFace;
+  if (st.held !== null) {
+    // Stood across the plane: hold until pushed PERP_HOLD along the bar, either way.
+    const n = f && rt.features.alive(f) ? rt.world(f.object).faceNormal(f.id) : null;
+    if (n && Math.abs(n[2]) < 1e-6 && Math.abs(st.held + along) < PERP_HOLD) {
+      st.held += along;
+      return { axis, point, tenths: 0, trans: [0, 0, 0], snapped, paused: false };
+    }
+    st.held = null;
+  }
   if (f && rt.features.alive(f) && Math.abs(tenths) < 75) {
     const n = rt.world(f.object).faceNormal(f.id);
     const takes = (s: number) =>
@@ -355,9 +398,11 @@ function xbarRotation(rt: Runtime, bar: CutObject, trans: V3): XbarRot {
       tenths = s;
     } else {
       const sp = snapFaceToPlanePerp(axis, n);
-      if (takes(sp)) {
+      // (Not again as it leaves the stop, a hair off by rounding.)
+      if (Math.abs(sp) > 0.01 && takes(sp)) {
         paused = true;
         tenths = sp;
+        st.held = 0;
       }
     }
   }
@@ -442,15 +487,38 @@ export const ROTATE_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
       out(null, false, rotateWord(Z, center, 0), rotateWord(Z, center, 0), sub(bp, cursor));
       return;
     }
+    // Held at a stop: the bauble stays until pushed PERP_HOLD along the circle, either way.
+    const a1 = Math.atan2(n1[1], n1[0]) * DEG;
+    const offStop = (a: number) => Math.abs(a - Math.round(a / DIAL_STEP) * DIAL_STEP);
+    if (st.dialHeld !== null) {
+      const push = dot(t, unit(cross(Z, n1)));
+      if (offStop(a1) < STOP_TOL && Math.abs(st.dialHeld + push) < PERP_HOLD) {
+        st.dialHeld += push;
+        const none = rotateWord(Z, center, 0);
+        out(null, false, none, none, sub(bp, cursor));
+        return;
+      }
+      st.dialHeld = null;
+    }
     let n2 = unit(v2);
     let deg = Math.atan2(cross(n1, n2)[2], dot(n1, n2)) * DEG;
     let paused = false;
-    // compute_snapped_rotangle: a small turn across horizontal stops at horizontal.
-    if (Math.abs(deg) <= 10 && Math.sign(n1[1]) !== Math.sign(n2[1]) && n1[1] !== 0) {
-      const level: V3 = [Math.sign(n1[0] + n2[0]) || 1, 0, 0];
-      deg = Math.atan2(cross(n1, level)[2], dot(n1, level)) * DEG;
-      n2 = level;
-      paused = true;
+    // compute_snapped_rotangle: a small turn that reaches an eighth of a turn (the bars
+    // level, upright or diagonal) stops there, as the original meant: its rounding left
+    // only horizontal (new: every 45°, held as the bar's stop is).
+    if (Math.abs(deg) <= 10) {
+      const a2 = a1 + deg;
+      const stop = (deg > 0 ? Math.ceil(a1 / DIAL_STEP) : Math.floor(a1 / DIAL_STEP)) * DIAL_STEP;
+      // Reaching it counts (to the tolerance); starting on it doesn't.
+      if ((a2 - stop) * Math.sign(deg) > -STOP_TOL && Math.abs(stop - a1) > STOP_TOL) {
+        deg = stop - a1;
+        const r = stop / DEG;
+        const c = Math.cos(r);
+        const s = Math.sin(r);
+        n2 = [Math.abs(c) < 1e-12 ? 0 : c, Math.abs(s) < 1e-12 ? 0 : s, 0];
+        paused = true;
+        st.dialHeld = 0;
+      }
     }
     let axis = Z;
     if (st.otherAxis) axis = st.otherAxis[2] < 0 ? scale(st.otherAxis, -1) : st.otherAxis;
@@ -479,6 +547,8 @@ export const ROTATE_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
     if (!st) return;
     const t = st.tool;
     st.snapFace = null;
+    st.held = null;
+    st.dialHeld = null;
     st.otherAxis = null;
     const f = first(rec);
     if (!f) {

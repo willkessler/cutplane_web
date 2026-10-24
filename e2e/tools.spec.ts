@@ -64,6 +64,40 @@ test('the rotate tool: docked, brought to the cube with R, rolling it', async ({
   expect(errors).toEqual([]);
 });
 
+test('the rotate tool’s dial stops at 45°, its baubles drawn bigger while held (new)', async ({
+  page,
+  browserName,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  await page.keyboard.press('KeyR');
+  // The horizontal bar's right bauble, dialled round toward 45°, 1° a step.
+  await set(page, { x: 130, y: 0 });
+  expect((await tool(page)).hover).toBe('bauble');
+  await press(page);
+  let a = 0;
+  while (!(await tool(page)).held && a < 60) {
+    a += 1;
+    const r = (a * Math.PI) / 180;
+    await set(page, { x: 130 * Math.cos(r), y: 130 * Math.sin(r) });
+  }
+  expect(a).toBeGreaterThanOrEqual(45);
+  expect(a).toBeLessThan(47);
+  const at = await page.evaluate(() => window.__cutplane!.state());
+  expect(at.x).toBeCloseTo(130 * Math.SQRT1_2, 0); // the crosshair on the 45° stop
+  expect(at.y).toBeCloseTo(130 * Math.SQRT1_2, 0);
+  await shot(page, 'tool-dial-held', browserName);
+  // Pushed on well past the hold, it lets go.
+  for (let b = a + 2; b <= 70; b += 2) {
+    const r = (b * Math.PI) / 180;
+    await set(page, { x: 130 * Math.cos(r), y: 130 * Math.sin(r) });
+  }
+  expect((await tool(page)).held).toBe(false);
+  await shot(page, 'tool-dial-on', browserName);
+  await release(page);
+  expect(errors).toEqual([]);
+});
+
 test('D duplicates the picked cube; Backspace deletes; undo brings it back', async ({
   page,
   browserName,

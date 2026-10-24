@@ -157,10 +157,14 @@ Like everything else, the tools stand in the room and are used through the plane
     through the centre: 1° per unit. The crosshair stays on the bar.
   - **Off the end of a bar**, or from a **bauble**, the drag turns the dial: the crosshair rides
     the circle and what is picked spins about the plane's normal (or about the piercing edge),
-    the bars turning with it. It pauses briefly at horizontal.
-  - **Set on a face's section line**, rolling stops briefly when the face stands straight across
-    the plane, and within 5° of lying in the plane it **snaps the face exactly into the plane**;
+    the bars turning with it. It stops every 45° (the bars level, upright or diagonal), and holds
+    there until pushed on 15 units round the circle.
+  - **Set on a face's section line**, rolling stops when the face stands straight across the
+    plane (90° to it, caught within 5°) and holds there until the bar is pushed on 15 units
+    either way, and within 5° of lying in the plane it **snaps the face exactly into the plane**;
     the rotation ends there and everything is let go.
+  - While the tool is held at a stop, its baubles and the ring at the crosshair are drawn half
+    as big again, so the stop is seen as well as felt.
   - Rotation always turns whole objects (with their group).
 - **Scale boxes.** A picked object shows the handles of a box 20 units outside it: grey squares
   where the box's edges pierce the plane, white ones at corners the plane is near. Drag an edge
@@ -602,6 +606,13 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
     degrees, so slow turns were lost.
   - **R** over a vertex, or over a face lying in the plane, brings the tool there. The original
     left it where it was.
+  - **The dial stops every 45°**, not only at horizontal, and holds as the stop below does.
+    `compute_snapped_rotangle` was meant to stop every 45°, but its rounding (`angle / 45 * 45`
+    in floating point) gave back the angle itself, so only crossing the x axis stopped it. At a
+    stop, the baubles grow by half, which the original never showed.
+  - **The stop with a face across the plane holds** until the bar is pushed 15 units. The
+    original paused for five mouse events, gone in a blink at a browser's event rate, so a face
+    couldn't be felt standing square to the plane.
 - **Scale boxes** keep every side at least 1 unit long. The original could scale a solid flat or
   turn it inside out.
 - **Faces in the plane can be scaled.** The original gave only a whole object a scale box; a
@@ -637,9 +648,10 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   drift left slightly bent. The original warned "face crosses plane odd number of times" there.
 
 **Timing.** Ctrl's axis decision is measured by distance (5 units), since browsers send many
-more, smaller events than the SGI did. The rotate tool's brief stops (at perpendicular, and the
-dial at horizontal) are the original CPL's counters again. The app sends CPL one coalesced move
-per frame, so they count frames, as the original counted its update loop.
+more, smaller events than the SGI did. The rotate tool's stops (at perpendicular, and the dial's
+45° steps) keep the original CPL's counters, which count frames (the app sends CPL one
+coalesced move per frame), but a twentieth of a second can't be felt: each stop then holds until
+pushed 15 units, also by distance.
 
 **Geometry.** Every coordinate snaps to a 1/256-unit grid, so repeated rotations can't build
 up error and coincident points are exactly equal. The original used floats. Files written by
@@ -881,8 +893,8 @@ Ported from `rotatetool.c`, `rotateobj.c`, `scale.c`, `duplicate.c`, `topology.c
 
 - **No 15° steps.** The plan promised 15° and 5° snapping, but `Rotatesnapangle 15` is a dead
   constant in the original and Ctrl does nothing to rotation. Its only snaps are the ones above:
-  the 5° magnet that lays a face into the plane, the stop at perpendicular, and the dial's stop
-  at horizontal.
+  the 5° magnet that lays a face into the plane, the stop at perpendicular, and the dial's stops
+  every 45°.
 - **Deliberate fixes** are listed under
   [Differences from the original](#differences-from-the-original).
 - **Goodies.** The colour control's base runs `goodies.cpl`, which every goodie runs: picked, it

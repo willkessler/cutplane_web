@@ -95,6 +95,12 @@ so the cube above has grown a box out of its right side. Push it back and the wa
 - **R** brings the **rotate tool** to the crosshair and picks what's there. Slide along one of its
   bars to roll the object over, or turn its outer circle to spin it in the plane. R on its centre
   puts it away.
+- R on a face's **section line** lines the tool up with it. Roll it there and the face catches
+  when it stands straight across the plane, holding until you push on: two objects stood up
+  this way are parallel. Rolled to within 5° of lying in the plane, the face snaps into it.
+- The outer circle stops **every 45°** (the bars level, upright or diagonal), and holds until you
+  push on. Set on a face's section line, that stands the face's section upright or lays it
+  level. At any stop the tool's little end circles grow by half, so you can see you're on it.
 - A picked object shows the handles of its **scale box**: grey squares where the box's edges
   pierce the plane. Drag one to stretch the object; Ctrl scales it evenly.
 - Faces picked where they lie in the plane get a flat **scale box** of their own, with white
