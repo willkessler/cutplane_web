@@ -10,6 +10,18 @@ has the detail on each.
 
 New in 2026: none of these were in the 1991 original.
 
+### October 24, 2026
+
+- **Rounder primitives.** The primitives toolbox's cylinder, cone and sphere go round in 72
+  steps, not 14: in 1991 every polygon cost the graphics chip, and a sphere had 196 faces. It
+  now has about 5,000, and still cuts and moves at once.
+- **Faces in the plane can be scaled.** A face picked where it lies in the plane gets a flat
+  scale box with corner handles, as a picked object has one: drag a corner to resize the face in
+  the plane, and hold Ctrl to keep it square about its middle. Ctrl on a cylinder's end draws it
+  in about its axis, into a truncated cone of any slant (the sides of the 2001 pods), where
+  before it had to be sliced off a cone. Sides that would bend are split, and merge back where
+  they come out flat.
+
 ### October 23, 2026
 
 Big meshes (a Mars terrain of 400 thousand faces) are quick to work with. The 1991 SGIs could

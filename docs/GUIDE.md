@@ -97,6 +97,10 @@ so the cube above has grown a box out of its right side. Push it back and the wa
   puts it away.
 - A picked object shows the handles of its **scale box**: grey squares where the box's edges
   pierce the plane. Drag one to stretch the object; Ctrl scales it evenly.
+- Faces picked where they lie in the plane get a flat **scale box** of their own, with white
+  corner handles. Drag a corner to stretch or shrink the faces in the plane, about the opposite
+  corner; hold **Ctrl** to scale them evenly about their middle. Ctrl on a cylinder's end draws
+  it in about its axis, making a truncated cone.
 - **D** duplicates what is picked, **G** groups it (or ungroups a group), **\\** slices it in two
   at the plane, **B** unions picked objects into one solid.
 

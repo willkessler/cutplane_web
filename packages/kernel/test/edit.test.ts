@@ -9,7 +9,9 @@ import {
   createCubeHole,
   mat4,
   pickAt,
+  createOvalCylinder,
   planarizeForMotion,
+  planarizeForMoves,
   recombineSurfaces,
   validate,
 } from '../src/index.ts';
@@ -157,6 +159,38 @@ describe('planarize and recombine', () => {
       }),
       { numRuns: Number(process.env['RUNS'] ?? 300) },
     );
+  });
+});
+
+describe('planarizeForMoves (a face scaled in its plane)', () => {
+  /** Scales the end at the top of `b` by (sx, sy) about its axis, as one move. */
+  const scaleEnd = (b: Brep, sx: number, sy: number) => {
+    const top = Math.max(...b.vertices().map((v) => b.vz(v)));
+    const to = new Map<number, V3>();
+    for (const v of b.vertices()) if (b.vz(v) === top) to.set(v, [b.vx(v) * sx, b.vy(v) * sy, top]);
+    const made = planarizeForMoves(b, to);
+    for (const [v, p] of to) b.setVertexPos(v, ...p);
+    return made;
+  };
+
+  it('a cylinder end drawn in evenly makes a truncated cone: no side bends, none splits', () => {
+    const b = createOvalCylinder(50, 50, 100, 72);
+    expect(scaleEnd(b, 0.9, 0.9)).toBe(0);
+    expect(scaleEnd(b, 0.5, 0.5)).toBe(0);
+    expect(b.numFaces).toBe(74);
+    expect(validate(b).closedManifold).toBe(true);
+  });
+
+  it('drawn in one way only, the sides it bends are split, and the solid stays closed', () => {
+    const b = createOvalCylinder(50, 50, 100, 24);
+    expect(scaleEnd(b, 0.5, 1)).toBeGreaterThan(0);
+    expect(validate(b).closedManifold).toBe(true);
+    for (const f of b.faces()) {
+      const n = b.faceNormal(f);
+      const vs = b.faceLoops(f).flatMap((l) => b.loopHalfEdges(l).map((h) => b.heVertex(h)));
+      const d = vs.map((v) => n[0] * b.vx(v) + n[1] * b.vy(v) + n[2] * b.vz(v));
+      expect(Math.max(...d) - Math.min(...d)).toBeLessThan(2 / 256);
+    }
   });
 });
 

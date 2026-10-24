@@ -48,7 +48,7 @@ const PRIMS_W = TOOLBOX_WIDTH;
 const PRIMS_H = TOOLBOX_HEIGHT;
 const PRIMS_D = TOOLBOX_DEPTH;
 const PRIMS_MARGIN = PRIMS_H / 5;
-const PRIMS_RES = 14;
+const PRIMS_RES = 72; // 14 in 1991, when polygons were dear
 /** Maxcrossx, Mincrossy, Minplanez. */
 const MAX_X = 510;
 const MIN_Y = -382;

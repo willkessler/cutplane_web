@@ -1,5 +1,6 @@
 import { Brep, NONE } from '../topology/brep.ts';
 import { kef, kemr, mef, mekr } from '../topology/euler.ts';
+import { GRID } from '../math/snap.ts';
 
 /**
  * Keeping faces flat while their vertices move: split.c's
@@ -324,4 +325,36 @@ export function recombineSurfaces(b: Brep, keep: ReadonlySet<number> = new Set()
       b.surfaceSlack.delete(s);
     }
   return before - b.numFaces;
+}
+
+/**
+ * New here (a face scaled in the plane): before moving each vertex in `to` to
+ * its place there (local units), splits every face the moves would bend, as
+ * planarizeForMotion does for one shared motion. A face whose vertices all
+ * move is left alone (the moves are a scale, which keeps it flat), as is one
+ * that stays as flat as it was, or within a grid step of flat. Returns the number of new faces.
+ */
+export function planarizeForMoves(
+  b: Brep,
+  to: ReadonlyMap<number, readonly [number, number, number]>,
+): number {
+  if (to.size === 0) return 0;
+  const touched: number[] = [];
+  for (const f of b.faces()) {
+    const vs = faceVertices(b, f);
+    if (vs.length <= 3 && b.faceLoops(f).length === 1) continue;
+    const n = vs.filter((v) => to.has(v)).length;
+    if (n > 0 && n < vs.length) touched.push(f);
+  }
+  if (touched.length === 0) return 0;
+  const was = touched.map((f) => flatness(b, [f]));
+  const from = new Map([...to.keys()].map((v) => [v, b.vertexPos(v)] as const));
+  for (const [v, p] of to) b.setVertexPos(v, p[0], p[1], p[2]);
+  // (Within a grid step is flat: snapping a scaled side's corners bends it that much.)
+  const bent = touched.filter((f, i) => flatness(b, [f]) > Math.max(was[i]! + COPLANAR, 1 / GRID));
+  for (const [v, p] of from) b.setVertexPos(v, p[0]!, p[1]!, p[2]!);
+  const moving = new Set(to.keys());
+  let made = 0;
+  for (const f of bent) made += planarizeFace(b, f, moving);
+  return made;
 }

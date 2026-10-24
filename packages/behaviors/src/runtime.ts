@@ -30,6 +30,7 @@ import {
   mev,
   pickAt,
   planarizeForMotion,
+  planarizeForMoves,
   recombineSurfaces,
   subtree,
   transformTree,
@@ -50,6 +51,7 @@ import {
   createScaleBoxTemplate,
   scaleBoxes,
   setScaleBoxSelectable,
+  syncFaceBox,
 } from './tools/scalebox.ts';
 import { Journal, restoreTree, type ObjectSnapshot, type Step } from './journal.ts';
 import { MODELING_CRTNS, booleanObjects } from './modeling.ts';
@@ -367,6 +369,7 @@ export class Runtime implements Host {
     this.vm.props.del(this.groupObj, P.Visible);
     this.scaleBoxTemplate = createScaleBoxTemplate(this);
     this.registerCrtns(SCALEBOX_CRTNS);
+    this.frameHooks.push(() => syncFaceBox(this));
     this.registerCrtns(MODELING_CRTNS);
     this.registerCrtns(PENCIL_CRTNS);
     this.selectTechniques['set_scalebbox_selectable'] = (o) => setScaleBoxSelectable(this, o);
@@ -953,6 +956,27 @@ export class Runtime implements Host {
       const t = toLocal(o.invXform, total);
       b.setVertexPos(v, s[0] + t[0], s[1] + t[1], s[2] + t[2]);
     }
+    this.changed(o);
+  }
+
+  /**
+   * New here: vertices of `o` taken by a world transform `m` (a face scaled in the plane
+   * by its box), as a drag is: faces the move would bend are split first, and on
+   * release merge back, or the solid is put back if it broke.
+   */
+  transformVertices(o: CutObject, verts: readonly number[], m: Mat4): void {
+    const b = o.brep;
+    if (this.worldOf(o) === this.primary) this.journal.touch(o);
+    if (!this.drags.has(o))
+      this.drags.set(o, { start: new Map(), moved: new Map(), health: healthOf(b) });
+    const local = mat4.multiply(mat4.multiply(o.xform, m), o.invXform);
+    const to = new Map<number, V3>();
+    for (const v of verts) {
+      const p = b.vertexPos(v);
+      to.set(v, mat4.transformPoint(local, p[0], p[1], p[2]));
+    }
+    planarizeForMoves(b, to);
+    for (const [v, p] of to) b.setVertexPos(v, p[0], p[1], p[2]);
     this.changed(o);
   }
 

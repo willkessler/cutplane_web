@@ -8,7 +8,7 @@ import {
   type Mat4,
 } from '@cutplane/kernel';
 import { isObject, isSub, type Sub } from '../features.ts';
-import { SelectKind, type Runtime, type V3 } from '../runtime.ts';
+import { SelectKind, movingVertices, type Runtime, type V3 } from '../runtime.ts';
 
 /**
  * Scale boxes (scale.c's create_scalebbox, rom.cpl's _Create_scaler,
@@ -33,6 +33,10 @@ import { SelectKind, type Runtime, type V3 } from '../runtime.ts';
  * which is how the original's commented-out "new scaling method" meant it.
  * And no side gets shorter than 1 unit (the original could turn a solid
  * inside out).
+ *
+ * New here: faces picked in the plane get a box too, flat in the plane (see
+ * syncFaceBox). Its corners scale the faces' vertices, not a branch, so a
+ * cylinder's end can be drawn in to make a truncated cone.
  */
 
 /** grafx.h's BBoxoutdent (2 · Pkboxsize) and Pkboxsize. */
@@ -142,6 +146,10 @@ function scaleBranch(rt: Runtime, box: CutObject, origin: V3, f: V3, handle: V3)
   return sub(apply(box.xform, handle), before);
 }
 
+/** Scales what the box holds: its branch, or, a face box, its faces. */
+const scale3 = (rt: Runtime, box: CutObject, origin: V3, f: V3, handle: V3): V3 =>
+  isFaceBox(box) ? scaleFaces(rt, box, origin, f, handle) : scaleBranch(rt, box, origin, f, handle);
+
 /** The corner diagonally opposite `c` (find_other_bboxcorner), in the box's frame. */
 const otherCorner = (lo: V3, hi: V3, c: V3): V3 =>
   [0, 1, 2].map((k) => (Math.abs(c[k]! - lo[k]!) < 1e-9 ? hi[k]! : lo[k]!)) as V3;
@@ -153,26 +161,32 @@ export function fitScaleBox(rt: Runtime, box: CutObject, root: CutObject): void 
   for (const o of subtree(root)) {
     if (o === box) continue;
     const g = rt.world(o);
-    for (const v of o.brep.vertices()) {
-      const p = [g.x(v), g.y(v), g.z(v)];
-      for (let k = 0; k < 3; k++) {
-        lo[k] = Math.min(lo[k]!, p[k]!);
-        hi[k] = Math.max(hi[k]!, p[k]!);
-      }
-    }
+    for (const v of o.brep.vertices()) grow(lo, hi, [g.x(v), g.y(v), g.z(v)]);
   }
   if (!Number.isFinite(lo[0])) return;
   for (let k = 0; k < 3; k++) {
     lo[k] = lo[k]! - BOX_OUTDENT;
     hi[k] = hi[k]! + BOX_OUTDENT;
   }
-  // The box's Brep becomes the sized box, its frame the world's at `lo`.
+  fitBox(rt, box, lo, hi);
+}
+
+function grow(lo: V3, hi: V3, p: readonly number[]): void {
+  for (let k = 0; k < 3; k++) {
+    lo[k] = Math.min(lo[k]!, p[k]!);
+    hi[k] = Math.max(hi[k]!, p[k]!);
+  }
+}
+
+/** The box's Brep becomes the box lo–hi (world), its frame the world's at `lo`. */
+function fitBox(rt: Runtime, box: CutObject, lo: V3, hi: V3): void {
   const [blo, bhi] = localBox(box);
   const b = box.brep;
   for (const v of b.vertices()) {
     const p = b.vertexPos(v);
     const q = [0, 1, 2].map((k) => {
       const span = bhi[k]! - blo[k]!;
+      // (A flat box stays flat; one made flat takes its corners from the template's.)
       const t = span === 0 ? 0 : (p[k]! - blo[k]!) / span;
       return t * (hi[k]! - lo[k]!);
     });
@@ -181,6 +195,126 @@ export function fitScaleBox(rt: Runtime, box: CutObject, root: CutObject): void 
   box.xform = mat4.translation(...lo);
   box.invXform = mat4.translation(-lo[0], -lo[1], -lo[2]);
   rt.changed(box);
+}
+
+// ---- boxes round faces in the plane (new here) ----
+
+/** The face boxes made (copies of the template, like the others, but holding nothing). */
+const faceBoxes = new WeakSet<CutObject>();
+
+export const isFaceBox = (o: CutObject): boolean => faceBoxes.has(o);
+
+/** How near the plane a face's vertices must all be for it to be "in" it. */
+const IN_PLANE = 1e-3;
+
+/**
+ * The faces a face box scales: the picks in the primary world (its own handle
+ * aside), when every one is a face lying in the plane, of an object whose
+ * geometry isn't locked. Otherwise none.
+ */
+export function facesInPlane(rt: Runtime): Sub[] {
+  const z = rt.stage.z;
+  const out: Sub[] = [];
+  for (const f of rt.picked(rt.primary)) {
+    if (isSub(f) && isScaleBox(rt, f.object)) continue;
+    if (!isSub(f) || f.type !== T.Fve || !f.object.brep.isFace(f.id)) return [];
+    if (rt.vm.props.has(f.object, P.Lockedgeometry)) return [];
+    const g = rt.world(f.object);
+    const b = f.object.brep;
+    for (const l of b.faceLoops(f.id))
+      for (const h of b.loopHalfEdges(l))
+        if (Math.abs(g.z(b.heVertex(h)) - z) > IN_PLANE) return [];
+    out.push(f);
+  }
+  return out;
+}
+
+/** The vertices the faces move, by object (a face of a surface moves the surface, as in a drag). */
+function facesVertices(faces: readonly Sub[]): Map<CutObject, number[]> {
+  const by = new Map<CutObject, Set<number>>();
+  for (const f of faces) {
+    let s = by.get(f.object);
+    if (!s) by.set(f.object, (s = new Set()));
+    for (const v of movingVertices(f.object.brep, T.Fve, f.id)) s.add(v);
+  }
+  return new Map([...by].map(([o, s]) => [o, [...s]]));
+}
+
+/** The faces' extent in the world. */
+function facesBounds(rt: Runtime, faces: readonly Sub[]): [V3, V3] {
+  const lo: V3 = [Infinity, Infinity, Infinity];
+  const hi: V3 = [-Infinity, -Infinity, -Infinity];
+  for (const [o, vs] of facesVertices(faces)) {
+    const g = rt.world(o);
+    for (const v of vs) grow(lo, hi, [g.x(v), g.y(v), g.z(v)]);
+  }
+  return [lo, hi];
+}
+
+/**
+ * Each frame: faces picked in the plane have a flat box round them, outdented in
+ * the plane, its corners handles (as rom.cpl's _Create_scaler gives a picked
+ * object one); it follows them until a handle is taken, and goes when they do.
+ */
+export function syncFaceBox(rt: Runtime): void {
+  const boxes = scaleBoxes(rt, rt.primary.root).filter(isFaceBox);
+  const faces = facesInPlane(rt);
+  if (faces.length === 0) {
+    for (const b of boxes) rt.discard(b);
+    return;
+  }
+  let box = boxes[0];
+  for (const b of boxes.slice(1)) rt.discard(b);
+  if (!box) {
+    box = rt.duplicate(rt.scaleBoxTemplate);
+    faceBoxes.add(box);
+    rt.adopt(rt.primary.root, box, true);
+    rt.vm.props.add(box, P.Visible);
+    rt.vm.props.add(box, P.Noshadow);
+    rt.vm.props.del(box, P.Dragonly);
+  } else if (rt.picked(rt.primary).some((f) => isSub(f) && f.object === box)) return;
+  const [lo, hi] = facesBounds(rt, faces);
+  const z = rt.stage.z;
+  for (let k = 0; k < 2; k++) {
+    lo[k] = lo[k]! - BOX_OUTDENT;
+    hi[k] = hi[k]! + BOX_OUTDENT;
+  }
+  lo[2] = hi[2] = z;
+  const [blo, bhi] = localBox(box);
+  const at = apply(box.xform, [0, 0, 0]);
+  const same = [0, 1, 2].every(
+    (k) =>
+      Math.abs(at[k]! - lo[k]!) < 1e-9 && Math.abs(bhi[k]! - blo[k]! - (hi[k]! - lo[k]!)) < 1e-9,
+  );
+  if (!same) fitBox(rt, box, lo, hi);
+}
+
+/**
+ * A face box's scaleBranch: the faces' vertices are scaled by `f` about `origin`
+ * (box frame) in the plane, no face side below MIN_SIDE, and the box with them.
+ * Returns how far `handle` moved.
+ */
+function scaleFaces(rt: Runtime, box: CutObject, origin: V3, f: V3, handle: V3): V3 {
+  const faces = facesInPlane(rt);
+  if (faces.length === 0) return [0, 0, 0];
+  const [lo, hi] = facesBounds(rt, faces);
+  f[2] = 1;
+  for (let k = 0; k < 2; k++) {
+    const side = hi[k]! - lo[k]!;
+    if (side > 0 && (f[k]! * side < MIN_SIDE || f[k]! < 0)) f[k] = MIN_SIDE / side;
+  }
+  const X = box.xform;
+  const s = mat4.scaleAbout(origin, f);
+  const inv = mat4.invert(X) ?? mat4.identity();
+  const m = mat4.multiply(mat4.multiply(inv, s), X);
+  for (const [o, vs] of facesVertices(faces)) rt.transformVertices(o, vs, m);
+  const b = box.brep;
+  for (const v of b.vertices()) {
+    const p = apply(s, b.vertexPos(v));
+    b.setVertexPos(v, p[0], p[1], p[2]);
+  }
+  rt.changed(box);
+  return sub(apply(s, handle), handle);
 }
 
 /** CPL_scalebbox_trans's memory: the edge a corner drag started on. */
@@ -225,7 +359,9 @@ export const SCALEBOX_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => voi
     if (h.type === T.Vfe) {
       const corner = box.brep.vertexPos(h.id);
       let tw = t;
-      if (!constraining && switched && storedEdge && t[2] !== 0) {
+      // A face box keeps to the plane: its faces are in it.
+      if (isFaceBox(box)) tw = [t[0], t[1], 0];
+      else if (!constraining && switched && storedEdge && t[2] !== 0) {
         // Keep following the edge the drag came along (rotated boxes).
         const e: V3 = storedEdge[2] * t[2] < 0 ? scale(storedEdge, -1) : storedEdge;
         tw = scale(e, len(t) / Math.abs(e[2]));
@@ -235,14 +371,14 @@ export const SCALEBOX_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => voi
         const diag = sub(corner, center);
         const d2 = dot(diag, diag);
         const s = d2 === 0 ? 1 : 1 + dot(tl, diag) / d2;
-        out(scaleBranch(rt, box, center, [s, s, s], corner), null);
+        out(scale3(rt, box, center, [s, s, s], corner), null);
       } else {
         const origin = otherCorner(lo, hi, corner);
         const f = [0, 1, 2].map((k) => {
           const was = corner[k]! - origin[k]!;
           return was === 0 ? 1 : (was + tl[k]!) / was;
         }) as V3;
-        out(scaleBranch(rt, box, origin, f, corner), null);
+        out(scale3(rt, box, origin, f, corner), null);
       }
       return;
     }

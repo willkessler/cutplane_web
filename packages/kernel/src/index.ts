@@ -50,6 +50,7 @@ export {
   flattenFace,
   planarizeFace,
   planarizeForMotion,
+  planarizeForMoves,
   recombineSurfaces,
 } from './ops/planarize.ts';
 export { deleteVertex, deleteEdge, deleteFace, volume } from './ops/delete.ts';
