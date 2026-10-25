@@ -58,6 +58,18 @@ describe('guides (new here: a dragged thing holds on lines through things near i
     near(guideStop([4, -3, 0], flat)!.move, [-4, 3]);
   });
 
+  it('a turned thing’s own axis, out of the plane, holds a copy at another depth on it', () => {
+    // A cylinder's axis turned 45° from up toward the depth; its copy taken 100 back.
+    const c = Math.SQRT1_2;
+    const flat = flatGuides(guideLines([0, 0, 0], [[0, c, c]]), -100);
+    // The axis passes through that plane at y -100: near there, it holds there.
+    const stop = guideStop([3, -96, -100], flat)!;
+    near(stop.move, [-3, -4]);
+    near(stop.on[0]!.dir, [0, c, c]);
+    // Not turned: no such axis, only the plane's lines.
+    expect(flatGuides(guideLines([0, 0, 0]), -100).every((g) => g.dir[2] === 0)).toBe(true);
+  });
+
   it('out of reach of every line, it goes where it is taken', () => {
     expect(guideStop([300, 40, 0], guideLines([0, 0, 0]))).toBeNull();
   });

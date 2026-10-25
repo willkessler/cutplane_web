@@ -6,6 +6,8 @@ export interface GuideLine {
   dir: V3;
   /** The middle it was drawn through, if it has been carried into a plane (flatGuides). */
   from?: V3;
+  /** Along the thing's own (turned) axis, not the world's. */
+  own?: boolean;
 }
 
 /** How near (world units) a dragged thing's middle must come to a guide to hold on it. */
@@ -24,6 +26,7 @@ const WORLD_AXES: V3[] = [
  */
 export function guideLines(at: V3, own: readonly V3[] = []): GuideLine[] {
   const dirs: V3[] = [...WORLD_AXES];
+  const lines: GuideLine[] = WORLD_AXES.map((dir) => ({ at, dir }));
   for (const a of own) {
     const l = Math.hypot(...a);
     if (l < 1e-9) continue;
@@ -31,8 +34,9 @@ export function guideLines(at: V3, own: readonly V3[] = []): GuideLine[] {
     // Within a degree of one already there, it's that one.
     if (dirs.some((d) => Math.abs(d[0] * u[0] + d[1] * u[1] + d[2] * u[2]) > Math.cos(Math.PI / 180))) continue; // prettier-ignore
     dirs.push(u);
+    lines.push({ at, dir: u, own: true });
   }
-  return dirs.map((dir) => ({ at, dir }));
+  return lines;
 }
 
 /**
@@ -40,10 +44,14 @@ export function guideLines(at: V3, own: readonly V3[] = []): GuideLine[] {
  * front: lining up across or up and down doesn't care how deep each thing is. One along
  * the depth goes (the two across it cross where it would be seen); one turned out of
  * the plane goes as its shadow on it. Each remembers the middle it came through.
+ * A thing's own axis turned out of the plane stays too, as it is: where it passes
+ * through the plane, a dragged copy's middle holds on it, the two on one axis.
  */
 export function flatGuides(lines: readonly GuideLine[], z: number): GuideLine[] {
   const out: GuideLine[] = [];
-  for (const { at, dir } of lines) {
+  for (const line of lines) {
+    const { at, dir } = line;
+    if (line.own && Math.abs(dir[2]) > 1e-6) out.push(line);
     const l = Math.hypot(dir[0], dir[1]);
     if (l < 1e-6) continue;
     const flat: GuideLine = { at: [at[0], at[1], z], dir: [dir[0] / l, dir[1] / l, 0], from: at };

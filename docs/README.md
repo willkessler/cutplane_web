@@ -528,7 +528,9 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   two across it crossing where it would be seen). Its middle holds on a line, or where two
   cross (from one thing or two); the nearest within 12 units (`GUIDE_REACH`) holds, drawn
   dashed across the room, with a tick from the middle of the thing it came from to the plane,
-  if that's at another depth. The crosshair stays where the pointer has it meanwhile, so it
+  if that's at another depth. A turned thing's own axis out of the plane is kept as it is too:
+  where it passes through the dragged thing's plane is a point to hold on, so a turned copy
+  moved in depth goes back on its original's axis (coaxial cylinders). The crosshair stays where the pointer has it meanwhile, so it
   comes off again by being dragged on; let go, it's put where the thing held. `packages/behaviors/src/guides.ts`, `packages/app/src/world/guides.ts`.
 - **D repeats the last copy's move.** controls.c's DUPLICATEBUTTON put every copy 100 right and
   100 up. Here a copy of something D itself made goes on from it by the move, turn included,

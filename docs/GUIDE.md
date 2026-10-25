@@ -119,7 +119,9 @@ so the cube above has grown a box out of its right side. Push it back and the wa
   holds on it, the line drawn dashed in yellow across the room; near where two cross (even two
   things' lines), it holds there. Things line up as you see them from in front, however deep
   each one is: a short dashed tick runs from the other thing's middle to the plane. Keep dragging and
-  it comes off again. Hold **Ctrl** to drag without them. The goodies in the boxes don't count.
+  it comes off again. A turned thing's own axis also counts as it really runs, in and out of
+  the plane: drag a turned cylinder's copy, taken back in depth, and its middle holds where that
+  axis passes through, the two on one axis again. Hold **Ctrl** to drag without them. The goodies in the boxes don't count.
 
 ## 5. Tools
 

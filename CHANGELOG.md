@@ -16,7 +16,9 @@ New in 2026: none of these were in the 1991 original.
   what you drag, along the room's axes and each thing's own if it's turned. Its middle holds on
   one when it comes within 12 units, with the line drawn across the room, or where two cross,
   so a row lines up as you lay it out and any part can be put in line with any other near it.
-  Ctrl drags without them.
+  Ctrl drags without them. A turned thing's own axis also holds a copy at another depth where
+  it passes through the plane, putting the two on one axis: a turned cylinder's copy, moved
+  back, lines up coaxial again.
 - **D repeats the last copy's move.** Every copy used to land 100 right and 100 up. Now, move
   the first copy where the next should go, and D puts each further copy on by the same step, a
   turn included: a row of struts at even spacing, or a ring when the copy was turned about a
