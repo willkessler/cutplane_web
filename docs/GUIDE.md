@@ -130,9 +130,11 @@ another tool, to put it back.
 - **Saw**: click on an object to cut it in two at the plane. Taking the saw keeps what is picked:
   pick a whole group (the Discovery, say), take the saw, and a click on it cuts every part at once.
 - **Drill**: press on an object to make a red copy of it, the cutter; carry it into another
-  object and let go, and the cutter is taken out of it. It cuts every object it overlaps (not the one it was copied from), which
-  show as selectable while you carry it; the crosshair needn't be on them.
-- **Union** (two green blocks): carry one object into others and let go, and they become one.
+  object and let go, and the cutter is taken out of it. It takes a bite out of every object it
+  overlaps (but the one it was copied from), wherever the crosshair is: those show as selectable
+  while you carry it. A flattened sphere's cutter let go across a ball, say, carves a dish.
+- **Union** (two green blocks): carry one object into others and let go, and it and every object
+  it overlaps become one.
 
 The headpad with **three bars** opens the arranging tools: the **magnifier** (**Z**: drag up to
 zoom in, down to zoom out; **double-click** with it and everything is fitted into the room at
