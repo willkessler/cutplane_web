@@ -518,6 +518,16 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   corner on a corner, or edges in line (two at once if there are two). `faceFit` in
   `packages/behaviors/src/facefit.ts`. Let go with the face on the dragged object's own (as the
   release sees it, the dragged object being under the crosshair), it snaps to a face beyond.
+- **Guide lines while dragging.** The original had nothing to line things up by but Ctrl's
+  axis lock. Here, while one thing picked whole is dragged by hand (no tool, no Ctrl), lines run
+  through the middles of the eight things nearest it in the world being made (`GUIDING`; each a
+  group's root or an object on its own; not the environment's goodies) along the world's axes
+  (the plane's, as it only moves in depth) and each thing's own axes if it's turned. The dragged
+  thing moves only in the plane, so a line lying in it holds its middle on a line, and one
+  crossing it (or two crossing, from one thing or two) at a point; the nearest within 12 units
+  (`GUIDE_REACH`) holds, drawn dashed across the room. The crosshair stays where the pointer
+  has it meanwhile, so it comes off again by being dragged on; let go, it's put where the thing
+  held. `packages/behaviors/src/guides.ts`, `packages/app/src/world/guides.ts`.
 - **D repeats the last copy's move.** controls.c's DUPLICATEBUTTON put every copy 100 right and
   100 up. Here a copy of something D itself made goes on from it by the move, turn included,
   that took that one from its own original (`Runtime.placeCopy`, called through the

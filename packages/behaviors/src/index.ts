@@ -17,4 +17,5 @@ export * from './tools/pencil.ts';
 export * from './text/hershey.ts';
 export * from './modeling.ts';
 export * from './facefit.ts';
+export * from './guides.ts';
 export * from './session.ts';

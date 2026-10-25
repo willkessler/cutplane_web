@@ -877,8 +877,8 @@ export class Runtime implements Host {
       this.transformBranch(copy, step);
       return;
     }
-    const a = this.bbox(before);
-    const b = this.bbox(from);
+    const a = this.branchBox(before);
+    const b = this.branchBox(from);
     if (!a || !b) return;
     const mid = (x: typeof a, k: number) => (x[0][k]! + x[1][k]!) / 2;
     this.moveBranch(copy, [0, 1, 2].map((k) => mid(b, k) - mid(a, k)) as V3);
@@ -1333,6 +1333,37 @@ export class Runtime implements Host {
       hi = [Math.max(hi[0], p[0]), Math.max(hi[1], p[1]), Math.max(hi[2], p[2])];
     }
     return Number.isFinite(lo[0]) ? [lo, hi] : null;
+  }
+
+  /** The box around an object and all under it (a group's, say), but a scale box on it. */
+  branchBox(root: CutObject): [V3, V3] | null {
+    let box: [V3, V3] | null = null;
+    const parts: CutObject[] = [];
+    const walk = (o: CutObject) => {
+      if (this.vm.props.has(o, P.Scalebbox)) return;
+      parts.push(o);
+      o.children.forEach(walk);
+    };
+    walk(root);
+    for (const o of parts) {
+      const b = this.bbox(o);
+      if (!b) continue;
+      box = box
+        ? [
+            [
+              Math.min(box[0][0], b[0][0]),
+              Math.min(box[0][1], b[0][1]),
+              Math.min(box[0][2], b[0][2]),
+            ],
+            [
+              Math.max(box[1][0], b[1][0]),
+              Math.max(box[1][1], b[1][1]),
+              Math.max(box[1][2], b[1][2]),
+            ],
+          ]
+        : b;
+    }
+    return box;
   }
 
   /** CPBOOLEAN (do_boolean): see modeling.ts. */

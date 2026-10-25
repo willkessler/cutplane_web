@@ -57,6 +57,7 @@ import { setLineResolution } from './render/lines.ts';
 import { ModelView, type DrawStyle, type Model } from './render/models.ts';
 import { CameraSlide } from './render/cameraslide.ts';
 import { ScribbleView } from './render/scribbles.ts';
+import { DragGuides } from './world/guides.ts';
 import { LabelView } from './render/labels.ts';
 import { PadView } from './render/pads.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
@@ -139,9 +140,11 @@ const cameraSlide = new CameraSlide(() => [
   plane.object,
   section.object,
   highlights.object,
+  guides.view.object,
   crosshair.object,
 ]);
 const scribbles = new ScribbleView();
+const guides = new DragGuides(() => rt);
 /** The ring that turns in the room while a file is read. */
 const loading = new LoadingRing();
 scene.add(
@@ -159,6 +162,7 @@ scene.add(
   plane.object,
   section.object,
   highlights.object,
+  guides.view.object,
   crosshair.object,
 );
 
@@ -823,13 +827,25 @@ function step(): void {
   controls.setConstrain(held.ctrl);
   controls.glide(performance.now()); // a plane jump under way
   const d: V3 = [control.x - stage.x, control.y - stage.y, control.z - stage.z];
+  // New here: a copy dragged holds on its guides (the crosshair stays where the user has
+  // it, so it comes off again); let go, the crosshair is where the copy held.
+  if (guiding()) {
+    const [x, y] = guides.hold([control.x, control.y, control.z], [stage.x, stage.y, stage.z]);
+    d[0] = x - stage.x;
+    d[1] = y - stage.y;
+  } else if (guides.on.length > 0) {
+    guides.clear();
+    placeCrosshair(stage.x, stage.y);
+    d[0] = d[1] = 0;
+  }
   controls.moveCrosshair(d, (dd) => stage.preview(...dd));
   controls.frame();
   // The magnet's drag: the face it would snap to, and its ghost there.
   if (controls.pickHeld && magnetInHand()) magnet.update();
   if (!messagesWaiting()) fallOn(); // (once the pick has been made)
   // CPL may have held the crosshair back or put it somewhere else (a tool's bar, a dial).
-  if (stage.x !== control.x || stage.y !== control.y) placeCrosshair(stage.x, stage.y);
+  if ((stage.x !== control.x || stage.y !== control.y) && guides.on.length === 0)
+    placeCrosshair(stage.x, stage.y);
   if (stage.z !== control.z) control.plane.set(stage.z);
   if (rt.quitRequested) rt.quitRequested = false;
   swingTick();
@@ -878,6 +894,17 @@ function syncModels(): void {
 let lastLight = '';
 
 /** Is `o` carried by the crosshair (a tool in hand, tool.cpl's ADOPT to Crosshair_part)? */
+/** A drag of what is picked, by hand (no tool, no Ctrl, not the plane): the guides' to hold. */
+function guiding(): boolean {
+  return (
+    controls.pickHeld &&
+    !controls.pressedStill &&
+    !held.ctrl &&
+    control.motion !== 'plane' &&
+    !rt.cursorObj.children.some((c) => rt.hasProp(c, 'Tool'))
+  );
+}
+
 function heldBy(o: CutObject, crosshair: CutObject): boolean {
   for (let p = o.parent; p; p = p.parent) if (p === crosshair) return true;
   return false;
@@ -1582,6 +1609,8 @@ declare global {
       saveSession(): number;
       /** Whether the magnet is in hand; a magnet drag's face to snap to (its object's name), and its ghost's box middle. */
       magnet(): { held: boolean; target: string | null; ghost: number[] | null };
+      /** The drag's guide lines held on now (each a point and direction). */
+      guides(): { at: number[]; dir: number[] }[];
       /** Whether anything is falling (the globe), and how far above the floor the world's lowest point is (and each object's). */
       falls(): {
         active: boolean;
@@ -1834,6 +1863,7 @@ async function start(): Promise<void> {
       render();
       return keysPlate !== null && rt.vm.props.has(keysPlate, P.Visible);
     },
+    guides: () => guides.on.map((g) => ({ at: [...g.at], dir: [...g.dir] })),
     magnet: () => {
       const root = magnet.dragged();
       const m = magnet.ghost;

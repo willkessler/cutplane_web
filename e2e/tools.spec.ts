@@ -600,6 +600,60 @@ test('the magnet: drawn off, the ghost goes; near another face, it shows there',
   expect(errors).toEqual([]);
 });
 
+test('a thing dragged near another’s line holds on it, the line drawn; let go, it stays', async ({
+  page,
+  browserName,
+}) => {
+  test.setTimeout(60_000);
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  await press(page);
+  await release(page);
+  await page.keyboard.press('KeyD'); // the copy, its middle at (100, 100)
+  const guidesOf = () => page.evaluate(() => window.__cutplane!.guides());
+  // Taken at (150, 150), 50 right and up of its middle; carried to 6 off the cube's line.
+  await set(page, { x: 150, y: 150 });
+  await press(page);
+  for (const [x, y] of [
+    [200, 120],
+    [280, 80],
+    [350, 56],
+  ] as const)
+    await set(page, { x, y });
+  const on = await guidesOf();
+  expect(on).toHaveLength(1);
+  expect(on[0]!.dir.map(Math.abs)).toEqual([1, 0, 0]);
+  // Further off, it lets go of the line.
+  await set(page, { x: 350, y: 90 });
+  expect(await guidesOf()).toEqual([]);
+  await set(page, { x: 350, y: 55 });
+  expect(await guidesOf()).toHaveLength(1);
+  await shot(page, 'drag-guide', browserName);
+  await release(page);
+  expect(await guidesOf()).toEqual([]);
+  const mids = (await falls(page)).mids;
+  const copy = mids.reduce((a, b) => (b[0]! > a[0]! ? b : a));
+  expect(copy[0]!).toBeCloseTo(300, 0);
+  expect(copy[1]!).toBeCloseTo(0, 3);
+  // The cube it was copied from gets guides too: up, to 4 off the copy's upright line.
+  await set(page, { x: -50, y: 0 });
+  await press(page);
+  for (const [x, y] of [
+    [0, 80],
+    [150, 200],
+    [254, 250],
+  ] as const)
+    await set(page, { x, y });
+  const up = await guidesOf();
+  expect(up).toHaveLength(1);
+  expect(up[0]!.dir.map(Math.abs)).toEqual([0, 1, 0]);
+  await release(page);
+  const cube = (await falls(page)).mids.reduce((a, b) => (b[1]! > a[1]! ? b : a));
+  expect(cube[0]!).toBeCloseTo(300, 3);
+  expect(cube[1]!).toBeCloseTo(250, 0);
+  expect(errors).toEqual([]);
+});
+
 test('the group tool: a click on what is picked groups it, a marquee groups what it touches; one scale box', async ({
   page,
 }) => {
