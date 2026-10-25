@@ -379,6 +379,7 @@ function xbarRotation(rt: Runtime, bar: CutObject, trans: V3): XbarRot {
   let snapped = false;
   let paused = false;
   const f = st.snapFace;
+  st.dialHeld = null; // rolling, not at a dial stop
   if (st.held !== null) {
     // Stood across the plane: hold until pushed PERP_HOLD along the bar, either way.
     const n = f && rt.features.alive(f) ? rt.world(f.object).faceNormal(f.id) : null;
@@ -477,7 +478,8 @@ export const ROTATE_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
       out(xbar, r.paused, w, w, r.trans);
       return;
     }
-    // The dial.
+    // The dial. Not at the bar's stop (turning about z keeps the face across the plane).
+    st.held = null;
     const cursor = rt.cursor();
     const n1 = unit(sub(bp, center));
     const to = add(cursor, t);

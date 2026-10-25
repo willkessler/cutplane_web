@@ -71,8 +71,8 @@ export interface Host {
   snapFeatures(source: Feature, target: Feature): void;
   /** execute_WITHIN's test: is `obj2` inside `obj1`'s bbox (its section, or all of it)? */
   within(obj1: Feature, obj2: Feature): boolean;
-  /** do_boolean. */
-  boolean(a: Feature, b: Feature, op: number): Feature[];
+  /** do_boolean, of each of `a` with `b` (b is gone afterwards). */
+  boolean(a: Feature[], b: Feature, op: number): Feature[];
 
   // ---- names, labels, colours ----
 

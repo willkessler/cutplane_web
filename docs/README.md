@@ -264,9 +264,11 @@ undo away.
   click on it, and every part is cut. **\\** does the same to what is picked, without the saw.
 - **Drill.** Press on an object with it: a red copy of it, the **cutter**, comes away with the
   drill. Carry it into another object (move the plane to carry it in depth) and let go, and the
-  cutter is taken out of that object. A cut that leaves pieces apart makes each piece an object.
-  The hole's faces are the object's colour, as in the original, not the cutter's. Pressed and
-  let go on the same object, the drill does nothing.
+  cutter is taken out of that object, and of every other object it overlaps (but the one it was
+  copied from): wherever the crosshair is, what it would cut is drawn selectable as it's
+  carried. Let go overlapping nothing, the cutter is thrown away. A cut that leaves pieces apart
+  makes each piece an object. The hole's faces are the object's colour, as in the original, not
+  the cutter's. Pressed and let go on the same object, the drill does nothing.
 - **Pencil.** Press and draw in the plane. Let go and the stroke is closed with a straight line
   back to where it started, and becomes a solid 50 deep, straddling the plane. A stroke that
   crosses itself keeps the largest region it encloses. Only a scrap too small to be a face comes
@@ -290,8 +292,8 @@ undo away.
   pad after a snap.
 - **Union** (the two green blocks, on the tools' rail). The drill's twin: press on an object
   with it and the object itself comes away with the tool. Carry it into another and let go, and
-  the two become one solid, each part keeping its colours. Let go over nothing and it's just put
-  down where it is. One undo parts them, the carried one back where it was picked up.
+  it and all it overlaps become one solid, each part keeping its colours. Let go overlapping
+  nothing and it's just put down where it is. One undo parts them, the carried one back where it was picked up.
 - **Grabber** (a claw holding a green block). Picks whole objects, even where a plain click
   would take a face or an edge.
 - **Pan tool** (or **H**; a pink hand). Drag on empty space to move the whole world with the
@@ -574,6 +576,12 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   up as the crosshair takes it (the new `tool_to_hand`: a long, thin tool to 120 long, any other
   to 75 across) and `Put_away_tool` scales it back (`tool_to_pad`). **Esc** puts it away too (the original had
   no key for that but the tool's own).
+- **The drill cuts all its cutter overlaps.** `drill.cpl` lets go on what is selectable, and in
+  the original that was what lay under the crosshair: a cutter overlapping an object was thrown
+  away unless the crosshair was on the object's section too, and it never cut more than one.
+  Here, while a drill or union tool carries something, every object it overlaps (and only those,
+  less a cutter's own original) is selectable, whole, and `CPBOOLEAN` takes each one, not just the first. The scripts are as
+  they were.
 - **A drill click does nothing.** Pressed and let go on one object, the drill's cutter is an
   exact copy of it, and `CPBOOLEAN` took the whole object away. A subtraction that would leave
   nothing now leaves the object as it was.

@@ -29,6 +29,10 @@ New in 2026: none of these were in the 1991 original.
   upright and diagonal and hold until pushed on, so a face's section line is easily made
   vertical. The original meant to stop every 45°, but a rounding slip left only horizontal, and
   that for three mouse events.
+- **The drill cuts whatever its cutter overlaps.** Let go anywhere, the cutter takes a bite out
+  of every object it overlaps, which are drawn selectable as it is carried. The original cut only
+  the object under the crosshair, so a big cutter (a flattened sphere, for the Death Star's dish)
+  had to be let go with the crosshair on its target's section. The union tool fuses the same way.
 - **A stop can be seen.** While the rotate tool is held at any of its stops, its baubles (the
   little circles at the bars' ends) and the ring at the crosshair are drawn half as big again.
 

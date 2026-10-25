@@ -47,24 +47,52 @@ const OPS: Record<number, BoolOp> = {
  * on the same object, its cutter an exact copy) leaves A as it was; the original
  * deleted A wholesale.
  */
-export function booleanObjects(rt: Runtime, a: CutObject, b: CutObject, op: number): CutObject[] {
+export function booleanObjects(
+  rt: Runtime,
+  a: CutObject,
+  b: CutObject,
+  op: number,
+  keepB = false,
+): CutObject[] {
   const kind = OPS[op];
   if (!kind || !isObject(a) || !isObject(b) || a === b || !booleansReady()) return [];
   rt.unpick(a);
   rt.unpick(b);
   const shells = booleanSolids({ brep: a.brep, xform: a.xform }, { brep: b.brep, xform: b.xform }, kind); // prettier-ignore
   if (!shells) {
-    if (kind === 'subtract') rt.killNow(b);
+    if (kind === 'subtract' && !keepB) rt.killNow(b);
     return [];
   }
   const breps = solidsOf(shells).map((g) => brepOf(g, [a, b]));
-  rt.killNow(b);
+  if (!keepB) rt.killNow(b);
   if (breps.length === 0) {
     if (kind !== 'subtract') rt.killNow(a);
     return [];
   }
   rt.reshape(a, breps[0]!);
   return [a, ...breps.slice(1).map((x) => rt.spawnBeside(a, x))];
+}
+
+/**
+ * do_boolean of several objects with one (new here: the drill, or the union
+ * tool, let go on all that what it carries overlaps). A subtraction takes `b`
+ * out of each; a union fuses each into one. `b` is gone afterwards.
+ */
+export function booleanAll(rt: Runtime, as: CutObject[], b: CutObject, op: number): CutObject[] {
+  if (as.length <= 1) return as[0] ? booleanObjects(rt, as[0], b, op) : [];
+  if (OPS[op] !== 'subtract') {
+    let out = booleanObjects(rt, as[0]!, b, op);
+    for (const a of as.slice(1)) {
+      if (out.length === 0) break;
+      const r = booleanObjects(rt, out[0]!, a, op);
+      if (r.length > 0) out = [...r, ...out.slice(1)];
+    }
+    return out;
+  }
+  const out: CutObject[] = [];
+  for (const a of as) out.push(...booleanObjects(rt, a, b, op, true));
+  rt.killNow(b);
+  return out;
 }
 
 /**

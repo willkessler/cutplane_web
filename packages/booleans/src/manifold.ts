@@ -1,5 +1,5 @@
 import Module from 'manifold-3d';
-import type { Manifold, ManifoldToplevel } from 'manifold-3d';
+import type { Manifold, ManifoldToplevel, Mat4 as ManifoldMat4 } from 'manifold-3d';
 import { Brep, buildShell, mat4, validate, type Mat4 } from '@cutplane/kernel';
 
 type V3 = [number, number, number];
@@ -700,6 +700,49 @@ export function booleanSolids(
     r.delete();
     ta.manifold.delete();
     tb.manifold.delete();
+  }
+}
+
+/** A solid made ready for overlap tests, in its own frame. Free it with dispose(). */
+export interface SolidMesh {
+  dispose(): void;
+}
+
+class Meshed implements SolidMesh {
+  constructor(readonly manifold: Manifold) {}
+  dispose(): void {
+    this.manifold.delete();
+  }
+}
+
+const IDENTITY: Mat4 = mat4.identity();
+
+/** A B-rep made ready for overlap tests; null if it isn't a closed solid manifold will take. */
+export function solidMesh(brep: Brep): SolidMesh | null {
+  const t = toManifold({ brep, xform: IDENTITY }, 0, null);
+  return t ? new Meshed(t.manifold) : null;
+}
+
+/**
+ * Whether two solids, each placed by its xform, share some volume (more than
+ * `minVolume`): one that only touches the other, or misses it, doesn't overlap.
+ */
+export function solidsOverlap(
+  a: SolidMesh,
+  xa: Mat4,
+  b: SolidMesh,
+  xb: Mat4,
+  minVolume = 1e-3,
+): boolean {
+  const pa = (a as Meshed).manifold.transform(xa as unknown as ManifoldMat4);
+  const pb = (b as Meshed).manifold.transform(xb as unknown as ManifoldMat4);
+  const r = pa.intersect(pb);
+  try {
+    return !r.isEmpty() && r.volume() > minVolume;
+  } finally {
+    r.delete();
+    pa.delete();
+    pb.delete();
   }
 }
 

@@ -53,8 +53,9 @@ import {
   setScaleBoxSelectable,
   syncFaceBox,
 } from './tools/scalebox.ts';
+import { booleansReady, solidMesh, solidsOverlap, type SolidMesh } from '@cutplane/booleans';
 import { Journal, restoreTree, type ObjectSnapshot, type Step } from './journal.ts';
-import { MODELING_CRTNS, booleanObjects } from './modeling.ts';
+import { MODELING_CRTNS, booleanAll } from './modeling.ts';
 import { PENCIL_CRTNS } from './tools/pencil.ts';
 
 /**
@@ -276,6 +277,21 @@ export class Runtime implements Host {
    * crosshair. True if it saw to the snap itself (its drag showed where it would go).
    */
   magnetSnap: ((source: Feature, under: Feature) => boolean) | null = null;
+  /**
+   * New here: what a boolean tool (the drill's cutter, what the union tool picked
+   * up) carries out of the world. While it is carried, what it overlaps is what's
+   * selectable in the world, so letting go acts on all of that, wherever the
+   * crosshair is.
+   */
+  private readonly carried = new Set<CutObject>();
+  private readonly solidMeshes = new Map<Brep, SolidMesh | null>();
+  /** What each copy was duplicated from: a drill's cutter doesn't cut its own original. */
+  private readonly copiedFrom = new WeakMap<CutObject, CutObject>();
+  /** Last overlap found between a carried object and each object, while neither moved. */
+  private readonly overlaps = new WeakMap<
+    CutObject,
+    { brep: Brep; xform: Mat4; cargo: CutObject; cBrep: Brep; cXform: Mat4; hit: boolean }
+  >();
 
   private readonly worldOfRoot = new Map<CutObject, WorldFeature>();
   private readonly geometry = new Map<CutObject, WorldGeometry>();
@@ -770,6 +786,12 @@ export class Runtime implements Host {
     if (from === this.primary || to === this.primary) this.journal.touchTree();
     // Carried off by a tool (the union tool): an undo puts it back where it was picked up.
     if (from === this.primary && to !== this.primary) this.journal.touch(child);
+    if (to === this.primary) this.carried.delete(child);
+    else if (
+      from === this.primary &&
+      (this.hasProp(parent, 'Drill') || this.hasProp(parent, 'Union'))
+    )
+      this.carried.add(child);
     if (child.parent) {
       const i = child.parent.children.indexOf(child);
       if (i >= 0) child.parent.children.splice(i, 1);
@@ -797,6 +819,7 @@ export class Runtime implements Host {
   duplicate(obj: Feature): CutObject {
     const o = obj as CutObject;
     const copy = duplicateTree(o);
+    this.copiedFrom.set(copy, o);
     // duplicate_obj_branch: the copy goes to the top of the original's world, linked.
     const parent = (this.worldOf(o) ?? this.primary).root;
     if (parent === this.primary.root) this.journal.touchTree();
@@ -1245,8 +1268,8 @@ export class Runtime implements Host {
   }
 
   /** CPBOOLEAN (do_boolean): see modeling.ts. */
-  boolean(a: Feature, b: Feature, op: number): Feature[] {
-    return booleanObjects(this, a as CutObject, b as CutObject, op);
+  boolean(a: Feature[], b: Feature, op: number): Feature[] {
+    return booleanAll(this, a as CutObject[], b as CutObject, op);
   }
 
   // ---- modeling (used by modeling.ts) ----
@@ -1464,6 +1487,9 @@ export class Runtime implements Host {
   }
 
   private setWorldSelectables(world: WorldFeature): void {
+    const cargo = world === this.environment ? null : this.cargo();
+    if (cargo) return this.setOverlapSelectables(world, cargo);
+    if (world !== this.environment && this.solidMeshes.size > 0) this.dropSolidMeshes();
     const visible = this.vm.props.features(world, P.Visible);
     // Objects found by set_object_selectable compete in the world being edited: one best pick (M3).
     const candidates: { o: CutObject; s: Selectable; pick: KernelPick }[] = [];
@@ -1485,6 +1511,92 @@ export class Runtime implements Host {
     if (world !== this.environment)
       for (const c of candidates) if (!best || betterPick(c.pick, best.pick)) best = c;
     for (const c of candidates) this.applySelectable(c.o, !best || c === best ? c.s : NOTHING);
+  }
+
+  /** What a boolean tool carries now, if anything (still on the tool, out of the world). */
+  private cargo(): CutObject | null {
+    for (const c of this.carried) {
+      const p = c.parent;
+      if (
+        p &&
+        this.worldOf(c) === this.environment &&
+        (this.hasProp(p, 'Drill') || this.hasProp(p, 'Union'))
+      )
+        return c;
+      this.carried.delete(c);
+    }
+    return null;
+  }
+
+  /**
+   * Every object in `world` that `cargo` overlaps is selectable, whole; nothing else
+   * is. A drill's cutter leaves the object it was copied from alone.
+   */
+  private setOverlapSelectables(world: WorldFeature, cargo: CutObject): void {
+    const at = this.cursor();
+    for (const f of this.vm.props.features(world, P.Visible)) {
+      if (!isObject(f)) continue;
+      const hit =
+        f !== this.copiedFrom.get(cargo) &&
+        f.selectTechnique === 'set_object_selectable' &&
+        !this.vm.props.has(f, P.Nonselectable) &&
+        !this.vm.props.has(f, P.Lockedgeometry) &&
+        !this.outOfReach.has(f) &&
+        !this.unseen.has(f) &&
+        this.overlapping(f, cargo);
+      this.applySelectable(f, hit ? { feature: f, kind: SelectKind.Obj, at } : NOTHING);
+    }
+  }
+
+  /** Whether `cargo` and `o` share some volume (remembered while neither moves). */
+  private overlapping(o: CutObject, cargo: CutObject): boolean {
+    if (o.brep.numFaces === 0 || cargo.brep.numFaces === 0 || !booleansReady()) return false;
+    const c = this.overlaps.get(o);
+    if (
+      c &&
+      c.brep === o.brep &&
+      c.xform === o.xform &&
+      c.cargo === cargo &&
+      c.cBrep === cargo.brep &&
+      c.cXform === cargo.xform
+    )
+      return c.hit;
+    const a = this.bbox(o);
+    const b = this.bbox(cargo);
+    const hit =
+      !!a &&
+      !!b &&
+      [0, 1, 2].every((i) => a[0][i]! < b[1][i]! && b[0][i]! < a[1][i]!) &&
+      this.meshesOverlap(o, cargo);
+    this.overlaps.set(o, {
+      brep: o.brep,
+      xform: o.xform,
+      cargo,
+      cBrep: cargo.brep,
+      cXform: cargo.xform,
+      hit,
+    });
+    return hit;
+  }
+
+  /**
+   * The overlap test proper. Each solid is made ready for it once in a carry (what
+   * is carried only moves; nothing is reshaped while the tool is held).
+   */
+  private meshesOverlap(o: CutObject, cargo: CutObject): boolean {
+    const mesh = (b: Brep) => {
+      if (!this.solidMeshes.has(b)) this.solidMeshes.set(b, solidMesh(b));
+      return this.solidMeshes.get(b)!;
+    };
+    const a = mesh(o.brep);
+    const b = mesh(cargo.brep);
+    return !!a && !!b && solidsOverlap(a, o.xform, b, cargo.xform);
+  }
+
+  /** Lets go of the overlap tests' meshes, once nothing is carried. */
+  private dropSolidMeshes(): void {
+    for (const m of this.solidMeshes.values()) m?.dispose();
+    this.solidMeshes.clear();
   }
 
   /** The other selectechniques (pads, scale boxes, rotate tool parts), by name. */

@@ -1665,12 +1665,13 @@ const OPS: Partial<Record<number, OpFn>> = {
   [Op.CPBOOLEAN]: (vm) => {
     const { AS, AT, AD, AR } = vm;
     if (AS.type === W.Features && AT.type === W.Features && AD.type === W.Aux) {
-      const a = first(AS);
       const b = first(AT);
-      if (!a || !b) return;
-      const oa = vm.mother(a);
-      const ob = vm.mother(b);
-      if (!oa || !ob) return;
+      const ob = b && vm.mother(b);
+      // New here: every object in AS, not just the first (the drill lets go on all it overlaps).
+      const oa = [...new Set((AS.list ?? []).map((a) => (a ? vm.mother(a) : null)))].filter(
+        (o): o is Feature => !!o && o !== ob,
+      );
+      if (!ob || oa.length === 0) return;
       setupWord(AR, W.Features);
       for (const r of vm.host.boolean(oa, ob, AD.int)) addFeature(AR.list!, r);
     } else clearWord(AR);

@@ -180,6 +180,16 @@ describe('the rotate tool through rotatecircle, rotatexbar and rotatebauble.cpl'
     // Back the other way it stops again.
     for (let k = 0; k < 10; k++) w.move(1, 0);
     expect(Math.abs(nz())).toBeLessThan(1e-9);
+    expect(rotateToolHeld(w.rt)).toBe(true);
+    w.controls.releasePick();
+    w.frame();
+    // Let go at the stop, then dialled: not held (the baubles drawn as usual) until a dial stop.
+    const b = w.rt.firstVertex(w.tool.inner)!;
+    w.at(b[0] + ROTATE_RADIUS, b[1], 0);
+    w.controls.pressPick(false);
+    w.frame();
+    w.move(0, 3);
+    expect(rotateToolHeld(w.rt)).toBe(false);
     w.controls.releasePick();
     w.frame();
   });

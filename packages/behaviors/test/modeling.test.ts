@@ -280,6 +280,96 @@ describe('the drill (drill.cpl, CPBOOLEAN)', () => {
     expect(w.rt.picked()).toEqual([w.cube]);
   });
 
+  it('let go anywhere, the cutter takes a bite out of everything it overlaps (new)', () => {
+    const w = setup();
+    const slab = createObject(createCube(400, 40, 400), {
+      name: 'Slab',
+      xform: mat4.translation(-500, 300, -200),
+    });
+    const other = createObject(createCube(200, 200, 200), {
+      name: 'Other',
+      xform: mat4.translation(150, -100, -100),
+    });
+    slab.attrs.props = ['Visible'];
+    other.attrs.props = ['Visible'];
+    w.rt.importObjects(w.rt.primary, [slab, other]);
+    w.rt.commit();
+    w.take(2);
+    w.at(-480, 320, 0); // near the slab's end
+    w.frame();
+    w.controls.pressPick(false);
+    w.frame();
+    // Its cutter carried across the cube and into the other block, the crosshair
+    // (at x = -110) is on neither's section; both are selectable, as what it would cut.
+    w.move(185, -160);
+    w.move(185, -160);
+    expect(w.rt.selectableOf(w.cube).feature).toBe(w.cube);
+    expect(w.rt.selectableOf(other).feature).toBe(other);
+    expect(w.rt.selectableOf(slab).feature).toBe(null);
+    w.controls.releasePick();
+    w.frame();
+    w.frame();
+    // The cutter's x is -130 to 270: right through the cube, 120 into the other.
+    // Through the cube, the cut leaves it in two.
+    const halves = w.solids().filter((o) => o !== slab && o !== other);
+    expect(halves).toHaveLength(2);
+    expect(volume(w.cube.brep)).toBeCloseTo((200 ** 3 - 200 * 40 * 200) / 2, 3);
+    expect(halves.reduce((v, o) => v + volume(o.brep), 0)).toBeCloseTo(200 ** 3 - 200 * 40 * 200, 3); // prettier-ignore
+    expect(volume(other.brep)).toBeCloseTo(200 ** 3 - 120 * 40 * 200, 3);
+    expect(volume(slab.brep)).toBeCloseTo(400 * 40 * 400, 3);
+    expect(w.solids().every(sound)).toBe(true);
+    expect(w.rt.undo()).toBe(true);
+    expect(w.solids()).toHaveLength(3);
+    expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3, 3);
+    expect(volume(other.brep)).toBeCloseTo(200 ** 3, 3);
+  });
+
+  it('let go where it overlaps nothing, the cutter cuts nothing and is gone', () => {
+    const w = setup();
+    const bar = createObject(createCube(40, 40, 400), {
+      name: 'Bar',
+      xform: mat4.translation(-320, -20, -200),
+    });
+    bar.attrs.props = ['Visible'];
+    w.rt.importObjects(w.rt.primary, [bar]);
+    w.rt.commit();
+    w.take(2);
+    w.at(-300, 0, 0);
+    w.frame();
+    w.controls.pressPick(false);
+    w.frame();
+    w.move(0, 300);
+    w.controls.releasePick();
+    w.frame();
+    w.frame();
+    expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3, 3);
+    expect(volume(bar.brep)).toBeCloseTo(40 * 40 * 400, 3);
+    expect(w.solids()).toHaveLength(2);
+  });
+
+  it('the cutter leaves the object it was copied from alone', () => {
+    const w = setup();
+    const bar = createObject(createCube(40, 40, 400), {
+      name: 'Bar',
+      xform: mat4.translation(-320, -20, -200),
+    });
+    bar.attrs.props = ['Visible'];
+    w.rt.importObjects(w.rt.primary, [bar]);
+    w.rt.commit();
+    w.take(2);
+    w.at(-300, 0, 0);
+    w.frame();
+    w.controls.pressPick(false);
+    w.frame();
+    w.move(20, 0); // half over the bar still
+    expect(w.rt.selectableOf(bar).feature).toBe(null);
+    w.controls.releasePick();
+    w.frame();
+    w.frame();
+    expect(volume(bar.brep)).toBeCloseTo(40 * 40 * 400, 3);
+    expect(w.solids()).toHaveLength(2);
+  });
+
   it('pressing and releasing on one object leaves it whole', () => {
     const w = setup();
     w.take(2);
