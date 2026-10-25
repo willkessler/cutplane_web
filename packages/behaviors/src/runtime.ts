@@ -46,6 +46,7 @@ import {
 } from '@cutplane/kernel';
 import { FeatureIndex, isObject, isSub, isWorld, type Sub, type WorldFeature } from './features.ts';
 import { BUILTIN_CRTNS } from './crtns.ts';
+import { faceFit } from './facefit.ts';
 import {
   SCALEBOX_CRTNS,
   createScaleBoxTemplate,
@@ -1102,7 +1103,12 @@ export class Runtime implements Host {
     if (this.magnetSnap?.(source, target)) return;
     if (!isSub(source) || !isSub(target)) return;
     const o = groupRoot(source.object);
-    if (o === groupRoot(target.object)) return;
+    if (o === groupRoot(target.object)) {
+      // New here: what's dragged is under the crosshair too; a face beyond it, if any.
+      const beyond = source.type === T.Fve ? this.faceUnder((x) => groupRoot(x) === o) : null;
+      if (beyond) this.snapFeatures(source, beyond.face);
+      return;
+    }
     const turn = (axis: V3, angle: number, about: V3) => {
       const len = Math.hypot(...axis);
       if (len < 1e-9 || Math.abs(angle) < 1e-9) return;
@@ -1119,6 +1125,10 @@ export class Runtime implements Host {
       // Along the target's normal until the planes meet.
       const gap = dot(sub3(t.center, s.center), t.normal);
       this.moveBranch(o, [t.normal[0] * gap, t.normal[1] * gap, t.normal[2] * gap]);
+      // New here: then settled in the plane (see faceFit).
+      const pivot: V3 = [s.center[0] + t.normal[0] * gap, s.center[1] + t.normal[1] * gap, s.center[2] + t.normal[2] * gap]; // prettier-ignore
+      const fit = this.settle(source, target, mat4.identity(), pivot);
+      if (fit) this.transformBranch(o, fit);
       return;
     }
     if (source.type !== T.Evf || (target.type !== T.Evf && target.type !== T.Fve)) return;
@@ -1147,7 +1157,33 @@ export class Runtime implements Host {
       len < 1e-9 || Math.abs(angle) < 1e-9
         ? mat4.identity()
         : mat4.rotationAbout(about, [axis[0] / len, axis[1] / len, axis[2] / len], angle);
-    return mat4.multiply(turn, mat4.translation(...sub3(at, about)));
+    const m = mat4.multiply(turn, mat4.translation(...sub3(at, about)));
+    const fit = this.settle(source, target, m, at);
+    return fit ? mat4.multiply(m, fit) : m;
+  }
+
+  /**
+   * New here, for the magnet: `source`'s face, moved by `m` to lie flush on `target`'s,
+   * settled in their plane by faceFit (turning about `pivot`): the further move, if any.
+   */
+  private settle(source: Sub, target: Sub, m: Mat4, pivot: V3): Mat4 | null {
+    const s = this.worldOutline(source.object, source.id);
+    const t = this.worldOutline(target.object, target.id);
+    const tf = this.worldFace(target.object, target.id);
+    if (!s || !t || !tf) return null;
+    const moved = s.map((p) => mat4.transformPoint(m, p[0], p[1], p[2]) as V3);
+    return faceFit(moved, t, tf.normal, pivot, MAGNET_REACH);
+  }
+
+  /** A face's outer outline, in the world. */
+  worldOutline(o: CutObject, f: number): V3[] | null {
+    const b = o.brep;
+    if (!b.faces().includes(f)) return null;
+    const g = this.world(o);
+    return b.loopHalfEdges(b.faceLoops(f)[0]!).map((h) => {
+      const v = b.heVertex(h);
+      return [g.x(v), g.y(v), g.z(v)] as V3;
+    });
   }
 
   /**
@@ -2056,6 +2092,9 @@ interface Pick3 {
   drawTechnique: string;
   screenBBoxTechnique: string;
 }
+
+/** New here: how far (world units) the magnet reaches to a stop in the plane. */
+export const MAGNET_REACH = 20;
 
 const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const sub3 = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];

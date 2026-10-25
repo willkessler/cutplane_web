@@ -193,6 +193,50 @@ describe('the magnet (magnetic.cpl, snap_features_together)', () => {
     expect(tool.parent).toBe(w.rt.cursorObj);
   });
 
+  // New here: lying flush, the face settles in the plane (faceFit).
+  const span = (w: ReturnType<typeof setup>, o: CutObject) => {
+    const b = w.rt.bbox(o)!;
+    return [0, 1, 2].map((k) => [b[0][k]!, b[1][k]!]);
+  };
+  const expectSpan = (got: number[][], want: number[][]) =>
+    got.forEach((r, k) => r.forEach((v, i) => expect(v).toBeCloseTo(want[k]![i]!, 3)));
+
+  it('a face like the one it is let go on fits it, edge on edge', () => {
+    const w = setup();
+    w.add('Other', 300, -87, -93, 200);
+    w.take(3);
+    w.drag([100, 0], [200, 0]);
+    expectSpan(span(w, w.cube), [
+      [100, 300],
+      [-87, 113],
+      [-93, 107],
+    ]);
+  });
+
+  it('a face not like it meets its centre, if that is near', () => {
+    const w = setup();
+    w.add('Other', 300, -212, -195, 400); // centre 12 down, 5 out
+    w.take(3);
+    w.drag([100, 0], [200, 0]);
+    expectSpan(span(w, w.cube), [
+      [100, 300],
+      [-112, 88],
+      [-95, 105],
+    ]);
+  });
+
+  it('and with nothing near, stays where it is let go', () => {
+    const w = setup();
+    w.add('Other', 300, -250, -200, 400);
+    w.take(3);
+    w.drag([100, 0], [200, 0]);
+    expectSpan(span(w, w.cube), [
+      [100, 300],
+      [-100, 100],
+      [-100, 100],
+    ]);
+  });
+
   it('it stays in hand, and takes what is picked, or was dragged, again at the first press', () => {
     const w = setup();
     w.click([0, 0]); // picked by the crosshair first

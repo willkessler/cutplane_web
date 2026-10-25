@@ -148,7 +148,10 @@ second), the **grabber** (always picks whole objects), the **ruler**, and the **
 - **Magnet**: take an object by a face and drag. It stays on the crosshair, passing through
   anything. Bring the crosshair to another object's face (on the section line, where it would
   highlight) and that face lights up, with a see-through ghost of what you're dragging snapped
-  onto it: the face you took turned flush against it. Let go and the object goes to the ghost.
+  onto it: the face you took turned flush against it. A face just like the other (a copy's,
+  turned to meet its original) fits it exactly, edge on edge. Any other face squares up with the
+  other's edges when it's nearly square, and catches where the centres meet, a corner meets a
+  corner or an edge falls in line, if one is near. Let go and the object goes to the ghost.
   Move off and the ghost goes; near another face it shows there instead; let go with no ghost
   and the object stays where it is. The magnet stays in hand until you put it away.
 - **Globe** (a little Earth, the last pad, or press **V**): click on an object and it falls to the floor. It

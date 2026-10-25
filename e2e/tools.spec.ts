@@ -555,19 +555,20 @@ test('the magnet: near a face, a ghost shows the snap; let go, it goes there', a
   for (let x = 380; x >= 120; x -= 20) await set(page, { x, y: 200 - (400 - x) / 2 });
   await set(page, { x: 108, y: 50 });
   // The copy is on the crosshair, unturned; its ghost is turned a quarter, its top on the
-  // cube's right face, where the crosshair has it.
+  // cube's right face, and (a face like it) fitted to it edge on edge, not where the
+  // crosshair has it, 50 up.
   const held = await copy();
   expect(held[0]!).toBeCloseTo(108, 0);
   expect(held[1]!).toBeCloseTo(-50, 0);
   const g = await ghostOf(page);
   expect(g.target).not.toBeNull();
   expect(g.ghost![0]!).toBeCloseTo(200, 0);
-  expect(g.ghost![1]!).toBeCloseTo(50, 0);
+  expect(g.ghost![1]!).toBeCloseTo(0, 0);
   await shot(page, 'magnet-ghost', browserName);
   await release(page);
   const snapped = await copy();
   expect(snapped[0]!).toBeCloseTo(200, 0);
-  expect(snapped[1]!).toBeCloseTo(50, 0);
+  expect(snapped[1]!).toBeCloseTo(0, 0);
   // The magnet stays in hand (the original put it away after a snap).
   expect((await ghostOf(page)).held).toBe(true);
   expect(errors).toEqual([]);
@@ -591,11 +592,11 @@ test('the magnet: drawn off, the ghost goes; near another face, it shows there',
   await set(page, { x: -108, y: 50 });
   const g = await ghostOf(page);
   expect(g.ghost![0]!).toBeCloseTo(-200, 0);
-  expect(g.ghost![1]!).toBeCloseTo(50, 0);
+  expect(g.ghost![1]!).toBeCloseTo(0, 0);
   await release(page);
   const snapped = await copy(-1);
   expect(snapped[0]!).toBeCloseTo(-200, 0);
-  expect(snapped[1]!).toBeCloseTo(50, 0);
+  expect(snapped[1]!).toBeCloseTo(0, 0);
   expect(errors).toEqual([]);
 });
 

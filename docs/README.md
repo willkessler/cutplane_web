@@ -508,6 +508,15 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   The magnet stays in hand after a snap, and takes something already picked at the first press
   (the original's press picked it again, then unpicked it). `assets/cpl/magnetic.cpl` is
   `magnetic.cpl` with these changes made (marked "cutplane_web").
+- **The magnet lines faces up in their plane.** The original turned the face flush and closed the
+  gap, leaving its twist and where it lay in the plane as they came (`snap_features_together`:
+  "eventually this must handle inplane faces!"). Here, flush, a face with the same outline as
+  the other (in either order, as a copy turned to meet its original has) is fitted corner on
+  corner, at the fit turning it least. Any other face turns to square an edge with one of the
+  other's if within 5°, then moves to the nearest stop within 20 units: centres together, a
+  corner on a corner, or edges in line (two at once if there are two). `faceFit` in
+  `packages/behaviors/src/facefit.ts`. Let go with the face on the dragged object's own (as the
+  release sees it, the dragged object being under the crosshair), it snaps to a face beyond.
 - **Falls can be interrupted.** A press stops what is falling where it is, to be picked; what
   isn't picked falls on.
 - **The keys plate.** New: the ? pad or key opens a plate of the keys and tools at the plane's

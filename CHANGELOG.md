@@ -10,6 +10,16 @@ has the detail on each.
 
 New in 2026: none of these were in the 1991 original.
 
+### October 25, 2026
+
+- **The magnet lines faces up.** It used to lay a face flush on another wherever the crosshair
+  had it, twisted however it came. A face just like the other (a copy's, turned to meet its
+  original) now fits it exactly, edge on edge and corner on corner. Any other face squares up
+  with the other's edges when it's within 5° of square, and catches where the centres meet, a
+  corner meets a corner, or an edge falls in line with one of the other's, if that's within 20
+  units. The ghost shows the fit before you let go. (The original's `snap_features_together`
+  noted that it "eventually must handle inplane faces".)
+
 ### October 24, 2026
 
 - **Rounder primitives.** The primitives toolbox's cylinder, cone and sphere go round in 72
