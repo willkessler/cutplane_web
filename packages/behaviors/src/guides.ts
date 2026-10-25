@@ -4,6 +4,8 @@ import type { V3 } from './runtime.ts';
 export interface GuideLine {
   at: V3;
   dir: V3;
+  /** The middle it was drawn through, if it has been carried into a plane (flatGuides). */
+  from?: V3;
 }
 
 /** How near (world units) a dragged thing's middle must come to a guide to hold on it. */
@@ -31,6 +33,28 @@ export function guideLines(at: V3, own: readonly V3[] = []): GuideLine[] {
     dirs.push(u);
   }
   return dirs.map((dir) => ({ at, dir }));
+}
+
+/**
+ * New here: guide lines carried into the plane at depth `z`, as they're seen from in
+ * front: lining up across or up and down doesn't care how deep each thing is. One along
+ * the depth goes (the two across it cross where it would be seen); one turned out of
+ * the plane goes as its shadow on it. Each remembers the middle it came through.
+ */
+export function flatGuides(lines: readonly GuideLine[], z: number): GuideLine[] {
+  const out: GuideLine[] = [];
+  for (const { at, dir } of lines) {
+    const l = Math.hypot(dir[0], dir[1]);
+    if (l < 1e-6) continue;
+    const flat: GuideLine = { at: [at[0], at[1], z], dir: [dir[0] / l, dir[1] / l, 0], from: at };
+    const same = out.some(
+      (g) =>
+        g.from === at &&
+        Math.abs(g.dir[0] * flat.dir[0] + g.dir[1] * flat.dir[1]) > Math.cos(Math.PI / 180),
+    );
+    if (!same) out.push(flat);
+  }
+  return out;
 }
 
 /**

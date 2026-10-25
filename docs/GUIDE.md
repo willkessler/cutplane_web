@@ -117,7 +117,8 @@ so the cube above has grown a box out of its right side. Push it back and the wa
 - **Guide lines.** Drag something and lines run through the middles of the things nearest it,
   along the room's axes (and each thing's own, if it's turned). Bring its middle near one and it
   holds on it, the line drawn dashed in yellow across the room; near where two cross (even two
-  things' lines), or straight in front of or behind something, it holds there. Keep dragging and
+  things' lines), it holds there. Things line up as you see them from in front, however deep
+  each one is: a short dashed tick runs from the other thing's middle to the plane. Keep dragging and
   it comes off again. Hold **Ctrl** to drag without them. The goodies in the boxes don't count.
 
 ## 5. Tools

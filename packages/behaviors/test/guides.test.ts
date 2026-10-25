@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { guideLines, guideStop, type V3 } from '../src/index.ts';
+import { flatGuides, guideLines, guideStop, type V3 } from '../src/index.ts';
 
 const near = (a: readonly number[], b: readonly number[]) =>
   a.forEach((v, k) => expect(v).toBeCloseTo(b[k]!, 9));
 
-describe('guides (new here: a dragged copy holds on lines through its original)', () => {
+describe('guides (new here: a dragged thing holds on lines through things near it)', () => {
   it('along the world’s axes, and the original’s own when it is turned', () => {
     expect(guideLines([0, 0, 0])).toHaveLength(3);
     // Turned 30° about z: two more (its z is the world's).
@@ -44,6 +44,18 @@ describe('guides (new here: a dragged copy holds on lines through its original)'
     const p: V3 = [200 * c - 8 * s, 200 * s + 8 * c, 0];
     const stop = guideStop(p, lines)!;
     near(stop.move, [8 * s, -8 * c]);
+  });
+
+  it('carried into the plane, a thing at another depth lines up as seen from in front', () => {
+    // A cone's middle at depth 60, a cube's (dragged) at 0: still in line across.
+    const flat = flatGuides(guideLines([0, 0, 60]), 0);
+    expect(flat).toHaveLength(2); // across and up; the one in depth goes
+    const stop = guideStop([300, 7, 0], flat)!;
+    near(stop.move, [0, -7]);
+    near(stop.on[0]!.from!, [0, 0, 60]);
+    // And under it, where the two cross.
+    near(guideStop([5, 200, 0], flat)!.move, [-5, 0]);
+    near(guideStop([4, -3, 0], flat)!.move, [-4, 3]);
   });
 
   it('out of reach of every line, it goes where it is taken', () => {

@@ -1,6 +1,7 @@
 import { ROOM, type CutObject } from '@cutplane/kernel';
 import { P } from '@cutplane/cpl';
 import {
+  flatGuides,
   guideLines,
   guideStop,
   isObject,
@@ -17,8 +18,9 @@ export const GUIDING = 8;
 /**
  * New here: guide lines while something is dragged. Through the middles of the things
  * nearest it in the world run lines along the world's axes (the plane's too) and each
- * thing's own, if it's turned; the dragged thing's middle, coming near one, holds on
- * it, and it's drawn across the room. Near where two cross (one thing's, or two
+ * thing's own, if it's turned, carried into the dragged thing's plane (flatGuides: as
+ * seen from in front, whatever the depths); its middle, coming near one, holds on
+ * it, and it's drawn across the room, with a tick from the thing's middle to it. Near where two cross (one thing's, or two
  * things'), or where one crosses the plane, it holds there. Ctrl (the axis lock)
  * turns them off.
  */
@@ -88,7 +90,7 @@ export class DragGuides {
         [x[8]!, x[9]!, x[10]!],
       ]);
     });
-    return guideStop(p, lines);
+    return guideStop(p, flatGuides(lines, p[2]));
   }
 
   /** Each guide held on, across the room. */
@@ -112,6 +114,13 @@ export class DragGuides {
       for (const t of [lo, hi])
         out.push(at[0] + dir[0] * t, at[1] + dir[1] * t, at[2] + dir[2] * t);
     }
+    // From each thing's middle at another depth, straight to the plane: which it is.
+    const ticks = new Set<V3>();
+    for (const { at, from } of this.on)
+      if (from && Math.abs(from[2] - at[2]) > 1 && !ticks.has(from)) {
+        ticks.add(from);
+        out.push(...from, from[0], from[1], at[2]);
+      }
     this.view.set(out);
   }
 }
