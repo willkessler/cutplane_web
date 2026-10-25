@@ -74,6 +74,8 @@ export const CRTN_NAMES = [
   // cutplane_web: a tool's size in hand, and back on its pad (tool.cpl).
   'tool_to_hand',
   'tool_to_pad',
+  // cutplane_web: where D puts its copies, on from the last copy as that went on (controls).
+  'place_copies',
 ] as const;
 
 export type CrtnName = (typeof CRTN_NAMES)[number];

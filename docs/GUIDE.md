@@ -109,6 +109,11 @@ so the cube above has grown a box out of its right side. Push it back and the wa
   it in about its axis, making a truncated cone.
 - **D** duplicates what is picked, **G** groups it (or ungroups a group), **\\** slices it in two
   at the plane, **B** unions picked objects into one solid.
+- **Repeating with D.** A copy lands 100 right and 100 up. Move it to where the next should be,
+  and press **D** again: the new copy goes on from it by the same step, and so on, for a row of
+  struts at even spacing. Turn the copy as well and each next one turns as much again, so a
+  copy turned 30° about a point makes a ring of twelve. A copy flipped over to meet its
+  original isn't flipped back: the next just moves on as far.
 
 ## 5. Tools
 

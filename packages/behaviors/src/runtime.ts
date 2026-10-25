@@ -47,6 +47,7 @@ import {
 import { FeatureIndex, isObject, isSub, isWorld, type Sub, type WorldFeature } from './features.ts';
 import { BUILTIN_CRTNS } from './crtns.ts';
 import { faceFit } from './facefit.ts';
+import { DUPLICATE_OFFSET } from './controls.ts';
 import {
   SCALEBOX_CRTNS,
   createScaleBoxTemplate,
@@ -288,6 +289,8 @@ export class Runtime implements Host {
   private readonly solidMeshes = new Map<Brep, SolidMesh | null>();
   /** What each copy was duplicated from: a drill's cutter doesn't cut its own original. */
   private readonly copiedFrom = new WeakMap<CutObject, CutObject>();
+  /** New here: what each copy D made was copied from (placeCopy goes on only from those). */
+  private readonly duplicatedFrom = new WeakMap<CutObject, CutObject>();
   /** Last overlap found between a carried object and each object, while neither moved. */
   private readonly overlaps = new WeakMap<
     CutObject,
@@ -850,6 +853,35 @@ export class Runtime implements Host {
     if (parent === this.primary.root) for (const [, b] of pairs) this.journal.touch(b);
     this.treeChanged();
     return copy;
+  }
+
+  /**
+   * New here: where D puts a copy. A copy of a copy goes on from it as that went on from
+   * its own original, turned as that was (so a turn each time makes a ring), but for a
+   * half turn (a copy flipped to meet its original), which would bring it back: then just
+   * moved as that was. A first copy goes DUPLICATE_OFFSET over, as controls.c put each.
+   */
+  placeCopy(copy: CutObject): void {
+    const from = this.copiedFrom.get(copy);
+    // Only D's copies go on: one the primitives box (stamp.cpl's DUP) or the drill made
+    // was copied from something elsewhere, and starts afresh.
+    const before = from && this.duplicatedFrom.get(from);
+    if (from) this.duplicatedFrom.set(copy, from);
+    if (!from || !before) {
+      this.moveBranch(copy, DUPLICATE_OFFSET);
+      return;
+    }
+    // The move that took the one before to the one copied: from = before · step.
+    const step = mat4.multiply(mat4.invert(before.xform) ?? mat4.identity(), from.xform);
+    if (step[0]! + step[5]! + step[10]! > -1 + 1e-6) {
+      this.transformBranch(copy, step);
+      return;
+    }
+    const a = this.bbox(before);
+    const b = this.bbox(from);
+    if (!a || !b) return;
+    const mid = (x: typeof a, k: number) => (x[0][k]! + x[1][k]!) / 2;
+    this.moveBranch(copy, [0, 1, 2].map((k) => mid(b, k) - mid(a, k)) as V3);
   }
 
   envObject(part: 'crosshair' | 'cutplane'): CutObject {

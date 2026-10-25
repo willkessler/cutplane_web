@@ -176,7 +176,8 @@ Like everything else, the tools stand in the room and are used through the plane
     the plane (Ctrl: evenly, about their middle). Faces beside them that would bend are split,
     and merge back where they come out flat.
 - **D** duplicates what is picked: each picked thing's whole object, 100 units right and up, and
-  the copies are picked. **⌫** deletes it: whole objects, or single vertices, edges and faces.
+  the copies are picked. A copy of a copy D made goes on from it by the move that took that copy
+  from its original (see the differences). **⌫** deletes it: whole objects, or single vertices, edges and faces.
   Deleting a vertex cuts it off, the faces around it becoming one face across its neighbours;
   an edge between two faces lying flat merges them, any other edge goes with both its ends; a
   face goes with all its corners. A delete that would leave the solid broken or flat is refused.
@@ -517,6 +518,14 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   corner on a corner, or edges in line (two at once if there are two). `faceFit` in
   `packages/behaviors/src/facefit.ts`. Let go with the face on the dragged object's own (as the
   release sees it, the dragged object being under the crosshair), it snaps to a face beyond.
+- **D repeats the last copy's move.** controls.c's DUPLICATEBUTTON put every copy 100 right and
+  100 up. Here a copy of something D itself made goes on from it by the move, turn included,
+  that took that one from its own original (`Runtime.placeCopy`, called through the
+  new `place_copies` routine where the key's `TRANS` was): move the first copy into place and
+  D lays out the rest. A half turn (a copy flipped over to meet its original) would bring the
+  next copy back, so then only the move between their middles is repeated. A first copy still
+  goes 100 right and up, as does a copy of anything copied some other way: a cube taken from
+  the primitives box is a copy of the box's (stamp.cpl), but its move from the box isn't a step.
 - **Falls can be interrupted.** A press stops what is falling where it is, to be picked; what
   isn't picked falls on.
 - **The keys plate.** New: the ? pad or key opens a plate of the keys and tools at the plane's

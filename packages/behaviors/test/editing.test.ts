@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { P, T } from '@cutplane/cpl';
-import { createCube, createObject, mat4, validate, volume } from '@cutplane/kernel';
+import { createCube, createObject, mat4, validate, volume, type CutObject } from '@cutplane/kernel';
 import { GLIDE_MS, isObject, isSub, scaleBoxes } from '../src/index.ts';
 import { world } from './world.ts';
 
@@ -238,6 +238,89 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     rt.redo();
     const back = rt.primary.root.children.find((o) => o !== cube)!;
     expect(rt.vm.props.has(back, P.Visible)).toBe(true);
+  });
+
+  // New here: D goes on from the last copy as that went on from its original.
+  const copies = () => {
+    const w = world();
+    w.at(0, 0, 0);
+    w.controls.pressPick(false);
+    w.frame();
+    w.controls.releasePick();
+    w.frame();
+    const d = () => {
+      w.controls.duplicate();
+      w.frame();
+      w.frame();
+      return w.rt.picked()[0] as CutObject;
+    };
+    const mid = (o: CutObject) => {
+      const b = w.rt.bbox(o)!;
+      return [0, 1, 2].map((k) => Math.round((b[0][k]! + b[1][k]!) / 2) + 0);
+    };
+    return { ...w, d, mid };
+  };
+
+  it('D again on a copy that was moved puts the next copy as far on, and the next', () => {
+    const { rt, d, mid } = copies();
+    const first = d();
+    expect(mid(first)).toEqual([100, 100, 0]);
+    rt.moveBranch(first, [150, -100, 0]); // now 250 to the right of the cube
+    expect(mid(d())).toEqual([500, 0, 0]);
+    expect(mid(d())).toEqual([750, 0, 0]);
+    // One undo takes back one copy.
+    rt.undo();
+    expect(rt.primary.root.children).toHaveLength(3);
+  });
+
+  it('a copy turned as well as moved: each next one turns as much again, round a ring', () => {
+    const { rt, d, mid } = copies();
+    const first = d();
+    // Turned 90° about a point 300 below the cube, from where D put it.
+    rt.moveBranch(first, [-100, -100, 0]);
+    rt.transformBranch(first, mat4.rotationAbout([0, -300, 0], [0, 0, 1], Math.PI / 2));
+    expect(mid(first)).toEqual([-300, -300, 0]);
+    expect(mid(d())).toEqual([0, -600, 0]);
+    expect(mid(d())).toEqual([300, -300, 0]);
+  });
+
+  it('a copy flipped over to meet its original: the next goes on, not back', () => {
+    const { rt, d, mid } = copies();
+    const first = d();
+    rt.moveBranch(first, [100, -100, 0]); // 200 right: face to face
+    rt.transformBranch(first, mat4.rotationAbout([200, 0, 0], [0, 1, 0], Math.PI));
+    expect(mid(first)).toEqual([200, 0, 0]);
+    expect(mid(d())).toEqual([400, 0, 0]);
+  });
+
+  it('a copy of an object that was not itself a copy goes the usual way over', () => {
+    const { rt, cube, d, mid, controls, frame, at } = copies();
+    d();
+    // Pick the cube again: its copy goes (100, 100, 0) over, as the first did.
+    rt.moveBranch(rt.picked()[0] as CutObject, [500, 0, 0]);
+    at(0, 0, 0);
+    controls.pressPick(false);
+    frame();
+    controls.releasePick();
+    frame();
+    expect(rt.picked()).toEqual([cube]);
+    expect(mid(d())).toEqual([100, 100, 0]);
+  });
+
+  it('a copy made some other way (as the primitives box makes one) starts afresh', () => {
+    const { rt, cube, d, mid, controls, frame, at } = copies();
+    // Copied (not by D) and carried far off, as a cube taken from the box comes away.
+    const taken = rt.duplicate(cube);
+    rt.moveBranch(taken, [300, 300, 300]);
+    rt.unpick(cube);
+    frame();
+    at(300, 300, 300);
+    controls.pressPick(false);
+    frame();
+    controls.releasePick();
+    frame();
+    expect(rt.picked()).toEqual([taken]);
+    expect(mid(d())).toEqual([400, 400, 300]);
   });
 
   it('Space jumps the plane to the back wall and back, then the front and back (cursor.cpl)', () => {

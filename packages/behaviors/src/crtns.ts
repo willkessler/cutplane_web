@@ -36,6 +36,11 @@ export const BUILTIN_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void
     vm.pushFeatures([marquee]);
   },
 
+  /** New here (controls' D): each copy goes where Runtime.placeCopy puts it. */
+  place_copies(rt, vm) {
+    for (const f of vm.pop().list ?? []) if (isObject(f)) rt.placeCopy(f);
+  },
+
   /** cursor.cpl's escape hatch (picking on the plane's border, a demo hack): never. */
   cursor_on_border(_rt, vm) {
     vm.push(boolWord(false));

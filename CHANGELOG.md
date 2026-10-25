@@ -12,6 +12,11 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 25, 2026
 
+- **D repeats the last copy's move.** Every copy used to land 100 right and 100 up. Now, move
+  the first copy where the next should go, and D puts each further copy on by the same step, a
+  turn included: a row of struts at even spacing, or a ring when the copy was turned about a
+  point. A copy flipped over to face its original just moves on, not back.
+
 - **The magnet lines faces up.** It used to lay a face flush on another wherever the crosshair
   had it, twisted however it came. A face just like the other (a copy's, turned to meet its
   original) now fits it exactly, edge on edge and corner on corner. Any other face squares up

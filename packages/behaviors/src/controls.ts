@@ -134,11 +134,10 @@ export class Controls {
 
   duplicate(): void {
     this.events = true;
-    const [x, y, z] = DUPLICATE_OFFSET;
     this.vm.encodeInstruction(' DUP Prop:Picked*,A:R3');
-    this.vm.encodeInstruction(
-      ` TRANS A:R3*,Const:Normaltranslate,Const:V[${x.toFixed(1)},${y.toFixed(1)},${z.toFixed(1)}]`,
-    );
+    // New here: not always DUPLICATE_OFFSET over (Runtime.placeCopy).
+    this.vm.encodeInstruction(' PUSH A:R3*');
+    this.vm.encodeInstruction(' CRTN Crtn:place_copies');
     this.vm.encodeInstruction(' MAKEMSG Msg:Unpick');
     this.vm.encodeInstruction(' QMSG Prop:Picked*,Const:Noprioritymsg');
     this.vm.encodeInstruction(' MAKEMSG Msg:Pick');
