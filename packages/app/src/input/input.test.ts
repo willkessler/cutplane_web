@@ -48,6 +48,9 @@ describe('bindings (one set for a trackpad and either mouse)', () => {
     expect(commandFor('KeyG', held())).toBe('group');
     expect(commandFor('Backslash', held())).toBe('slice');
     expect(commandFor('KeyB', held())).toBe('union');
+    expect(commandFor('KeyA', held())).toBe('align');
+    expect(commandFor('KeyA', held({ shift: true }))).toBe('distribute');
+    expect(commandFor('KeyA', held({ meta: true }))).toBe('selectAll');
     expect(commandFor('KeyH', held())).toBe('panTool');
     expect(commandFor('KeyP', held())).toBe('pencilTool');
     expect(commandFor('KeyZ', held())).toBe('zoomTool');

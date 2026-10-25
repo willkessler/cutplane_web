@@ -18,4 +18,5 @@ export * from './text/hershey.ts';
 export * from './modeling.ts';
 export * from './facefit.ts';
 export * from './guides.ts';
+export * from './align.ts';
 export * from './session.ts';

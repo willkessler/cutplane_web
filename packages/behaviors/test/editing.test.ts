@@ -208,6 +208,35 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     expect(rt.primary.root.children).toContain(other);
   });
 
+  it('a world loaded (an autosave) comes back with nothing picked or selectable from before', () => {
+    const { rt } = world();
+    const o = createObject(createCube(50, 50, 50), { name: 'Saved' });
+    o.attrs.props = ['Visible', 'Picked', 'Selectable'];
+    o.brep.faceAttrs.set(o.brep.faces()[0]!, { props: ['Picked'] });
+    rt.importObjects(rt.primary, [o]);
+    expect(rt.picked()).toEqual([]);
+    expect(o.attrs.props).toEqual(['Visible']);
+    expect(o.brep.faceAttrs.get(o.brep.faces()[0]!)!.props).toEqual([]);
+    expect(rt.vm.props.has(o, P.Visible)).toBe(true);
+  });
+
+  it('⌘A with something picked picks it too, the thing, not its scale box', () => {
+    const { rt, cube, controls, frame, at } = world();
+    at(0, 0, 0);
+    controls.pressPick(false);
+    frame();
+    controls.releasePick();
+    frame();
+    controls.duplicate();
+    frame();
+    frame();
+    const copy = rt.picked()[0]!;
+    controls.selectAll();
+    frame();
+    frame();
+    expect(new Set(rt.picked())).toEqual(new Set([cube, copy]));
+  });
+
   it('D duplicates what is picked, (100, 100, 0) away, and picks the copy', () => {
     const { rt, cube, controls, frame, at } = world();
     at(0, 0, 0);

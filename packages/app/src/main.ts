@@ -1178,6 +1178,8 @@ window.addEventListener('keydown', (e) => {
   else if (c === 'group') controls.group();
   else if (c === 'slice') controls.slice();
   else if (c === 'union') controls.union();
+  else if (c === 'align') controls.align();
+  else if (c === 'distribute') controls.distribute();
   else if (c === 'zoomTool') controls.takeTool('Magnifier');
   else if (c === 'panTool') controls.takeTool('Pantool');
   else if (c === 'pencilTool') controls.takeTool('Pencil');

@@ -14,6 +14,7 @@ import {
   messageWord,
 } from '@cutplane/cpl';
 import type { Runtime, V3 } from './runtime.ts';
+import { alignPicked, distributePicked } from './align.ts';
 import { unionPicked } from './modeling.ts';
 import { charstreamOf } from './tools/plates.ts';
 
@@ -127,7 +128,9 @@ export class Controls {
     this.events = true;
     this.vm.encodeInstruction(' MAKEMSG Msg:Unpick');
     this.vm.encodeInstruction(' QMSG Prop:Picked*,Const:Noprioritymsg');
-    this.vm.encodeInstruction(' ANCEST Prop:Visible*,A:R3');
+    // New here: each thing whole, a picked one too (ANCEST Prop:Visible* gave its scale box).
+    this.vm.encodeInstruction(' CRTN Crtn:world_things');
+    this.vm.encodeInstruction(' POP A:R3');
     this.vm.encodeInstruction(' MAKEMSG Msg:Pick');
     this.vm.encodeInstruction(' QMSG A:R3*,Const:Noprioritymsg');
   }
@@ -209,6 +212,18 @@ export class Controls {
   union(): void {
     this.events = true;
     unionPicked(this.rt);
+  }
+
+  /** New here: A lines up what is picked (align.ts). */
+  align(): void {
+    this.events = true;
+    alignPicked(this.rt);
+  }
+
+  /** New here: Shift-A spaces out what is picked evenly (align.ts). */
+  distribute(): void {
+    this.events = true;
+    distributePicked(this.rt);
   }
 
   /** Z, H and P (ZTOOLBUTTON, PANTOOLBUTTON; P new here): the magnifier, pan tool or pencil comes to the crosshair. */

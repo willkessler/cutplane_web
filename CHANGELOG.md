@@ -12,6 +12,14 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 25, 2026
 
+- **A lines things up, Shift-A spaces them out.** Pick several things and A puts their middles
+  on the line between the two farthest apart, squared to the room's axes when it's within 10°
+  of one. Shift-A keeps those two ends and spaces the rest evenly between them, by the gaps
+  between them, so things of different sizes come out evenly spaced too. ⌘A now picks
+  everything even when one thing is already picked (it used to miss that one).
+- **A reload no longer brings something back half picked.** A world saved (or autosaved) with
+  something picked came back with it marked picked but without its scale box, so a press on
+  anything else dragged it instead. Nothing comes back picked now.
 - **Guide lines while dragging.** Lines run through the middles of the eight things nearest
   what you drag, along the room's axes and each thing's own if it's turned. Its middle holds on
   one when it comes within 12 units, with the line drawn across the room, or where two cross,

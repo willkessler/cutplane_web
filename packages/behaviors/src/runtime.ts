@@ -498,7 +498,18 @@ export class Runtime implements Host {
       r.parent = parent;
       r.linked = true;
       parent.children.push(r);
-      for (const o of subtree(r)) this.register(o);
+      for (const o of subtree(r)) {
+        // Into the world being edited, nothing comes picked, selectable or the like: a
+        // file (an autosave) kept what it was saved with, and a thing picked there would
+        // come back picked but not in a scale box, dragged by a press on anything else.
+        if (world === this.primary) {
+          const lasting = (names: string[]) => names.filter((n) => !TRANSIENT_PROPS.has(n));
+          o.attrs.props = lasting(o.attrs.props);
+          for (const map of [o.brep.vertexAttrs, o.brep.edgeAttrs, o.brep.faceAttrs])
+            for (const a of map.values()) a.props = lasting(a.props);
+        }
+        this.register(o);
+      }
     }
     this.treeChanged();
     // Code loaded before these existed may name them (Obj:Paintchip).

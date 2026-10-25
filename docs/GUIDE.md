@@ -109,6 +109,11 @@ so the cube above has grown a box out of its right side. Push it back and the wa
   it in about its axis, making a truncated cone.
 - **D** duplicates what is picked, **G** groups it (or ungroups a group), **\\** slices it in two
   at the plane, **B** unions picked objects into one solid.
+- **Lining up and spacing out.** Pick several things and press **A**: each one's middle comes
+  onto the line between the two farthest apart. If that line is nearly level, upright or
+  straight in depth, it's squared up, through the end you picked first. **Shift-A** leaves
+  those two ends where they are and spaces the rest out between them with even gaps, however
+  big each one is. It only moves them along the line, so press A first to put them on it.
 - **Repeating with D.** A copy lands 100 right and 100 up. Move it to where the next should be,
   and press **D** again: the new copy goes on from it by the same step, and so on, for a row of
   struts at even spacing. Turn the copy as well and each next one turns as much again, so a

@@ -654,6 +654,46 @@ test('a thing dragged near another’s line holds on it, the line drawn; let go,
   expect(errors).toEqual([]);
 });
 
+test('A lines up what is picked, Shift-A spaces it out evenly; undo, one at a time', async ({
+  page,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  await press(page);
+  await release(page);
+  await page.keyboard.press('KeyD'); // a copy, its middle at (100, 100)
+  await page.keyboard.press('KeyD'); // and on: (200, 200)
+  // That last one, taken where it's alone, to (300, 100).
+  await set(page, { x: 280, y: 280 });
+  await press(page);
+  for (const [x, y] of [
+    [320, 240],
+    [360, 200],
+    [380, 180],
+  ] as const)
+    await set(page, { x, y });
+  await release(page);
+  const mids = async () =>
+    (await falls(page)).mids
+      .map((m) => m.map((c) => Math.round(c) + 0))
+      .sort((a, b) => a[0]! - b[0]!);
+  expect(await mids()).toEqual([
+    [0, 0, 0],
+    [100, 100, 0],
+    [300, 100, 0],
+  ]);
+  await page.keyboard.press('ControlOrMeta+KeyA');
+  // The one between comes square onto the line from (0, 0) to (300, 100)...
+  await page.keyboard.press('KeyA');
+  expect((await mids())[1]).toEqual([120, 40, 0]);
+  // ...and halfway along it.
+  await page.keyboard.press('Shift+KeyA');
+  expect((await mids())[1]).toEqual([150, 50, 0]);
+  await page.evaluate(() => window.__cutplane!.undo());
+  expect((await mids())[1]).toEqual([120, 40, 0]);
+  expect(errors).toEqual([]);
+});
+
 test('the group tool: a click on what is picked groups it, a marquee groups what it touches; one scale box', async ({
   page,
 }) => {

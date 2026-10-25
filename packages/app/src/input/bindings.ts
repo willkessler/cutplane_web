@@ -60,6 +60,8 @@ export type Command =
   | 'group'
   | 'slice'
   | 'union'
+  | 'align'
+  | 'distribute'
   | 'zoomTool'
   | 'panTool'
   | 'pencilTool'
@@ -106,6 +108,9 @@ export function commandFor(code: string, h: Held): Command | undefined {
     // New here: B unions what is picked (the original's BOOLEANBUTTON, a test hook).
     case 'KeyB':
       return 'union';
+    // New: A lines up what is picked, Shift-A spaces it out evenly.
+    case 'KeyA':
+      return h.shift ? 'distribute' : 'align';
     case 'KeyZ':
       return 'zoomTool';
     case 'KeyH':
@@ -166,6 +171,8 @@ export function keyLines(mac: boolean): KeysLine[] {
     ['Delete', 'delete it'],
     ['G', 'group or ungroup it'],
     ['B', 'union it'],
+    ['A', 'line them up'],
+    ['Shift-A', 'space them evenly'],
     ['\\', 'slice it at the plane'],
     [`${cmd}-Z`, 'undo'],
     [`Shift-${cmd}-Z`, 'redo'],

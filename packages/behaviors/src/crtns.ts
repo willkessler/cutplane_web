@@ -1,4 +1,5 @@
 import { P, boolWord, first, type VM } from '@cutplane/cpl';
+import type { CutObject } from '@cutplane/kernel';
 import { isObject, type WorldFeature } from './features.ts';
 import type { Runtime } from './runtime.ts';
 
@@ -39,6 +40,22 @@ export const BUILTIN_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void
   /** New here (controls' D): each copy goes where Runtime.placeCopy puts it. */
   place_copies(rt, vm) {
     for (const f of vm.pop().list ?? []) if (isObject(f)) rt.placeCopy(f);
+  },
+
+  /**
+   * New here (controls' ⌘A): () → (things): every visible thing in the world being
+   * edited, whole: an object on its own or a group's root; one picked already, the
+   * thing, not the scale box it sits in (ANCEST would give the box).
+   */
+  world_things(rt, vm) {
+    const out = new Set<CutObject>();
+    for (const f of vm.props.features(rt.primary, P.Visible)) {
+      if (!isObject(f) || rt.hasProp(f, 'Scalebbox')) continue;
+      let r = f;
+      while (r.parent && !(r.linked ?? false) && !rt.hasProp(r.parent, 'Scalebbox')) r = r.parent;
+      if (r !== rt.primary.root) out.add(r);
+    }
+    vm.pushFeatures([...out]);
   },
 
   /** cursor.cpl's escape hatch (picking on the plane's border, a demo hack): never. */

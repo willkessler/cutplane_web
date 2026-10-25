@@ -76,6 +76,8 @@ export const CRTN_NAMES = [
   'tool_to_pad',
   // cutplane_web: where D puts its copies, on from the last copy as that went on (controls).
   'place_copies',
+  // cutplane_web: what ⌘A picks, each thing whole, not a scale box one is in (controls).
+  'world_things',
 ] as const;
 
 export type CrtnName = (typeof CRTN_NAMES)[number];
