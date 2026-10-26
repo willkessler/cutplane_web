@@ -12,6 +12,15 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 25, 2026
 
+- **A headpad dragged by its tab no longer sticks to the crosshair.** A rail's headpad was
+  hung on the crosshair on its first drag step, missing the little way the crosshair had moved
+  before the drag began; each drag left it a bit further off, and dragged by the end of its tab
+  the crosshair could end up just outside it, where no release reached it. It rode the
+  crosshair for good, kept that way between visits. Now it's hung on as it's picked, as a pad's
+  handle is. A room kept with one stuck comes back with it on the plane.
+- **Reset the room.** The top bar's _Settings_ menu puts the room back as it was built: the
+  rails, toolboxes and goodies, the plane and the view. What you're making stays as it is.
+  (Clearing the kept room by hand didn't do it: leaving the page keeps the room again.)
 - **The hand no longer stops working after H mid-marquee.** Pressing H (or another tool key)
   while dragging a marquee brought the tool in at once; when the marquee ended the hand was
   sent what it had taken in, a message it never reads, and from then on it never saw a press:

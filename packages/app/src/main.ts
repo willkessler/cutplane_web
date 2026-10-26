@@ -307,6 +307,7 @@ async function loadCpl(): Promise<void> {
     'cursor.cpl',
     'tool.cpl',
     'toolpad.cpl',
+    'headpad.cpl',
     'union.cpl',
     'gravity.cpl',
     'pencil.cpl',
@@ -1559,8 +1560,10 @@ const SESSION_IDLE = 1000;
 /** Tests and recordings start from nothing, and keep nothing. */
 const sessions = !still && !demo;
 let sessionKept = '';
+/** The room is being reset: nothing more is kept before the page reloads. */
+let resetting = false;
 function saveSession(): void {
-  if (!sessions || !ready) return;
+  if (!sessions || !ready || resetting) return;
   const s: Session = {
     x: stage.x,
     y: stage.y,
@@ -1609,6 +1612,18 @@ function startSession(): void {
   aim = [control.x, control.y];
   regrip = true;
 }
+
+// The room as built: the next visit's session is dropped, and the page reloads without
+// keeping this one (leaving keeps it, which would put it straight back).
+$<HTMLButtonElement>('resetRoom').addEventListener('click', () => {
+  resetting = true;
+  try {
+    localStorage.removeItem('cutplane.session');
+  } catch {
+    /* private mode */
+  }
+  location.reload();
+});
 
 $<HTMLButtonElement>('resume').addEventListener('click', () => void work.resume());
 $<HTMLButtonElement>('leave').addEventListener('click', () => work.exit());

@@ -74,3 +74,29 @@ test('a later visit finds the room as it was left: view, plane, rails, rotate to
   expect(await locate(page, 'rails')).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+test('Reset the room puts it back as built; leaving the page keeps the room as it is', async ({
+  page,
+}) => {
+  await open(page);
+  // A rail opened, the plane pushed back, the room turned.
+  await click(page, await locate<number[]>(page, 'toolpads'));
+  await set(page, { z: -300, yaw: 30 });
+  await page.evaluate(() => window.__cutplane!.saveSession());
+  // A reload keeps it (the page keeps the room as it goes, a broken one too).
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+  expect(await locate(page, 'rails')).toEqual(['Toolpads']);
+  expect((await state(page)).z).toBe(-300);
+
+  await page.locator('#settings summary').click();
+  await page.locator('#resetRoom').click();
+  await page.waitForLoadState('load');
+  await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+  const s = await state(page);
+  expect([s.z, s.yaw, s.pitch]).toEqual([500, -20, 5]);
+  expect(await locate(page, 'rails')).toEqual([]);
+  expect(await locate<number[]>(page, 'arrangepads')).toEqual([-270, 320, 500]);
+  // The world being made is still there.
+  expect((await page.evaluate(() => window.__cutplane!.edit())).objects).toBe(1);
+});

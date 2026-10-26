@@ -29,7 +29,8 @@ Nothing to install. It works in Chrome, Edge, Firefox and Safari on a desktop or
 - Above the room is the **top bar** (models, _Settings_, files). It disappears when you start
   working (section 2).
 - The first time, the room is turned a little and the keys plate is open. After that, Cutplane
-  opens as you left it (section 8).
+  opens as you left it (section 8). _Settings_ → _Reset the room_ puts the room back as it was
+  built (rails, toolboxes, goodies, plane and view); what you're making stays.
 
 A trackpad, a two-button mouse and the SGI's three-button mouse all work as they are, with
 nothing to set up: hold ⌘ or right-drag to turn the room, hold ⌥ (Option, Alt) or middle-drag to

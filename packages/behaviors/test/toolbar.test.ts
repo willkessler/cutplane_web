@@ -354,6 +354,50 @@ describe('toolbars through headpad, toolpad, padhandle and tool.cpl', () => {
     expect(restoreRoom(c.rt, { ...snap, version: undefined })).toBe(false);
   });
 
+  it('a headpad dragged by the end of its tab stays where it was taken, and is let go', () => {
+    const w = setup();
+    const head = w.arrangers;
+    const box = () => w.rt.bbox(head)!;
+    // Taken just inside the pick box's left end (the tab), pulled left in small steps:
+    // the steps inside the drag's dead zone are caught up, not lost.
+    const grab = [box()[0][0] - 14.5, box()[1][1] - 1];
+    w.at(grab[0]!, grab[1]!);
+    w.controls.pressPick(false);
+    w.frame();
+    for (let i = 0; i < 40; i++) w.move(-1.3, -0.7);
+    expect(w.rt.cursor()[0] - box()[0][0]).toBeCloseTo(-14.5, 6);
+    expect(w.rt.cursor()[1] - box()[1][1]).toBeCloseTo(-1, 6);
+    // The plane pushed back mid-drag: it goes with the plane, just the once.
+    const z = box()[0][2] - w.rt.cursor()[2];
+    w.move(0, 0, -200);
+    expect(box()[0][2] - w.rt.cursor()[2]).toBeCloseTo(z, 6);
+    w.controls.releasePick();
+    w.frame();
+    w.frame();
+    expect(head.parent).toBe(w.rt.cutplane);
+    expect(w.rt.hasProp(head, 'Headpadragged')).toBe(false);
+    w.move(100, 0);
+    expect(w.rt.cursor()[0] - box()[0][0]).toBeCloseTo(100 - 14.5, 6);
+  });
+
+  it('a room kept with a headpad on the crosshair comes back with it on the plane', () => {
+    const a = setup();
+    markRoom(a.rt);
+    // As kept before headpad.cpl moved itself: a headpad left riding the crosshair.
+    a.rt.adopt(a.rt.cursorObj, a.arrangers, false);
+    a.rt.addProp(a.arrangers, 'Headpadragged');
+    const snap = snapshotRoom(a.rt)!;
+    const b = setup();
+    markRoom(b.rt);
+    expect(restoreRoom(b.rt, JSON.parse(JSON.stringify(snap)))).toBe(true);
+    const head = b.rt.findObject('Arrangepads')!;
+    expect(head.parent).toBe(b.rt.cutplane);
+    expect(b.rt.hasProp(head, 'Headpadragged')).toBe(false);
+    // And it's clicked open as ever.
+    b.click(head);
+    expect(b.rt.vm.props.has(head.children[0]!, P.Visible)).toBe(true);
+  });
+
   it('a padhandle pulled off the rail floats where it is let go', () => {
     const w = setup();
     w.click(w.arrangers);

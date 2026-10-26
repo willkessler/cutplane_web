@@ -182,6 +182,15 @@ export function restoreRoom(rt: Runtime, snap: RoomSnapshot): boolean {
       setProps(rt, rt.features.of(o, t as Parameters<Runtime['features']['of']>[1], id), props);
     rt.changed(o);
   });
+  // Only tools ride the crosshair from one visit to the next: anything else on it was kept
+  // mid-drag and left there (a headpad, before headpad.cpl hung it on at the pick): onto
+  // the plane where it is.
+  for (const o of [...rt.cursorObj.children])
+    if (known.has(o) && !rt.hasProp(o, 'Tool')) {
+      rt.adopt(rt.cutplane, o, true);
+      const dragged = rt.vm.props.find('Headpadragged');
+      if (dragged >= 0 && rt.vm.props.has(o, dragged)) rt.vm.props.del(o, dragged);
+    }
   if (snap.light) setBulbLight(rt, snap.light);
   rt.version++;
   return true;
