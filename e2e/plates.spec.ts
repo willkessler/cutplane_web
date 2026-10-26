@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+const SHOTS = process.env['SHOTS'];
+
 // M5: plates with Hershey text and typed input (dialog.cpl, textinput.cpl, save.cpl,
 // load.cpl). Save to: keeps the world in the browser; Load from: brings it back.
 async function open(page: Page, query: string) {
@@ -136,5 +138,31 @@ test('the measure pad shows the size of what is picked; typing a height resizes 
   if (process.env['SHOTS'] && browserName === 'chromium')
     await page.screenshot({ path: `${process.env['SHOTS']}/measure-resized.png` });
   await page.keyboard.press('ControlOrMeta+KeyZ');
+  expect(errors).toEqual([]);
+});
+
+test('a hints plate shows the keys for what is picked, and goes when nothing is', async ({
+  page,
+  browserName,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -20, pitch: 10, z: 0 });
+  const hints = () => page.evaluate(() => window.__cutplane!.hints());
+  expect(await hints()).toBeNull();
+  await click(page, 0, 0);
+  expect(await hints()).toBe('one');
+  await page.keyboard.press('KeyD');
+  expect(await hints()).toBe('copy');
+  if (SHOTS && browserName === 'chromium') await page.screenshot({ path: `${SHOTS}/hints.png` });
+  await page.keyboard.press('ControlOrMeta+KeyA');
+  expect(await hints()).toBe('many');
+  // ? shows all the keys instead.
+  await page.keyboard.press('Slash');
+  expect(await hints()).toBeNull();
+  await page.keyboard.press('Slash');
+  expect(await hints()).toBe('many');
+  // A press on nothing unpicks all: no hints.
+  await click(page, -300, 150);
+  expect(await hints()).toBeNull();
   expect(errors).toEqual([]);
 });

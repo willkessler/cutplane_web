@@ -78,6 +78,8 @@ export const CRTN_NAMES = [
   'place_copies',
   // cutplane_web: what ⌘A picks, each thing whole, not a scale box one is in (controls).
   'world_things',
+  // cutplane_web: features the host hands CPL (controls: what R picks again).
+  'handed_over',
 ] as const;
 
 export type CrtnName = (typeof CRTN_NAMES)[number];

@@ -64,6 +64,55 @@ test('the rotate tool: docked, brought to the cube with R, rolling it', async ({
   expect(errors).toEqual([]);
 });
 
+for (const grouped of [true, false])
+  test(`R on a face of one of several picked${grouped ? ', grouped,' : ''} turns them all about it`, async ({
+    page,
+  }) => {
+    const errors = await open(page, 'sample=cube');
+    await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+    await press(page);
+    await release(page);
+    await page.keyboard.press('KeyD');
+    // The copy taken to (300, 0).
+    await set(page, { x: 150, y: 150 });
+    await press(page);
+    for (const [x, y] of [
+      [200, 120],
+      [280, 80],
+      [350, 50],
+    ] as const)
+      await set(page, { x, y });
+    await release(page);
+    await page.keyboard.press('ControlOrMeta+KeyA');
+    if (grouped) await page.keyboard.press('KeyG');
+    // On the cube's left face: the tool comes to it (a group's part, too), lined up with it.
+    await set(page, { x: -100, y: 20 });
+    await page.keyboard.press('KeyR');
+    expect((await tool(page)).center).toEqual([-100, 20]);
+    // The face is picked; what else was picked stays picked (a group turns whole anyway).
+    expect((await edit(page)).picked.sort()).toEqual(grouped ? ['face'] : ['face', 'object']);
+    // Along the bar: both turn about the face's upright line, at x = -100.
+    await set(page, { x: -160, y: 20 });
+    expect((await tool(page)).hover).toBe('bar');
+    await press(page);
+    for (let x = -162; x >= -200; x -= 2) await set(page, { x, y: 20 });
+    await release(page);
+    const off = (m: number[]) => Math.hypot(m[0]! + 100, m[2]!);
+    const mids = (await falls(page)).mids;
+    if (grouped) {
+      expect(mids).toHaveLength(1);
+      expect(off(mids[0]!)).toBeCloseTo(250, 0);
+      expect(mids[0]![2]!).toBeGreaterThan(100);
+    } else {
+      const [a, b] = [...mids].sort((p, q) => off(p) - off(q));
+      expect(off(a!)).toBeCloseTo(100, 0);
+      expect(off(b!)).toBeCloseTo(400, 0);
+      expect(a![2]!).toBeGreaterThan(30);
+      expect(b![2]!).toBeGreaterThan(100);
+    }
+    expect(errors).toEqual([]);
+  });
+
 test('the rotate tool’s dial stops at 45°, its baubles drawn bigger while held (new)', async ({
   page,
   browserName,

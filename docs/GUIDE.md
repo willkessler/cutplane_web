@@ -22,6 +22,10 @@ Nothing to install. It works in Chrome, Edge, Firefox and Safari on a desktop or
   along the bottom. They move with the plane, so they're always within reach.
 - The **?** pad (or the ? key) opens the **keys plate** beside the room: every key and tool, in
   groups (section 9).
+- While anything is picked, a smaller **hints plate** hangs in the same place with just the keys
+  for what you have picked: one thing, several (A and Shift-A, B), a copy D just made (D again,
+  then line them up), or a face, edge or point. It goes when nothing is picked, and while ?
+  shows all the keys.
 - Above the room is the **top bar** (models, _Settings_, files). It disappears when you start
   working (section 2).
 - The first time, the room is turned a little and the keys plate is open. After that, Cutplane
@@ -98,6 +102,9 @@ so the cube above has grown a box out of its right side. Push it back and the wa
 - R on a face's **section line** lines the tool up with it. Roll it there and the face catches
   when it stands straight across the plane, holding until you push on: two objects stood up
   this way are parallel. Rolled to within 5° of lying in the plane, the face snaps into it.
+- R on a face of something in a **group**, or of one of **several picked** things, comes to that
+  face too, and the others stay picked: rolling it turns the whole group, or all of them, about
+  that face. Lay a ring of cubes flat by one cube's face.
 - The outer circle stops **every 45°** (the bars level, upright or diagonal), and holds until you
   push on. Set on a face's section line, that stands the face's section upright or lays it
   level. At any stop the tool's little end circles grow by half, so you can see you're on it.

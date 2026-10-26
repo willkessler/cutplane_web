@@ -58,6 +58,12 @@ export const BUILTIN_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void
     vm.pushFeatures([...out]);
   },
 
+  /** New here: () → (features): what the host left in Runtime.handOver, taken. */
+  handed_over(rt, vm) {
+    vm.pushFeatures(rt.handOver);
+    rt.handOver = [];
+  },
+
   /** cursor.cpl's escape hatch (picking on the plane's border, a demo hack): never. */
   cursor_on_border(_rt, vm) {
     vm.push(boolWord(false));

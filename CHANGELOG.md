@@ -12,6 +12,13 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 25, 2026
 
+- **R on a face in a group, or of one of several picked.** The rotate tool comes to a face of a
+  part of a group picked whole, and rolling it turns the whole group. R no longer unpicks
+  everything else either: with several things picked, the tool goes to the face and the roll
+  turns them all about it.
+- **Hints for what is picked.** Pick something and a small plate beside the room lists the
+  keys that matter for it: after D, how to repeat it and line the copies up; with several
+  picked, A, Shift-A, G and B. It goes when nothing is picked; ? still shows every key.
 - **A lines things up, Shift-A spaces them out.** Pick several things and A puts their middles
   on the line between the two farthest apart, squared to the room's axes when it's within 10°
   of one. Shift-A keeps those two ends and spaces the rest evenly between them, by the gaps

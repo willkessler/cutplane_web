@@ -195,3 +195,63 @@ export function keyLines(mac: boolean): KeysLine[] {
     ['Top bar', 'open, save, export'],
   ];
 }
+
+/** What is picked, for the hints plate: one thing, several, a copy D just made, a part. */
+export type HintContext = 'one' | 'many' | 'copy' | 'part';
+
+/**
+ * The hints plates' lines (new): the keys that matter for what is picked, shown while
+ * anything is; ? still shows them all.
+ */
+export function hintLines(mac: boolean): Record<HintContext, KeysLine[]> {
+  const cmd = mac ? 'Cmd' : 'Ctrl';
+  const undo: KeysLine = [`${cmd}-Z`, 'undo'];
+  const all: KeysLine = ['?', 'all the keys'];
+  return {
+    one: [
+      { heading: 'Picked' },
+      ['Drag', 'move it'],
+      ['Hold Ctrl', 'keep to one axis'],
+      ['Shift-click', 'pick more'],
+      ['D', 'duplicate it'],
+      ['G', 'group or ungroup it'],
+      ['R', 'the rotate tool'],
+      ['\\', 'slice it at the plane'],
+      ['Delete', 'delete it'],
+      undo,
+      all,
+    ],
+    many: [
+      { heading: 'Picked: several' },
+      ['Drag', 'move them'],
+      ['A', 'line them up'],
+      ['Shift-A', 'space them evenly'],
+      ['G', 'group them'],
+      ['B', 'union them'],
+      ['D', 'duplicate them'],
+      ['Delete', 'delete them'],
+      undo,
+      all,
+    ],
+    copy: [
+      { heading: 'A copy' },
+      ['Drag', 'move or turn it, then'],
+      ['D', 'another, as far on'],
+      ['Shift-click', 'pick the others too'],
+      ['A', 'then line them up'],
+      ['Shift-A', 'or space them evenly'],
+      ['G', 'group them'],
+      ['Delete', 'delete it'],
+      [`${cmd}-Z`, 'undo the copy'],
+      all,
+    ],
+    part: [
+      { heading: 'Picked: a part' },
+      ['Drag', 'move it'],
+      ['Hold Ctrl', 'keep to one axis'],
+      ['Shift-click', 'pick more'],
+      undo,
+      all,
+    ],
+  };
+}

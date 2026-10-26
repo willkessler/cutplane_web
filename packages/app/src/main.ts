@@ -15,7 +15,7 @@ import {
   type Pick,
 } from '@cutplane/kernel';
 import type { CutDocument } from '@cutplane/formats';
-import { P, PROPERTY_FILES } from '@cutplane/cpl';
+import { P, PROPERTY_FILES, type Feature } from '@cutplane/cpl';
 import {
   COLOR_CRTNS,
   Controls,
@@ -28,6 +28,7 @@ import {
   cameraViewOf,
   installStoragePad,
   installHelpPad,
+  installHintPlates,
   keysPlateOf,
   showKeysPlate,
   installMeasurePad,
@@ -46,7 +47,14 @@ import {
   type V3,
 } from '@cutplane/behaviors';
 import { DEMO_SECONDS, demoPose } from './demo.ts';
-import { NOTHING_HELD, keyLines, commandFor, type Held } from './input/bindings.ts';
+import {
+  NOTHING_HELD,
+  keyLines,
+  hintLines,
+  commandFor,
+  type HintContext,
+  type Held,
+} from './input/bindings.ts';
 import { Controller, PLANE_STICK, isMouseWheel } from './input/controller.ts';
 import { WorkMode } from './input/workmode.ts';
 import { Crosshair } from './render/crosshair.ts';
@@ -356,6 +364,8 @@ function makeWorld(): void {
   installMeasurePad(rt, resource, source);
   keysPlate = keysPlateOf(installHelpPad(rt, keyLines(MAC)));
   markRoom(rt); // the room as built: what a session left is put back on it
+  // (After it: which one shows follows what is picked, nothing for a session to keep.)
+  hintPlates = installHintPlates(rt, hintLines(MAC));
   controls = new Controls(rt);
   ready = true;
 }
@@ -365,6 +375,34 @@ let keysPlate: CutObject | null = null;
 const keysShown = (): boolean => keysPlate !== null && rt.vm.props.has(keysPlate, P.Visible);
 function showKeys(shown: boolean): void {
   if (keysPlate) showKeysPlate(rt, keysPlate, shown);
+}
+
+/** New here: the hints plates, one for each kind of thing picked (bindings' hintLines). */
+let hintPlates = new Map<string, CutObject>();
+/** What D last picked (its copies): while that is what is picked, the copy's hints show. */
+let copiedPick: Feature[] | null = null;
+let hintShown: HintContext | null = null;
+
+/** Which hints fit what is picked now: none with nothing picked, or with ? showing all. */
+function hintContext(): HintContext | null {
+  const picked = rt.picked();
+  if (picked.length === 0 || keysShown()) return null;
+  if (
+    copiedPick &&
+    copiedPick.length === picked.length &&
+    picked.every((f) => copiedPick!.includes(f))
+  )
+    return 'copy';
+  if (picked.some((f) => !isObject(f))) return 'part';
+  return rt.pickedObjects().length > 1 ? 'many' : 'one';
+}
+
+/** Each frame: the hints plate that fits shown, the others put away. */
+function showHints(): void {
+  const want = hintContext();
+  if (want === hintShown) return;
+  hintShown = want;
+  for (const [name, plate] of hintPlates) showKeysPlate(rt, plate, name === want);
 }
 
 function pressPick(shift: boolean): void {
@@ -946,6 +984,7 @@ function render(): void {
   if (gravitySeen === edits) gravitySeen = rt.journal.edits;
   gravityTick();
   syncModels();
+  showHints();
   autosaveTick();
   sessionTick();
   orbitCamera(camera, control.yaw, control.pitch);
@@ -1173,8 +1212,11 @@ window.addEventListener('keydown', (e) => {
     else if (e.code === 'KeyF') work.exit(); // F toggles, like a video player's full screen
   } else if (c === 'undo') undo();
   else if (c === 'redo') redo();
-  else if (c === 'duplicate') controls.duplicate();
-  else if (c === 'rotateTool') controls.snapRotateTool();
+  else if (c === 'duplicate') {
+    controls.duplicate();
+    settle();
+    copiedPick = rt.picked().slice();
+  } else if (c === 'rotateTool') controls.snapRotateTool();
   else if (c === 'group') controls.group();
   else if (c === 'slice') controls.slice();
   else if (c === 'union') controls.union();
@@ -1607,6 +1649,8 @@ declare global {
       notice(): { text: string; error: boolean };
       /** Shows the keys plate or not; whether it is shown. */
       keysPlate(show?: boolean): boolean;
+      /** Which hints plate shows (what is picked), if any. */
+      hints(): string | null;
       /** Keeps the session now; how long it is (characters). */
       saveSession(): number;
       /** Whether the magnet is in hand; a magnet drag's face to snap to (its object's name), and its ghost's box middle. */
@@ -1859,6 +1903,10 @@ async function start(): Promise<void> {
     saveSession() {
       saveSession();
       return stored('session')?.length ?? 0;
+    },
+    hints() {
+      render();
+      return hintShown;
     },
     keysPlate(show) {
       if (show !== undefined) showKeys(show);

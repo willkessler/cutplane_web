@@ -62,7 +62,11 @@ export function keysPlateSize(lines: readonly KeysLine[]): [number, number] {
 }
 
 /** The keys plate, `offset` from its pad. */
-function keysPlateSpec(lines: readonly KeysLine[], offset: (height: number) => V3): PlateSpec {
+function keysPlateSpec(
+  lines: readonly KeysLine[],
+  offset: (height: number) => V3,
+  name = 'Keys_Plate',
+): PlateSpec {
   const [width, height] = keysPlateSize(lines);
   const keyColumn = Math.max(...lines.filter(isKey).map(([k]) => textWidth(k))) + 10;
   // Each line's baseline, down from the top; a heading after the first has a gap above.
@@ -82,7 +86,7 @@ function keysPlateSpec(lines: readonly KeysLine[], offset: (height: number) => V
     style: 'Plain' as const,
   });
   return {
-    name: 'Keys_Plate',
+    name,
     size: [width, height],
     offset: offset(height),
     color: [40, 40, 60],
@@ -197,4 +201,35 @@ export function showKeysPlate(rt: Runtime, plate: CutObject, shown: boolean): vo
       else rt.vm.props.del(o, P.Visible);
       rt.changed(o);
     }
+}
+
+/**
+ * New here: the hints plates, one for each kind of thing picked (`sets`), each the
+ * keys that matter for it, as the keys plate has them. They hang where the keys plate
+ * opens, off the plane's right side, moving with the plane; the app shows the one that
+ * fits what is picked (showKeysPlate), none while nothing is, or while ? shows all.
+ */
+export function installHintPlates(
+  rt: Runtime,
+  sets: Readonly<Record<string, readonly KeysLine[]>>,
+): Map<string, CutObject> {
+  const plates = new Map<string, CutObject>();
+  const plane = rt.cutplane;
+  for (const [name, lines] of Object.entries(sets)) {
+    // As the keys plate: clear of the right wall, its middle level with the room's,
+    // a little in front of the plane.
+    const plate = readPlate(
+      rt,
+      plane,
+      keysPlateSpec(
+        lines,
+        (height) => [MAX_X + KEYS_GAP - plane.xform[12]!, -height / 2 - plane.xform[13]!, 3],
+        `Hints_${name}`,
+      ),
+      () => '',
+    );
+    for (const o of subtree(plate)) rt.addProp(o, 'Lockedgeometry');
+    plates.set(name, plate);
+  }
+  return plates;
 }

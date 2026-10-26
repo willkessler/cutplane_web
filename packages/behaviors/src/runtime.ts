@@ -252,6 +252,10 @@ export class Runtime implements Host {
   groupPick: GroupPick = 'parts';
   /** Lets objects (group roots) fall to the floor: the app's physics (the globe, drop_objects). */
   dropper: ((roots: CutObject[]) => void) | null = null;
+  /** New here: while R's snap is under way, a group's part is offered (selectPartsUnder). */
+  offerParts = false;
+  /** New here: features for CPL to take next (CRTN Crtn:handed_over). */
+  handOver: Feature[] = [];
   /**
    * Objects that can't be picked for now (one falling isn't where the world has it).
    * Not a property: nothing of it is saved, copied or undone.
@@ -1594,6 +1598,7 @@ export class Runtime implements Host {
     this.setWorldSelectables(
       this.vm.working === this.environment ? this.primary : (this.vm.working as WorldFeature),
     );
+    if (this.offerParts) this.selectPartsUnder();
   }
 
   private setWorldSelectables(world: WorldFeature): void {
@@ -1735,8 +1740,6 @@ export class Runtime implements Host {
     const [x, y, z] = this.cursor();
     const pick = pickAt(this.world(o), s, x, y, z, this.picksize);
     if (!pick) return undefined;
-    let feature: Feature;
-    let kind: number;
     // In a group: it has parts, or moves with something (a picked object's scale box,
     // which holds it as an unlinked child, isn't a group: its faces stay pickable).
     const root = groupRoot(o);
@@ -1746,20 +1749,34 @@ export class Runtime implements Host {
       (o.children.length > 0 || grouped || this.dangling) &&
       this.worldOf(o) === this.primary;
     if (wholeGroup) this.wholePicks.set(o, pick);
-    if (pick.kind === 'object' || wholeGroup || this.vm.props.has(o, P.Lockedgeometry)) {
-      feature = o;
-      kind = SelectKind.Obj;
-    } else if (pick.kind === 'vertex') {
-      feature = this.features.vertex(o, pick.id);
-      kind = SelectKind.Vert;
-    } else if (pick.kind === 'edge') {
-      feature = this.features.edge(o, pick.id);
-      kind = SelectKind.Edge;
-    } else {
-      feature = this.features.face(o, pick.id);
-      kind = pick.kind === 'inPlaneFace' ? SelectKind.Inplaneface : SelectKind.Face;
+    else this.wholePicks.delete(o);
+    if (pick.kind === 'object' || wholeGroup || this.vm.props.has(o, P.Lockedgeometry))
+      return { s: { feature: o, kind: SelectKind.Obj, at: pick.at }, pick };
+    return { s: this.partSelectable(o, pick), pick };
+  }
+
+  /** The vertex, edge or face of `o` a pick found. */
+  private partSelectable(o: CutObject, pick: KernelPick): Selectable {
+    if (pick.kind === 'vertex')
+      return { feature: this.features.vertex(o, pick.id), kind: SelectKind.Vert, at: pick.at };
+    if (pick.kind === 'edge')
+      return { feature: this.features.edge(o, pick.id), kind: SelectKind.Edge, at: pick.at };
+    const kind = pick.kind === 'inPlaneFace' ? SelectKind.Inplaneface : SelectKind.Face;
+    return { feature: this.features.face(o, pick.id), kind, at: pick.at };
+  }
+
+  /**
+   * New here (R): a part of a group picked whole (Settings' group picking) under the
+   * crosshair is made selectable itself, its face, edge or vertex, as one not in a
+   * group would be: the rotate tool comes to it, and turns the whole group.
+   */
+  private selectPartsUnder(): void {
+    for (const f of this.selected()) {
+      if (!isObject(f) || this.worldOf(f) !== this.primary) continue;
+      const pick = this.wholePicks.get(f);
+      if (pick && pick.kind !== 'object' && !this.vm.props.has(f, P.Lockedgeometry))
+        this.applySelectable(f, this.partSelectable(f, pick));
     }
-    return { s: { feature, kind, at: pick.at }, pick };
   }
 
   /** set_object_selectable's bookkeeping: move the Selectable property to the new feature. */

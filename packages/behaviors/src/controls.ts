@@ -13,6 +13,9 @@ import {
   charWord,
   messageWord,
 } from '@cutplane/cpl';
+import type { Feature } from '@cutplane/cpl';
+import type { CutObject } from '@cutplane/kernel';
+import { isObject, isSub } from './features.ts';
 import type { Runtime, V3 } from './runtime.ts';
 import { alignPicked, distributePicked } from './align.ts';
 import { unionPicked } from './modeling.ts';
@@ -48,6 +51,8 @@ export class Controls {
   /** Something happened this frame. */
   private events = false;
   private gliding: { start: number | undefined; done: number } | null = null;
+  /** What was picked when R was pressed, to pick again once its snap is done (new). */
+  private repick: Feature[] | null = null;
 
   constructor(private readonly rt: Runtime) {}
 
@@ -185,6 +190,10 @@ export class Controls {
   /** The R key: rotatecircle.cpl's Snaprotatetool message. */
   snapRotateTool(): void {
     this.events = true;
+    // New here: the tool comes to a face of a group picked whole, and what was picked
+    // stays picked (the snap picks only what it came to): the turn takes it all.
+    this.rt.offerParts = true;
+    this.repick = this.rt.picked().slice();
     this.vm.encodeInstruction(' MAKEMSG Msg:Snaprotatetool');
     this.vm.encodeInstruction(' QMSG Obj:Rotatetool_Innercircle,Const:Prioritymsg');
   }
@@ -224,6 +233,34 @@ export class Controls {
   distribute(): void {
     this.events = true;
     distributePicked(this.rt);
+  }
+
+  /**
+   * After R's snap (new): what was picked before is picked again, but for whatever
+   * holds what the snap picked (that turns with it anyway, its group whole).
+   */
+  private pickAgain(before: Feature[]): void {
+    this.repick = null;
+    const thing = (f: Feature): CutObject | null => {
+      let o = isObject(f) ? f : isSub(f) ? f.object : null;
+      while (o?.parent && !(o.linked ?? false) && !this.rt.hasProp(o.parent, 'Scalebbox'))
+        o = o.parent;
+      return o;
+    };
+    const now = this.rt.picked();
+    const held = new Set(now.map(thing));
+    const again = before.filter((f) => !now.includes(f) && !held.has(thing(f)));
+    if (again.length === 0) return;
+    this.events = true;
+    this.rt.handOver = again;
+    this.vm.encodeInstruction(' CRTN Crtn:handed_over');
+    this.vm.encodeInstruction(' POP A:R3');
+    this.vm.encodeInstruction(' MAKEMSG Msg:Pick');
+    this.vm.encodeInstruction(' QMSG A:R3*,Const:Noprioritymsg');
+  }
+
+  private messagesWaiting(): boolean {
+    return this.rt.worlds.some((w) => this.vm.props.features(w, P.Msgpending).length > 0);
   }
 
   /** Z, H and P (ZTOOLBUTTON, PANTOOLBUTTON; P new here): the magnifier, pan tool or pencil comes to the crosshair. */
@@ -380,6 +417,10 @@ export class Controls {
     this.events = false;
     const ran = this.vm.step();
     this.rt.endFrame();
+    if (this.repick && !this.messagesWaiting()) {
+      this.rt.offerParts = false;
+      this.pickAgain(this.repick);
+    }
     if (!this.pickHeld && !this.planeHeld) {
       this.rt.finishDrags();
       this.rt.commit();
