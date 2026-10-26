@@ -1,4 +1,4 @@
-import { ROOM, type CutObject } from '@cutplane/kernel';
+import { DEPTH_MERGE, FINE, ROOM, type CutObject } from '@cutplane/kernel';
 import { P } from '@cutplane/cpl';
 import {
   flatGuides,
@@ -6,7 +6,9 @@ import {
   guideStop,
   isObject,
   isScaleBox,
+  levelGuides,
   type GuideLine,
+  type Level,
   type Runtime,
   type V3,
 } from '@cutplane/behaviors';
@@ -16,13 +18,23 @@ import { Lines } from '../render/lines.ts';
 export const GUIDING = 8;
 
 /**
+ * New here (to try): which drags hold at levels, the heights of faces lying flat and the
+ * places of faces standing square across: none, a face, edge or corner stretched or
+ * pulled out (a column pulled up to the walls' tops), or whole things moved too.
+ */
+export type LevelHold = 'off' | 'stretches' | 'all';
+
+/** How squarely a face must lie along an axis to give a level (about 8°, as the plane's). */
+const SQUARE = 0.99;
+
+/**
  * New here: guide lines while something is dragged. Through the middles of the things
  * nearest it in the world run lines along the world's axes (the plane's too) and each
  * thing's own, if it's turned, carried into the dragged thing's plane (flatGuides: as
  * seen from in front, whatever the depths); its middle, coming near one, holds on
  * it, and it's drawn across the room, with a tick from the thing's middle to it. Near where two cross (one thing's, or two
- * things'), or where one crosses the plane, it holds there. Ctrl (the axis lock)
- * turns them off.
+ * things'), or where one crosses the plane, it holds there. With Ctrl (the axis lock)
+ * only those square across the axis it locks to hold.
  */
 export class DragGuides {
   /** The guides held on now. */
@@ -36,6 +48,9 @@ export class DragGuides {
     renderOrder: 5,
   });
   private shown = '';
+  levelHold: LevelHold = 'all';
+  /** The levels for this drag, gathered once it is moving something. */
+  private levels: Level[] | null = null;
 
   /** (The world comes after the scene is set up, so it's asked for when needed.) */
   constructor(private readonly world: () => Runtime) {}
@@ -45,12 +60,12 @@ export class DragGuides {
   }
 
   /**
-   * Each frame of a drag of what is picked whole: where the crosshair goes, given where
+   * Each frame of a drag of what is picked: where the crosshair goes, given where
    * the user has it (`free`) and where it is (`at`): the same, or held on a guide.
    */
-  hold(free: V3, at: V3): [number, number] {
+  hold(free: V3, at: V3, along?: 0 | 1): [number, number] {
     this.on = [];
-    const stop = this.stop(free, at);
+    const stop = this.stop(free, at, along);
     if (stop) this.on = stop.on;
     this.draw();
     return stop ? [free[0] + stop.move[0], free[1] + stop.move[1]] : [free[0], free[1]];
@@ -62,15 +77,32 @@ export class DragGuides {
     this.draw();
   }
 
-  private stop(free: V3, at: V3) {
-    // One thing picked whole (an object, or a group's root).
+  /** A drag is over: the next gathers its own levels. */
+  done(): void {
+    this.levels = null;
+  }
+
+  /** `along`: Ctrl's axis lock; then only lines square across it hold, so it stays on it. */
+  private stop(free: V3, at: V3, along?: 0 | 1) {
+    // One thing picked whole (an object, or a group's root), or features dragged.
     const picked = this.rt.picked();
-    if (picked.length !== 1 || !isObject(picked[0]!)) return null;
-    const root = picked[0] as CutObject;
-    const box = this.rt.branchBox(root);
+    const whole = picked.length === 1 && isObject(picked[0]!) ? (picked[0] as CutObject) : null;
+    const box = whole ? this.rt.branchBox(whole) : this.rt.draggedBox();
     if (!box) return null;
     // Where its middle would be with the crosshair where the user has it.
     const p = mid(box).map((c, k) => c + free[k]! - at[k]!) as V3;
+    const lines = whole ? this.middles(whole, p) : [];
+    if (this.levelHold === 'all' || (!whole && this.levelHold === 'stretches')) {
+      this.levels ??= this.gather(whole ? branch(whole) : new Set(this.rt.dragging()), mid(box));
+      const half: [number, number] = [(box[1][0] - box[0][0]) / 2, (box[1][1] - box[0][1]) / 2];
+      lines.push(...levelGuides(this.levels, p, half));
+    }
+    const across = along === undefined ? lines : lines.filter((l) => Math.abs(l.dir[along]) < 1e-6 && Math.abs(l.dir[2]) < 1e-6); // prettier-ignore
+    return guideStop(p, across);
+  }
+
+  /** The lines through the middles of the things nearest `root`, its middle about to be at `p`. */
+  private middles(root: CutObject, p: V3): GuideLine[] {
     // The things nearest it in the world being made (not the boxes' goodies, which
     // stand in the room): each a group's root or an object on its own.
     const near: { o: CutObject; at: V3; d: number }[] = [];
@@ -90,7 +122,42 @@ export class DragGuides {
         [x[8]!, x[9]!, x[10]!],
       ]);
     });
-    return guideStop(p, flatGuides(lines, p[2]));
+    return flatGuides(lines, p[2]);
+  }
+
+  /**
+   * The levels of the faces of everything in the world being made but `except` (what is
+   * dragged): one for each height or place across, given by the face nearest `near`.
+   */
+  private gather(except: Set<CutObject>, near: V3): Level[] {
+    const kept = new Map<string, Level & { d: number }>();
+    const walk = (o: CutObject) => {
+      if (isScaleBox(this.rt, o)) return;
+      o.children.forEach(walk);
+      if (except.has(o) || !this.rt.vm.props.has(o, P.Visible)) return;
+      const b = o.brep;
+      if (b.numVertices > FINE) return;
+      const g = this.rt.world(o);
+      for (const f of b.faces()) {
+        const n = g.faceNormal(f);
+        const axis = Math.abs(n[1]) >= SQUARE ? 1 : Math.abs(n[0]) >= SQUARE ? 0 : null;
+        if (axis === null) continue;
+        const vs = b.loopHalfEdges(b.faceLoop(f)).map((h) => b.heVertex(h));
+        const from: V3 = [0, 0, 0];
+        for (const v of vs) {
+          from[0] += g.x(v) / vs.length;
+          from[1] += g.y(v) / vs.length;
+          from[2] += g.z(v) / vs.length;
+        }
+        const at = from[axis];
+        const key = `${axis}:${Math.round(at / DEPTH_MERGE)}`;
+        const d = Math.hypot(from[0] - near[0], from[1] - near[1], from[2] - near[2]);
+        const had = kept.get(key);
+        if (!had || d < had.d) kept.set(key, { axis, at, from, d });
+      }
+    };
+    this.rt.primary.root.children.forEach(walk);
+    return [...kept.values()].map(({ axis, at, from }) => ({ axis, at, from }));
   }
 
   /** Each guide held on, across the room. */
@@ -99,7 +166,8 @@ export class DragGuides {
     if (key === this.shown) return;
     this.shown = key;
     const out: number[] = [];
-    for (const { at, dir } of this.on) {
+    for (const { at: through, dir, show } of this.on) {
+      const at = show ?? through;
       // Where the line enters and leaves the room's box.
       let lo = -Infinity;
       let hi = Infinity;
@@ -116,13 +184,26 @@ export class DragGuides {
     }
     // From each thing's middle at another depth, straight to the plane: which it is.
     const ticks = new Set<V3>();
-    for (const { at, from } of this.on)
+    for (const { at: through, from, show } of this.on) {
+      const at = show ?? through;
       if (from && Math.abs(from[2] - at[2]) > 1 && !ticks.has(from)) {
         ticks.add(from);
         out.push(...from, from[0], from[1], at[2]);
       }
+    }
     this.view.set(out);
   }
+}
+
+/** An object and all under it. */
+function branch(root: CutObject): Set<CutObject> {
+  const out = new Set<CutObject>();
+  const walk = (o: CutObject) => {
+    out.add(o);
+    o.children.forEach(walk);
+  };
+  walk(root);
+  return out;
 }
 
 const mid = (b: [V3, V3]): V3 => [

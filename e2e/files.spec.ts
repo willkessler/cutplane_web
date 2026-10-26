@@ -408,3 +408,90 @@ test('B joins pieces of a plan lying flat into one face, to pull up as one', asy
   expect((await edit(page)).faces).toBe(6 + 18 + 12 + 4);
   expect(errors).toEqual([]);
 });
+
+test("a wall pulled up holds where its top meets another's (new: levels)", async ({ page }) => {
+  const errors = await open(page, 'sample=cube');
+  const text = readFileSync('packages/formats/test/fixtures/house-plan.dxf', 'latin1');
+  await page.locator('#file').setInputFiles({ name: 'house-plan.dxf', mimeType: 'application/dxf', buffer: Buffer.from(text) }); // prettier-ignore
+  await expect.poll(async () => (await edit(page)).faces).toBe(6 + 20);
+  for (const [id, value] of [['#faceDrag', 'extrude'], ['#groupPick', 'parts'], ['#levelHold', 'stretches']] as const) // prettier-ignore
+    await page.evaluate(([i, v]) => {
+      const s = document.querySelector<HTMLSelectElement>(i)!;
+      s.value = v;
+      s.dispatchEvent(new Event('change'));
+    }, [id, value]); // prettier-ignore
+  // The outside wall, pulled up 120.
+  await set(page, { x: 50, y: FLOOR, z: -3 });
+  await page.evaluate(() => window.__cutplane!.press());
+  for (let i = 1; i <= 20; i++) await set(page, { y: FLOOR + i * 6 });
+  await page.evaluate(() => window.__cutplane!.release());
+  // A piece of the wall across the house, pulled up near as far: it holds at the outside
+  // wall's top, the level drawn across the room there, and comes off pulled on further.
+  await set(page, { x: 270, y: FLOOR, z: -182 });
+  await page.evaluate(() => window.__cutplane!.press());
+  for (let i = 1; i <= 23; i++) await set(page, { y: FLOOR + i * 5 });
+  const held = await page.evaluate(() => window.__cutplane!.guides());
+  expect(held).toHaveLength(1);
+  expect(held[0]!.dir).toEqual([1, 0, 0]);
+  expect(held[0]!.at[1]).toBeCloseTo(FLOOR + 120, 6);
+  expect((await page.evaluate(() => window.__cutplane!.state())).y).toBeCloseTo(FLOOR + 120, 6);
+  await set(page, { y: FLOOR + 135 });
+  expect(await page.evaluate(() => window.__cutplane!.guides())).toEqual([]);
+  expect((await page.evaluate(() => window.__cutplane!.state())).y).toBeCloseTo(FLOOR + 135, 6);
+  // Back near it, let go: it stays level with the outside wall.
+  await set(page, { y: FLOOR + 116 });
+  await page.evaluate(() => window.__cutplane!.release());
+  expect((await page.evaluate(() => window.__cutplane!.state())).y).toBeCloseTo(FLOOR + 120, 6);
+  expect(errors).toEqual([]);
+});
+
+test("with Ctrl locking it straight up, a wall pulled up still holds at another's top", async ({
+  page,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  const text = readFileSync('packages/formats/test/fixtures/house-plan.dxf', 'latin1');
+  await page.locator('#file').setInputFiles({ name: 'house-plan.dxf', mimeType: 'application/dxf', buffer: Buffer.from(text) }); // prettier-ignore
+  await expect.poll(async () => (await edit(page)).faces).toBe(6 + 20);
+  for (const [id, value] of [['#faceDrag', 'extrude'], ['#groupPick', 'parts']] as const)
+    await page.evaluate(([i, v]) => {
+      const s = document.querySelector<HTMLSelectElement>(i)!;
+      s.value = v;
+      s.dispatchEvent(new Event('change'));
+    }, [id, value]); // prettier-ignore
+  await set(page, { x: 50, y: FLOOR, z: -3 });
+  await page.evaluate(() => window.__cutplane!.press());
+  for (let i = 1; i <= 20; i++) await set(page, { y: FLOOR + i * 6 });
+  await page.evaluate(() => window.__cutplane!.release());
+  // By the pointer now: room units per pixel at the plane along the cross wall.
+  await set(page, { z: -182 });
+  const at = async (px: number, py: number) => {
+    await page.mouse.move(px, py);
+    const s = await page.evaluate(() => window.__cutplane!.state());
+    return [s.x, s.y];
+  };
+  const [x0, y0] = await at(500, 400);
+  const [x1, y1] = await at(600, 300);
+  const [sx, sy] = [(x1! - x0!) / 100, (y1! - y0!) / 100];
+  const px = 500 + (270 - x0!) / sx;
+  const py = 400 - (FLOOR - y0!) / sy;
+  await at(px, py);
+  const frames = () =>
+    page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await page.keyboard.down('Control');
+  await frames();
+  await page.mouse.down();
+  expect((await edit(page)).picked).toEqual(['face']);
+  // Up, drifting a little sideways: Ctrl keeps it straight, and it holds at the wall's top.
+  for (let i = 1; i <= 23; i++) await page.mouse.move(px + (i * 0.1) / sx, py - (i * 5) / sy);
+  await frames();
+  const held = await page.evaluate(() => window.__cutplane!.guides());
+  expect(held).toHaveLength(1);
+  expect(held[0]!.at[1]).toBeCloseTo(FLOOR + 120, 6);
+  // (The face is held at it; the crosshair, pressed by the pointer, is a hair off the face.)
+  const s = await page.evaluate(() => window.__cutplane!.state());
+  expect(s.y).toBeCloseTo(FLOOR + 120, 3);
+  expect(s.x).toBeCloseTo(270, 0);
+  await page.mouse.up();
+  await page.keyboard.up('Control');
+  expect(errors).toEqual([]);
+});

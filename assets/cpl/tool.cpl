@@ -5,7 +5,8 @@
 ;
 ;	cutplane_web: a tool put away goes to its own pad (the one toolpad.cpl
 ;	CONNECTed it to), not the pad it was sent to; a tool with the Measure
-;	property lets picks through; a click on nothing no longer sends the
+;	property lets picks through, and is rid of the marqueed set it is sent
+;	but doesn't read; a click on nothing no longer sends the
 ;	tool a Fliptool message; a tool is bigger in hand than on its pad. Changes
 ;	marked "cutplane_web".
 ;
@@ -238,7 +239,7 @@ _Check_pickup	BNEQUAL	A:R2,Msg:Pickuptool,A:_Check_deactivate&
 
 ;		 Deactivate this tool.
 
-_Check_deactivate BNEQUAL A:R2,Msg:Deactivatetool,A:_End_messages&
+_Check_deactivate BNEQUAL A:R2,Msg:Deactivatetool,A:_Check_marqueed&
 ;		 Get topmost message
 		UNQMSG	A:R2
 ;		 Get pad to adopt it to.
@@ -262,6 +263,17 @@ _Put_away	PUSH	A:R3
 
 ;		UNQMSG	A:R2				; get bogus msg, chuck it
 ;		BMSGS	A:R1,A:_Check_messages& 	; and reloop til no more!
+		JUMP	A:_End_messages&
+
+;		 cutplane_web: a marquee ended with the ruler in hand sends it the
+;		 marqueed set, as it does every active tool; the ruler has no code
+;		 of its own to read it, so it would stay at the head of its queue
+;		 for good. It's taken off here.
+_Check_marqueed	BNEQUAL	A:R2,Msg:Marqueedset,A:_End_messages&
+		HASPROP	A:R1*,Prop:Measure,A:R3,Const:Self
+		BFALSE	A:R3,A:_End_messages&
+		UNQMSG	A:R2
+		UNQMSG	A:R3
 _End_messages	RTS
 
 ; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

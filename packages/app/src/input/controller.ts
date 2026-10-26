@@ -72,6 +72,12 @@ export class Controller {
     this.held = held;
   }
 
+  /** The axis Ctrl has locked the crosshair to (0 across, 1 up), once it has decided one. */
+  get lockedAxis(): 0 | 1 | undefined {
+    if (!this.held.ctrl || this.unlocked) return undefined;
+    return this.axis === 'x' ? 0 : this.axis === 'y' ? 1 : undefined;
+  }
+
   get z(): number {
     return this.plane.z;
   }

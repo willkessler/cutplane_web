@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { flatGuides, guideLines, guideStop, type V3 } from '../src/index.ts';
+import {
+  flatGuides,
+  guideLines,
+  guideStop,
+  levelGuides,
+  type Level,
+  type V3,
+} from '../src/index.ts';
 
 const near = (a: readonly number[], b: readonly number[]) =>
   a.forEach((v, k) => expect(v).toBeCloseTo(b[k]!, 9));
@@ -72,5 +79,34 @@ describe('guides (new here: a dragged thing holds on lines through things near i
 
   it('out of reach of every line, it goes where it is taken', () => {
     expect(guideStop([300, 40, 0], guideLines([0, 0, 0]))).toBeNull();
+  });
+
+  describe('levels (a dragged thing meets the heights of flat faces)', () => {
+    const top: Level = { axis: 1, at: 100, from: [0, 100, -200] };
+    const side: Level = { axis: 0, at: 50, from: [50, 0, -200] };
+
+    it('a face pulled up (no height) holds with its middle at the level, drawn there', () => {
+      const stop = guideStop([300, 94, 0], levelGuides([top], [300, 94, 0], [20, 0]))!;
+      near(stop.move, [0, 6]);
+      near(stop.on[0]!.show!, [300, 100, 0]);
+      near(stop.on[0]!.dir, [1, 0, 0]);
+    });
+
+    it('a box moved holds with its top on the level, or its bottom', () => {
+      // 40 high: its middle 20 under the level puts its top there.
+      near(guideStop([0, 75, 0], levelGuides([top], [0, 75, 0], [10, 20]))!.move, [0, 5]);
+      near(guideStop([0, 123, 0], levelGuides([top], [0, 123, 0], [10, 20]))!.move, [0, -3]);
+      // Drawn at the level, not through its middle.
+      near(guideStop([0, 75, 0], levelGuides([top], [0, 75, 0], [10, 20]))!.on[0]!.show!, [0, 100, 0]); // prettier-ignore
+      expect(guideStop([0, 50, 0], levelGuides([top], [0, 50, 0], [10, 20]))).toBeNull();
+    });
+
+    it('a height and a place across together: held at both', () => {
+      const p: V3 = [37, 96, 0];
+      const stop = guideStop(p, levelGuides([top, side], p, [10, 0]))!;
+      // Its right side (10 across) at 50, its middle at 100.
+      near(stop.move, [3, 4]);
+      expect(stop.on).toHaveLength(2);
+    });
   });
 });

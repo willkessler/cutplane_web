@@ -12,6 +12,20 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 25, 2026
 
+- **The hand no longer stops working after H mid-marquee.** Pressing H (or another tool key)
+  while dragging a marquee brought the tool in at once; when the marquee ended the hand was
+  sent what it had taken in, a message it never reads, and from then on it never saw a press:
+  every drag with it drew a marquee. A tool key pressed mid-drag now brings its tool when the
+  button is let go. (The ruler was left the same unread message by every marquee; it's
+  cleared now.)
+- **Drags hold at levels.** A face, edge or corner stretched or pulled out holds where it
+  meets the height of a face lying flat on something else (a column pulled up stops level with
+  the walls' tops), or the place of a face standing square across it; the level is drawn dashed
+  across the room, a tick to the face it came from. Something moved whole holds with its top
+  or bottom, or a side, on one too, as well as on the guide lines through other things'
+  middles. Drag on and it comes off. With Ctrl
+  locking the drag straight up (or across), the levels square across it still hold. To try out: the top bar's _Settings_
+  sets which drags hold (_Stretches and moves_, _Stretches_ only, or none).
 - **2D DXF plans come in as faces to pull up.** A DXF with no surfaces, only lines (a floor
   plan, say, as SketchUp or AutoCAD export it), comes in as the regions its lines close round,
   each a lamina lying flat on the room's floor, a group per layer. The lines needn't be joined: lines meeting,

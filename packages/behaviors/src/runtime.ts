@@ -1851,6 +1851,26 @@ export class Runtime implements Host {
 
   // ---- drags ----
 
+  /** New here: the objects whose features a drag is moving now (the guides leave them out). */
+  dragging(): CutObject[] {
+    return [...this.drags.keys()];
+  }
+
+  /** New here: the box around the vertices a drag of features has moved so far (world). */
+  draggedBox(): [V3, V3] | null {
+    let lo: V3 = [Infinity, Infinity, Infinity];
+    let hi: V3 = [-Infinity, -Infinity, -Infinity];
+    for (const [o, plan] of this.drags) {
+      const g = this.world(o);
+      for (const v of plan.moved.keys()) {
+        const p: V3 = [g.x(v), g.y(v), g.z(v)];
+        lo = [Math.min(lo[0], p[0]), Math.min(lo[1], p[1]), Math.min(lo[2], p[2])];
+        hi = [Math.max(hi[0], p[0]), Math.max(hi[1], p[1]), Math.max(hi[2], p[2])];
+      }
+    }
+    return Number.isFinite(lo[0]) ? [lo, hi] : null;
+  }
+
   /** Ends a drag of `o`'s features: merges faces split for it, or undoes it if the solid broke. */
   private finishDrag(o: CutObject): void {
     const plan = this.drags.get(o);

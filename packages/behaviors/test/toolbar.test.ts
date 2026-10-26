@@ -283,6 +283,55 @@ describe('toolbars through headpad, toolpad, padhandle and tool.cpl', () => {
     },
   );
 
+  it('H pressed mid-marquee: the hand comes once the button is up, and pans', () => {
+    const w = setup();
+    const settle = () => {
+      for (let i = 0; i < 4; i++) w.frame();
+    };
+    const drag = (from: [number, number], to: [number, number]) => {
+      w.at(...from);
+      w.controls.pressPick(false);
+      w.frame();
+      w.at(...to);
+      w.frame();
+    };
+    const hand = w.rt.findObject('Pantool')!;
+    drag([150, -250], [200, -200]);
+    expect(w.rt.hasProp(w.rt.cursorObj, 'Marqueeing')).toBe(true);
+    w.controls.takeTool('Pantool');
+    settle();
+    expect(hand.parent).not.toBe(w.rt.cursorObj); // not yet
+    w.controls.releasePick();
+    settle();
+    expect(hand.parent).toBe(w.rt.cursorObj);
+    // Taken mid-marquee, it was sent the marqueed set, which it never read, and never
+    // saw a press again: every drag marqueed.
+    expect(w.rt.vm.pending(hand)).toHaveLength(0);
+    const x = w.cube.xform[12]!;
+    drag([150, -250], [200, -200]);
+    expect(w.rt.hasProp(w.rt.cursorObj, 'Marqueeing')).toBe(false);
+    expect(w.cube.xform[12]! - x).toBeCloseTo(50, 6);
+    w.controls.releasePick();
+    settle();
+  });
+
+  it('a marquee dragged with the ruler in hand leaves it no message it would never read', () => {
+    const w = setup();
+    w.controls.takeTool('Ruler');
+    for (let i = 0; i < 4; i++) w.frame();
+    const ruler = w.rt.findObject('Ruler')!;
+    expect(ruler.parent).toBe(w.rt.cursorObj);
+    w.at(150, -250);
+    w.controls.pressPick(false);
+    w.frame();
+    w.at(200, -200);
+    w.frame();
+    expect(w.rt.hasProp(w.rt.cursorObj, 'Marqueeing')).toBe(true);
+    w.controls.releasePick();
+    for (let i = 0; i < 4; i++) w.frame();
+    expect(w.rt.vm.pending(ruler)).toHaveLength(0);
+  });
+
   it('a tool left in hand comes back in hand on the next visit, and goes away again', () => {
     const a = setup();
     markRoom(a.rt);

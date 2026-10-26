@@ -8,6 +8,18 @@ export interface GuideLine {
   from?: V3;
   /** Along the thing's own (turned) axis, not the world's. */
   own?: boolean;
+  /** Where it's drawn, if not through `at` (a level, met by a side of the thing: levelGuides). */
+  show?: V3;
+}
+
+/**
+ * New here: a level: the height (`axis` 1) of a face lying flat, or the place across
+ * (`axis` 0) of one standing square to the plane, and the face's middle.
+ */
+export interface Level {
+  axis: 0 | 1;
+  at: number;
+  from: V3;
 }
 
 /** How near (world units) a dragged thing's middle must come to a guide to hold on it. */
@@ -113,4 +125,26 @@ export function guideStop(
   if (point) return point;
   const line = near[0];
   return line ? { move: line.move, on: [line.line] } : null;
+}
+
+/**
+ * New here: guide lines for a dragged thing to meet levels with a side: its middle about to
+ * be at `p`, its box `half` as wide and high each way. For each level, the line its middle
+ * holds on for its bottom (or left) side to lie on the level, and the one for its top (or
+ * right); drawn at the level itself. A face or an edge dragged (no height) has the one.
+ */
+export function levelGuides(levels: readonly Level[], p: V3, half: [number, number]): GuideLine[] {
+  const out: GuideLine[] = [];
+  for (const { axis, at, from } of levels) {
+    const sides = half[axis] > 1e-6 ? [-half[axis], half[axis]] : [0];
+    const dir: V3 = axis === 1 ? [1, 0, 0] : [0, 1, 0];
+    const show: V3 = [p[0], p[1], p[2]];
+    show[axis] = at;
+    for (const s of sides) {
+      const line: V3 = [p[0], p[1], p[2]];
+      line[axis] = at - s;
+      out.push({ at: line, dir, from, show });
+    }
+  }
+  return out;
 }

@@ -65,7 +65,7 @@ import { setLineResolution } from './render/lines.ts';
 import { ModelView, type DrawStyle, type Model } from './render/models.ts';
 import { CameraSlide } from './render/cameraslide.ts';
 import { ScribbleView } from './render/scribbles.ts';
-import { DragGuides } from './world/guides.ts';
+import { DragGuides, type LevelHold } from './world/guides.ts';
 import { LabelView } from './render/labels.ts';
 import { PadView } from './render/pads.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
@@ -198,6 +198,10 @@ groupPickSelect.value = (stored('groupPick') as GroupPick | null) ?? 'whole';
 const stickSelect = $<HTMLSelectElement>('planeStick');
 stickSelect.value = stored('planeStick') ?? String(PLANE_STICK);
 if (stickSelect.selectedIndex < 0) stickSelect.value = String(PLANE_STICK);
+const levelSelect = $<HTMLSelectElement>('levelHold');
+levelSelect.value = stored('levelHold') ?? 'all';
+if (levelSelect.selectedIndex < 0) levelSelect.value = 'all';
+guides.levelHold = levelSelect.value as LevelHold;
 plane.style = styleSelect.value as PlaneStyle;
 /** Nothing kept from a visit before: the keys plate is shown, to start with. */
 const firstVisit = stored('model') === null && stored('session') === null;
@@ -679,6 +683,11 @@ groupPickSelect.addEventListener('change', () => {
   store('groupPick', groupPickSelect.value);
   groupPickSelect.blur();
 });
+levelSelect.addEventListener('change', () => {
+  guides.levelHold = levelSelect.value as LevelHold;
+  store('levelHold', levelSelect.value);
+  levelSelect.blur();
+});
 stickSelect.addEventListener('change', () => {
   control.plane.stick = Number(stickSelect.value);
   store('planeStick', stickSelect.value);
@@ -868,7 +877,7 @@ function step(): void {
   // New here: a copy dragged holds on its guides (the crosshair stays where the user has
   // it, so it comes off again); let go, the crosshair is where the copy held.
   if (guiding()) {
-    const [x, y] = guides.hold([control.x, control.y, control.z], [stage.x, stage.y, stage.z]);
+    const [x, y] = guides.hold([control.x, control.y, control.z], [stage.x, stage.y, stage.z], control.lockedAxis); // prettier-ignore
     d[0] = x - stage.x;
     d[1] = y - stage.y;
   } else if (guides.on.length > 0) {
@@ -876,6 +885,7 @@ function step(): void {
     placeCrosshair(stage.x, stage.y);
     d[0] = d[1] = 0;
   }
+  if (!controls.pickHeld) guides.done();
   controls.moveCrosshair(d, (dd) => stage.preview(...dd));
   controls.frame();
   // The magnet's drag: the face it would snap to, and its ghost there.
@@ -932,13 +942,16 @@ function syncModels(): void {
 let lastLight = '';
 
 /** Is `o` carried by the crosshair (a tool in hand, tool.cpl's ADOPT to Crosshair_part)? */
-/** A drag of what is picked, by hand (no tool, no Ctrl, not the plane): the guides' to hold. */
+/**
+ * A drag of what is picked, by hand (no tool, not the plane): the guides' to hold. With Ctrl,
+ * once its axis lock has chosen an axis, only the guides square across it.
+ */
 function guiding(): boolean {
   return (
     controls.pickHeld &&
     !controls.pressedStill &&
     !controls.pressedRoom && // the rotate tool's bar or dial: it puts the crosshair itself
-    !held.ctrl &&
+    (!held.ctrl || control.lockedAxis !== undefined) &&
     control.motion !== 'plane' &&
     !rt.cursorObj.children.some((c) => rt.hasProp(c, 'Tool'))
   );
@@ -1920,7 +1933,7 @@ async function start(): Promise<void> {
       render();
       return keysPlate !== null && rt.vm.props.has(keysPlate, P.Visible);
     },
-    guides: () => guides.on.map((g) => ({ at: [...g.at], dir: [...g.dir] })),
+    guides: () => guides.on.map((g) => ({ at: [...(g.show ?? g.at)], dir: [...g.dir] })),
     magnet: () => {
       const root = magnet.dragged();
       const m = magnet.ghost;

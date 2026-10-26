@@ -67,6 +67,9 @@ export class Controls {
 
   // ---- buttons (encode_statechange) ----
 
+  /** A tool key pressed mid-press, for once the release has been seen (takeTool). */
+  private afterRelease: (() => void) | null = null;
+
   pressPick(shift: boolean): void {
     if (this.pickHeld) return;
     this.pickHeld = true;
@@ -271,6 +274,15 @@ export class Controls {
 
   /** Z, H and P (ZTOOLBUTTON, PANTOOLBUTTON; P new here): the magnifier, pan tool or pencil comes to the crosshair. */
   takeTool(name: 'Magnifier' | 'Pantool' | 'Pencil' | 'Ruler' | 'Globe'): void {
+    // New here: pressed mid-press (a marquee, a drag), it comes once the button is let go.
+    // Taken then, the tool is active when the marquee ends, and is sent the marqueed set,
+    // which a tool that reads no messages (pan.cpl) never takes off its queue: stuck at its
+    // head, it kept the tool from ever seeing a press again. (The original's pads, the only
+    // way to a tool, took a click, so a tool never came mid-press.)
+    if (this.pickHeld) {
+      this.afterRelease = () => this.takeTool(name);
+      return;
+    }
     this.events = true;
     this.vm.encodeInstruction(' MAKEMSG Msg:Activatetool');
     this.vm.encodeInstruction(` QMSG Obj:${name},Const:Prioritymsg`);
@@ -423,6 +435,11 @@ export class Controls {
     this.events = false;
     const ran = this.vm.step();
     this.rt.endFrame();
+    if (!this.pickHeld && this.afterRelease) {
+      const then = this.afterRelease;
+      this.afterRelease = null;
+      then();
+    }
     if (this.repick && !this.messagesWaiting()) {
       this.rt.offerParts = false;
       this.pickAgain(this.repick);
