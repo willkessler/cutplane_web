@@ -27,6 +27,11 @@ see their cross-sections. Vertices, edges and faces are picked and edited where 
 > be dropped on the page, the world exports to glTF (it opens in Blender), OBJ and STL, and every
 > change is autosaved in the browser with its undo history.
 >
+> New in October 2026, for building things up from parts: the magnet fits a face exactly onto
+> one like it, **D** repeats the last copy's move (a row or a ring in a few presses), guide lines
+> hold what you drag in line with the things near it, **A** lines up what is picked and
+> **Shift-A** spaces it out evenly, and a small hints plate shows the keys that fit what is picked.
+>
 > **New here? Read the [user guide](docs/GUIDE.md).** Then the
 > [controls](docs/README.md#using-cutplane), the [roadmap](docs/README.md#roadmap) and
 > [how it differs from the original](docs/README.md#differences-from-the-original). What's new

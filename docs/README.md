@@ -75,7 +75,7 @@ trackpad's swipe follows the plane's direction on screen.
 | F       | Start or stop working (full screen, pointer captured)                                                        |
 | Esc     | Put the tool in hand away (in full screen, Esc leaves it)                                                    |
 | R       | Rotate tool to the crosshair (on its centre: put it away)                                                    |
-| D       | Duplicate what is picked                                                                                     |
+| D       | Duplicate what is picked (a copy of a copy goes on by the same move: rows, rings)                            |
 | G       | Group what is picked (on one group: ungroup it)                                                              |
 | \\      | Slice what is picked at the plane                                                                            |
 | B       | Union what is picked into one object                                                                         |
