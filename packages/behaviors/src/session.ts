@@ -1,4 +1,11 @@
-import { mat4, preorder, type CutObject, type Mat4, type Rgb } from '@cutplane/kernel';
+import {
+  mat4,
+  preorder,
+  transformTree,
+  type CutObject,
+  type Mat4,
+  type Rgb,
+} from '@cutplane/kernel';
 import { TRANSIENT_PROPS, type Runtime } from './runtime.ts';
 import { bulbLightOf, setBulbLight, type BulbLight } from './tools/toolbox.ts';
 
@@ -147,6 +154,7 @@ export function restoreRoom(rt: Runtime, snap: RoomSnapshot): boolean {
     if (o.parent !== parent) rt.adopt(parent, o, k.linked);
     o.linked = k.linked;
   });
+  const known = new Set(b.objects);
   const order = new Map(snap.objects.map((k, i) => [b.objects[i]!, k ? i : Infinity]));
   for (const p of [env, ...b.objects])
     p.children.sort((x, y) => (order.get(x) ?? Infinity) - (order.get(y) ?? Infinity));
@@ -159,8 +167,12 @@ export function restoreRoom(rt: Runtime, snap: RoomSnapshot): boolean {
         .forEach((v, j) =>
           o.brep.setVertexPos(v, k.verts![j * 3]!, k.verts![j * 3 + 1]!, k.verts![j * 3 + 2]!),
         );
+    const was = o.invXform;
     o.xform = k.xform as unknown as Mat4;
     o.invXform = mat4.invert(o.xform) ?? o.invXform;
+    // What was hung on it after the room was noted (the hints plates on the plane) goes with it.
+    const move = mat4.multiply(was, o.xform);
+    for (const c of o.children) if (!known.has(c)) transformTree(c, move);
     o.color = [...k.color] as Rgb;
     setProps(rt, o, k.props);
     const subs = new Map(k.subs.map(([t, id, props]) => [`${t}:${id}`, props]));

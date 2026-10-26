@@ -4,6 +4,7 @@ import { preorder, type CutObject } from '@cutplane/kernel';
 import {
   COLOR_CRTNS,
   bulbLightOf,
+  installHintPlates,
   installRotateTool,
   installToolboxes,
   markRoom,
@@ -89,6 +90,19 @@ describe('the room kept for the next visit (new)', () => {
     b.click(b.prims);
     expect(b.rt.hasProp(b.prims, 'Toolboxopen')).toBe(false);
     expect(stamps(b).some((p) => visible(b, p))).toBe(false);
+  });
+
+  it('what hangs on the plane, made after the room was noted (the hints plates), comes with it', () => {
+    const a = setup();
+    a.rt.moveBranch(a.rt.cutplane, [0, 0, -300]);
+    const snap = JSON.parse(JSON.stringify(snapshotRoom(a.rt))) as RoomSnapshot;
+    const b = setup();
+    const plate = installHintPlates(b.rt, { one: [['D', 'duplicate it']] }).get('one')!;
+    const off = () => plate.xform[14]! - b.rt.cutplane.xform[14]!;
+    const before = off();
+    expect(restoreRoom(b.rt, snap)).toBe(true);
+    expect(b.rt.cutplane.xform[14]).toBe(a.rt.cutplane.xform[14]);
+    expect(off()).toBeCloseTo(before, 9);
   });
 
   it('a snapshot of another room is turned away, changing nothing', () => {
