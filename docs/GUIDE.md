@@ -133,7 +133,8 @@ so the cube above has grown a box out of its right side. Push it back and the wa
   each one is: a short dashed tick runs from the other thing's middle to the plane. Keep dragging and
   it comes off again. A turned thing's own axis also counts as it really runs, in and out of
   the plane: drag a turned cylinder's copy, taken back in depth, and its middle holds where that
-  axis passes through, the two on one axis again. Hold **Ctrl** to drag without them. The goodies in the boxes don't count.
+  axis passes through, the two on one axis again. Hold **Ctrl** to drag without them. The goodies in the boxes don't count, and rolling
+  or dialling with the rotate tool doesn't use them.
 
 ## 5. Tools
 

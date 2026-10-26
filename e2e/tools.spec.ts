@@ -113,6 +113,51 @@ for (const grouped of [true, false])
     expect(errors).toEqual([]);
   });
 
+test('rolling something picked whole goes smoothly: no guides hold the crosshair off the bar', async ({
+  page,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  await press(page);
+  await release(page);
+  // A copy above it: its upright guide runs through the cube's middle.
+  await page.keyboard.press('KeyD');
+  await set(page, { x: 150, y: 150 });
+  await press(page);
+  for (const [x, y] of [
+    [120, 200],
+    [80, 250],
+    [50, 300],
+  ] as const)
+    await set(page, { x, y });
+  await release(page);
+  await set(page, { x: 0, y: 0 });
+  await press(page);
+  await release(page);
+  // R off the cube: the tool squared at the crosshair, the cube still picked whole.
+  await set(page, { x: 300, y: 200 });
+  await page.keyboard.press('KeyR');
+  expect((await tool(page)).center).toEqual([300, 200]);
+  expect((await edit(page)).picked).toEqual(['object']);
+  // Along the horizontal bar: the cube swings round the upright line through x = 300.
+  await set(page, { x: 360, y: 200 });
+  expect((await tool(page)).hover).toBe('bar');
+  await press(page);
+  const turns: number[] = [];
+  // As a hand moves it: a little off the bar, up and down.
+  for (let x = 362; x <= 400; x += 2) {
+    await set(page, { x, y: 200 + (x % 4 ? 3 : -3) });
+    expect(await page.evaluate(() => window.__cutplane!.guides())).toEqual([]);
+    const m = (await falls(page)).mids.find((c) => c[1]! < 100);
+    turns.push((Math.atan2(m![2]!, 300 - m![0]!) * 180) / Math.PI);
+  }
+  await release(page);
+  // Each step turns it on, 2° a step, never back.
+  const steps = turns.slice(1).map((t, i) => Math.abs(t - turns[i]!));
+  for (const d of steps) expect(d).toBeCloseTo(2, 0);
+  expect(errors).toEqual([]);
+});
+
 test('the rotate tool’s dial stops at 45°, its baubles drawn bigger while held (new)', async ({
   page,
   browserName,

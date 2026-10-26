@@ -12,6 +12,10 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 25, 2026
 
+- **Rolling something picked whole is smooth again.** With other things near, the guide lines
+  joined in while a rotate tool's bar or dial was dragged, pulling the crosshair off the bar
+  toward a guide as the thing swung, so it jumped back and forth. Guides are now only for
+  dragging things themselves.
 - **R on a face in a group, or of one of several picked.** The rotate tool comes to a face of a
   part of a group picked whole, and rolling it turns the whole group. R no longer unpicks
   everything else either: with several things picked, the tool goes to the face and the roll

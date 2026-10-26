@@ -40,6 +40,11 @@ export const GLIDE_MS = 250;
 export class Controls {
   /** Pick button held. */
   pickHeld = false;
+  /**
+   * The press held was on something of the room (a tool's bar or dial, a pad), not of
+   * the world being made (new: what the drag guides go by).
+   */
+  pressedRoom = false;
   /** Plane-move button (quasimode) held. */
   planeHeld = false;
   constrainHeld = false;
@@ -69,6 +74,7 @@ export class Controls {
     this.events = true;
     // Selectables are found now, so the press acts on what is under the crosshair.
     this.rt.setSelectables();
+    this.pressedRoom = this.vm.props.features(this.rt.environment, P.Selectable).length > 0;
     this.vm.storeInstruction(opcodeWord(shift ? Op.MPICK : Op.PICK), propWord(P.Selectable, true));
     this.setDragOrigin();
   }

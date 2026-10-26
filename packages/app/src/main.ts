@@ -937,6 +937,7 @@ function guiding(): boolean {
   return (
     controls.pickHeld &&
     !controls.pressedStill &&
+    !controls.pressedRoom && // the rotate tool's bar or dial: it puts the crosshair itself
     !held.ctrl &&
     control.motion !== 'plane' &&
     !rt.cursorObj.children.some((c) => rt.hasProp(c, 'Tool'))
