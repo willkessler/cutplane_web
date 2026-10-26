@@ -12,6 +12,7 @@ import {
   writeCut,
   type Pixels,
 } from '../src/index.ts';
+import { newell } from '../src/mesh/faces.ts';
 import { CORPUS, read } from './files.ts';
 
 const solid = (o: CutObject) => validate(o.brep).closedManifold;
@@ -459,6 +460,37 @@ describe('DXF', () => {
     expect(aciColor(10)).toEqual([255, 0, 0]);
     expect(aciColor(250)).toEqual([51, 51, 51]);
     expect(aciColor(255)).toEqual([255, 255, 255]);
+  });
+
+  it('reads a plan (lines only) as the regions its lines close: laminas lying flat, a layer each', () => {
+    let told: number[] = [];
+    const house = readDxf(read(join(import.meta.dirname, 'fixtures/house-plan.dxf')), {
+      plan: (regions, loose) => (told = [regions, loose]),
+    });
+    // The doors' leaves and swings, three of each, close nothing.
+    expect(told).toEqual([10, 6]);
+    expect(house.map((o) => o.name)).toEqual(['WALLS', 'WINDOWS', 'FIXTURES']);
+    const [walls, windows, fixtures] = house as [CutObject, CutObject, CutObject];
+    // The outside wall (round the front door's opening) and four pieces of inside wall, between doors.
+    // The area of the face that looks up (the front), holes taken out.
+    const top = (o: CutObject) => {
+      const b = o.brep;
+      const ys = [...b.faces()].map((f) =>
+        b.faceLoops(f).reduce((y, l) => y + newell(b.loopHalfEdges(l).map((h) => b.vertexPos(b.heVertex(h))))[1], 0),
+      ); // prettier-ignore
+      return Math.max(...ys) / 2;
+    };
+    const flat = (o: CutObject) => {
+      const b = roomBox([o])!;
+      return b.hi[1]! - b.lo[1]!;
+    };
+    expect(walls.children.map((c) => Math.round(top(c)))).toEqual([9720, 1032, 552, 224, 216]);
+    expect(walls.children.every((c) => flat(c) === 0 && c.brep.numFaces === 2)).toBe(true);
+    expect(windows.children).toHaveLength(3);
+    // The island (80 by 40, round ends: its bulges) and the table, a circle 24 across, to 10° steps.
+    expect(fixtures.children.map((c) => Math.round(top(c) / 10))).toEqual([445, 180]);
+    // White walls, as the WALLS layer is; its front faces up.
+    expect(walls.children[0]!.color).toEqual([255, 255, 255]);
   });
 
   const robot = join(CORPUS, 'robot2.dxf');

@@ -115,7 +115,8 @@ so the cube above has grown a box out of its right side. Push it back and the wa
   corner; hold **Ctrl** to scale them evenly about their middle. Ctrl on a cylinder's end draws
   it in about its axis, making a truncated cone.
 - **D** duplicates what is picked, **G** groups it (or ungroups a group), **\\** slices it in two
-  at the plane, **B** unions picked objects into one solid.
+  at the plane, **B** unions picked objects into one solid (flat faces lying in one plane, such
+  as a plan's pieces, into one face).
 - **Lining up and spacing out.** Pick several things and press **A**: each one's middle comes
   onto the line between the two farthest apart. If that line is nearly level, upright or
   straight in depth, it's squared up, through the end you picked first. **Shift-A** leaves
@@ -253,7 +254,13 @@ Click the camera again to put the view away.
   - a **`.cut`** world from 3Form or Cutplane replaces the world;
   - **models** are added to it: glTF (`.glb`, `.gltf`), OBJ (with its `.mtl`), STL, and the SGI
     era's Open Inventor (`.iv`, text or binary), VRML (`.wrl`) and DXF, gzipped or not
-    (`.iv.gz`). A file comes in as one group; **G** takes it apart. Models are made into solids on
+    (`.iv.gz`). A file comes in as one group; **G** takes it apart. A **2D DXF** (a floor plan:
+    lines, no surfaces) comes in as flat faces on the room's floor, one for each region its lines close
+    round, a group for each layer. The lines needn't be joined. To raise its walls, choose _Faces extrude_ and
+    _Groups pick by part_, put the plane where it runs along a wall, press on the wall where the
+    plane cuts it and drag up. A thin wall cut straight across is all edges: zoom in (Z) first.
+    Where extra lines split one wall or room into pieces, pick the pieces (shift-click, moving
+    the plane between picks as need be) and press **B**: they become one face. Models are made into solids on
     the way in, and scaled to fit the room if need be. An STL's up is Z, as a 3D printer's is,
     so a figure made for printing stands up in the room.
   - **Textures** come along when dropped with the model: an Inventor file's `Texture2` (an SGI

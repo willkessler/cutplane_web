@@ -1,5 +1,6 @@
 import {
   fitToRoom,
+  roomBox,
   grouper,
   holesClosed,
   readDxf,
@@ -16,7 +17,7 @@ import {
   writeStl,
 } from '@cutplane/formats';
 import type { DecodeImage, MeshOptions, Pixels, Progress } from '@cutplane/formats';
-import { preorder, type CutObject, type Rgb } from '@cutplane/kernel';
+import { mat4, preorder, ROOM, type CutObject, type Rgb } from '@cutplane/kernel';
 
 /** What a file is to Cutplane, by its extension. */
 export type FileKind =
@@ -94,6 +95,8 @@ export interface Imported {
   missing: string[];
   /** Whether a terrain made with Z up was laid on the floor. */
   laidFlat: boolean;
+  /** A drawing's: the regions its lines closed (each a lamina), and the lines that closed none. */
+  plan: { regions: number; loose: number } | null;
 }
 
 /**
@@ -144,6 +147,10 @@ export async function readMeshFiles(
       images: (name) => pictures.get(name.toLowerCase()) ?? undefined,
       missingImage: (name) => missing.add(name),
       laidFlat: () => (laidFlat = true),
+      plan: (regions, loose) => {
+        plan = { regions: (plan?.regions ?? 0) + regions, loose: (plan?.loose ?? 0) + loose };
+        drawings.add(f);
+      },
     };
   };
   // Images dropped with the models, by name, decoded when a model asks for one.
@@ -156,6 +163,10 @@ export async function readMeshFiles(
   }
   const missing = new Set<string>();
   let laidFlat = false;
+  let plan: { regions: number; loose: number } | null = null;
+  // The files that were drawings, and what came of them: their laminas go on the floor.
+  const drawings = new Set<File>();
+  const flat: CutObject[] = [];
   const materials = new Map<string, Rgb>();
   for (const f of files) if (kindOf(f.name) === 'mtl') for (const [k, v] of readMtl(await utf8(f))) materials.set(k, v); // prettier-ignore
   const objects: CutObject[] = [];
@@ -192,17 +203,25 @@ export async function readMeshFiles(
       throw new Error(`${f.name}: ${(err as Error).message}`, { cause: err });
     }
     if (got.length === 0)
-      throw new Error(`${f.name}: nothing in it with faces (only lines or points?)`);
+      throw new Error(
+        kind === 'dxf'
+          ? `${f.name}: its lines close round nothing (no region to make a face of)`
+          : `${f.name}: nothing in it with faces (only lines or points?)`,
+      );
     const title = ungz(f.name).replace(/\.[^.]+$/, '');
     for (const o of got) o.name ??= title;
     // A file's parts (a car's body, glass and wheels) come in as one group, named after it.
-    objects.push(...(got.length > 1 ? [grouper(title, got)] : got));
+    const top = got.length > 1 ? [grouper(title, got)] : got;
+    objects.push(...top);
+    if (drawings.has(f)) flat.push(...top);
     names.push(f.name);
   }
   let holes = 0;
   for (const o of preorder(objects)) holes += holesClosed.get(o) ?? 0;
   progress?.(1);
-  return { objects, names, scale: objects.length ? fitToRoom(objects) : 1, holes, simplified, missing: [...missing], laidFlat }; // prettier-ignore
+  const scale = objects.length ? fitToRoom(objects) : 1;
+  onFloor(flat);
+  return { objects, names, scale, holes, simplified, missing: [...missing], laidFlat, plan }; // prettier-ignore
 }
 
 export type ExportFormat = 'glb' | 'obj' | 'stl';
@@ -257,4 +276,18 @@ export async function saveFile(name: string, blob: Blob, description: string): P
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   return true;
+}
+
+/** Above the floor a plan lies: just clear of the floor's own drawing (and the shadows on it). */
+const FLOOR_GAP = 1;
+
+/** A plan's laminas laid on the room's floor, to build up from (new). */
+function onFloor(roots: readonly CutObject[]): void {
+  const box = roomBox(roots);
+  if (!box) return;
+  const dy = ROOM.min[1]! + FLOOR_GAP - box.lo[1]!;
+  for (const o of preorder(roots)) {
+    o.xform = mat4.multiply(o.xform, mat4.translation(0, dy, 0));
+    o.invXform = mat4.invert(o.xform) ?? o.invXform;
+  }
 }

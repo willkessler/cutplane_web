@@ -1349,6 +1349,12 @@ async function openFiles(files: File[]): Promise<void> {
     const holes = got.holes ? `, ${got.holes} hole${got.holes === 1 ? '' : 's'} closed to make solids` : ''; // prettier-ignore
     const fewer = got.simplified ? `, simplified from ${count(got.simplified.from)} faces to ${count(got.simplified.to)}` : ''; // prettier-ignore
     const flat = got.laidFlat ? ', laid flat (its up was Z)' : '';
+    const plan = got.plan
+      ? `, a plan: ${got.plan.regions} region${got.plan.regions === 1 ? '' : 's'} its lines close, laid flat (pull one up with Faces extrude)` +
+        (got.plan.loose
+          ? `; ${got.plan.loose} line${got.plan.loose === 1 ? '' : 's'} closing nothing left out`
+          : '')
+      : '';
     const bare = got.missing.length ? `, uncoloured: drop ${got.missing.join(', ')} with it for its colours` : ''; // prettier-ignore
     const one = got.objects[0]!;
     const what =
@@ -1356,7 +1362,7 @@ async function openFiles(files: File[]): Promise<void> {
         ? `a group of ${one.children.length}` // G ungroups it
         : `${n} object${n === 1 ? '' : 's'}`;
     notify(
-      `Added ${what} from ${got.names.join(', ')}${scaled}${flat}${fewer}${holes}${bare} (undo takes ${n === 1 ? 'it' : 'them'} out)`,
+      `Added ${what} from ${got.names.join(', ')}${scaled}${flat}${plan}${fewer}${holes}${bare} (undo takes ${n === 1 ? 'it' : 'them'} out)`,
     );
   } catch (err) {
     if (err instanceof Cancelled) {

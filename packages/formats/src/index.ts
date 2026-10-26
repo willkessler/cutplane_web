@@ -16,6 +16,7 @@ export { readGltf, writeGlb, UNITS_PER_METRE } from './mesh/gltf.ts';
 export type { DecodeImage, Pixels } from './mesh/gltf.ts';
 export { fitToRoom, roomBox } from './mesh/fit.ts';
 export { readDxf, aciColor } from './mesh/dxf.ts';
+export { joinRegions, planRegions, type P2, type Region } from './mesh/plan.ts';
 export { readInventor } from './mesh/inventor.ts';
 export type { MeshOptions, Progress } from './mesh/options.ts';
 export { simplifierReady } from './mesh/simplify.ts';

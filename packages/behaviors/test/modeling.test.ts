@@ -3,7 +3,16 @@ import { join, resolve } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { initBooleans } from '@cutplane/booleans';
 import { BOOL_OP, P } from '@cutplane/cpl';
-import { createCube, createObject, mat4, validate, volume, type CutObject } from '@cutplane/kernel';
+import {
+  Brep,
+  createCube,
+  createObject,
+  makeLamina,
+  mat4,
+  validate,
+  volume,
+  type CutObject,
+} from '@cutplane/kernel';
 import { booleanObjects, installToolbars } from '../src/index.ts';
 import { world } from './world.ts';
 
@@ -51,6 +60,20 @@ function setup() {
   return { ...w, tools: tools!, center, click, take, solids };
 }
 
+/** Newell's normal of a loop: twice its area long. */
+const newell = (l: readonly (readonly number[])[]) =>
+  l.reduce(
+    (n, a, i) => {
+      const b = l[(i + 1) % l.length]!;
+      return [
+        n[0]! + (a[1]! - b[1]!) * (a[2]! + b[2]!),
+        n[1]! + (a[2]! - b[2]!) * (a[0]! + b[0]!),
+        n[2]! + (a[0]! - b[0]!) * (a[1]! + b[1]!),
+      ];
+    },
+    [0, 0, 0],
+  );
+
 const sound = (o: CutObject) => {
   const r = validate(o.brep);
   return r.ok && r.closedManifold;
@@ -97,6 +120,47 @@ describe('the B key: union what is picked', () => {
     expect(w.rt.picked()).toEqual([u]);
     expect(w.rt.undo()).toBe(true);
     expect(w.solids()).toHaveLength(2);
+  });
+
+  it('laminas lying in one plane (pieces of a plan) are joined as one face, the line between gone', () => {
+    const w = setup();
+    // Two flat pieces side by side up at y = 300, and one beside them standing up.
+    const flat = (pts: [number, number, number][]) => {
+      const b = new Brep();
+      makeLamina(b, pts);
+      const o = createObject(b, { name: 'piece' });
+      o.attrs.props = ['Visible'];
+      w.rt.importObjects(w.rt.primary, [o]);
+      return o;
+    };
+    const a = flat([[0, 300, 0], [100, 300, 0], [100, 300, -100], [0, 300, -100]]); // prettier-ignore
+    const b = flat([[100, 300, -100], [100, 300, 0], [200, 300, 0], [200, 300, -40], [100, 300, -40]].reverse() as [number, number, number][]); // prettier-ignore
+    const up = flat([[0, 300, 0], [0, 400, 0], [100, 400, 0]]); // prettier-ignore
+    w.rt.commit();
+    const before = w.solids().length;
+    // Not in one plane: B does nothing (as solids, laminas would come to nothing).
+    for (const o of [a, up]) w.rt.pick(o);
+    w.controls.union();
+    w.frame();
+    expect(w.solids()).toHaveLength(before);
+    w.rt.unpick(up);
+    w.rt.pick(b);
+    w.controls.union();
+    w.frame();
+    expect(w.solids()).toHaveLength(before - 1);
+    // One of them holds the join, and is picked.
+    expect(w.rt.picked()).toHaveLength(1);
+    const u = w.rt.picked()[0] as CutObject;
+    expect([a, b]).toContain(u);
+    // One lamina: an L of six corners (the corner where b met a's side is gone too), 14000 in area.
+    expect(u.brep.numFaces).toBe(2);
+    const [f] = u.brep.faces();
+    const ring = u.brep.loopHalfEdges(u.brep.faceLoop(f!));
+    expect(ring).toHaveLength(6);
+    expect(Math.abs(newell(ring.map((h) => u.brep.vertexPos(u.brep.heVertex(h))))[1]) / 2).toBeCloseTo(14000); // prettier-ignore
+    expect(validate(u.brep).ok).toBe(true);
+    expect(w.rt.undo()).toBe(true);
+    expect(w.solids()).toHaveLength(before);
   });
 
   it('one object picked: nothing happens', () => {

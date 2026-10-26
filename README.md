@@ -24,7 +24,7 @@ see their cross-sections. Vertices, edges and faces are picked and edited where 
 > tool, magnet, grabber, pan tool, magnifier, group tool and the measure pad all work too. The
 > camera shows what it sees on a small screen in the room above it. A
 > **?** in the room shows the controls. Models in glTF, OBJ, STL, Open Inventor, VRML and DXF can
-> be dropped on the page, the world exports to glTF (it opens in Blender), OBJ and STL, and every
+> be dropped on the page (a 2D DXF plan comes in as flat faces, ready to pull up into walls), the world exports to glTF (it opens in Blender), OBJ and STL, and every
 > change is autosaved in the browser with its undo history.
 >
 > New in October 2026, for building things up from parts: the magnet fits a face exactly onto

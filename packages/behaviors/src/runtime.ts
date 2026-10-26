@@ -1013,7 +1013,9 @@ export class Runtime implements Host {
       if (this.faceDrag === 'extrude') this.startExtrude(o, f, d, plan);
     }
     const key = (v: number) => `${this.idOf(o)}:${v}`;
-    const verts = movingVertices(b, f.type, f.id).filter((v) => !this.movedNow.has(key(v)));
+    // (A lamina pulled by its other face, or an edge or corner of it, moves that face.)
+    const [type, id] = plan.extruded ? [T.Fve, plan.extruded.face] : [f.type, f.id];
+    const verts = movingVertices(b, type, id).filter((v) => !this.movedNow.has(key(v)));
     if (verts.length === 0) return;
     for (const v of verts) this.movedNow.add(key(v));
     const local = toLocal(o.invXform, d);
@@ -1057,11 +1059,28 @@ export class Runtime implements Host {
    */
   private startExtrude(o: CutObject, f: Sub, d: V3, plan: DragPlan): void {
     const b = o.brep;
-    if (f.type !== T.Fve || b.faceSurface.has(f.id)) return;
-    const n = this.world(o).faceNormal(f.id);
-    if (n[0] * d[0] + n[1] * d[1] + n[2] * d[2] <= 0) return;
-    extrudeFace(b, f.id, 0, 0, 0);
-    plan.extruded = { face: f.id, normal: [n[0], n[1], n[2]] };
+    let face = f.id;
+    if (f.type !== T.Fve) {
+      // An edge or corner of a lamina (a plan's wall, taken where it lies in the plane):
+      // the lamina is pulled out, not bent up by it.
+      if (f.type !== T.Evf && f.type !== T.Vfe) return;
+      const he = f.type === T.Evf ? b.edgeHe1(f.id) : b.vertexHe(f.id);
+      if (he === NONE) return;
+      face = b.heFace(he);
+      if (b.faces(b.faceShell(face)).length !== 2) return;
+    }
+    if (b.faceSurface.has(face)) return;
+    let n = this.world(o).faceNormal(face);
+    if (n[0] * d[0] + n[1] * d[1] + n[2] * d[2] <= 0) {
+      // A lamina's two faces lie on each other: taken by the one facing away, the other is pulled.
+      const twin = [...b.faces(b.faceShell(face))];
+      if (twin.length !== 2) return;
+      face = twin[0] === face ? twin[1]! : twin[0]!;
+      n = this.world(o).faceNormal(face);
+      if (n[0] * d[0] + n[1] * d[1] + n[2] * d[2] <= 0) return;
+    }
+    extrudeFace(b, face, 0, 0, 0);
+    plan.extruded = { face, normal: [n[0], n[1], n[2]] };
   }
 
   private readonly ids = new WeakMap<CutObject, number>();

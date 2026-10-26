@@ -24,4 +24,6 @@ export interface MeshOptions {
   missingImage?: ((name: string) => void) | undefined;
   /** Told when a terrain, made with Z up, was laid flat. */
   laidFlat?: (() => void) | undefined;
+  /** Told, of a drawing (lines, no faces), how many regions its lines closed and how many lines closed none. */
+  plan?: ((regions: number, loose: number) => void) | undefined;
 }

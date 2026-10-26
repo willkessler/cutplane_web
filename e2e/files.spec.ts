@@ -337,3 +337,74 @@ test('binary Inventor opens, and gzipped files (.iv.gz) open as they are', async
   await expect.poll(async () => (await edit(page)).objects).toBe(after + (after - 1));
   expect(errors).toEqual([]);
 });
+
+/** Where a plan lies: on the room's floor (its y is -382), just clear of it. */
+const FLOOR = -381;
+
+test('a 2D DXF plan comes in as the regions its lines close; its walls pull up with Faces extrude', async ({
+  page,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  const text = readFileSync('packages/formats/test/fixtures/house-plan.dxf', 'latin1');
+  await page.locator('#file').setInputFiles({ name: 'house-plan.dxf', mimeType: 'application/dxf', buffer: Buffer.from(text) }); // prettier-ignore
+  await expect.poll(async () => (await edit(page)).objects).toBe(2);
+  const said = await notice(page);
+  expect(said).toContain('a plan: 10 regions its lines close');
+  expect(said).toMatch(/\d+ lines closing nothing left out/);
+  // 10 laminas, two faces each, and the cube.
+  expect((await edit(page)).faces).toBe(6 + 20);
+  for (const [id, value] of [['#faceDrag', 'extrude'], ['#groupPick', 'parts']] as const)
+    await page.evaluate(([i, v]) => {
+      const s = document.querySelector<HTMLSelectElement>(i)!;
+      s.value = v;
+      s.dispatchEvent(new Event('change'));
+    }, [id, value]); // prettier-ignore
+  // The plan is in inches, laid on the floor (y = -381, just clear of it): its x is the
+  // room's, its y back into the room (-z).
+  // The outside wall and the two pieces of the one across the house, each taken where the
+  // plane runs along it, and pulled up 120. (Cut across, a 4" wall is all edges: zoom in for those.)
+  const walls = [[50, 3], [270, 182], [400, 182]]; // prettier-ignore
+  for (const [x, y] of walls) {
+    await set(page, { x: x!, y: FLOOR, z: -y! });
+    await page.evaluate(() => window.__cutplane!.press());
+    expect((await edit(page)).picked).toEqual(['face']);
+    for (let i = 1; i <= 20; i++) await set(page, { y: FLOOR + i * 6 });
+    await page.evaluate(() => window.__cutplane!.release());
+  }
+  // Each wall's lamina has become a solid: a wall per side of its outline (the outside wall's
+  // 12 sides round the door's opening, the others 4), and its two faces, top and bottom.
+  expect((await edit(page)).faces).toBe(6 + 20 + 12 + 4 + 4);
+  expect(errors).toEqual([]);
+});
+
+test('B joins pieces of a plan lying flat into one face, to pull up as one', async ({ page }) => {
+  const errors = await open(page, 'sample=cube');
+  const text = readFileSync('packages/formats/test/fixtures/house-plan.dxf', 'latin1');
+  await page.locator('#file').setInputFiles({ name: 'house-plan.dxf', mimeType: 'application/dxf', buffer: Buffer.from(text) }); // prettier-ignore
+  await expect.poll(async () => (await edit(page)).faces).toBe(6 + 20);
+  for (const [id, value] of [['#faceDrag', 'extrude'], ['#groupPick', 'parts']] as const)
+    await page.evaluate(([i, v]) => {
+      const s = document.querySelector<HTMLSelectElement>(i)!;
+      s.value = v;
+      s.dispatchEvent(new Event('change'));
+    }, [id, value]); // prettier-ignore
+  // The plane along the wall across the house: its right piece; then, the plane moved to the
+  // front (what is picked stays picked), shift and the outside wall. The two meet at the right.
+  await set(page, { x: 400, y: FLOOR, z: -182 });
+  await page.evaluate(() => window.__cutplane!.press());
+  await page.evaluate(() => window.__cutplane!.release());
+  await set(page, { x: 50, z: -3 });
+  await page.evaluate(() => window.__cutplane!.press(true));
+  await page.evaluate(() => window.__cutplane!.release());
+  expect((await edit(page)).picked).toEqual(['face', 'face']);
+  await page.keyboard.press('KeyB');
+  // One lamina for the two: two faces fewer.
+  await expect.poll(async () => (await edit(page)).faces).toBe(6 + 18);
+  // Pulled up, they rise as one: the outside wall's 12 sides and the cross wall's 3 more.
+  await set(page, { x: 400, z: -182 });
+  await page.evaluate(() => window.__cutplane!.press());
+  for (let i = 1; i <= 20; i++) await set(page, { y: FLOOR + i * 6 });
+  await page.evaluate(() => window.__cutplane!.release());
+  expect((await edit(page)).faces).toBe(6 + 18 + 12 + 4);
+  expect(errors).toEqual([]);
+});

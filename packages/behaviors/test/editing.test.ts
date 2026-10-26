@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { P, T } from '@cutplane/cpl';
-import { createCube, createObject, mat4, validate, volume, type CutObject } from '@cutplane/kernel';
+import {
+  Brep,
+  createCube,
+  createObject,
+  makeLamina,
+  mat4,
+  validate,
+  volume,
+  type CutObject,
+} from '@cutplane/kernel';
 import { GLIDE_MS, isObject, isSub, scaleBoxes } from '../src/index.ts';
 import { world } from './world.ts';
 
@@ -88,6 +97,46 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     expect(cube.brep.numFaces).toBe(6);
     expect(sound()).toBe(true);
     expect(volume(cube.brep)).toBeCloseTo(200 ** 3, 3);
+  });
+
+  it('extrude mode: a lamina lying flat (a plan) is pulled up into a solid, or down, by either face or an edge', () => {
+    const { rt, cube, controls, frame, at, move } = world();
+    rt.faceDrag = 'extrude';
+    // The cube made a lamina 200 square, flat at y = 0, its front up (local is the room + 100).
+    const b = new Brep();
+    makeLamina(b, [[0, 100, 200], [200, 100, 200], [200, 100, 0], [0, 100, 0]]); // prettier-ignore
+    cube.brep = b;
+    rt.changed(cube);
+    // Its two faces lie on each other, whichever the press takes: up and down both pull one out.
+    for (const dy of [1, -1]) {
+      at(0, 0, 0);
+      controls.pressPick(false);
+      frame();
+      expect(kinds(rt.picked())).toEqual(['face']);
+      move(0, 3 * dy);
+      move(0, 47 * dy);
+      controls.releasePick();
+      frame();
+      expect(cube.brep.numFaces).toBe(6);
+      expect(validate(cube.brep).closedManifold).toBe(true);
+      expect(Math.abs(volume(cube.brep))).toBeCloseTo(50 * 200 * 200, 3);
+      const ys = cube.brep.vertices().map((v) => rt.world(cube).y(v));
+      expect(dy > 0 ? Math.max(...ys) : Math.min(...ys)).toBeCloseTo(50 * dy, 3);
+      rt.undo();
+      expect(cube.brep.numFaces).toBe(2);
+    }
+    // The plane on its front edge (as it clicks onto the edge's depth): the edge is taken,
+    // and pulling it up pulls the lamina up whole, not the edge alone into a slope.
+    at(0, 0, 100);
+    controls.pressPick(false);
+    frame();
+    expect(kinds(rt.picked())).toEqual(['edge']);
+    move(0, 3);
+    move(0, 47);
+    controls.releasePick();
+    frame();
+    expect(cube.brep.numFaces).toBe(6);
+    expect(Math.abs(volume(cube.brep))).toBeCloseTo(50 * 200 * 200, 3);
   });
 
   it('stretch mode (the original): a face pulled out stretches the faces around it', () => {

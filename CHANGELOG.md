@@ -12,6 +12,16 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 25, 2026
 
+- **2D DXF plans come in as faces to pull up.** A DXF with no surfaces, only lines (a floor
+  plan, say, as SketchUp or AutoCAD export it), comes in as the regions its lines close round,
+  each a lamina lying flat on the room's floor, a group per layer. The lines needn't be joined: lines meeting,
+  crossing or ending on another are joined there, a line drawn twice counts once, and an end
+  left just short of a line is carried on to meet it. Lines, polylines (with their arcs), arcs,
+  circles and splines are read. Pick a wall's lamina where the plane runs along it and pull it
+  up with _Faces extrude_; a lamina pulls out from either face, or from an edge or corner of it (the plane, clicking onto a wall's edge, takes the edge: it used to bend the wall up into a slope). The notice says how many regions
+  there were and how many lines closed none (a door's swing, say). **B joins pieces of a plan:**
+  pick laminas lying in one plane (shift-click; the plane can move between picks) and B makes
+  them one face, the lines between them gone, to pull up as one.
 - **Rolling something picked whole is smooth again.** With other things near, the guide lines
   joined in while a rotate tool's bar or dial was dragged, pulling the crosshair off the bar
   toward a guide as the thing swung, so it jumped back and forth. Guides are now only for

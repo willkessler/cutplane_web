@@ -8,7 +8,8 @@ import {
   type BoolOp,
   type ResultShell,
 } from '@cutplane/booleans';
-import { groupRoot, subtree, type Brep, type CutObject } from '@cutplane/kernel';
+import { joinRegions, type P2 } from '@cutplane/formats';
+import { Brep, buildShell, groupRoot, mat4, subtree, type CutObject } from '@cutplane/kernel';
 import { isObject, isSub, type WorldFeature } from './features.ts';
 import type { Runtime } from './runtime.ts';
 
@@ -98,13 +99,18 @@ export function booleanAll(rt: Runtime, as: CutObject[], b: CutObject, op: numbe
 /**
  * The B key (new here; the original's BOOLEANBUTTON was a test hook that
  * subtracted): every picked object is unioned into one, which stays picked. Each
- * keeps its faces' colours. Fewer than two objects picked does nothing.
+ * keeps its faces' colours. Fewer than two objects picked does nothing. Laminas
+ * lying in one plane (a plan's rooms and walls) are joined as faces: see joinLaminas.
  */
 export function unionPicked(rt: Runtime): CutObject[] {
   const objs = [...new Set(rt.picked().map(objectOf))].filter(
     (o): o is CutObject => !!o && rt.worldOf(o) === rt.primary,
   );
   if (objs.length < 2) return [];
+  const flat = joinLaminas(rt, objs);
+  if (flat) return flat;
+  // Laminas have nothing inside to union: as solids they would come to nothing.
+  if (objs.some((o) => laminaFaces(o))) return [];
   let out = [objs[0]!];
   for (const b of objs.slice(1)) {
     const r = booleanObjects(rt, out[0]!, b, BOOL_OP.Union);
@@ -112,6 +118,101 @@ export function unionPicked(rt: Runtime): CutObject[] {
   }
   for (const o of out) rt.pick(o);
   return out;
+}
+
+type V3 = [number, number, number];
+
+/** Its shells' faces (two each, lying on each other) in the world, if it is laminas only. */
+function laminaFaces(o: CutObject): V3[][][] | null {
+  const b = o.brep;
+  const shells = b.shells();
+  if (shells.length === 0) return null;
+  const faces: V3[][][] = [];
+  for (const s of shells) {
+    const fs = b.faces(s);
+    if (fs.length !== 2) return null;
+    for (const f of fs)
+      faces.push(
+        b.faceLoops(f).map((l) =>
+          b.loopHalfEdges(l).map((h) => {
+            const [x, y, z] = b.vertexPos(b.heVertex(h));
+            return [...mat4.transformPoint(o.xform, x, y, z)] as V3;
+          }),
+        ),
+      );
+  }
+  return faces;
+}
+
+const sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a: V3, b: V3): V3 => [
+  a[1] * b[2] - a[2] * b[1],
+  a[2] * b[0] - a[0] * b[2],
+  a[0] * b[1] - a[1] * b[0],
+];
+const unit = (a: V3): V3 => {
+  const l = Math.hypot(...a) || 1;
+  return [a[0] / l, a[1] / l, a[2] / l];
+};
+/** Newell's normal of a loop (twice its area long). */
+function newell(l: readonly V3[]): V3 {
+  const n: V3 = [0, 0, 0];
+  l.forEach((a, i) => {
+    const b = l[(i + 1) % l.length]!;
+    n[0] += (a[1] - b[1]) * (a[2] + b[2]);
+    n[1] += (a[2] - b[2]) * (a[0] + b[0]);
+    n[2] += (a[0] - b[0]) * (a[1] + b[1]);
+  });
+  return n;
+}
+
+/**
+ * New: B on laminas all lying in one plane (a plan's pieces, say a room and the
+ * floor of its doorway) joins them as faces, not solids: the lines between them go,
+ * and the first picked becomes the joined lamina (or laminas, side by side in it, for
+ * what doesn't touch), in its colour; the rest go. Null when they aren't such laminas.
+ */
+export function joinLaminas(rt: Runtime, objs: readonly CutObject[]): CutObject[] | null {
+  const all = objs.map(laminaFaces);
+  if (all.some((f) => f === null)) return null;
+  const faces = all.flat() as V3[][][];
+  // The plane: the first face's, its front the way it faces.
+  const first = faces[0]!;
+  const n = unit(newell(first[0]!));
+  const o = first[0]![0]!;
+  let size = 0;
+  for (const f of faces) for (const l of f) for (const p of l) size = Math.max(size, Math.hypot(...sub(p, o))); // prettier-ignore
+  const tol = Math.max(1e-6, size * 1e-6);
+  if (!faces.every((f) => f.every((l) => l.every((p) => Math.abs(dot(sub(p, o), n)) <= tol))))
+    return null;
+  const u = unit(Math.abs(n[0]) < 0.9 ? cross(n, [1, 0, 0]) : cross(n, [0, 1, 0]));
+  const v = cross(n, u);
+  const flat = (p: V3): P2 => [dot(sub(p, o), u), dot(sub(p, o), v)];
+  // Each lamina by its face that looks the plane's way: its outline counter-clockwise in it.
+  const parts = faces
+    .filter((f) => dot(newell(f[0]!), n) > 0)
+    .map((f) => ({ outer: f[0]!.map(flat), holes: f.slice(1).map((l) => l.map(flat)) }));
+  const regions = joinRegions(parts);
+  if (regions.length === 0) return null;
+  const keep = objs[0]!;
+  const brep = new Brep();
+  const toLocal = keep.invXform;
+  for (const r of regions) {
+    const positions: V3[] = [];
+    const loop = (l: readonly P2[]) =>
+      l.map(([x, y]) => {
+        const p: V3 = [o[0] + x * u[0] + y * v[0], o[1] + x * u[1] + y * v[1], o[2] + x * u[2] + y * v[2]]; // prettier-ignore
+        return positions.push([...mat4.transformPoint(toLocal, ...p)] as V3) - 1;
+      });
+    const front = [r.outer, ...r.holes].map(loop);
+    buildShell(brep, { positions, faces: [front, front.map((l) => [...l].reverse())] });
+  }
+  for (const x of objs) rt.unpick(x);
+  for (const x of objs.slice(1)) rt.killNow(x);
+  rt.reshape(keep, brep);
+  rt.pick(keep);
+  return [keep];
 }
 
 /**
