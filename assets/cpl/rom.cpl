@@ -2,8 +2,10 @@
 ;	changes marked "cutplane_web" below. Pressing something already picked
 ;	keeps the other picks, so several picked things drag together (as the
 ;	commented-out lines in _Check_pick meant to); a click that doesn't drag
-;	still picks just what was clicked. And every picked object is sent to
-;	the measure pad, not only primitives with a record.
+;	still picks just what was clicked. Every picked object is sent to the
+;	measure pad, not only primitives with a record. And only the primitives
+;	box takes a thing dropped on it, not the goodies box too; a copy of
+;	something dropped in it, dropped back, takes that out again.
 
 
 ;	CPL Main Memory Layout, Including Registers and ROM as well
@@ -346,7 +348,9 @@ _Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_delete&
 _Not_solo	NOP
 
 		WORLD	Const:WEnvironment_world
-		HASPROP	Prop:Selectable*,Prop:Toolbox,A:R2,Const:Self
+;	cutplane_web: only the primitives box takes what is dropped on it (the
+;	original had any toolbox do it, the goodies box too).
+		HASPROP	Obj:Primsbox,Prop:Selectable,A:R2,Const:Self
 		BNEMPTY	A:R2,A:_Dunk_it&
 		WORLD	Const:WPrimary_world
 		JUMP	A:_End_CPnormal&
@@ -358,12 +362,23 @@ _Dunk_it	UNPICK	A:R1*
 ;							; toolboxes for later..
 		PUSH	A:R1
 		JSR	A:_Destroy_scaler&
+;	cutplane_web: a copy of something dunked takes that out of the box again
+;	(not a 1991 primitive), and goes back where it was picked up.
+		PUSH	A:R1
+		CRTN	Crtn:unstock_prim
+		POP	A:R3
+		BTRUE	A:R3,A:_Unstocked&
 		MAKEMSG Msg:Dunkprim			; Tell toolbox to dunk
 		OWNER	A:R1,Const:Motherobj		; Is owner selectable?
 		MAKEMSG	A:R1*
 		POP	A:R2
 		QMSG	A:R2*,Const:Prioritymsg 	; Send message to boxes.
 		JSRAT	A:R2*,Code:Property_code	; Process message.
+		WORLD	Const:WPrimary_world
+		WIPE	A:XOP*
+		JUMP	A:_End_CPnormal&
+
+_Unstocked	POP	A:R2
 		WORLD	Const:WPrimary_world
 		WIPE	A:XOP*
 		JUMP	A:_End_CPnormal&

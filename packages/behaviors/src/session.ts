@@ -6,8 +6,15 @@ import {
   type Mat4,
   type Rgb,
 } from '@cutplane/kernel';
+import { readCut, writeCut } from '@cutplane/formats';
 import { TRANSIENT_PROPS, type Runtime } from './runtime.ts';
-import { bulbLightOf, setBulbLight, type BulbLight } from './tools/toolbox.ts';
+import {
+  addedPrims,
+  bulbLightOf,
+  restockPrims,
+  setBulbLight,
+  type BulbLight,
+} from './tools/toolbox.ts';
 
 /**
  * New here: the room as it was left, for the next visit. The environment is built
@@ -16,6 +23,7 @@ import { bulbLightOf, setBulbLight, type BulbLight } from './tools/toolbox.ts';
  * where it is, its properties (shown or not, a toolbox open, a pad empty...) and
  * its shape where that changed (the rotate tool's bars). The rails open or shut,
  * the goodies out in the room, the rotate tool where it was left: all come back.
+ * So does what was dropped in the primitives box, kept whole (as a .cut branch).
  */
 
 /** One object of the environment, as it was. */
@@ -49,6 +57,8 @@ export interface RoomSnapshot {
   objects: (Kept | null)[];
   /** The light the bulb set, if it has been moved (it stays where it was set). */
   light?: BulbLight;
+  /** What was dropped in the primitives box: each as .cut text, and how much smaller it was made. */
+  prims?: { cut: string; scale: number }[];
 }
 
 interface Built {
@@ -132,7 +142,17 @@ export function snapshotRoom(rt: Runtime): RoomSnapshot | null {
     };
   });
   const light = bulbLightOf(rt);
-  return { names: signature(b.objects), version: VERSION, objects, ...(light ? { light } : {}) };
+  const prims = addedPrims(rt).map(({ prim, scale }) => ({
+    cut: writeCut({ title: 'primitive', contains: 'World', name: null, roots: [prim] }),
+    scale,
+  }));
+  return {
+    names: signature(b.objects),
+    version: VERSION,
+    objects,
+    ...(light ? { light } : {}),
+    ...(prims.length ? { prims } : {}),
+  };
 }
 
 /** Puts the room back as a snapshot had it. False (nothing changed) if it doesn't fit. */
@@ -192,6 +212,14 @@ export function restoreRoom(rt: Runtime, snap: RoomSnapshot): boolean {
       if (dragged >= 0 && rt.vm.props.has(o, dragged)) rt.vm.props.del(o, dragged);
     }
   if (snap.light) setBulbLight(rt, snap.light);
+  // What was dropped in the primitives box, as it was there (the box is back in place).
+  const prims = (snap.prims ?? []).flatMap(({ cut, scale }) => {
+    const prim = readCut(cut).doc.roots[0];
+    if (!prim) return [];
+    for (const o of preorder([prim])) o.attrs.props = o.attrs.props.filter((n) => !UNKEPT.has(n));
+    return [{ prim, scale }];
+  });
+  restockPrims(rt, prims);
   rt.version++;
   return true;
 }

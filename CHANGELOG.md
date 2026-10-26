@@ -10,6 +10,22 @@ has the detail on each.
 
 New in 2026: none of these were in the 1991 original.
 
+### October 26, 2026
+
+- **Primitives of your own.** Drop something on the primitives box and it goes in as a
+  primitive of its own; a group goes in whole, and picking any part of it stamps out the whole
+  group. In the box it's shown smaller (half a primitive's height at most), and the box's stack
+  goes on in another column to the left instead of through the ceiling; a copy comes out its own
+  size. To take one out again, drop a copy of it back on the box: held over the box the copy
+  turns red, and let go it goes back where it was picked up while its primitive leaves the box.
+  (A copy is anything of the same shape, so something just like a primitive already there takes
+  that out rather than going in twice.) The 1991 primitives can't be taken out. What you add is
+  kept with the room from one visit to the next; _Reset the room_ clears it. Fixed on the way:
+  the original made only a group's root a primitive, leaving its parts showing by the box where
+  nothing could take them out; a thing dropped in stayed selectable, hidden, so the next press
+  anywhere stamped it out; and only the primitives box takes what's dropped on it (on the goodies
+  box a thing stays in the world, where the original made it a primitive there too).
+
 ### October 25, 2026
 
 - **A headpad dragged by its tab no longer sticks to the crosshair.** A rail's headpad was

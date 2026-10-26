@@ -1,4 +1,4 @@
-import { Aux, P, Word, first, setupAux, type Feature, type VM } from '@cutplane/cpl';
+import { Aux, P, Word, boolWord, first, setupAux, type Feature, type VM } from '@cutplane/cpl';
 import {
   createCube,
   createIsoscelesPrism,
@@ -14,6 +14,7 @@ import {
   mat4,
   revolve,
   subtree,
+  ROOM,
   Brep,
   type CutObject,
   type Rgb,
@@ -49,6 +50,13 @@ const PRIMS_H = TOOLBOX_HEIGHT;
 const PRIMS_D = TOOLBOX_DEPTH;
 const PRIMS_MARGIN = PRIMS_H / 5;
 const PRIMS_RES = 72; // 14 in 1991, when polygons were dear
+/**
+ * New here: how big something dropped in the primitives box is shown there at most (its
+ * longest side), so a good few fit above it. Stamped out, a copy is its own size again.
+ */
+const ADDED_FIT = PRIMS_H / 2;
+/** New here: a copy over the box that would take its primitive out of it is shown in red. */
+const UNSTOCK_RED: Rgb = [255, 0, 0];
 /** Maxcrossx, Mincrossy, Minplanez. */
 const MAX_X = 510;
 const MIN_Y = -382;
@@ -355,7 +363,192 @@ function groupBox(rt: Runtime, o: CutObject): [V3, V3] | null {
   return out;
 }
 
+/**
+ * New here: what was dropped in the primitives box, by how much it was made smaller there
+ * (1: not at all). The 1991 primitives aren't in it: they can't be taken out.
+ */
+const added = new WeakMap<CutObject, number>();
+
+/** The thing `o` is part of: its group, or itself (not the scale box it's picked in). */
+function thingOf(rt: Runtime, o: CutObject): CutObject {
+  while (!o.linked && o.parent && !rt.vm.props.has(o.parent, P.Scalebbox)) o = o.parent;
+  return o;
+}
+
+/**
+ * Whether `thing` is a copy of `prim` (in the box, made `scale` times smaller there):
+ * the same parts, each the same shape, put together the same way. Where it is doesn't
+ * matter; turned or reshaped, it is something else.
+ */
+function sameShape(rt: Runtime, thing: CutObject, prim: CutObject, scale: number): boolean {
+  const a = [...subtree(thing)];
+  const b = [...subtree(prim)];
+  if (a.length !== b.length || a.some((x, i) => x.brep.numVertices !== b[i]!.brep.numVertices))
+    return false;
+  const ba = rt.branchBox(thing);
+  const bb = rt.branchBox(prim);
+  if (!ba || !bb) return false;
+  const tol = 1e-3 * Math.max(1, ...[0, 1, 2].map((k) => bb[1][k]! - bb[0][k]!));
+  return a.every((x, i) => {
+    const ga = rt.world(x);
+    const gb = rt.world(b[i]!);
+    const vb = b[i]!.brep.vertices();
+    return x.brep.vertices().every((v, j) => {
+      const w = vb[j]!;
+      const d = [ga.x(v) - ba[0][0], ga.y(v) - ba[0][1], ga.z(v) - ba[0][2]];
+      const e = [gb.x(w) - bb[0][0], gb.y(w) - bb[0][1], gb.z(w) - bb[0][2]];
+      return d.every((c, k) => Math.abs(c * scale - e[k]!) <= tol);
+    });
+  });
+}
+
+/** The primitive dropped in `box` that `thing` is a copy of, if any. */
+function stockedAs(rt: Runtime, box: CutObject, thing: CutObject): CutObject | null {
+  for (const prim of box.children) {
+    const scale = added.get(prim);
+    if (scale !== undefined && sameShape(rt, thing, prim, scale)) return prim;
+  }
+  return null;
+}
+
+/** Things tinted red over the box, with their own colours. */
+const tinted = new WeakMap<Runtime, Map<CutObject, Rgb>>();
+
+/**
+ * Each frame: a copy of a dropped-in primitive held over the primitives box shows red
+ * (let go there, it takes that primitive out of the box); anything else its own colour.
+ */
+function tintUnstocking(rt: Runtime, box: CutObject): void {
+  let was = tinted.get(rt);
+  if (!was) tinted.set(rt, (was = new Map()));
+  const red = new Set<CutObject>();
+  if (rt.vm.props.has(box, P.Selectable))
+    for (const f of rt.picked()) {
+      if (!isObject(f)) continue;
+      const thing = thingOf(rt, f);
+      if (stockedAs(rt, box, thing)) for (const x of subtree(thing)) red.add(x);
+    }
+  for (const [o, c] of was)
+    if (!red.has(o)) {
+      was.delete(o);
+      o.color = c;
+      rt.changed(o);
+    }
+  for (const o of red)
+    if (!was.has(o)) {
+      was.set(o, [...o.color] as Rgb);
+      o.color = [...UNSTOCK_RED] as Rgb;
+      rt.changed(o);
+    }
+}
+
+/** A primitive dropped in the box, for the room kept from one visit to the next. */
+export interface AddedPrim {
+  prim: CutObject;
+  scale: number;
+}
+
+/** What was dropped in the primitives box, in its order there. */
+export function addedPrims(rt: Runtime): AddedPrim[] {
+  const box = rt.findObject('Primsbox');
+  if (!box) return [];
+  return box.children.flatMap((prim) => {
+    const scale = added.get(prim);
+    return scale === undefined ? [] : [{ prim, scale }];
+  });
+}
+
+/** Puts `prims` in the primitives box, in place of what was dropped in it. */
+export function restockPrims(rt: Runtime, prims: readonly AddedPrim[]): void {
+  const box = rt.findObject('Primsbox');
+  if (!box) return;
+  for (const { prim } of addedPrims(rt)) rt.discard(prim);
+  rt.importObjects(
+    rt.environment,
+    prims.map((p) => p.prim),
+    box,
+  );
+  for (const { prim, scale } of prims) added.set(prim, scale);
+}
+
 export const TOOLBOX_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>> = {
+  /**
+   * New here, CPL_shrink_prim: (things) — each dropped in the primitives box (toolbox.cpl's
+   * Dunk_prim) made small enough to stack up with the others there.
+   */
+  shrink_prim(rt, vm) {
+    const things = new Set(
+      (vm.pop().list ?? []).flatMap((f) => {
+        const o = objectOf(f);
+        return o ? [thingOf(rt, o)] : [];
+      }),
+    );
+    for (const thing of things) {
+      if (added.has(thing)) continue;
+      const b = rt.branchBox(thing);
+      const size = b ? Math.max(...[0, 1, 2].map((k) => b[1][k]! - b[0][k]!)) : 0;
+      const scale = size > ADDED_FIT ? ADDED_FIT / size : 1;
+      if (b && scale < 1) {
+        const mid = [0, 1, 2].map((k) => (b[0][k]! + b[1][k]!) / 2) as V3;
+        rt.scaleBranch(thing, mid, [scale, scale, scale]);
+      }
+      added.set(thing, scale);
+    }
+  },
+
+  /**
+   * New here, CPL_grow_stamp: (primitive, copy) — a copy stamped from something dropped in
+   * the box (stamp.cpl's Stamp_sub) made its own size again, about the crosshair.
+   */
+  grow_stamp(rt, vm) {
+    const copy = objectOf(first(vm.pop()));
+    const prim = objectOf(first(vm.pop()));
+    const scale = prim ? added.get(prim) : undefined;
+    const b = copy && rt.branchBox(copy);
+    if (!copy || !b || scale === undefined || scale === 1) return;
+    // About the crosshair, which picked it, so it stays in hand there; else its middle.
+    const at = rt.cursor();
+    const on = [0, 1, 2].every((k) => at[k]! >= b[0][k]! && at[k]! <= b[1][k]!);
+    const about = on ? at : ([0, 1, 2].map((k) => (b[0][k]! + b[1][k]!) / 2) as V3);
+    rt.scaleBranch(copy, about, [1 / scale, 1 / scale, 1 / scale]);
+    // Kept in the room (grown at the top of the stack, by the back wall, it went through them).
+    const g = rt.branchBox(copy);
+    if (!g) return;
+    const d = [0, 1, 2].map((k) => {
+      const lo = ROOM.min[k]! - g[0][k]!;
+      const hi = ROOM.max[k]! - g[1][k]!;
+      return lo > hi ? (lo + hi) / 2 : Math.max(lo, Math.min(0, hi));
+    }) as V3;
+    if (d.some((c) => c !== 0)) rt.moveBranch(copy, d);
+  },
+
+  /**
+   * New here, CPL_unstock_prim: (thing let go on the primitives box) → (taken out?). A
+   * copy of something dropped in the box takes that out of it and goes back to where it
+   * was picked up (rom.cpl); anything else is dunked as before.
+   */
+  unstock_prim(rt, vm) {
+    const o = objectOf(first(vm.pop()));
+    const box = rt.findObject('Primsbox');
+    const thing = o && thingOf(rt, o);
+    const prim = box && thing && stockedAs(rt, box, thing);
+    if (prim && thing) {
+      rt.discard(prim);
+      const was = tinted.get(rt);
+      for (const x of subtree(thing)) {
+        was?.delete(x);
+        const s = rt.journal.before(x);
+        if (!s) continue;
+        x.xform = s.xform.slice();
+        x.invXform = s.invXform.slice();
+        x.color = [...s.color] as Rgb;
+        rt.changed(x);
+      }
+      rt.version++;
+    }
+    vm.push(boolWord(!!prim));
+  },
+
   /** CPL_arrange_prims: (toolboxes) → (toolboxes), what each holds stacked up above it. */
   arrange_prims(rt, vm) {
     const rec = vm.pop();
@@ -368,11 +561,24 @@ export const TOOLBOX_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void
         bb[1][1] + PRIMS_MARGIN,
         (bb[0][2] + bb[1][2]) / 2,
       ];
+      // New here: stacked up to the ceiling, then on in another stack beside, to the left
+      // (dropped-in primitives make the stack taller than the room).
+      const floor = top[1];
+      let width = 0;
       for (const prim of box.children) {
-        if (rt.vm.props.has(prim, P.Nonmanifold)) continue;
+        // (Not its flaps; a group made a primitive is stacked, though its root is nonmanifold.)
+        if (rt.vm.props.has(prim, P.Nonmanifold) && !rt.hasProp(prim, 'Stamp')) continue;
         const pb = groupBox(rt, prim);
         if (!pb) continue;
-        top[1] += pb[1][1] - pb[0][1] + PRIMS_MARGIN;
+        const h = pb[1][1] - pb[0][1];
+        const w = pb[1][0] - pb[0][0];
+        if (top[1] > floor && top[1] + h + PRIMS_MARGIN > ROOM.max[1]) {
+          top[0] -= width / 2 + PRIMS_MARGIN + w / 2;
+          top[1] = floor;
+          width = 0;
+        }
+        width = Math.max(width, w);
+        top[1] += h + PRIMS_MARGIN;
         const primTop: V3 = [(pb[0][0] + pb[1][0]) / 2, pb[1][1], (pb[0][2] + pb[1][2]) / 2];
         rt.translate(prim, [top[0] - primTop[0], top[1] - primTop[1], top[2] - primTop[2]]);
       }
@@ -449,6 +655,7 @@ export function installToolboxes(
 ): { prims: CutObject; goodies: CutObject; colorControl: ColorControl } {
   rt.registerCrtns(TOOLBOX_CRTNS);
   const prims = setupPrimsToolbox(rt);
+  rt.frameHooks.push(() => tintUnstocking(rt, prims));
   const { toolbox: goodies, colorControl } = setupGoodiesToolbox(rt, source);
   rt.vm.resolveObjectRefs();
   return { prims, goodies, colorControl };

@@ -80,6 +80,11 @@ export const CRTN_NAMES = [
   'world_things',
   // cutplane_web: features the host hands CPL (controls: what R picks again).
   'handed_over',
+  // cutplane_web: what is dropped in the primitives box shown smaller (toolbox.cpl), its
+  // copies full size (stamp.cpl), a copy dropped back taking it out again (rom.cpl).
+  'shrink_prim',
+  'grow_stamp',
+  'unstock_prim',
 ] as const;
 
 export type CrtnName = (typeof CRTN_NAMES)[number];

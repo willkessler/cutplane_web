@@ -30,7 +30,8 @@ Nothing to install. It works in Chrome, Edge, Firefox and Safari on a desktop or
   working (section 2).
 - The first time, the room is turned a little and the keys plate is open. After that, Cutplane
   opens as you left it (section 8). _Settings_ → _Reset the room_ puts the room back as it was
-  built (rails, toolboxes, goodies, plane and view); what you're making stays.
+  built (rails, toolboxes, goodies, plane and view, and no primitives of your own in the box);
+  what you're making stays.
 
 A trackpad, a two-button mouse and the SGI's three-button mouse all work as they are, with
 nothing to set up: hold ⌘ or right-drag to turn the room, hold ⌥ (Option, Alt) or middle-drag to
@@ -211,7 +212,11 @@ second), the **grabber** (always picks whole objects), the **ruler**, and the **
 
 The **toolboxes** stand on the floor at the back (Space takes the plane there). Click one to open
 it. The primitives box holds a cube, cylinder, cone, sphere and pyramid: press on one and a copy
-comes out, picked, to carry forward into the world. The goodies box holds a camera (section 7), a
+comes out, picked, to carry forward into the world. Drop something of your own on it (a group
+too) and it goes in as a primitive of its own, shown smaller, to stamp out copies of its own size.
+To take it out again, drop one of its copies back on the box: the copy turns red over the box, and
+when you let go it goes back where you picked it up and the primitive is gone from the box (the
+five built-in ones always stay). The goodies box holds a camera (section 7), a
 light bulb and the colour control (three bars and a paint chip: drag a bar and what is picked takes
 the colour, or drag the chip onto a face to paint it). **Double-click** the colour control's base
 or the camera's body to put it away: it goes back into its box, which closes.

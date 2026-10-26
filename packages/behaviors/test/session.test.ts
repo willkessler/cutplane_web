@@ -113,4 +113,40 @@ describe('the room kept for the next visit (new)', () => {
     expect(restoreRoom(b.rt, { ...snap, names: `${snap.names}|More` })).toBe(false);
     expect(b.rt.version).toBe(before);
   });
+
+  it('what was dropped in the primitives box comes back in it, and stamps out its own size', () => {
+    const a = setup();
+    // The cube dropped on the box, at the box's depth.
+    a.at(0, 0, 0);
+    a.controls.pressPick(false);
+    a.frame();
+    const [x, y] = a.center(a.prims);
+    for (let i = 1; i <= 20; i++) a.move(x / 20, y / 20, Z / 20);
+    a.controls.releasePick();
+    for (let i = 0; i < 3; i++) a.frame();
+    expect(a.cube.parent).toBe(a.prims);
+    const snap = JSON.parse(JSON.stringify(snapshotRoom(a.rt))) as RoomSnapshot;
+    expect(snap.prims).toHaveLength(1);
+    const b = setup();
+    expect(restoreRoom(b.rt, snap)).toBe(true);
+    const back = b.prims.children.filter((c) => b.rt.hasProp(c, 'Stamp')).slice(5);
+    expect(back).toHaveLength(1);
+    const prim = back[0]!;
+    expect(visible(b, prim)).toBe(false);
+    expect(b.rt.hasProp(prim, 'Hideable')).toBe(true);
+    expect(verts(prim)).toEqual(verts(a.cube));
+    expect([...prim.xform]).toEqual([...a.cube.xform]);
+    // Opened, picked: a copy the cube's own size.
+    b.click(b.prims);
+    expect(visible(b, prim)).toBe(true);
+    b.click(prim);
+    const copy = b.rt.picked()[0] as CutObject;
+    expect(b.rt.worldOf(copy)).toBe(b.rt.primary);
+    const bb = b.rt.branchBox(copy)!;
+    for (const k of [0, 1, 2]) expect(bb[1][k]! - bb[0][k]!).toBeCloseTo(200, 6);
+    // Kept again with nothing dropped in: none come back.
+    const none = JSON.parse(JSON.stringify(snapshotRoom(setup().rt))) as RoomSnapshot;
+    expect(restoreRoom(b.rt, none)).toBe(true);
+    expect(b.prims.children.filter((c) => b.rt.hasProp(c, 'Stamp'))).toHaveLength(5);
+  });
 });

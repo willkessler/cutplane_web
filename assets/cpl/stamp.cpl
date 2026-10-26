@@ -1,0 +1,98 @@
+
+;		CPL Stamp Property Codes
+;		Date: November 29,1990	
+;		Version: 7
+;
+;	cutplane_web: a primitive may be a group (dunked whole, toolbox.cpl):
+;	picking any part of it stamps the whole group, and the copy is plain
+;	all through. A copy of something dunked smaller comes out its own size
+;	(grow_stamp). Changes marked "cutplane_web".
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+;	Property definitions
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; Stamp subroutines 
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+;		Code for a routine that calls stamp upon a pick
+
+;		Code for stamp subroutine.
+;		Object set to stamp passed on stack
+
+Stamp_sub	POP	A:R1
+		DUP	A:R1*,A:R2	
+		REMPROP	A:R2*,Prop:Stamp
+		REMPROP	A:R2*,Prop:Hideable
+		REMPROP	A:R2*,Prop:Lockedgeometry
+;		 cutplane_web: a group's parts too
+		DESCEND	A:R2*,A:R3
+		BEMPTY	A:R3,A:_Stamp_out&
+		REMPROP	A:R3*,Prop:Stamp
+		REMPROP	A:R3*,Prop:Hideable
+		REMPROP	A:R3*,Prop:Lockedgeometry
+_Stamp_out	NOP
+		WTRANS	A:R2*,Const:WPrimary_world	; move result to main wld
+;		 cutplane_web: its own size, if it was made smaller in the box
+		PUSH	A:R1
+		PUSH	A:R2
+		CRTN	Crtn:grow_stamp
+		WORLD	Const:WPrimary_world
+		MAKEMSG	Msg:Unpick
+		QMSG	Prop:Picked*,Const:Prioritymsg	; First unpick all.
+		MAKEMSG	Msg:Pick
+		QMSG	A:R2*,Const:Prioritymsg		; then pick result
+		WORLD	Const:WEnvironment_world
+		RTS
+
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; 		Main stamp code starts here				     ;
+; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Stamp		DEFPROP
+
+Stamp		STARTPROP
+		BWIPED	AA:XOP*,A:_End_stampick&	; Is event still active?
+;		 Is event a pick?
+		BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+;		 Picking selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_stampick&
+
+		OWNER	A:R1,Const:Motherobj		; Was owner selectable?
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_stampick&		; no, quit
+;		 cutplane_web: a group's part stamps its group
+		ANCEST	A:R1*,A:R3
+		MOVE	A:R3,A:R1
+
+		PUSH	A:R1
+		JSR	A:Stamp_sub&			; and stamp owner
+		ADDPROP	A:R1*,Prop:Active		; mark orig as stamped
+		WIPE   	A:XOP*				; Wipe this PICK
+		JUMP	A:_End_stampick&
+
+_Check_release	OWNER	A:R1,Const:Motherobj		;
+;		 cutplane_web: (marked on its group, if it's a group's part)
+		ANCEST	A:R1*,A:R3
+		MOVE	A:R3,A:R1
+;		 Is event a release?
+		BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_stampick&
+;		 Releasing selectables?
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_stampick&
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; orig stamped?
+		BFALSE	A:R2,A:_End_stampick&		; no, quit
+		REMPROP	A:R1*,Prop:Active
+		PARENT	A:R1*,A:R2
+
+		MAKEMSG	Msg:Closetoolbox		; tell toolboxes to close
+		QMSG	A:R2*,Const:Prioritymsg		; Queue message string.
+		JSRAT	A:R2*,Code:Property_code
+
+		WIPE	A:XOP*
+
+_End_stampick	RTS
+
+
