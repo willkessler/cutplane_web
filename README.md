@@ -43,7 +43,7 @@ Everything installs, builds and tests inside Docker. Nothing needs to be install
 except Docker.
 
 ```sh
-docker compose up                          # dev server at http://localhost:5173
+docker compose up                          # dev server at http://localhost:5173, MCP at :5174
 docker compose run --rm dev pnpm check     # format, lint, typecheck, unit tests, build
 docker compose run --rm e2e                # Playwright: Chromium, Firefox, WebKit
 docker compose --profile prod up web       # production image at http://localhost:8080
@@ -51,14 +51,15 @@ docker compose --profile prod up web       # production image at http://localhos
 
 ## Layout
 
-| Package              | Purpose                                                                       |
-| -------------------- | ----------------------------------------------------------------------------- |
-| `packages/kernel`    | Half-edge B-rep, Euler operators, sectioning, selection (no DOM, no three.js) |
-| `packages/formats`   | `.cut` / `.rsc` / `.dcl` / `.icon` I/O; OBJ, STL and glTF import and export   |
-| `packages/booleans`  | manifold-3d adapter, with coplanar face re-merge back into the B-rep          |
-| `packages/cpl`       | CPL assembler, virtual machine, disassembler and debugger                     |
-| `packages/behaviors` | The world CPL runs in: host API, C routines, the environment's tools          |
-| `packages/app`       | three.js renderer, input and full-screen work mode, UI                        |
+| Package              | Purpose                                                                         |
+| -------------------- | ------------------------------------------------------------------------------- |
+| `packages/kernel`    | Half-edge B-rep, Euler operators, sectioning, selection (no DOM, no three.js)   |
+| `packages/formats`   | `.cut` / `.rsc` / `.dcl` / `.icon` I/O; OBJ, STL and glTF import and export     |
+| `packages/booleans`  | manifold-3d adapter, with coplanar face re-merge back into the B-rep            |
+| `packages/cpl`       | CPL assembler, virtual machine, disassembler and debugger                       |
+| `packages/behaviors` | The world CPL runs in: host API, C routines, the environment's tools            |
+| `packages/app`       | three.js renderer, input and full-screen work mode, UI                          |
+| `packages/mcp`       | MCP server: an agent works the running app by hand ([docs/MCP.md](docs/MCP.md)) |
 
 ## Deploying
 

@@ -10,6 +10,7 @@ COPY packages/booleans/package.json packages/booleans/
 COPY packages/cpl/package.json packages/cpl/
 COPY packages/behaviors/package.json packages/behaviors/
 COPY packages/app/package.json packages/app/
+COPY packages/mcp/package.json packages/mcp/
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build

@@ -1694,6 +1694,12 @@ declare global {
       locate(what: string): unknown;
       scribble(): { segments: number; start: number[]; line: boolean };
       saveText(): string;
+      /** Saves the world as the Save button does, under this title: the file's name and text. */
+      saveAs(title: string): { file: string; text: string };
+      /** Picks a world from the model menu (new:cube, samples/…, saved:…), once it's loaded. */
+      open(src: string): Promise<void>;
+      /** The room as the user sees it: a JPEG this many pixels wide, as a data URL. */
+      snapshot(width: number): string;
       /** Every colour a drawn face has, as "r,g,b". */
       palette(): string[];
       openText(text: string): void;
@@ -1848,6 +1854,30 @@ async function start(): Promise<void> {
     gravity: () => ({ always: permanentGravity, dangling: dangle !== null }),
     color: () => colorState(rt, colorControl),
     saveText: () => worldText(),
+    saveAs(title) {
+      const text = writeCut({ title, contains: 'World', name: null, roots: rt.documentRoots() });
+      const file = fileName(title, 'cut');
+      keep(file, text);
+      modelSelect.value = `${SAVED}${file}`;
+      store('model', modelSelect.value);
+      return { file, text };
+    },
+    async open(src) {
+      if (![...modelSelect.options].some((o) => o.value === src))
+        modelSelect.add(new Option(src, src));
+      modelSelect.value = src;
+      store('model', src);
+      await loadModel(src);
+      settle();
+    },
+    snapshot(width) {
+      render();
+      const out = document.createElement('canvas');
+      out.width = Math.min(width, canvas.width);
+      out.height = Math.round((out.width * canvas.height) / canvas.width);
+      out.getContext('2d')!.drawImage(canvas, 0, 0, out.width, out.height);
+      return out.toDataURL('image/jpeg', 0.85);
+    },
     palette() {
       const out = new Set<string>();
       for (const m of models.models)
@@ -2045,6 +2075,12 @@ async function start(): Promise<void> {
     else render();
   });
   document.documentElement.dataset['ready'] = 'true';
+  // New: ?mcp lets an agent work the app by hand, through the MCP server (packages/mcp).
+  if (params.has('mcp'))
+    void import('./mcp.ts').then((m) => m.connectMcp(params.get('mcp') || defaultMcp(), window.__cutplane!)); // prettier-ignore
 }
+
+/** Where the MCP server listens for the app (compose.yaml's mcp service). */
+const defaultMcp = () => `ws://${location.hostname || 'localhost'}:5174/bridge`;
 
 void start();

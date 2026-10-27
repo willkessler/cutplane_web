@@ -1,6 +1,7 @@
-# `docker compose up`           -> dev server on http://localhost:5173
+# `docker compose up`           -> dev server on http://localhost:5173, and the MCP server
 # `docker compose run --rm dev pnpm check`  -> format, lint, typecheck, unit tests, build
 # `docker compose run --rm e2e` -> Playwright (Chromium, Firefox, WebKit)
+# `docker compose up mcp`         -> the MCP server on http://localhost:5174/mcp (see docs/MCP.md)
 # `docker compose --profile prod up web` -> production image on http://localhost:8080
 x-node-modules: &node-modules
   - .:/work
@@ -11,6 +12,7 @@ x-node-modules: &node-modules
   - nm_cpl:/work/packages/cpl/node_modules
   - nm_behaviors:/work/packages/behaviors/node_modules
   - nm_app:/work/packages/app/node_modules
+  - nm_mcp:/work/packages/mcp/node_modules
   - pnpm_store:/pnpm/store
 
 services:
@@ -22,6 +24,20 @@ services:
     ports:
       - '5173:5173'
     command: sh -c "pnpm install --frozen-lockfile && pnpm dev"
+
+  # The MCP server: an agent works the app open at http://localhost:5173/?mcp by hand.
+  mcp:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    volumes: *node-modules
+    environment:
+      MCP_SAVE_DIR: /work/corpus/mcp
+    ports:
+      - '5174:5174'
+    # (dev installs the packages; this waits for them rather than install alongside it.)
+    command: sh -c "until [ -e packages/mcp/node_modules/ws ]; do sleep 2; done; pnpm --filter @cutplane/mcp start"
+    depends_on: [dev]
 
   e2e:
     profiles: [test]
@@ -56,4 +72,5 @@ volumes:
   nm_cpl:
   nm_behaviors:
   nm_app:
+  nm_mcp:
   pnpm_store:

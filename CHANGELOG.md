@@ -10,6 +10,15 @@ has the detail on each.
 
 New in 2026: none of these were in the 1991 original.
 
+### October 27, 2026
+
+- **An agent's hand on the app.** An MCP server (`docker compose up mcp`) lets an agent such as
+  Claude Code work Cutplane as a person does, while you watch in your own browser (open it with
+  `?mcp`). It moves the crosshair, gliding so its moves can be followed, and presses and lets
+  go of the button, presses keys, rolls the wheel, turns the room and looks at it. None of its
+  tools makes geometry: the app's tools and the plane do, and the app's own Save writes the
+  file. See [docs/MCP.md](docs/MCP.md).
+
 ### October 26, 2026
 
 - **Primitives of your own.** Drop something on the primitives box and it goes in as a

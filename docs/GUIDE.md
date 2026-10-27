@@ -305,6 +305,9 @@ Click the camera again to put the view away.
 - **Save** writes the world as a `.cut` file, and keeps a copy in the browser (listed in the model
   menu). The **floppy** pad in the room does the same by name: click it, click _Save to:_ or
   _Load from:_, type a name and press Return.
+- **An agent can work it too.** With the MCP server running and the page opened with `?mcp`,
+  an agent such as Claude Code moves the crosshair, clicks, presses keys and saves, as you
+  would, while you watch. See [MCP.md](MCP.md).
 - **Export…** writes **glTF** (`.glb`, which opens in Blender: _File → Import → glTF 2.0_), **OBJ**
   or **STL** (for printing, Z up).
 - **Everything is autosaved** in this browser as you go, undo history and all. Close the tab and
