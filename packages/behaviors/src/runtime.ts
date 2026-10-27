@@ -234,6 +234,8 @@ export class Runtime implements Host {
 
   /** select.c's always_set_selectable (set by Crtn:always_set_select during drags). */
   alwaysSetSelectable = false;
+  /** New here: the Pick button is held (set by Controls), so what's picked is in hand. */
+  pickHeld = false;
   /** global_picksize. */
   picksize = 10;
   /** Bumped when objects come or go, or the tree changes. */

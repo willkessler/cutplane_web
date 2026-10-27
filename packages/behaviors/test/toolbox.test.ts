@@ -257,11 +257,11 @@ describe('toolboxes through toolbox.cpl, stamp.cpl and goodies.cpl', () => {
     expect(visible(w, other)).toBe(false);
   });
 
-  it('a thing dropped in is shown smaller there, and its copies come out its own size', () => {
+  it('a thing dropped in is shown the size of the 1991 ones there, and its copies come out its own size', () => {
     const w = setup();
     dropOn(w, w.prims);
     expect(added(w)).toEqual([w.cube]);
-    expect(Math.max(...size(w, w.cube))).toBeCloseTo(85 / 2, 6);
+    expect(Math.max(...size(w, w.cube))).toBeCloseTo(85, 6);
     w.click(w.prims);
     w.click(w.cube);
     const copy = w.rt.picked()[0] as CutObject;
@@ -273,6 +273,68 @@ describe('toolboxes through toolbox.cpl, stamp.cpl and goodies.cpl', () => {
       expect(b[0][k]!).toBeGreaterThanOrEqual(ROOM.min[k]! - 1e-6);
       expect(b[1][k]!).toBeLessThanOrEqual(ROOM.max[k]! + 1e-6);
     }
+  });
+
+  it('a small thing dropped in is shown bigger there, and its copies come out small', () => {
+    const w = setup();
+    const small = createObject(createCube(60, 30, 30), { xform: mat4.translation(100, 0, -100) });
+    small.attrs.props = ['Visible'];
+    w.rt.importObjects(w.rt.primary, [small]);
+    dropOn(w, w.prims, small);
+    expect(added(w)).toEqual([small]);
+    expect(size(w, small).map((d) => +d.toFixed(6))).toEqual([85, 42.5, 42.5]);
+    w.click(w.prims);
+    w.click(small);
+    const copy = w.rt.picked()[0] as CutObject;
+    expect(size(w, copy).map((d) => +d.toFixed(6))).toEqual([60, 30, 30]);
+  });
+
+  it('a long thing dropped in end on is shown as wide or tall as the 1991 ones, from the front', () => {
+    const w = setup();
+    const long = createObject(createCube(60, 30, 300), { xform: mat4.translation(100, 0, -300) });
+    long.attrs.props = ['Visible'];
+    w.rt.importObjects(w.rt.primary, [long]);
+    dropOn(w, w.prims, long);
+    expect(added(w)).toEqual([long]);
+    expect(size(w, long).map((d) => +d.toFixed(6))).toEqual([85, 42.5, 425]);
+    // Opened, it stands forward, its back where the box's is (not through the back wall).
+    w.click(w.prims);
+    expect(w.rt.branchBox(long)![0][2]).toBeCloseTo(w.rt.bbox(w.prims)![0][2], 6);
+  });
+
+  it('a thing dropped in an open box shows there at once, stacked with the others', () => {
+    const w = setup();
+    w.click(w.prims);
+    expect(w.rt.hasProp(w.prims, 'Toolboxopen')).toBe(true);
+    dropOn(w, w.prims);
+    expect(added(w)).toEqual([w.cube]);
+    expect(w.rt.hasProp(w.prims, 'Toolboxopen')).toBe(true);
+    expect(visible(w, w.cube)).toBe(true);
+    const top = w.rt.bbox(w.prims)![1][1];
+    const stack = w.prims.children.filter((c) => w.rt.hasProp(c, 'Stamp'));
+    for (const o of stack) expect(w.rt.branchBox(o)![0][1]).toBeGreaterThan(top);
+  });
+
+  it('a thing held over the box shows blue, to go in as a new primitive; in, it is its own colour', () => {
+    const w = setup();
+    w.cube.color = [200, 50, 50];
+    const color = [...w.cube.color];
+    const blue: number[][] = [];
+    drag(w, w.center(w.prims), w.cube, Z, () => blue.push([...w.cube.color]));
+    expect(blue).toEqual([[40, 110, 255]]);
+    expect(added(w)).toEqual([w.cube]);
+    expect([...w.cube.color]).toEqual(color);
+    // A copy stamped out, left picked, the crosshair then over the box: its own colour,
+    // not red (only one held is tinted).
+    w.click(w.prims);
+    expect([...w.cube.color]).toEqual(color);
+    w.click(w.cube);
+    const copy = w.rt.picked()[0] as CutObject;
+    w.at(...w.center(w.prims), Z);
+    for (let i = 0; i < 3; i++) w.frame();
+    expect(w.rt.picked()).toEqual([copy]);
+    expect(w.rt.vm.props.has(w.prims, P.Selectable)).toBe(true);
+    expect([...copy.color]).toEqual(color);
   });
 
   it('a copy of it dropped back shows red over the box, takes it out, and goes back where it was', () => {

@@ -73,6 +73,7 @@ export class Controls {
   pressPick(shift: boolean): void {
     if (this.pickHeld) return;
     this.pickHeld = true;
+    this.rt.pickHeld = true;
     this.multiple = shift;
     this.events = true;
     // Selectables are found now, so the press acts on what is under the crosshair.
@@ -85,6 +86,7 @@ export class Controls {
   releasePick(): void {
     if (!this.pickHeld) return;
     this.pickHeld = false;
+    this.rt.pickHeld = false;
     this.events = true;
     this.rt.setSelectables();
     this.vm.storeInstruction(

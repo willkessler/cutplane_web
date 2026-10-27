@@ -51,12 +51,15 @@ const PRIMS_D = TOOLBOX_DEPTH;
 const PRIMS_MARGIN = PRIMS_H / 5;
 const PRIMS_RES = 72; // 14 in 1991, when polygons were dear
 /**
- * New here: how big something dropped in the primitives box is shown there at most (its
- * longest side), so a good few fit above it. Stamped out, a copy is its own size again.
+ * New here: how big something dropped in the primitives box is shown there, bigger or
+ * smaller: as wide or tall as the 1991 cube and sphere beside it, seen from the front (by
+ * its depth too, a long thing end on was a speck). Stamped out, a copy is its own size again.
  */
-const ADDED_FIT = PRIMS_H / 2;
-/** New here: a copy over the box that would take its primitive out of it is shown in red. */
+const ADDED_FIT = PRIMS_W;
+/** New here: a copy over the box that would take its primitive out of it is shown in red... */
 const UNSTOCK_RED: Rgb = [255, 0, 0];
+/** ...anything else, that would go in as a new primitive, blue. */
+const STOCK_BLUE: Rgb = [40, 110, 255];
 /** Maxcrossx, Mincrossy, Minplanez. */
 const MAX_X = 510;
 const MIN_Y = -382;
@@ -411,35 +414,39 @@ function stockedAs(rt: Runtime, box: CutObject, thing: CutObject): CutObject | n
   return null;
 }
 
-/** Things tinted red over the box, with their own colours. */
+/** Things tinted over the box, with their own colours. */
 const tinted = new WeakMap<Runtime, Map<CutObject, Rgb>>();
 
 /**
- * Each frame: a copy of a dropped-in primitive held over the primitives box shows red
- * (let go there, it takes that primitive out of the box); anything else its own colour.
+ * Each frame: a thing of the world held over the primitives box shows what letting go
+ * there will do. A copy of a dropped-in primitive is red (it takes that primitive out of
+ * the box); anything else blue (it goes in as a new one). Otherwise, its own colour.
  */
-function tintUnstocking(rt: Runtime, box: CutObject): void {
+function tintStocking(rt: Runtime, box: CutObject): void {
   let was = tinted.get(rt);
   if (!was) tinted.set(rt, (was = new Map()));
-  const red = new Set<CutObject>();
-  if (rt.vm.props.has(box, P.Selectable))
+  const tint = new Map<CutObject, Rgb>();
+  if (rt.pickHeld && rt.vm.props.has(box, P.Selectable))
     for (const f of rt.picked()) {
       if (!isObject(f)) continue;
+      // (Not the box itself dragged, nor what's in it: those are of the room.)
       const thing = thingOf(rt, f);
-      if (stockedAs(rt, box, thing)) for (const x of subtree(thing)) red.add(x);
+      if (rt.worldOf(thing) !== rt.primary) continue;
+      const color = stockedAs(rt, box, thing) ? UNSTOCK_RED : STOCK_BLUE;
+      for (const x of subtree(thing)) tint.set(x, color);
     }
   for (const [o, c] of was)
-    if (!red.has(o)) {
+    if (!tint.has(o)) {
       was.delete(o);
       o.color = c;
       rt.changed(o);
     }
-  for (const o of red)
-    if (!was.has(o)) {
-      was.set(o, [...o.color] as Rgb);
-      o.color = [...UNSTOCK_RED] as Rgb;
-      rt.changed(o);
-    }
+  for (const [o, color] of tint) {
+    if (!was.has(o)) was.set(o, [...o.color] as Rgb);
+    if (o.color.every((c, k) => c === color[k])) continue;
+    o.color = [...color] as Rgb;
+    rt.changed(o);
+  }
 }
 
 /** A primitive dropped in the box, for the room kept from one visit to the next. */
@@ -474,7 +481,7 @@ export function restockPrims(rt: Runtime, prims: readonly AddedPrim[]): void {
 export const TOOLBOX_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>> = {
   /**
    * New here, CPL_shrink_prim: (things) — each dropped in the primitives box (toolbox.cpl's
-   * Dunk_prim) made small enough to stack up with the others there.
+   * Dunk_prim) made the size of the 1991 ones, bigger or smaller, to stack up with them.
    */
   shrink_prim(rt, vm) {
     const things = new Set(
@@ -486,9 +493,10 @@ export const TOOLBOX_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void
     for (const thing of things) {
       if (added.has(thing)) continue;
       const b = rt.branchBox(thing);
-      const size = b ? Math.max(...[0, 1, 2].map((k) => b[1][k]! - b[0][k]!)) : 0;
-      const scale = size > ADDED_FIT ? ADDED_FIT / size : 1;
-      if (b && scale < 1) {
+      const s = b ? [0, 1, 2].map((k) => b[1][k]! - b[0][k]!) : [0, 0, 0];
+      const front = Math.max(s[0]!, s[1]!);
+      const scale = front > 0 ? ADDED_FIT / front : 1;
+      if (b && scale !== 1) {
         const mid = [0, 1, 2].map((k) => (b[0][k]! + b[1][k]!) / 2) as V3;
         rt.scaleBranch(thing, mid, [scale, scale, scale]);
       }
@@ -580,7 +588,10 @@ export const TOOLBOX_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void
         width = Math.max(width, w);
         top[1] += h + PRIMS_MARGIN;
         const primTop: V3 = [(pb[0][0] + pb[1][0]) / 2, pb[1][1], (pb[0][2] + pb[1][2]) / 2];
-        rt.translate(prim, [top[0] - primTop[0], top[1] - primTop[1], top[2] - primTop[2]]);
+        // (New: something deep dropped in stood forward, its back where the box's is, as
+        // the 1991 ones' are: centred on the box, it went through the back wall.)
+        const z = added.has(prim) ? Math.max(top[2], bb[0][2] + (pb[1][2] - pb[0][2]) / 2) : top[2];
+        rt.translate(prim, [top[0] - primTop[0], top[1] - primTop[1], z - primTop[2]]);
       }
     }
     vm.push(rec);
@@ -655,7 +666,7 @@ export function installToolboxes(
 ): { prims: CutObject; goodies: CutObject; colorControl: ColorControl } {
   rt.registerCrtns(TOOLBOX_CRTNS);
   const prims = setupPrimsToolbox(rt);
-  rt.frameHooks.push(() => tintUnstocking(rt, prims));
+  rt.frameHooks.push(() => tintStocking(rt, prims));
   const { toolbox: goodies, colorControl } = setupGoodiesToolbox(rt, source);
   rt.vm.resolveObjectRefs();
   return { prims, goodies, colorControl };

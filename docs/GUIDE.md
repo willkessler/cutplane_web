@@ -213,8 +213,9 @@ second), the **grabber** (always picks whole objects), the **ruler**, and the **
 The **toolboxes** stand on the floor at the back (Space takes the plane there). Click one to open
 it. The primitives box holds a cube, cylinder, cone, sphere and pyramid: press on one and a copy
 comes out, picked, to carry forward into the world. Drop something of your own on it (a group
-too) and it goes in as a primitive of its own, shown smaller, to stamp out copies of its own size.
-To take it out again, drop one of its copies back on the box: the copy turns red over the box, and
+too): held over the box it turns blue, and let go it goes in as a primitive of its own, shown
+as wide or tall as the built-in ones, to stamp out copies of its own size. To take it out again, drop
+one of its copies back on the box: the copy turns red over the box, and
 when you let go it goes back where you picked it up and the primitive is gone from the box (the
 five built-in ones always stay). The goodies box holds a camera (section 7), a
 light bulb and the colour control (three bars and a paint chip: drag a bar and what is picked takes

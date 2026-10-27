@@ -7,8 +7,9 @@
 ;	it is hidden with the box and stamps the group (stamp.cpl). The original
 ;	marked only the group's root, leaving its parts showing by the box, with
 ;	no code to take them out again. And what is dunked as a primitive is
-;	made smaller, to stack up with the others (shrink_prim), and unselected
-;	(it stayed selectable, hidden, and stamped at the next press anywhere).
+;	made the size of the others, to stack up with them (shrink_prim), and unselected
+;	(it stayed selectable, hidden, and stamped at the next press anywhere);
+;	dropped in an open box, it shows there at once.
 ;	Changes marked
 ;	"cutplane_web".
 
@@ -107,13 +108,23 @@ Dunk_prim	POP	A:R9
 		UNSEL	A:R8*
 ;		 cutplane_web: unselected, as Close_toolbox does what it hides (it was
 ;		 selectable where it was let go: the next press anywhere stamped it);
-;		 and shown small enough to stack up with the others
+;		 and shown the size of the others, to stack up with them
 _Dunk_prim_in	UNSEL	A:R9*
 		PUSH	A:R9
 		CRTN	Crtn:shrink_prim
 		PUSH	A:R9
 		JSR	A:Dunk&
-		RTS
+;		 cutplane_web: dropped in an open box, shown there at once, stacked
+;		 with the others (it was hidden until the box was closed and opened)
+		HASPROP	A:R1*,Prop:Toolboxopen,A:R8,Const:Self
+		BEMPTY	A:R8,A:_Dunk_prim_end&
+		DESCEND	A:R1*,A:R8
+		ADDPROP	A:R8*,Prop:Visible
+		PUSH	A:R1
+		CRTN	Crtn:arrange_prims
+		POP	A:R8
+		UPDATE	A:R1*,Const:UComputebboxflag/when:Now
+_Dunk_prim_end	RTS
 
 ; =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 ;  Main toolbox code starts here
