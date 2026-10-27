@@ -19,6 +19,8 @@ const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
  * The line the things in `boxes` (picked first, first) are put on: through the middles
  * of the two farthest apart, the ends. Within ALIGN_SQUARE of a world axis, it's
  * squared to it, through the end picked first: that end stays put, the rest come to it.
+ * Two are squared to the axis they are most along, however far off it: the line
+ * through the two alone left them where they were, so A did nothing.
  */
 function lineOf(boxes: readonly Box[]): { at: V3; dir: V3 } | null {
   const mids = boxes.map(mid);
@@ -35,12 +37,12 @@ function lineOf(boxes: readonly Box[]): { at: V3; dir: V3 } | null {
   const a = mids[ends[0]]!;
   const b = mids[ends[1]]!;
   const dir: V3 = [(b[0] - a[0]) / far, (b[1] - a[1]) / far, (b[2] - a[2]) / far];
-  for (let k = 0; k < 3; k++)
-    if (Math.abs(dir[k]!) > Math.cos(ALIGN_SQUARE)) {
-      const axis: V3 = [0, 0, 0];
-      axis[k] = Math.sign(dir[k]!);
-      return { at: a, dir: axis };
-    }
+  const k = [0, 1, 2].reduce((m, i) => (Math.abs(dir[i]!) > Math.abs(dir[m]!) ? i : m), 0);
+  if (boxes.length === 2 || Math.abs(dir[k]!) > Math.cos(ALIGN_SQUARE)) {
+    const axis: V3 = [0, 0, 0];
+    axis[k] = Math.sign(dir[k]!);
+    return { at: a, dir: axis };
+  }
   return { at: a, dir };
 }
 

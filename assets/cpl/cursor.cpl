@@ -4,7 +4,8 @@
 ;	the jump, and the host sends Glideplane each frame with that frame's share.
 ;	A click on a pad, plate or tool doesn't unpick what is picked.
 ;	Jumps alternate between the back wall and the front: back, return, front,
-;	return (the original only ever jumped to the back wall).
+;	return (the original only ever jumped to the back wall). A marquee
+;	picks what it takes in even partly, not only what it wholly encloses.
 
 ;
 ;		CPL Cursor Code
@@ -271,21 +272,21 @@ _Finish_marquee	OWNER	A:R1,Const:Motherobj
 		REMPROP	A:R1*,Prop:Marqueeing
 		REMPROP	A:R1*,Prop:Active
 		WORLD	Const:WPrimary_world
-		WITHIN	A:_Thismarquee*,Prop:Visible*,A:R2 ; (Primary world vis.)
-		WORLD	Const:WEnvironment_world
-;		 cutplane_web: with the group tool in hand, what the marquee
-;		 takes in even partly, and not picked: the tool groups it, and
-;		 the group is picked (picks arriving after would pick the parts
-;		 inside it too, each with its scale box)
-		AND	Prop:Active*,Prop:Group*,A:R4
-		BEMPTY	A:R4,A:_Pick_marqueed&
-		WORLD	Const:WPrimary_world
+;		WITHIN	A:_Thismarquee*,Prop:Visible*,A:R2 ; (Primary world vis.)
+;		 cutplane_web: what the marquee takes in even partly, as in drawing
+;		 programs (WITHIN wanted it wholly inside: hard to do, and on the
+;		 floor, where the crosshair stops, never quite)
 		MOVE	Prop:Visible*,A:R4
 		PUSH	A:_Thismarquee
 		PUSH	A:R4
 		CRTN	Crtn:touching_marquee
 		POP	A:R2
 		WORLD	Const:WEnvironment_world
+;		 cutplane_web: with the group tool in hand, not picked: the tool
+;		 groups it, and the group is picked (picks arriving after would
+;		 pick the parts inside it too, each with its scale box)
+		AND	Prop:Active*,Prop:Group*,A:R4
+		BEMPTY	A:R4,A:_Pick_marqueed&
 		ANCEST	A:R2*,A:R3
 		JUMP	A:_Send_marqueed&
 _Pick_marqueed	ANCEST	A:R2*,A:R3

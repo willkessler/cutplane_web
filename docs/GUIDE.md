@@ -82,8 +82,8 @@ on single faces again.
 **Press and drag** to move what is picked. It follows the crosshair in the plane; hold ⌥ while
 dragging to carry it in depth too. (A trackpad can't swipe mid-drag: while it's pressed, macOS
 sends no scrolling, so ⌥ is the way to carry things in depth there.) **Shift-click** adds to what is picked or takes something away.
-**Press on empty space and drag** to draw a **marquee**: a box that picks the objects inside it
-(move the plane while dragging for a 3D box). **⌘A** picks everything; **⌫** deletes what is
+**Press on empty space and drag** to draw a **marquee**: a box that picks the objects it takes
+in, even partly (move the plane while dragging for a 3D box). **⌘A** picks everything; **⌫** deletes what is
 picked. **⌘Z** undoes, one drag at a time, and **⇧⌘Z** redoes.
 
 Try it: choose **New cube** from the model menu, put the plane through the cube (⌥ and move), and
@@ -121,9 +121,11 @@ so the cube above has grown a box out of its right side. Push it back and the wa
   as a plan's pieces, into one face).
 - **Lining up and spacing out.** Pick several things and press **A**: each one's middle comes
   onto the line between the two farthest apart. If that line is nearly level, upright or
-  straight in depth, it's squared up, through the end you picked first. **Shift-A** leaves
-  those two ends where they are and spaces the rest out between them with even gaps, however
-  big each one is. It only moves them along the line, so press A first to put them on it.
+  straight in depth, it's squared up, through the end you picked first. Two things are lined
+  up level, upright or in depth, whichever they're most apart in, the second coming to the
+  first. **Shift-A** leaves those two ends where they are and spaces the rest out between them
+  with even gaps, however big each one is, so it needs three or more. It only moves them
+  along the line, so press A first to put them on it.
 - **Repeating with D.** A copy lands 100 right and 100 up. Move it to where the next should be,
   and press **D** again: the new copy goes on from it by the same step, and so on, for a row of
   struts at even spacing. Turn the copy as well and each next one turns as much again, so a
@@ -138,6 +140,14 @@ so the cube above has grown a box out of its right side. Push it back and the wa
   the plane: drag a turned cylinder's copy, taken back in depth, and its middle holds where that
   axis passes through, the two on one axis again. With **Ctrl**'s axis lock, only the lines square across the axis it locks to hold. The goodies in the boxes don't count, and rolling
   or dialling with the rotate tool doesn't use them.
+- **Lining up in depth.** Carry something in depth (the wheel, or a plane drag, while you hold
+  it) and it holds where its middle, front or back comes level in depth with the middle, front
+  or back of one of the things nearest it: two blocks' middles at one depth, their fronts or
+  backs flush, or one's front against the other's back. The plane stops there, and a dashed line
+  runs at that depth through both middles. Push on and it comes off again. While you carry
+  something, the plane doesn't stop at faces or corners as it does on its own: only these holds
+  stop it. A drag across, with no move in depth, stays at
+  its depth.
 - **Levels.** A drag also holds where what you drag meets the height of a face lying flat on
   something else, or the place of an upright face square across it. Pull a column's floor face
   up and it stops level with the walls' tops, the level drawn dashed across the room; drag on

@@ -148,3 +148,54 @@ export function levelGuides(levels: readonly Level[], p: V3, half: [number, numb
   }
   return out;
 }
+
+/** New here: a thing near what is carried in depth: its back, middle and front depths, and its middle. */
+export interface DepthMark {
+  depths: readonly [number, number, number];
+  at: V3;
+}
+
+/**
+ * New here: where a thing carried in depth, its back, middle and front at `own`, holds:
+ * the nearest of its middle, back or front coming within `reach` of another's middle,
+ * back or front, or its back of another's front or its front of another's back (touching;
+ * the nearest, middles first). How far it moves to hold,
+ * the depth it holds at, and the thing it holds by.
+ */
+export function depthStop(
+  own: readonly [number, number, number],
+  marks: readonly DepthMark[],
+  reach = GUIDE_REACH,
+): { dz: number; z: number; mark: DepthMark } | null {
+  let best: { dz: number; z: number; mark: DepthMark } | null = null;
+  // Middles first (two the same size, all three lined up, hold by them); then back on
+  // back, front on front, and the two ways of touching. (A face at a middle held so
+  // often, between the others, that the one wanted was hard to find.)
+  const pairs = [
+    [1, 1],
+    [0, 0],
+    [2, 2],
+    [0, 2],
+    [2, 0],
+  ] as const;
+  for (const mark of marks)
+    for (const [i, j] of pairs) {
+      const t = mark.depths[i];
+      const dz = t - own[j];
+      if (Math.abs(dz) < reach && (!best || Math.abs(dz) < Math.abs(best.dz)))
+        best = { dz, z: t, mark };
+    }
+  return best;
+}
+
+/**
+ * New here: the guide drawn for a depth hold: at depth `z`, through the middle of the
+ * thing held by (`by`) and the carried one's (`p`), as seen from in front; across if
+ * one is straight behind the other.
+ */
+export function depthGuide(by: V3, p: V3, z: number): GuideLine {
+  const dx = p[0] - by[0];
+  const dy = p[1] - by[1];
+  const l = Math.hypot(dx, dy);
+  return { at: [by[0], by[1], z], dir: l > 1e-6 ? [dx / l, dy / l, 0] : [1, 0, 0], from: by };
+}

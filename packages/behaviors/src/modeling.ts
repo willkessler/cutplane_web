@@ -9,7 +9,15 @@ import {
   type ResultShell,
 } from '@cutplane/booleans';
 import { joinRegions, type P2 } from '@cutplane/formats';
-import { Brep, buildShell, groupRoot, mat4, subtree, type CutObject } from '@cutplane/kernel';
+import {
+  Brep,
+  buildShell,
+  groupRoot,
+  mat4,
+  subtree,
+  type CutObject,
+  type SectionLoop,
+} from '@cutplane/kernel';
 import { isObject, isSub, type WorldFeature } from './features.ts';
 import type { Runtime } from './runtime.ts';
 
@@ -317,8 +325,10 @@ export const MODELING_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => voi
 
   /**
    * CPL_touching_marquee (new): (marquee, objects) → those of the objects the
-   * marquee's box takes in at least partly (the group tool's marquee; WITHIN wants
-   * them wholly inside).
+   * marquee takes in at least partly: some of their section at the plane, or, the
+   * plane not cutting them through, their box (a thing lying flat in it). Every
+   * marquee picks so (cursor.cpl), as drawing programs do; WITHIN wanted them wholly
+   * inside, hard to do, and on the floor, where the crosshair stops, never quite.
    */
   touching_marquee(rt, vm) {
     const objects = (vm.pop().list ?? []).map(objectOf).filter((o) => o !== null);
@@ -333,7 +343,10 @@ export const MODELING_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => voi
     const touching = objects.filter((o) => {
       if (o === marquee || o.brep.numFaces === 0 || rt.hasProp(o, 'Scalebbox')) return false;
       const b = rt.bbox(o);
-      return b !== null && [0, 1, 2].every((k) => b[0][k]! <= hi[k]! && b[1][k]! >= lo[k]!);
+      if (b === null || ![0, 1, 2].every((k) => b[0][k]! <= hi[k]! && b[1][k]! >= lo[k]!))
+        return false;
+      const loops = rt.section(o)?.loops ?? [];
+      return loops.length === 0 || sectionTouches(loops, lo, hi);
     });
     vm.push(featuresWord(...touching));
   },
@@ -355,3 +368,52 @@ export const MODELING_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => voi
     if (roots.size > 0) rt.dropper?.([...roots]);
   },
 };
+
+/**
+ * Whether a section's loops (x and y; at the plane) meet the box from `lo` to `hi`:
+ * a point of them in it, an edge of them across it, or the box inside them.
+ */
+function sectionTouches(
+  loops: readonly SectionLoop[],
+  lo: readonly number[],
+  hi: readonly number[],
+): boolean {
+  const inBox = (x: number, y: number) => x >= lo[0]! && x <= hi[0]! && y >= lo[1]! && y <= hi[1]!;
+  const corners: [number, number][] = [
+    [lo[0]!, lo[1]!],
+    [hi[0]!, lo[1]!],
+    [hi[0]!, hi[1]!],
+    [lo[0]!, hi[1]!],
+  ];
+  // Whether p–q and r–s cross (or touch).
+  const side = (ax: number, ay: number, bx: number, by: number, cx: number, cy: number) =>
+    Math.sign((bx - ax) * (cy - ay) - (by - ay) * (cx - ax));
+  const cross = (p: number[], q: number[], r: number[], t: number[]) =>
+    side(p[0]!, p[1]!, q[0]!, q[1]!, r[0]!, r[1]!) *
+      side(p[0]!, p[1]!, q[0]!, q[1]!, t[0]!, t[1]!) <=
+      0 &&
+    side(r[0]!, r[1]!, t[0]!, t[1]!, p[0]!, p[1]!) *
+      side(r[0]!, r[1]!, t[0]!, t[1]!, q[0]!, q[1]!) <=
+      0;
+  const [cx, cy] = [(lo[0]! + hi[0]!) / 2, (lo[1]! + hi[1]!) / 2];
+  let around = false;
+  for (const l of loops) {
+    const p = l.points;
+    const n = p.length / 3;
+    for (let i = 0; i < n; i++) {
+      if (inBox(p[3 * i]!, p[3 * i + 1]!)) return true;
+      if (i === n - 1 && !l.closed) break;
+      const j = (i + 1) % n;
+      const a = [p[3 * i]!, p[3 * i + 1]!];
+      const b = [p[3 * j]!, p[3 * j + 1]!];
+      for (let k = 0; k < 4; k++) if (cross(a, b, corners[k]!, corners[(k + 1) % 4]!)) return true;
+      // The box's middle inside the loops (crossings to its right, even-odd).
+      if (
+        a[1]! > cy !== b[1]! > cy &&
+        cx < a[0]! + ((cy - a[1]!) * (b[0]! - a[0]!)) / (b[1]! - a[1]!)
+      )
+        around = !around;
+    }
+  }
+  return around;
+}

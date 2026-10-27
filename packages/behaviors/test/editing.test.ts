@@ -203,6 +203,42 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     ).toBe(false);
   });
 
+  it('a marquee picks what it takes in even partly (new: the original wanted it wholly inside)', () => {
+    const { rt, cube, controls, frame, at, move } = world();
+    const other = createObject(createCube(200, 200, 200), { xform: mat4.translation(200, 150, -100) }); // prettier-ignore
+    other.attrs.props = ['Visible'];
+    rt.importObjects(rt.primary, [other]);
+    // From above the first cube's right half to below the other's left half.
+    at(0, 380, 0);
+    controls.pressPick(false);
+    frame();
+    move(250, -500);
+    controls.releasePick();
+    frame();
+    expect(new Set(rt.picked())).toEqual(new Set([cube, other]));
+  });
+
+  it("a marquee by a turned thing, in its box but not on it, doesn't pick it", () => {
+    const { rt, cube, controls, frame, at, move } = world();
+    rt.transformBranch(cube, mat4.rotationAbout([0, 0, 0], [0, 0, 1], Math.PI / 4));
+    // The diamond's box reaches 141 each way; its corner at (110..140, 110..140) is empty.
+    at(110, 110, 0);
+    controls.pressPick(false);
+    frame();
+    move(30, 30);
+    controls.releasePick();
+    frame();
+    expect(rt.picked()).toEqual([]);
+    // One reaching onto it does.
+    at(130, 130, 0);
+    controls.pressPick(false);
+    frame();
+    move(-90, -90);
+    controls.releasePick();
+    frame();
+    expect(rt.picked()).toEqual([cube]);
+  });
+
   it('a click on nothing drops what was picked', () => {
     const { rt, controls, frame, at } = world();
     at(0, 0, 0);

@@ -748,6 +748,95 @@ test('a thing dragged near another’s line holds on it, the line drawn; let go,
   expect(errors).toEqual([]);
 });
 
+test('carried in depth, a thing holds where its middle, front or back meets another’s, the line drawn', async ({
+  page,
+  browserName,
+}) => {
+  test.setTimeout(60_000);
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  await press(page);
+  await release(page);
+  await page.keyboard.press('KeyD'); // the copy, its middle at (100, 100, 0)
+  const guidesOf = () => page.evaluate(() => window.__cutplane!.guides());
+  const z = async () => (await page.evaluate(() => window.__cutplane!.state())).z;
+  /** The plane pushed `dz` from where it is (a wheel's or a plane drag's step). */
+  const push = async (dz: number) => set(page, { z: (await z()) + dz });
+  // Taken at (150, 150) and carried to the right, clear of the cube's lines.
+  await set(page, { x: 150, y: 150 });
+  await press(page);
+  for (const x of [250, 350, 400]) await set(page, { x, y: 150 });
+  expect(await guidesOf()).toEqual([]);
+  // Carried 30 back: nothing meets.
+  await push(-30);
+  expect(await z()).toBeCloseTo(-30, 6);
+  expect(await guidesOf()).toEqual([]);
+  // To 6 off the cube's depth: it holds there, the middles at one depth, the line drawn at it.
+  await push(24);
+  expect(await z()).toBe(0);
+  const on = await guidesOf();
+  expect(on).toHaveLength(1);
+  expect(on[0]!.at[2]).toBe(0);
+  expect(on[0]!.dir[2]).toBe(0);
+  await shot(page, 'depth-guide', browserName);
+  // Pushed on, past the hold, it lets go; back, it holds again.
+  await push(-10);
+  expect(await z()).toBeCloseTo(-16, 6);
+  expect(await guidesOf()).toEqual([]);
+  await push(10);
+  expect(await z()).toBe(0);
+  // Further back, its front meets the cube's back (100 behind): held there, touching.
+  await push(-190);
+  expect(await z()).toBe(-200);
+  expect((await guidesOf())[0]!.at[2]).toBe(-100);
+  await push(196);
+  expect(await z()).toBe(0);
+  await release(page);
+  expect(await guidesOf()).toEqual([]);
+  const copy = (await falls(page)).mids.reduce((a, b) => (b[0]! > a[0]! ? b : a));
+  expect(copy[2]!).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+test('carried in depth by the wheel, the plane stops only where the thing lines up, not at faces', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  await press(page);
+  await release(page);
+  await page.keyboard.press('KeyD'); // the copy, its middle at (100, 100, 0)
+  await set(page, { x: 150, y: 150 });
+  await press(page);
+  for (const x of [250, 350, 400]) await set(page, { x, y: 150 });
+  const box = (await page.locator('#viewport').boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  // Back, a wheel's step at a time (about 6 deep each), to 250 back.
+  const zs: number[] = [];
+  for (let i = 0; i < 40; i++) {
+    zs.push(
+      await page.evaluate(() => {
+        const c = window.__cutplane!;
+        document
+          .querySelector('#viewport')!
+          .dispatchEvent(
+            new WheelEvent('wheel', { deltaY: 4, deltaMode: 0, bubbles: true, cancelable: true }),
+          );
+        c.renderFrame(performance.now());
+        return Math.round(c.state().z * 10) / 10;
+      }),
+    );
+  }
+  await release(page);
+  // It holds with its middle at the cube's (0) and its front at the cube's back (-200), and
+  // never stops where the cube's back face, or its own as it was, is (-100: the plane's stops).
+  expect(zs).toContain(0);
+  expect(zs).toContain(-200);
+  expect(zs).not.toContain(-100);
+  expect(errors).toEqual([]);
+});
+
 test('A lines up what is picked, Shift-A spaces it out evenly; undo, one at a time', async ({
   page,
 }) => {

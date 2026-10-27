@@ -1,6 +1,8 @@
 import { DEPTH_MERGE, FINE, ROOM, type CutObject } from '@cutplane/kernel';
 import { P } from '@cutplane/cpl';
 import {
+  depthGuide,
+  depthStop,
   flatGuides,
   guideLines,
   guideStop,
@@ -39,6 +41,8 @@ const SQUARE = 0.99;
 export class DragGuides {
   /** The guides held on now. */
   on: GuideLine[] = [];
+  /** The depth guide held on now (new: carried in depth, lining up with another). */
+  deep: GuideLine | null = null;
   readonly view = new Lines({
     color: [255, 214, 40],
     width: 1.5,
@@ -71,9 +75,45 @@ export class DragGuides {
     return stop ? [free[0] + stop.move[0], free[1] + stop.move[1]] : [free[0], free[1]];
   }
 
-  /** No drag: no guides. */
+  /**
+   * Each frame of a drag of what is picked: the depth the plane goes to (what is picked
+   * going with it), given where the user has it (`free`) and where it is (`at`): the
+   * same, or held where the dragged thing's back, middle or front meets another's.
+   */
+  holdDepth(free: number, at: V3): number {
+    this.deep = null;
+    const picked = this.rt.picked();
+    const whole = picked.length === 1 && isObject(picked[0]!) ? (picked[0] as CutObject) : null;
+    const box = whole ? this.rt.branchBox(whole) : this.rt.draggedBox();
+    if (box) {
+      const dz = free - at[2];
+      const own: [number, number, number] = [box[0][2] + dz, (box[0][2] + box[1][2]) / 2 + dz, box[1][2] + dz]; // prettier-ignore
+      const p = mid(box);
+      const except = whole ? branch(whole) : new Set(this.rt.dragging());
+      const marks = this.nearest(except, p).map(({ b, at: c }) => ({
+        depths: [b[0][2], c[2], b[1][2]] as const,
+        at: c,
+      }));
+      const stop = depthStop(own, marks);
+      if (stop) {
+        this.deep = depthGuide(stop.mark.at, p, stop.z);
+        this.draw();
+        return free + stop.dz;
+      }
+    }
+    this.draw();
+    return free;
+  }
+
+  /** No drag across: no guides across. */
   clear(): void {
     this.on = [];
+    this.draw();
+  }
+
+  /** Nothing carried in depth: no depth guide. */
+  clearDepth(): void {
+    this.deep = null;
     this.draw();
   }
 
@@ -101,20 +141,25 @@ export class DragGuides {
     return guideStop(p, across);
   }
 
-  /** The lines through the middles of the things nearest `root`, its middle about to be at `p`. */
-  private middles(root: CutObject, p: V3): GuideLine[] {
-    // The things nearest it in the world being made (not the boxes' goodies, which
-    // stand in the room): each a group's root or an object on its own.
-    const near: { o: CutObject; at: V3; d: number }[] = [];
+  /**
+   * The things nearest `p` in the world being made but those in `except` (not the boxes'
+   * goodies, which stand in the room): each a group's root or an object on its own.
+   */
+  private nearest(except: Set<CutObject>, p: V3) {
+    const near: { o: CutObject; b: [V3, V3]; at: V3; d: number }[] = [];
     for (const o of this.rt.primary.root.children) {
-      if (o === root || isScaleBox(this.rt, o) || !this.rt.vm.props.has(o, P.Visible)) continue;
+      if (except.has(o) || isScaleBox(this.rt, o) || !this.rt.vm.props.has(o, P.Visible)) continue;
       const b = this.rt.branchBox(o);
       if (!b) continue;
       const c = mid(b);
-      near.push({ o, at: c, d: Math.hypot(c[0] - p[0], c[1] - p[1], c[2] - p[2]) });
+      near.push({ o, b, at: c, d: Math.hypot(c[0] - p[0], c[1] - p[1], c[2] - p[2]) });
     }
-    near.sort((a, b) => a.d - b.d);
-    const lines = near.slice(0, GUIDING).flatMap(({ o, at }) => {
+    return near.sort((a, b) => a.d - b.d).slice(0, GUIDING);
+  }
+
+  /** The lines through the middles of the things nearest `root`, its middle about to be at `p`. */
+  private middles(root: CutObject, p: V3): GuideLine[] {
+    const lines = this.nearest(new Set([root]), p).flatMap(({ o, at }) => {
       const x = o.xform;
       return guideLines(at, [
         [x[0]!, x[1]!, x[2]!],
@@ -162,11 +207,12 @@ export class DragGuides {
 
   /** Each guide held on, across the room. */
   private draw(): void {
-    const key = JSON.stringify(this.on);
+    const all = this.deep ? [...this.on, this.deep] : this.on;
+    const key = JSON.stringify(all);
     if (key === this.shown) return;
     this.shown = key;
     const out: number[] = [];
-    for (const { at: through, dir, show } of this.on) {
+    for (const { at: through, dir, show } of all) {
       const at = show ?? through;
       // Where the line enters and leaves the room's box.
       let lo = -Infinity;
@@ -184,7 +230,7 @@ export class DragGuides {
     }
     // From each thing's middle at another depth, straight to the plane: which it is.
     const ticks = new Set<V3>();
-    for (const { at: through, from, show } of this.on) {
+    for (const { at: through, from, show } of all) {
       const at = show ?? through;
       if (from && Math.abs(from[2] - at[2]) > 1 && !ticks.has(from)) {
         ticks.add(from);

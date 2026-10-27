@@ -30,6 +30,14 @@ describe('A and Shift-A (new here: lining up, spacing out evenly)', () => {
     near(alignMoves([box([0, 0, 0]), box([5, 300, 8])])![1]!, [-5, 0, -8]);
   });
 
+  it('two far off any axis line up along the one they are most along, the first staying', () => {
+    // 270 across and 220 up (the line through the two alone would leave them be).
+    const m = alignMoves([box([0, 0, 0]), box([270, 220, -6])])!;
+    near(m[0]!, [0, 0, 0]);
+    near(m[1]!, [0, -220, 6]);
+    near(alignMoves([box([0, 0, 0]), box([200, 250, 0])])![1]!, [-200, 0, 0]);
+  });
+
   it('Shift-A leaves the ends and spaces the rest between them, gaps even, sizes and all', () => {
     // A big one (200) and two small: 750 across with 400 of things, gaps of 175.
     const m = distributeMoves([box([0, 0, 0], 200), box([600, 0, 0]), box([200, 0, 0])])!;

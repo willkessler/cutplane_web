@@ -67,6 +67,13 @@ export class Controller {
    * keeps the scaling even itself, and puts the crosshair on its corner's path.
    */
   unlocked = false;
+  /**
+   * New here: something picked is carried with the plane. Its stops are off then: they are
+   * the depths of what was there before the drag (the carried thing's own faces too), and
+   * a stop holds the plane, not the carried thing's faces; the depth holds (DragGuides)
+   * line it up instead.
+   */
+  carrying = false;
 
   constructor(held: Held) {
     this.held = held;
@@ -134,7 +141,7 @@ export class Controller {
   }
 
   pushPlane(dz: number): void {
-    this.plane.move(dz, this.held.ctrl);
+    this.plane.move(dz, this.held.ctrl || this.carrying);
     this.jumpedFrom = undefined;
   }
 

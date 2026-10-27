@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  depthGuide,
+  depthStop,
   flatGuides,
   guideLines,
   guideStop,
@@ -107,6 +109,31 @@ describe('guides (new here: a dragged thing holds on lines through things near i
       // Its right side (10 across) at 50, its middle at 100.
       near(stop.move, [3, 4]);
       expect(stop.on).toHaveLength(2);
+    });
+  });
+
+  describe('in depth', () => {
+    const cube = { depths: [-100, 0, 100] as const, at: [0, 0, 0] as V3 };
+    it('a thing carried in depth holds with its middle at another’s, the nearest, middles first', () => {
+      // The same size, 6 off: all three meet, and the middles hold.
+      const s = depthStop([-106, -6, 94], [cube])!;
+      expect(s.dz).toBe(6);
+      expect(s.z).toBe(0);
+      // Nothing within reach: none.
+      expect(depthStop([-130, -30, 70], [cube])).toBeNull();
+    });
+
+    it('or its front at another’s back, touching, or a small one’s front at a big one’s', () => {
+      expect(depthStop([-296, -196, -96], [cube])).toMatchObject({ dz: -4, z: -100 });
+      expect(depthStop([75, 85, 95], [cube])).toMatchObject({ dz: 5, z: 100 });
+    });
+
+    it('its line runs at that depth through both middles, as seen from in front', () => {
+      const g = depthGuide([0, 0, 0], [300, 400, -6], -100);
+      near(g.at, [0, 0, -100]);
+      near(g.dir, [0.6, 0.8, 0]);
+      // One straight behind the other: across.
+      near(depthGuide([0, 0, 0], [0, 0, -300], -100).dir, [1, 0, 0]);
     });
   });
 });

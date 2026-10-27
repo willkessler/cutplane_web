@@ -876,6 +876,7 @@ function step(): void {
   }
   controls.setConstrain(held.ctrl);
   controls.glide(performance.now()); // a plane jump under way
+  holdDepth();
   const d: V3 = [control.x - stage.x, control.y - stage.y, control.z - stage.z];
   // New here: a copy dragged holds on its guides (the crosshair stays where the user has
   // it, so it comes off again); let go, the crosshair is where the copy held.
@@ -949,6 +950,36 @@ let lastLight = '';
  * A drag of what is picked, by hand (no tool, not the plane): the guides' to hold. With Ctrl,
  * once its axis lock has chosen an axis, only the guides square across it.
  */
+/**
+ * New here: what is picked, carried in depth, holds where its back, middle or front meets
+ * another's (DragGuides.holdDepth); the user's own depth goes on underneath (`deep.free`),
+ * so pushing on takes it off again, as a guide across does. Only once the drag has gone
+ * in depth: a drag across stays at its depth.
+ */
+let deep: { start: number; free: number; held: number } | null = null;
+function holdDepth(): void {
+  const carrying =
+    controls.pickHeld &&
+    !controls.pressedRoom &&
+    rt.picked().length > 0 &&
+    !rt.cursorObj.children.some((c) => rt.hasProp(c, 'Tool'));
+  control.carrying = carrying;
+  if (!carrying) {
+    deep = null;
+    if (guides.deep) guides.clearDepth();
+    return;
+  }
+  deep ??= { start: stage.z, free: stage.z, held: stage.z };
+  deep.free += control.z - deep.held;
+  const z =
+    Math.abs(deep.free - deep.start) > 1e-9
+      ? guides.holdDepth(deep.free, [stage.x, stage.y, stage.z])
+      : deep.free;
+  if (Math.abs(deep.free - deep.start) <= 1e-9 && guides.deep) guides.clearDepth();
+  if (z !== control.z) control.plane.set(z);
+  deep.held = z;
+}
+
 function guiding(): boolean {
   return (
     controls.pickHeld &&
@@ -1692,7 +1723,7 @@ declare global {
       saveSession(): number;
       /** Whether the magnet is in hand; a magnet drag's face to snap to (its object's name), and its ghost's box middle. */
       magnet(): { held: boolean; target: string | null; ghost: number[] | null };
-      /** The drag's guide lines held on now (each a point and direction). */
+      /** The drag's guide lines held on now, the depth one last (each a point and direction). */
       guides(): { at: number[]; dir: number[] }[];
       /** Whether anything is falling (the globe), and how far above the floor the world's lowest point is (and each object's). */
       falls(): {
@@ -1950,7 +1981,8 @@ async function start(): Promise<void> {
       render();
       return keysPlate !== null && rt.vm.props.has(keysPlate, P.Visible);
     },
-    guides: () => guides.on.map((g) => ({ at: [...(g.show ?? g.at)], dir: [...g.dir] })),
+    guides: () =>
+      [...guides.on, ...(guides.deep ? [guides.deep] : [])].map((g) => ({ at: [...(g.show ?? g.at)], dir: [...g.dir] })), // prettier-ignore
     magnet: () => {
       const root = magnet.dragged();
       const m = magnet.ghost;

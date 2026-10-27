@@ -27,6 +27,25 @@ New in 2026: none of these were in the 1991 original.
   nothing could take them out; a thing dropped in stayed selectable, hidden, so the next press
   anywhere stamped it out; and only the primitives box takes what's dropped on it (on the goodies
   box a thing stays in the world, where the original made it a primitive there too).
+- **A marquee picks what it takes in, even partly.** As in drawing programs, a marquee that
+  reaches over part of something picks it; the original wanted it wholly inside, which is hard
+  to do, and for things on the floor (the crosshair stops there) never quite happened, so
+  after the globe had dropped them nothing could marquee them. Some of a thing's section at
+  the plane has to be in the marquee, not just its box, so the empty corner of a turned
+  thing's box doesn't pick it.
+- **Lining up in depth.** Guide lines only held a drag across or up and down, so lining two
+  blocks up in depth meant parking the plane on one's front face and watching the other's come
+  flush. Now something carried in depth holds where its middle, front or back comes level in
+  depth with another's (two middles at one depth, fronts or backs flush, or one's front
+  against the other's back), the plane stopping there and a dashed line drawn at that depth
+  through both middles; pushed on, it comes off again. While something is carried, the plane no
+  longer stops at faces and corners as it does on its own: those were where things had been
+  before the drag (the carried thing's own faces too), and they held the plane, not the
+  carried thing's face, so it stopped short of lining up, offset.
+- **A lines up two things.** With just two picked, A did nothing: they already lay on the
+  line through the two of them. Now two line up level, upright or in depth, whichever they're
+  most apart in, the second coming to the first. (Shift-A spaces things out between the two at
+  the ends, so it needs three or more.)
 - **A plane just touching a face tilted a hair no longer draws its hole alone.** A vertex
   within the half-unit tolerance counted as on the plane even when its face didn't lie in it,
   so a face with a hole, tilted a little and touched along one edge, had its hole taken as
