@@ -128,6 +128,17 @@ describe('computeSection', () => {
     for (const l of s.loops) expect(l.closed).toBe(true);
   });
 
+  it('touching the edge of a face tilted a hair, its hole within tolerance, draws no hole alone', () => {
+    // Found by the property below: the hole was taken as on the plane, the face's far side not.
+    const g = new WorldGeometry(
+      createCubeHole(),
+      placement(0.0025000026041740626, 0, 0, [5, -7, 3]),
+    );
+    const s = computeSection(g, g.zMax);
+    for (const l of s.loops) expect(l.closed).toBe(true);
+    expect(Math.abs(totalArea(s))).toBeLessThan(1e-6);
+  });
+
   const solids: [string, () => Brep][] = [
     ['cube', () => createCube(120, 80, 60)],
     ['prism', () => createIsoscelesPrism(70, 90)],

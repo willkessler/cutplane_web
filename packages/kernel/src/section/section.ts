@@ -8,7 +8,7 @@ import { Brep, NONE } from '../topology/brep.ts';
  * never chained them ("sort and break up ring...to be done"). Here:
  *
  * - Every vertex is classified once, as in front (+1), behind (-1) or on the
- *   plane (0, within ON_PLANE). Edges and faces only ever look at those
+ *   plane (0: on it, or within ON_PLANE on a face lying in it). Edges and faces only ever look at those
  *   classes, so the faces sharing an edge always agree about it.
  * - On-plane vertices are treated symbolically as being just in front
  *   (the plane at c - ε). Then every edge either crosses or doesn't, every
@@ -29,6 +29,8 @@ import { Brep, NONE } from '../topology/brep.ts';
  * a unit out of flat, so a face laid in the plane must not be cut by its own drift.
  */
 export const ON_PLANE = 0.5;
+/** Nearer than this, a vertex is on the plane whatever its faces (float noise). */
+const ON_EXACT = 1e-6;
 
 export interface SectionSegment {
   /** The face this segment cuts across. */
@@ -237,9 +239,31 @@ export function computeSection(g: WorldGeometry, c: number): ObjectSection {
   const out: ObjectSection = { loops: [], inPlaneFaces: [], inPlaneEdges: [] };
   if (g.zMin > c + ON_PLANE || g.zMax < c - ON_PLANE) return out;
 
+  // A big brep is looked at only where the plane might meet it.
+  const near = g.near(c);
+  let byShell: Map<number, number[]>;
+  if (near) {
+    byShell = new Map(b.shells().map((sh) => [sh, [] as number[]]));
+    for (const f of near.faces) byShell.get(b.faceShell(f))?.push(f);
+  } else byShell = b.facesByShell();
+
+  // Within ON_PLANE of it, a vertex is on the plane only if a face it is on lies in the
+  // plane, all of it (an old file's drift), or if it is on it. A face tilted a hair,
+  // its hole within ON_PLANE but its far side not, had the hole drawn alone, inside out.
+  const flat = new Set<number>();
+  for (const faces of byShell.values())
+    face: for (const f of faces) {
+      const loops = b.faceLoops(f);
+      for (const l of loops)
+        for (const h of b.loopHalfEdges(l))
+          if (Math.abs(g.z(b.heVertex(h)) - c) > ON_PLANE) continue face;
+      out.inPlaneFaces.push(f);
+      for (const l of loops) for (const h of b.loopHalfEdges(l)) flat.add(b.heVertex(h));
+    }
   const side = (v: number): -1 | 0 | 1 => {
     const d = g.z(v) - c;
-    return d > ON_PLANE ? 1 : d < -ON_PLANE ? -1 : 0;
+    if (Math.abs(d) <= ON_EXACT || (Math.abs(d) <= ON_PLANE && flat.has(v))) return 0;
+    return d > 0 ? 1 : -1;
   };
   // Perturbed class: on-plane is just in front.
   const front = (v: number) => side(v) >= 0;
@@ -256,24 +280,10 @@ export function computeSection(g: WorldGeometry, c: number): ObjectSection {
     return [g.x(p) + t * (g.x(q) - g.x(p)), g.y(p) + t * (g.y(q) - g.y(p)), c];
   };
 
-  // A big brep is looked at only where the plane might meet it.
-  const near = g.near(c);
-  let byShell: Map<number, number[]>;
-  if (near) {
-    byShell = new Map(b.shells().map((sh) => [sh, [] as number[]]));
-    for (const f of near.faces) byShell.get(b.faceShell(f))?.push(f);
-  } else byShell = b.facesByShell();
   for (const [shell, faces] of byShell) {
     const segs: Seg[] = [];
     for (const f of faces) {
       const loops = b.faceLoops(f);
-      let allOn = true;
-      for (const h of b.loopHalfEdges(loops[0]!))
-        if (side(b.heVertex(h)) !== 0) {
-          allOn = false;
-          break;
-        }
-      if (allOn) out.inPlaneFaces.push(f);
 
       const [nx, ny] = g.faceNormal(f);
       // The cut line's direction: material on its left seen from +z.

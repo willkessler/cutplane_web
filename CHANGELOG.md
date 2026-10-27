@@ -27,6 +27,12 @@ New in 2026: none of these were in the 1991 original.
   nothing could take them out; a thing dropped in stayed selectable, hidden, so the next press
   anywhere stamped it out; and only the primitives box takes what's dropped on it (on the goodies
   box a thing stays in the world, where the original made it a primitive there too).
+- **A plane just touching a face tilted a hair no longer draws its hole alone.** A vertex
+  within the half-unit tolerance counted as on the plane even when its face didn't lie in it,
+  so a face with a hole, tilted a little and touched along one edge, had its hole taken as
+  on the plane but its far side not: the section was the hole alone, inside out. Now the
+  tolerance is for faces lying in the plane all over (an old file's drift); other vertices are
+  on it only when they are.
 
 ### October 25, 2026
 
