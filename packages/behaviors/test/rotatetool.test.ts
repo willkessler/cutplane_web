@@ -237,4 +237,22 @@ describe('the rotate tool through rotatecircle, rotatexbar and rotatebauble.cpl'
     w.controls.releasePick();
     w.frame();
   });
+
+  it('a drag along a bar that runs onto its bauble in one move, and lets go there, lets go (cutplane_web)', () => {
+    const w = setup();
+    const active = () => w.rt.vm.props.features(w.rt.environment, P.Active);
+    // The docked tool's vertical bar, 100 up from its lower bauble; one move past the bauble.
+    w.at(ROTATE_DOCK[0], ROTATE_DOCK[1] - ROTATE_RADIUS + 30);
+    w.controls.pressPick(false);
+    w.frame();
+    w.at(ROTATE_DOCK[0], ROTATE_DOCK[1] - ROTATE_RADIUS - 60);
+    expect(w.stage.y).toBeCloseTo(ROTATE_DOCK[1] - ROTATE_RADIUS); // stopped at the bauble
+    w.controls.releasePick();
+    w.frame();
+    // Nothing stays on (the bauble used to, after the release), and the crosshair is free.
+    expect(active()).toEqual([]);
+    w.at(-100, 300);
+    expect([w.stage.x, w.stage.y]).toEqual([-100, 300]);
+    expect(active()).toEqual([]);
+  });
 });

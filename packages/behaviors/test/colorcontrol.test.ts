@@ -69,6 +69,28 @@ describe('the colour control through colorbar.cpl and paint.cpl', () => {
     expect(cc.chip.parent).toBe(cc.base);
   });
 
+  it('a bar drawn down to its least is still the bar’s to take, not the base’s (cutplane_web)', () => {
+    const { rt, cc, controls, frame, at, move } = setup();
+    at(215, 50, 0);
+    controls.pressPick(false);
+    frame();
+    move(0, -300);
+    controls.releasePick();
+    frame();
+    expect(top(rt, cc.bars[0])).toBeCloseTo(-5); // 5 above the base's top, in reach of it
+    const base = rt.bbox(cc.base)![0][1];
+    at(400, 300, 0); // away, and back on it
+    at(215, -7, 0);
+    controls.pressPick(false);
+    frame();
+    expect(rt.hasProp(cc.bars[0], 'Active')).toBe(true);
+    move(0, 20);
+    controls.releasePick();
+    frame();
+    expect(top(rt, cc.bars[0])).toBeCloseTo(15);
+    expect(rt.bbox(cc.base)![0][1]).toBe(base);
+  });
+
   it('the base (goodies.cpl) carries the whole control', () => {
     const { rt, cc, controls, frame, at, move } = setup();
     at(195, -30, 0);

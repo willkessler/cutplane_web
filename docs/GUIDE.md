@@ -83,7 +83,7 @@ on single faces again.
 dragging to carry it in depth too. (A trackpad can't swipe mid-drag: while it's pressed, macOS
 sends no scrolling, so ⌥ is the way to carry things in depth there.) **Shift-click** adds to what is picked or takes something away.
 **Press on empty space and drag** to draw a **marquee**: a box that picks the objects it takes
-in, even partly (move the plane while dragging for a 3D box). **⌘A** picks everything; **⌫** deletes what is
+in, even partly (move the plane while dragging for a 3D box); with **Shift** it adds them to what is picked. **⌘A** picks everything; **⌫** deletes what is
 picked. **⌘Z** undoes, one drag at a time, and **⇧⌘Z** redoes.
 
 Try it: choose **New cube** from the model menu, put the plane through the cube (⌥ and move), and

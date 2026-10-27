@@ -50,7 +50,7 @@ describe('the MCP server', () => {
   it('offers a hand on the app, and nothing that makes geometry', async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(
-      ['click', 'drag', 'key', 'locate', 'look', 'move_to', 'open', 'press', 'release', 'save', 'state', 'turn_view', 'wheel'].sort(), // prettier-ignore
+      ['click', 'drag', 'hands_off', 'inspect', 'key', 'locate', 'look', 'move_to', 'open', 'press', 'release', 'save', 'sequence', 'state', 'turn_view', 'wheel'].sort(), // prettier-ignore
     );
   });
 
@@ -77,6 +77,43 @@ describe('the MCP server', () => {
     expect(asked.map((a) => a.op)).toEqual(['key', 'look']);
     expect(r.content.map((c) => c.type)).toEqual(['text', 'image', 'text']);
     expect(r.content[1]).toMatchObject({ data: 'AAAA', mimeType: 'image/jpeg' });
+  });
+
+  it('passes a sequence on as one request, its steps named as the app names them', async () => {
+    await page(() => ({ x: 5 }));
+    const r = await client.callTool({
+      name: 'sequence',
+      arguments: {
+        steps: [
+          { do: 'move_to', x: 5, y: 6 },
+          { do: 'press', shift: true },
+          { do: 'turn_view', yaw: 10 },
+          { do: 'release' },
+        ],
+      },
+    });
+    expect(asked).toEqual([
+      {
+        id: 1,
+        op: 'sequence',
+        args: {
+          steps: [
+            { do: 'move', x: 5, y: 6 },
+            { do: 'press', shift: true },
+            { do: 'turn', yaw: 10 },
+            { do: 'release' },
+          ],
+        },
+      },
+    ]);
+    expect(JSON.parse(text(r))).toEqual({ x: 5 });
+  });
+
+  it('turns away a sequence step that is not a hand move', async () => {
+    await page(() => null);
+    const r = await client.callTool({ name: 'sequence', arguments: { steps: [{ do: 'save' }] } });
+    expect(r.isError).toBe(true);
+    expect(asked).toEqual([]);
   });
 
   it('saves the file the app wrote', async () => {

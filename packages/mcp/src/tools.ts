@@ -33,17 +33,32 @@ const ms = z
   .min(0)
   .max(10_000)
   .optional()
-  .describe('How long the motion takes, as a hand would (default 300 ms; 0 jumps).');
+  .describe('How long the motion takes (default 0: it jumps; 300 or so glides, as a hand would).'); // prettier-ignore
+
+/** A sequence's steps, by the tools' names, and the app's for each. */
+const STEPS = {
+  move_to: 'move',
+  turn_view: 'turn',
+  press: 'press',
+  release: 'release',
+  click: 'click',
+  drag: 'drag',
+  key: 'key',
+  wheel: 'wheel',
+} as const;
+/** How long a sequence may take, all told (each glide takes as long as it is asked to). */
+const SEQUENCE_MS = 120_000;
 
 /**
  * The tools: a hand on the app. Each one is input a person gives (the crosshair moved,
  * the button pressed, a key, the wheel, the room turned) or something they'd see (a
- * look, where things are); none makes geometry itself. Save is the app's own.
+ * look, where things are, their shapes); none makes geometry itself. Save is the app's own.
+ * A sequence is several hand moves in one call.
  */
 export function addTools(server: McpServer, bridge: Bridge, saveDir: string): void {
   /** The app's answer as text, then a look if asked for. */
-  const act = async (op: string, args: Record<string, unknown>, look?: boolean) => {
-    const result = await bridge.call(op, args);
+  const act = async (op: string, args: Record<string, unknown>, look?: boolean, ms?: number) => {
+    const result = await bridge.call(op, args, ms);
     const out: CallToolResult = { content: [{ type: 'text', text: JSON.stringify(result) }] };
     if (look) out.content.push(...(await looked({})).content);
     return out;
@@ -88,11 +103,33 @@ export function addTools(server: McpServer, bridge: Bridge, saveDir: string): vo
       title: 'Where things are',
       description:
         'The crosshair (x, y) and the plane (z); the view (yaw, pitch); what the crosshair is over ' +
-        '(hover) and what is picked (picked: "object", "face", "edge", "vertex"...); tools in hand; ' +
+        '(hover) and what is picked (picked: "object", "face", "edge", "vertex"...); takes: what ' +
+        'a press here takes ahead of hover, a tool or goodie of the room ("Colorcontrol red bar", ' +
+        '"Vertical_Crossbar edge") or a scale box\'s handle ("scale box corner"); with neither ' +
+        'and nothing hovered, a press drags what is picked (a marquee if nothing is); tools in ' +
+        'hand; the rotate tool (rotateTool: its centre; the part the crosshair is on: "bar", ' +
+        '"bauble" or "center"; bars: the bars it shows, end to end, a bauble at each end. Set ' +
+        'on an edge in the plane it shows one bar, across that edge; on an edge piercing the ' +
+        'plane, no bar, only the baubles, which dial about the edge); ' +
         'counts of objects, faces and vertices; the guide lines held on; the hints shown.',
       inputSchema: {},
     },
     guard(() => act('state', {})),
+  );
+
+  server.registerTool(
+    'hands_off',
+    {
+      title: "Set the person's input aside",
+      description:
+        "off: true sets the person's own mouse, wheel and keys aside while you work, so a " +
+        'pointer resting on the room cannot steer the crosshair; a banner says so, and its ' +
+        'button gives them the app back. off: false hands it back. It lapses by itself after ' +
+        'two minutes without a tool call, or when the link drops. Turn it on before a run of ' +
+        'work and off when done; state.handsOff says whether it is on.',
+      inputSchema: { off: z.boolean() },
+    },
+    guard((a) => act('hands', a)),
   );
 
   server.registerTool(
@@ -134,7 +171,12 @@ export function addTools(server: McpServer, bridge: Bridge, saveDir: string): vo
         'Presses the mouse button where the crosshair is and holds it: picks what is under it ' +
         '(an object, a face, an edge, a vertex, a tool, a goody in a box), or starts a marquee ' +
         'over nothing. Then move_to drags, and release lets go.',
-      inputSchema: { shift: z.boolean().optional().describe('Shift held: pick more, or unpick.') },
+      inputSchema: {
+        shift: z
+          .boolean()
+          .optional()
+          .describe('Shift held: pick more, or unpick; on nothing, a marquee that picks more.'),
+      },
     },
     guard((a) => act('press', a)),
   );
@@ -183,7 +225,11 @@ export function addTools(server: McpServer, bridge: Bridge, saveDir: string): vo
         'Presses and releases a key, as on the keyboard. key: a letter or digit ("a", "1"), "\\\\", ' +
         '"/" or a key name ("Space", "Escape", "Delete", "Backspace", "ArrowLeft", "Enter"). ' +
         'The keys: D duplicate, Delete, G group/ungroup, B union, A line up, Shift-A space evenly, ' +
-        '\\ slice at the plane, R rotate tool, Z magnifier, H pan hand, P pencil, M ruler, V globe ' +
+        '\\ slice at the plane, R rotate tool (to the crosshair; R on its centre puts it away. A ' +
+        'stroke along a bar rolls what is picked 1° a unit about the in-plane axis across the bar, ' +
+        "through the tool's centre, not the object's: put the tool on the object's middle first. " +
+        "A roll ends at the bar's end; within 10 units of an end is the bauble, which dials " +
+        'about the plane normal instead), Z magnifier, H pan hand, P pencil, M ruler, V globe ' +
         '(gravity), Space plane to the walls and back, 0 face the room, 1 how the rest is drawn, ' +
         '? the keys plate, Esc put the tool away, Ctrl-Z undo, Shift-Ctrl-Z redo, Ctrl-A pick all.',
       inputSchema: {
@@ -208,6 +254,47 @@ export function addTools(server: McpServer, bridge: Bridge, saveDir: string): vo
       inputSchema: { clicks: z.number().int().min(-200).max(200), look: lookArg },
     },
     guard(({ look, ...a }) => act('wheel', a, look)),
+  );
+
+  server.registerTool(
+    'sequence',
+    {
+      title: 'Several moves in a row',
+      description:
+        'Does steps one after another, a frame apart, and gives back the state after the last ' +
+        '(see state): one call for a whole gesture, say press, move_to, move_to, release. Each ' +
+        'step is {"do": <tool>, ...that tool\'s arguments}, the tool one of move_to, turn_view, ' +
+        'press, release, click, drag, key, wheel (no look, shift on press/click/drag, ms as ' +
+        'there). It stops at a step that fails, and says which.',
+      inputSchema: {
+        steps: z
+          .array(z.object({ do: z.enum(Object.keys(STEPS) as [keyof typeof STEPS]) }).passthrough()) // prettier-ignore
+          .min(1)
+          .max(200),
+        look: lookArg,
+      },
+    },
+    guard(
+      ({ steps, look }) =>
+      act('sequence', { steps: steps.map(({ do: d, ...a }) => ({ ...a, do: STEPS[d] })) }, look, SEQUENCE_MS), // prettier-ignore
+    ),
+  );
+
+  server.registerTool(
+    'inspect',
+    {
+      title: 'The shapes of things',
+      description:
+        'The shapes of what is picked (all: true, of every object in the world), in room ' +
+        'coordinates, to check work by without a look: for each object its name, colour, box ' +
+        '[least corner, greatest] and counts; with 48 corners or fewer, also its vertices ' +
+        '[[x, y, z]...] and faces (v: its corners as indices into vertices, the outer loop; n: ' +
+        'its outward normal; holes, if any). And picked: what is picked, by index into objects, ' +
+        "a part with where it is (a vertex at, a face's corners and n, an edge's ends at). " +
+        'all: true on a curved world is long: pick what you need instead.',
+      inputSchema: { all: z.boolean().optional() },
+    },
+    guard((a) => act('inspect', a)),
   );
 
   server.registerTool(

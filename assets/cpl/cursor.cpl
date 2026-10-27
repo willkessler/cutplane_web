@@ -5,7 +5,8 @@
 ;	A click on a pad, plate or tool doesn't unpick what is picked.
 ;	Jumps alternate between the back wall and the front: back, return, front,
 ;	return (the original only ever jumped to the back wall). A marquee
-;	picks what it takes in even partly, not only what it wholly encloses.
+;	picks what it takes in even partly, not only what it wholly encloses,
+;	and Shift pressed on nothing starts one too, picking more.
 
 ;
 ;		CPL Cursor Code
@@ -177,7 +178,7 @@ _Finish_trans	WIPE	A:XOP*				; Kill picked trans!
 		JUMP	A:_End_cursor&
 
 ;		 Is Opcode a PICK?
-_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_release&
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_Check_mpick&
 ;		 Picking selectables?
 		BEQUAL	AA:XAS,Prop:Selectable,A:_Do_sel_pick&
 
@@ -225,6 +226,14 @@ _Mark_marquee	ADDPROP	A:R1*,Prop:Marqueeing
 		HASPROP	A:R1*,Prop:Hotspot,A:R2,Const:Subfeatures ; grab corner
 		MOVE	A:R2,A:_Marquee_corner		; save corner to extend
 
+		JUMP	A:_End_cursor&
+
+;		 cutplane_web: Shift pressed on nothing starts a marquee too (its
+;		 Shift release below picks what it takes in, adding to what is
+;		 picked). The original never started one, and the drag carried
+;		 what was picked along instead.
+_Check_mpick	BNEQUAL	AA:XOP*,Opcd:MPICK,A:_Check_release&
+		BEQUAL	AA:XAS,Prop:Selectable,A:_Do_sel_pick&
 		JUMP	A:_End_cursor&
 
 ;	Handle Release

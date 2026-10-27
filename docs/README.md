@@ -425,7 +425,9 @@ covers the room while you work).
   crosshair, the room's turn, the rails open or shut, the rotate tool where it was left, the
   toolboxes open or closed, the goodies out in the room, the keys plate, permanent gravity,
   and the top bar's choices. The very first visit sees the room turned a little (20° round, 5°
-  down), so it reads as a room, with the keys plate open.
+  down), so it reads as a room, with the keys plate open. The colour control's chip and bars
+  come back on it where they were built: a room kept with the chip left behind (as one could
+  be) comes back whole.
 
 ### Work mode
 
@@ -726,13 +728,25 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   - **The stop with a face across the plane holds** until the bar is pushed 15 units. The
     original paused for five mouse events, gone in a blink at a browser's event rate, so a face
     couldn't be felt standing square to the plane.
+  - **A roll run off the bar's end onto its bauble, and let go there in the same move, lets
+    go** (`assets/cpl/rotatexbar.cpl`). The original handed the bauble the drag on that move,
+    after the release had gone by, so the bauble stayed on: it held the crosshair to the bar's
+    line and took the presses meant for the room's other tools. A quick hand could do it; an
+    agent's jumps always did.
 - **Scale boxes** keep every side at least 1 unit long. The original could scale a solid flat or
   turn it inside out.
+- **A scale-box handle let go lets go** (`assets/cpl/scalebbox.cpl`). The original let go only
+  of a handle the crosshair was on as it let go; a corner pulled in depth to a thin box had its
+  back corner as near, so it stayed held and went on scaling as the crosshair moved.
 - **Faces in the plane can be scaled.** The original gave only a whole object a scale box; a
   face could be dragged but not resized, so a truncated cone had to be sliced off a cone of the
   slant wanted. Faces picked in the plane now get a flat box whose corners scale them.
 - **Colour bars** all map their height to 0–255 the same way. In the original, the bar being
   dragged used a different formula and could go past 255.
+- **A colour bar drawn down to its least is still the bar's to take**
+  (`assets/cpl/goodies.cpl`). It stands only 5 above the base, so the base's top was in reach of
+  every press on it, and the base's goodies.cpl took the press first: the whole colour control
+  was dragged off, and the bar couldn't be raised again.
 - **Toolboxes, pads and plates.** The storage pad starts in the plane, bottom left. The
   original left it by the back wall, and only a drag brought it into the plane. A plate's offset
   is taken from its pad, so a plate with no depth offset lies on its pad, not in the plane

@@ -94,6 +94,7 @@
       }
       #hud select,
       #hud button,
+      #handsoff button,
       #pause button {
         font: inherit;
         color: var(--ink);
@@ -124,6 +125,18 @@
         font-size: 18px;
         background: rgba(0, 0, 0, 0.35);
         pointer-events: none;
+      }
+      #handsoff {
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: none;
+        gap: 10px;
+        align-items: center;
+        padding: 6px 10px;
+      }
+      #handsoff.shown {
+        display: flex;
       }
       #pause {
         inset: 0;
@@ -298,6 +311,10 @@
         <div class="info"></div>
         <textarea spellcheck="false" aria-label="CPL code"></textarea>
         <div class="errors"></div>
+      </div>
+      <div id="handsoff" class="panel">
+        <span>An agent is working the app: your mouse and keys are set aside.</span>
+        <button id="takeover">Take over</button>
       </div>
       <div id="pause" class="panel">
         <div>

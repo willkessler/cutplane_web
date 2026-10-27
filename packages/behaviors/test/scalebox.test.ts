@@ -109,4 +109,19 @@ describe('scale boxes through rom.cpl and scalebbox.cpl', () => {
       expect(hi).toBeCloseTo(100 * s);
     }
   });
+
+  it('a corner drawn in to a thin box lets go when let go (cutplane_web)', () => {
+    const w = picked();
+    w.at(120, 120, 120);
+    w.controls.pressPick(false);
+    w.frame();
+    w.move(0, 0, -236); // 4 deep: the back corner is as near the crosshair as this one
+    w.controls.releasePick();
+    w.frame();
+    const after = [0, 1, 2].map((k) => extent(w, k as 0 | 1 | 2));
+    // The crosshair goes where it's moved, and the box stays as it was let go.
+    w.at(-300, 200, 0);
+    expect(w.stage.x).toBeCloseTo(-300);
+    expect([0, 1, 2].map((k) => extent(w, k as 0 | 1 | 2))).toEqual(after);
+  });
 });

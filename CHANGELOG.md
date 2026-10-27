@@ -18,6 +18,31 @@ New in 2026: none of these were in the 1991 original.
   go of the button, presses keys, rolls the wheel, turns the room and looks at it. None of its
   tools makes geometry: the app's tools and the plane do, and the app's own Save writes the
   file. See [docs/MCP.md](docs/MCP.md).
+- **Hands off while the agent works.** The agent can set your own mouse, wheel and keys aside
+  while it works, so a pointer resting on the room can't steer the crosshair from under it. A
+  banner says so, and its **Take over** button gives you the app back; it also lapses after two
+  minutes without a word from the agent, or when the link drops.
+- **The agent works faster.** A `sequence` tool does a whole gesture (press, moves, release, keys)
+  in one call; `inspect` gives back the shapes of what is picked (vertices, faces and their
+  normals, in room coordinates), so the agent can check its work without a screenshot; and
+  the agent's moves jump unless it asks for a glide.
+- **The agent sees what a press will take.** Its state names a room tool, goodie or scale box
+  handle under the crosshair ahead of the world's part, and where the rotate tool's bars are.
+- **A rotate-tool roll let go just past the bar's end lets go.** Run onto the bauble in one
+  quick move and let go, the tool stayed on, holding the crosshair to the bar and taking the
+  presses meant for the colour bars, the pads and the goodies box.
+- **A scale-box corner let go lets go.** Pulled in depth to a thin box and let go, it stayed
+  held, and the object went on scaling as the crosshair moved.
+- **A colour bar at its least can be raised again.** A press on it took the whole colour control
+  and dragged it off.
+- **The colour control comes back whole.** A room kept for the next visit could bring the
+  paint chip back far from the control, where it was built in the goodies box, and it stayed
+  that far off as the control was dragged about. Its chip and bars are now put back on it as
+  built, which mends a room already kept so.
+- **An agent's glide with the magnifier zooms as far as asked.** It zoomed by the whole move
+  again at every frame of the glide (a 300 ms glide could zoom ten billion times).
+- **Shift-drag from nothing draws a marquee** that adds what it takes in to what is picked. It
+  used to carry what was picked along instead.
 
 ### October 26, 2026
 

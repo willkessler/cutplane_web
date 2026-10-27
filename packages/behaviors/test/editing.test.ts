@@ -218,6 +218,31 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     expect(new Set(rt.picked())).toEqual(new Set([cube, other]));
   });
 
+  it('shift-pressing on nothing starts a marquee that picks more; what is picked stays put', () => {
+    const { rt, cube, controls, frame, at, move } = world();
+    const other = createObject(createCube(100, 100, 100), { xform: mat4.translation(300, 0, 0) });
+    other.attrs.props = ['Visible'];
+    rt.importObjects(rt.primary, [other]);
+    at(0, 0, 0);
+    controls.pressPick(false);
+    frame();
+    controls.releasePick();
+    frame();
+    expect(rt.picked()).toEqual([cube]);
+    const xs = () => cube.brep.vertices().map((v) => rt.world(cube).x(v));
+    const before = xs();
+    // Above and to the right of the cube's box, down across the other one.
+    at(240, 200, 0);
+    controls.pressPick(true);
+    frame();
+    move(120, -260);
+    expect(xs()).toEqual(before);
+    controls.releasePick();
+    frame();
+    expect(new Set(rt.picked())).toEqual(new Set([cube, other]));
+    expect(xs()).toEqual(before);
+  });
+
   it("a marquee by a turned thing, in its box but not on it, doesn't pick it", () => {
     const { rt, cube, controls, frame, at, move } = world();
     rt.transformBranch(cube, mat4.rotationAbout([0, 0, 0], [0, 0, 1], Math.PI / 4));

@@ -15,7 +15,7 @@ import {
   type Pick,
 } from '@cutplane/kernel';
 import type { CutDocument } from '@cutplane/formats';
-import { P, PROPERTY_FILES, type Feature } from '@cutplane/cpl';
+import { P, PROPERTY_FILES, T, type Feature } from '@cutplane/cpl';
 import {
   COLOR_CRTNS,
   Controls,
@@ -35,6 +35,7 @@ import {
   installToolbars,
   isPad,
   isObject,
+  isSub,
   historyOrder,
   loadHistory,
   saveHistory,
@@ -318,6 +319,9 @@ async function loadCpl(): Promise<void> {
     'slice.cpl',
     'group.cpl',
     'magnetic.cpl',
+    'rotatexbar.cpl',
+    'scalebbox.cpl',
+    'goodies.cpl',
   ]);
   await Promise.all(
     CPL_FILES.map(async (f) => {
@@ -1199,6 +1203,48 @@ canvas.addEventListener('pointerup', (e) => {
   if (e.button === 0) clickRelease();
 });
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+/**
+ * New: hands off (?mcp). While an agent works the app, the person's own mouse, wheel and
+ * keys are set aside (a pointer resting on the room would otherwise steer the crosshair
+ * from under it); the agent's input, made by the page, still goes through. The banner's
+ * button takes the app back.
+ */
+let handsOff = false;
+const handsOffBanner = $<HTMLDivElement>('handsoff');
+function setHandsOff(on: boolean): void {
+  if (on === handsOff) return;
+  handsOff = on;
+  handsOffBanner.classList.toggle('shown', on);
+  if (on) return;
+  // The pointer takes hold of the crosshair again where it is, at an offset (no leap).
+  Object.assign(held, NOTHING_HELD);
+  lastClient = undefined;
+  regrip = true;
+}
+for (const type of [
+  'pointermove',
+  'pointerdown',
+  'pointerup',
+  'pointerenter',
+  'pointerleave',
+  'wheel',
+  'keydown',
+  'keyup',
+  'contextmenu',
+])
+  // prettier-ignore
+  window.addEventListener(
+    type,
+    (e) => {
+      if (!handsOff || !e.isTrusted) return;
+      if (e.target instanceof Node && handsOffBanner.contains(e.target)) return;
+      e.stopImmediatePropagation();
+      if (e.cancelable) e.preventDefault();
+    },
+    { capture: true, passive: false },
+  );
+$<HTMLButtonElement>('takeover').addEventListener('click', () => setHandsOff(false));
 canvas.addEventListener(
   'wheel',
   (e) => {
@@ -1673,12 +1719,49 @@ work.onChange((s) => {
 });
 
 // ---- test and recording hooks ----
+/** An object's shape, for an agent to check its work by (see inspect). */
+interface Shape {
+  name?: string | undefined;
+  color: number[];
+  /** Its box: least corner, greatest. */
+  box: number[][];
+  counts: { vertices: number; faces: number };
+  /** Its corners and faces, if it has few enough (INSPECT_MAX_VERTICES). */
+  vertices?: number[][];
+  /** Each face: its corners (indices into vertices, the outer loop), its normal, its holes. */
+  faces?: { v: number[]; n: number[]; holes?: number[][] }[];
+}
+/** A part of a room tool or a scale box, by its feature type (for `takes`). */
+const PART_NAMES: Record<number, string> = { [T.Vfe]: 'corner', [T.Evf]: 'edge', [T.Fve]: 'face' };
+const COLOR_NAMES = ['red', 'green', 'blue'];
+/** More corners than this, and an object is inspected as its box and counts alone. */
+const INSPECT_MAX_VERTICES = 48;
+type PickedPart =
+  | { kind: 'object'; object: number }
+  | { kind: 'vertex'; object: number; vertex: number; at: number[] }
+  | { kind: 'face'; object: number; face: number; n: number[]; corners: number[][] }
+  | { kind: 'edge'; object: number; ends: number[]; at: number[][] };
+interface Inspected {
+  objects: Shape[];
+  /** What is picked, by index into objects (and into its vertices and faces). */
+  picked: PickedPart[];
+}
+
 declare global {
   interface Window {
     __cutplane?: {
       renderFrame(t: number): void;
       readPixels(): string;
-      state(): { x: number; y: number; z: number; yaw: number; pitch: number; motion: string };
+      state(): {
+        x: number;
+        y: number;
+        z: number;
+        yaw: number;
+        pitch: number;
+        motion: string;
+        /** Where the hand has the crosshair: ahead of it while guides hold it, else on it. */
+        hand: [number, number, number];
+      };
       set(s: Partial<{ x: number; y: number; z: number; yaw: number; pitch: number }>): void;
       stats(): typeof section.stats;
       press(shift?: boolean): void;
@@ -1689,7 +1772,28 @@ declare global {
       display(): { solid: number; frontWire: number; wire: number; hidden: number; unseen: number };
       /** Whether gravity is always on, and whether something dangles from the crosshair. */
       gravity(): { always: boolean; dangling: boolean };
-      tool(): { center: number[]; hover: string | null; rotating: boolean; held: boolean };
+      /** The rotate tool: its centre, the part under the crosshair, and the bars' ends and baubles shown. */
+      tool(): {
+        center: number[];
+        hover: string | null;
+        rotating: boolean;
+        held: boolean;
+        bars: number[][][];
+        baubles: number[][];
+      };
+      /**
+       * What a press here takes ahead of the world's part (new, for an agent): a tool or
+       * goodie of the room (its code runs first and eats the press), or a scale box's handle.
+       */
+      takes(): string | null;
+      /** Sets the person's own mouse and keys aside (an agent at work) or not; whether they are. */
+      handsOff(on?: boolean): boolean;
+      /**
+       * The shapes of what is picked (or of every object in the world, `all`): each one's
+       * box, corners and faces (corners in order, the outer loop first; normal), in room
+       * coordinates; and the picked parts, by those indices.
+       */
+      inspect(all?: boolean): Inspected;
       color(): { rgb: number[]; hover: string | null; base: number[] };
       locate(what: string): unknown;
       scribble(): { segments: number; start: number[]; line: boolean };
@@ -1811,6 +1915,7 @@ async function start(): Promise<void> {
         yaw: control.yaw,
         pitch: control.pitch,
         motion: control.motion,
+        hand: [control.x, control.y, control.z],
       };
     },
     set(s) {
@@ -1963,7 +2068,96 @@ async function start(): Promise<void> {
         hover: t.hover?.kind ?? null,
         rotating: toolActive(rt, rotateTool),
         held: t.held,
+        // (A bar runs between its baubles; set on an edge across the plane, only the dial's show.)
+        bars: (['h', 'v'] as const)
+          .filter((b) => t.show[`${b}bar`])
+          .map((b) => [[...t.bauble(b, 1)], [...t.bauble(b, -1)]]),
+        baubles: (['h', 'v'] as const)
+          .filter((b) => t.show[`${b}baubles`])
+          .flatMap((b) => [[...t.bauble(b, 1)], [...t.bauble(b, -1)]]),
       };
+    },
+    takes() {
+      catchUp();
+      const env = rt.selected(rt.environment)[0];
+      const o = env && (isObject(env) ? env : isSub(env) ? env.object : null);
+      if (env && o) {
+        let named: CutObject | null = o;
+        while (named && !named.name) named = named.parent;
+        // The colour control's bars have no names of their own.
+        const bar = rt.hasProp(o, 'Colorbar') ? ` ${COLOR_NAMES[colorControl.bars.indexOf(o)]} bar` : ''; // prettier-ignore
+        return `${named?.name ?? 'room'}${bar}${isObject(env) ? '' : ` ${PART_NAMES[env.type]}`}`;
+      }
+      const handle = rt.selected(rt.primary).find((f) => isSub(f) && rt.vm.props.has(f.object, P.Scalebbox)); // prettier-ignore
+      return handle ? `scale box ${PART_NAMES[handle.type]}` : null;
+    },
+    handsOff(on) {
+      if (on !== undefined) setHandsOff(on);
+      return handsOff;
+    },
+    inspect(all) {
+      catchUp();
+      const r = (v: number) => Math.round(v * 10) / 10;
+      // (A scale box is passed over, and what it holds is taken in.)
+      const roots = all ? rt.primary.root.children : rt.pickedObjects();
+      const parts = [...new Set(roots.flatMap((o) => [...subtree(o)]))].filter(
+        (o) => isObject(o) && o.brep.numFaces > 0 && !rt.vm.props.has(o, P.Scalebbox),
+      );
+      // (Each one's ids to indices, for the picked parts below.)
+      const ids: { v: Map<number, number>; f: Map<number, number> }[] = [];
+      const point = (o: CutObject, v: number) => {
+        const g = rt.world(o);
+        return [r(g.x(v)), r(g.y(v)), r(g.z(v))];
+      };
+      const normal = (o: CutObject, f: number) =>
+        rt
+          .world(o)
+          .faceNormal(f)
+          .map((c) => Math.round(c * 1000) / 1000);
+      const objects = parts.map((o): Shape => {
+        const verts = o.brep.vertices();
+        const index = new Map(verts.map((v, i) => [v, i]));
+        const loop = (l: number) =>
+          o.brep.loopHalfEdges(l).map((h) => index.get(o.brep.heVertex(h))!);
+        const box = rt.bbox(o)!;
+        ids.push({ v: index, f: new Map(o.brep.faces().map((f, i) => [f, i])) });
+        const shape: Shape = {
+          name: o.name ?? undefined,
+          color: [...o.color],
+          box: box.map((p) => p.map(r)),
+          counts: { vertices: verts.length, faces: o.brep.numFaces },
+        };
+        // A curved thing (a cylinder's 144 corners) is its box and counts alone: its
+        // picked parts below still say where they are.
+        if (verts.length > INSPECT_MAX_VERTICES) return shape;
+        shape.vertices = verts.map((v) => point(o, v));
+        shape.faces = o.brep.faces().map((f) => {
+          const [outer, ...holes] = o.brep.faceLoops(f).map(loop);
+          const n = normal(o, f);
+          return holes.length ? { v: outer!, n, holes } : { v: outer!, n };
+        });
+        return shape;
+      });
+      const at = new Map(parts.map((o, i) => [o, i]));
+      const picked = rt.picked(rt.primary).flatMap((f): PickedPart[] => {
+        if (isObject(f)) return at.has(f) ? [{ kind: 'object', object: at.get(f)! }] : [];
+        if (!isSub(f) || !at.has(f.object)) return [];
+        const i = at.get(f.object)!;
+        const { v, f: faces } = ids[i]!;
+        const o = f.object;
+        if (f.type === T.Vfe)
+          return [{ kind: 'vertex', object: i, vertex: v.get(f.id)!, at: point(o, f.id) }];
+        if (f.type === T.Fve) {
+          const corners = o.brep.loopHalfEdges(o.brep.faceLoop(f.id)).map((h) => point(o, o.brep.heVertex(h))); // prettier-ignore
+          return [{ kind: 'face', object: i, face: faces.get(f.id)!, n: normal(o, f.id), corners }];
+        }
+        if (f.type === T.Evf) {
+          const ends = o.brep.edgeVertices(f.id);
+          return [{ kind: 'edge', object: i, ends: ends.map((u) => v.get(u)!), at: ends.map((u) => point(o, u)) }]; // prettier-ignore
+        }
+        return [];
+      });
+      return { objects, picked };
     },
     undo() {
       undo();

@@ -64,6 +64,8 @@ export interface RoomSnapshot {
 interface Built {
   objects: CutObject[];
   verts: Float64Array[];
+  /** Where each was built. */
+  xforms: Mat4[];
 }
 const built = new WeakMap<Runtime, Built>();
 
@@ -79,7 +81,11 @@ const signature = (objects: CutObject[]) => objects.map((o) => o.name ?? '').joi
 /** Takes note of the room as built: call once every tool and goodie is in it. */
 export function markRoom(rt: Runtime): void {
   const objects = [...preorder(rt.environment.root.children)];
-  built.set(rt, { objects, verts: objects.map(positions) });
+  built.set(rt, {
+    objects,
+    verts: objects.map(positions),
+    xforms: objects.map((o) => o.xform.slice() as Mat4),
+  });
 }
 
 function propsOf(
@@ -178,9 +184,23 @@ export function restoreRoom(rt: Runtime, snap: RoomSnapshot): boolean {
   const order = new Map(snap.objects.map((k, i) => [b.objects[i]!, k ? i : Infinity]));
   for (const p of [env, ...b.objects])
     p.children.sort((x, y) => (order.get(x) ?? Infinity) - (order.get(y) ?? Infinity));
+  // How each object put back moved, for what hangs on it but wasn't kept.
+  const moves = new Map<CutObject, Mat4>();
   snap.objects.forEach((k, i) => {
-    if (!k) return;
     const o = b.objects[i]!;
+    if (!k) {
+      // Not kept (not in the room when noted): it goes on hanging where it did on
+      // whatever it hangs on. Left where it was built, a part of a goodie was left
+      // behind when the goodie came back out in the room.
+      const m = o.parent && moves.get(o.parent);
+      if (m) {
+        o.xform = mat4.multiply(o.xform, m);
+        o.invXform = mat4.invert(o.xform) ?? o.invXform;
+        moves.set(o, m);
+        rt.changed(o);
+      }
+      return;
+    }
     if (k.verts && k.verts.length === o.brep.numVertices * 3)
       o.brep
         .vertices()
@@ -192,6 +212,7 @@ export function restoreRoom(rt: Runtime, snap: RoomSnapshot): boolean {
     o.invXform = mat4.invert(o.xform) ?? o.invXform;
     // What was hung on it after the room was noted (the hints plates on the plane) goes with it.
     const move = mat4.multiply(was, o.xform);
+    moves.set(o, move);
     for (const c of o.children) if (!known.has(c)) transformTree(c, move);
     o.color = [...k.color] as Rgb;
     setProps(rt, o, k.props);
@@ -202,6 +223,20 @@ export function restoreRoom(rt: Runtime, snap: RoomSnapshot): boolean {
       setProps(rt, rt.features.of(o, t as Parameters<Runtime['features']['of']>[1], id), props);
     rt.changed(o);
   });
+  // The colour control's chip and bars never move on its base (the bars grow by their
+  // vertices): each is put back where it was built on the base, so a room kept with
+  // its chip left behind comes back whole.
+  const base = b.objects.findIndex((o) => o.name === 'Colorcontrol');
+  if (base >= 0) {
+    const o = b.objects[base]!;
+    const from = mat4.invert(b.xforms[base]!) ?? mat4.identity();
+    b.objects.forEach((c, i) => {
+      if (c.parent !== o) return;
+      c.xform = mat4.multiply(mat4.multiply(b.xforms[i]!, from), o.xform);
+      c.invXform = mat4.invert(c.xform) ?? c.invXform;
+      rt.changed(c);
+    });
+  }
   // Only tools ride the crosshair from one visit to the next: anything else on it was kept
   // mid-drag and left there (a headpad, before headpad.cpl hung it on at the pick): onto
   // the plane where it is.

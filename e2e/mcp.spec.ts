@@ -66,3 +66,185 @@ test('through MCP: opens a cube, pulls a corner out, looks, and saves it', async
   }
   expect(errors).toEqual([]);
 });
+
+test("through MCP: hands off sets the person's mouse aside, and Take over gives it back", async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName !== 'chromium', 'one browser is enough for the link');
+  const dir = mkdtempSync(join(tmpdir(), 'cutplane-mcp-'));
+  const server = await serve({ port: 0, host: '127.0.0.1', saveDir: dir });
+  try {
+    await page.setViewportSize({ width: 1024, height: 700 });
+    await page.goto(`/?still=1&mcp=ws://127.0.0.1:${server.port}/bridge`);
+    await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+    await expect.poll(() => server.bridge.connected).toBe(true);
+    const agent = await connect(`http://127.0.0.1:${server.port}/mcp`);
+    const call = (name: string, args: Record<string, unknown> = {}) =>
+      agent.callTool({ name, arguments: args });
+
+    await call('open', { model: 'new:cube' });
+    await call('move_to', { x: 0, y: 0, ms: 0 });
+    expect(json(await call('hands_off', { off: true }))).toMatchObject({ handsOff: true });
+    await expect(page.locator('#handsoff')).toBeVisible();
+    // The person's pointer and keys do nothing now; the agent's moves still go.
+    const box = (await page.locator('#viewport').boundingBox())!;
+    await page.mouse.move(box.x + 50, box.y + 50);
+    await page.mouse.move(box.x + 80, box.y + 90, { steps: 5 });
+    await page.mouse.down();
+    await page.mouse.up();
+    expect(json(await call('state'))).toMatchObject({ x: 0, y: 0, picked: [] });
+    expect(json(await call('move_to', { x: 30, y: 20, ms: 0 }))).toMatchObject({ x: 30, y: 20 });
+    // Take over: the app is theirs again.
+    await page.locator('#takeover').click();
+    await expect(page.locator('#handsoff')).toBeHidden();
+    expect(json(await call('state'))).toMatchObject({ handsOff: false });
+    await agent.close();
+  } finally {
+    await server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('through MCP: a sequence pulls a corner in one call, and inspect gives back its shape', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName !== 'chromium', 'one browser is enough for the link');
+  const dir = mkdtempSync(join(tmpdir(), 'cutplane-mcp-'));
+  const server = await serve({ port: 0, host: '127.0.0.1', saveDir: dir });
+  try {
+    await page.setViewportSize({ width: 1024, height: 700 });
+    await page.goto(`/?still=1&mcp=ws://127.0.0.1:${server.port}/bridge`);
+    await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+    await expect.poll(() => server.bridge.connected).toBe(true);
+    const agent = await connect(`http://127.0.0.1:${server.port}/mcp`);
+    const call = (name: string, args: Record<string, unknown> = {}) =>
+      agent.callTool({ name, arguments: args });
+
+    await call('open', { model: 'new:cube' });
+    // The whole pull, as in the first test, in one call (each move a jump now).
+    const s = json(
+      await call('sequence', {
+        steps: [
+          { do: 'turn_view', yaw: -30, pitch: 20 },
+          { do: 'move_to', x: 97, y: 103, z: 100 },
+          { do: 'move_to', x: 100, y: 100 },
+          { do: 'press' },
+          { do: 'move_to', x: 140, y: 150 },
+          { do: 'move_to', z: 160 },
+          { do: 'release' },
+        ],
+      }),
+    );
+    expect(s).toMatchObject({ picked: ['vertex'], faces: 9 });
+
+    // Its shape, without a look: the corner where it was carried, its faces about it.
+    type Shape = { box: number[][]; vertices: number[][]; faces: { v: number[]; n: number[] }[] }; // prettier-ignore
+    const got = json(await call('inspect')) as {
+      objects: Shape[];
+      picked: { kind: string; object: number; vertex: number }[];
+    };
+    expect(got.objects).toHaveLength(1);
+    const cube = got.objects[0]!;
+    expect(cube.faces).toHaveLength(9);
+    expect(got.picked).toEqual([{ kind: 'vertex', object: 0, vertex: expect.any(Number), at: [140, 150, 160] }]); // prettier-ignore
+    expect(cube.vertices[got.picked[0]!.vertex]).toEqual([140, 150, 160]);
+    expect(cube.box).toEqual([[-100, -100, -100], [140, 150, 160]]); // prettier-ignore
+    for (const f of cube.faces) expect(Math.hypot(...f.n)).toBeCloseTo(1, 2);
+    expect((json(await call('inspect', { all: true })) as { objects: Shape[] }).objects).toHaveLength(1); // prettier-ignore
+
+    // A curved thing is its box and counts alone; its picked parts still say where they are.
+    await call('sequence', { steps: [{ do: 'key', key: 'z', ctrl: true }, { do: 'key', key: 'Escape' }] }); // prettier-ignore
+    await call('open', { model: 'samples/discovery.cut' });
+    await call('key', { key: 'a', ctrl: true });
+    const all = json(await call('inspect')) as { objects: (Shape & { counts: { vertices: number } })[] }; // prettier-ignore
+    const big = all.objects.filter((o) => o.counts.vertices > 48);
+    expect(big.length).toBeGreaterThan(0);
+    for (const o of big) expect(o).not.toHaveProperty('vertices');
+
+    await agent.close();
+  } finally {
+    await server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('through MCP: state says what a press takes ahead of the world, and where the rotate bars are', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName !== 'chromium', 'one browser is enough for the link');
+  const dir = mkdtempSync(join(tmpdir(), 'cutplane-mcp-'));
+  const server = await serve({ port: 0, host: '127.0.0.1', saveDir: dir });
+  try {
+    await page.setViewportSize({ width: 1024, height: 700 });
+    await page.goto(`/?still=1&mcp=ws://127.0.0.1:${server.port}/bridge`);
+    await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+    await expect.poll(() => server.bridge.connected).toBe(true);
+    const agent = await connect(`http://127.0.0.1:${server.port}/mcp`);
+    const call = (name: string, args: Record<string, unknown> = {}) =>
+      agent.callTool({ name, arguments: args });
+
+    // The docked tool: both bars, end to end.
+    const s = json(await call('open', { model: 'new:cube' }));
+    expect(s['rotateTool']).toEqual({
+      center: [347.5, 220.5],
+      bars: [
+        [
+          [477.5, 220.5],
+          [217.5, 220.5],
+        ],
+        [
+          [347.5, 350.5],
+          [347.5, 90.5],
+        ],
+      ],
+    });
+    // On its vertical bar, a press takes the bar, whatever the world has there.
+    expect(json(await call('move_to', { x: 347.5, y: 150 }))).toMatchObject({ takes: 'Vertical_Crossbar edge' }); // prettier-ignore
+    // The cube picked whole: its scale box's edge handle, 20 out from its corner.
+    await call('sequence', { steps: [{ do: 'move_to', x: 0, y: 0, z: 0 }, { do: 'click' }] });
+    expect(json(await call('move_to', { x: 120, y: 120 }))).toMatchObject({ takes: 'scale box edge' }); // prettier-ignore
+    expect(json(await call('move_to', { x: 60, y: 0 }))).not.toHaveProperty('takes');
+    await agent.close();
+  } finally {
+    await server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('through MCP: a glide zooms with the magnifier as far as a jump does, not over and over', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName !== 'chromium', 'one browser is enough for the link');
+  const dir = mkdtempSync(join(tmpdir(), 'cutplane-mcp-'));
+  const server = await serve({ port: 0, host: '127.0.0.1', saveDir: dir });
+  try {
+    await page.setViewportSize({ width: 1024, height: 700 });
+    await page.goto(`/?still=1&mcp=ws://127.0.0.1:${server.port}/bridge`);
+    await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+    await expect.poll(() => server.bridge.connected).toBe(true);
+    const agent = await connect(`http://127.0.0.1:${server.port}/mcp`);
+    const call = (name: string, args: Record<string, unknown> = {}) =>
+      agent.callTool({ name, arguments: args });
+    type Box = [[number, number, number], [number, number, number]];
+    const box = async () => (json(await call('inspect', { all: true }))['objects'] as { box: Box }[])[0]!.box; // prettier-ignore
+
+    await call('open', { model: 'new:cube' });
+    const before = await box();
+    // The magnifier, about the room's middle: up 110 is 1.01^110 bigger, gliding as by hand.
+    await call('sequence', { steps: [{ do: 'move_to', x: 0, y: 0, z: 0 }, { do: 'key', key: 'z' }] }); // prettier-ignore
+    await call('sequence', {
+      steps: [{ do: 'press' }, { do: 'move_to', y: 110, ms: 300 }, { do: 'release' }],
+    });
+    const after = await box();
+    for (const k of [0, 1, 2])
+      expect(after[1][k]! - after[0][k]!).toBeCloseTo((before[1][k]! - before[0][k]!) * 1.01 ** 110, 0); // prettier-ignore
+    await agent.close();
+  } finally {
+    await server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

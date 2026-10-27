@@ -105,6 +105,38 @@ describe('the room kept for the next visit (new)', () => {
     expect(off()).toBeCloseTo(before, 9);
   });
 
+  it('the colour control comes back whole, its chip on its base', () => {
+    const a = setup();
+    a.click(a.goodies);
+    const base = a.rt.findObject('Colorcontrol')!;
+    const [x, y] = a.center(base);
+    a.at(x - 50, y, Z);
+    a.controls.pressPick(false);
+    a.frame();
+    a.move(-150, 80);
+    a.controls.releasePick();
+    a.frame();
+    const mid = (w: ReturnType<typeof setup>, o: CutObject) => {
+      const bb = w.rt.bbox(o)!;
+      return [0, 1, 2].map((k) => (bb[0][k]! + bb[1][k]!) / 2);
+    };
+    const want = mid(a, a.rt.findObject('Paintchip')!);
+    const snap = JSON.parse(JSON.stringify(snapshotRoom(a.rt))) as RoomSnapshot;
+    const chip = snap.names.split('|').indexOf('Paintchip');
+    // Kept without the chip (it wasn't in the room when noted): it comes with its base,
+    // not left where it was built.
+    const without = { ...snap, objects: snap.objects.map((k, i) => (i === chip ? null : k)) };
+    const b = setup();
+    expect(restoreRoom(b.rt, without)).toBe(true);
+    mid(b, b.rt.findObject('Paintchip')!).forEach((v, k) => expect(v).toBeCloseTo(want[k]!, 9));
+    // Kept with the chip off its base (a room left so before this): put back on it.
+    const off = structuredClone(snap);
+    off.objects[chip]!.xform[13]! -= 339;
+    const c = setup();
+    expect(restoreRoom(c.rt, off)).toBe(true);
+    mid(c, c.rt.findObject('Paintchip')!).forEach((v, k) => expect(v).toBeCloseTo(want[k]!, 9));
+  });
+
   it('a snapshot of another room is turned away, changing nothing', () => {
     const a = setup();
     const snap = snapshotRoom(a.rt)!;
