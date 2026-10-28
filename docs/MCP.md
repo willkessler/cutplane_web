@@ -55,6 +55,48 @@ crosshair still and works by the move (the magnifier) gets each step once.
 
 Each action tool takes `look: true` to send a screenshot back with its result.
 
+## Working well
+
+The agent works the app as a person does, so it slips as a person would. These are the slips
+that building the Orion III and the space station from _2001_ ran into, and how to avoid them.
+The server tells an agent the same when it connects (its instructions, `INSTRUCTIONS` in
+`packages/mcp/src/tools.ts`).
+
+- **Hands off first.** Turn `hands_off` on before a run of work, or a mouse resting on the room
+  steers the crosshair. It lapses after two minutes without a call, so after a long stretch of
+  reading code, turn it on again.
+- **Check by numbers.** `inspect` after each step says exactly where things came out; a look
+  doesn't. Save now and then. `inspect` with `all: true` on a world of 72-sided cylinders runs
+  to tens of thousands of characters: pick what you mean to check.
+- **A press near a face takes the face.** Within about 12 units of a face (a thin bar, a face
+  lying close to the plane), a press picks that face, and a drag moves it, reshaping the object.
+  To pick or move a whole object, take the **grabber** from the arrange rail (open the rail with
+  its handle; `locate arrangers` gives its pads), or press well inside the object's section.
+  Ctrl-Z undoes a slip.
+- **Drags are held where things line up.** A move stops at faces it lines up with, and the
+  result says where it ended. To land a small correction, go past it and come back: a move of
+  a unit or two may not register at all. A cutter's face left flush with the face it cuts is
+  better set clear of it.
+- **The scale box's margin scales too.** The box stands 20 outside the object and grows with it.
+  A corner or edge handle scales about the box's opposite corner, so taking an object from size
+  _s_ to _S_ along an axis means dragging the handle to the far box face + (_s_ + 40)·_S_/_s_.
+  After a move or a scale, click away and on the object again so the box fits before the next
+  drag; a stale box scales from the wrong place. Corners are taken only with the plane at the
+  box's front or back; with the plane inside, a press takes an edge handle, which scales across
+  and up only. The room stops a handle, so a large factor takes two drags, with the object moved
+  first to leave the handle room.
+- **R picks what is under the crosshair too.** The rotate tool goes where the crosshair is and
+  keeps what is picked; an object under the crosshair is picked as well and turns with the rest.
+  Slide along a bar a unit per degree. R on its centre puts it away (and unpicks).
+- **D goes on as the last copy went.** A copy of a copy is moved and turned as that one was (a
+  ring by a turn each time). A first copy goes 100 over and 100 up; one scaled since goes on by
+  the move between the middles. Grouped (G), a set copies as one.
+- **Primitives and cuts.** A primitive comes from the primitives box (`locate prims`, click it
+  open, drag a stamp out); its cylinder's axis is the depth (z), so stand it up with R. The drill
+  copies what it presses and, let go (in place, if the cutter is already where it should cut),
+  cuts the copy from everything it overlaps; then delete the cutter. `\` slices what is picked
+  at the plane and moves the two halves 10 apart.
+
 ## Recording a build, and replaying it
 
 `record` with a name starts a log of every call the agent makes of the app, in

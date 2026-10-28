@@ -1,0 +1,4896 @@
+** Start of file Space Station V **
+Contains:World
+World Name:<none>
+	Total Number of Objects In World:41
+
+
+	Object 1:
+Object Name:<none>
+ Object Transform:
+ [  0.04000000000000015  -8.115686372474915e-17  3.462216069595669e-16  0.000000  ]
+ [  -4.640786915751799e-18  0.32000000000000045  2.451323544842843e-16  0.000000  ]
+ [  4.1000398392590244e-18  2.38187583044185e-16  0.04999999999999978  0.000000  ]
+ [  388.000000  -32.00000000000018  -4.999999999999012  1.000000  ]
+ Object Inverse Transform:
+ [  24.99999999999991  6.328271240363392e-15  -1.7313928069029316e-13  0.000000  ]
+ [  3.62561477793109e-16  3.1249999999999956  -1.532077215526782e-14  0.000000  ]
+ [  -2.0500199196295156e-15  -1.4886723940261608e-14  20.00000000000009  0.000000  ]
+ [  -9699.999999999965  99.99999999999791  100.00000000004738  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 2:
+Object Name:<none>
+ Object Transform:
+ [  0.03965779445495656  -8.205270296283289e-10  -0.005221047688771833  0.000000  ]
+ [  -6.564215560377465e-9  0.31999999999998463  -1.0015057627250271e-7  0.000000  ]
+ [  0.006526309610965174  1.564852781883495e-8  0.04957224306869279  0.000000  ]
+ [  384.02797590840146  -32.00000952396271  -55.60137687290055  1.000000  ]
+ Object Inverse Transform:
+ [  24.78612153434761  -6.410366359954622e-8  2.610523844385915  0.000000  ]
+ [  -5.128293424321992e-7  3.124999999999843  0.000006259411016938224  0.000000  ]
+ [  -3.2631548054825856  -9.780329893738227e-7  19.828897227477285  0.000000  ]
+ [  -9699.999999999953  99.99999999999775  100.00000000004785  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 3:
+Object Name:<none>
+ Object Transform:
+ [  0.03863703305157863  -3.268068431615343e-9  -0.010352761804041752  0.000000  ]
+ [  -2.6144546743477896e-8  0.31999999999993756  -1.985875486631396e-7  0.000000  ]
+ [  0.012940952255052512  3.1029304753962195e-8  0.048296291314462995  0.000000  ]
+ [  373.4851279892592  -32.00003480318725  -105.25139877189818  1.000000  ]
+ Object Inverse Transform:
+ [  24.14814565723635  -2.5531783759413784e-7  5.176380902020865  0.000000  ]
+ [  -0.000002042542718578125  3.1249999999993854  0.00001241172179099929  0.000000  ]
+ [  -6.470476127526243  -0.00000193933154826742  19.31851652578536  0.000000  ]
+ [  -9699.99999999994  99.9999999999976  100.00000000004935  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 4:
+Object Name:<none>
+ Object Transform:
+ [  0.036955181300486584  -7.30074617615307e-9  -0.0153073372945177  0.000000  ]
+ [  -5.840596865870777e-8  0.31999999999986006  -2.936266330372994e-7  0.000000  ]
+ [  0.01913417161814738  4.5879161685523225e-8  0.0461939766255858  0.000000  ]
+ [  356.5518472934983  -32.000075405139256  -153.10054005671822  1.000000  ]
+ Object Inverse Transform:
+ [  23.096988312803756  -5.703707882942499e-7  7.6536686472588205  0.000000  ]
+ [  -0.000004562966308092836  3.1249999999986318  0.00001835166456377604  0.000000  ]
+ [  -9.567085809073653  -0.0000028674476066775645  18.47759065023447  0.000000  ]
+ [  -9699.999999999927  99.99999999999743  100.00000000005103  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 5:
+Object Name:<none>
+ Object Transform:
+ [  0.03464101615143884  -1.2849560027853101e-8  -0.019999999999890276  0.000000  ]
+ [  -1.0279647943254469e-7  0.31999999999975354  -3.836416843115372e-7  0.000000  ]
+ [  0.02499999999986303  5.994401344422309e-8  0.043301270189259444  0.000000  ]
+ [  333.51786694861397  -32.00013063510807  -198.33008865369382  1.000000  ]
+ Object Inverse Transform:
+ [  21.650635094648848  -0.0000010038718723237583  9.999999999945082  0.000000  ]
+ [  -0.000008030974964566538  3.1249999999975926  0.000023977605267563572  0.000000  ]
+ [  -12.499999999931443  -0.0000037465008415338286  17.320508075703916  0.000000  ]
+ [  -9699.999999999913  99.9999999999972  100.00000000005492  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 6:
+Object Name:<none>
+ Object Transform:
+ [  0.031734133611743154  -1.9819568243390685e-8  -0.024350457160219115  0.000000  ]
+ [  -1.5855654511827799e-7  0.3199999999996198  -4.6709252000167254e-7  0.000000  ]
+ [  0.03043807145027401  7.298320651710203e-8  0.039667667014618914  0.000000  ]
+ [  304.7773047445306  -32.000199548093626  -240.16615444633527  1.000000  ]
+ Object Inverse Transform:
+ [  19.833833507339012  -0.000001548403766066242  12.175228580109462  0.000000  ]
+ [  -0.000012387230098373657  3.124999999996287  0.000029193282497115195  0.000000  ]
+ [  -15.219035725136889  -0.000004561450408308021  15.867066805847694  0.000000  ]
+ [  -9699.9999999999  99.99999999999699  100.00000000006165  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 7:
+Object Name:<none>
+ Object Transform:
+ [  0.02828427124759354  -2.8091512049567204e-8  -0.02828427124731682  0.000000  ]
+ [  -2.2473209553241934e-7  0.31999999999946116  -5.425512731721127e-7  0.000000  ]
+ [  0.03535533905914606  8.477363669602207e-8  0.03535533905940709  0.000000  ]
+ [  270.8219196689466  -32.00028096497562  -277.8929107497857  1.000000  ]
+ Object Inverse Transform:
+ [  17.67766952974548  -0.00000219464937775693  14.142135623658275  0.000000  ]
+ [  -0.000017557194976393058  3.1249999999947375  0.00003390945456897486  0.000000  ]
+ [  -17.67766952957286  -0.000005298352294041964  14.142135623762957  0.000000  ]
+ [  -9699.999999999882  99.99999999999672  100.00000000006806  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 8:
+Object Name:<none>
+ Object Transform:
+ [  0.024350457160522806  -3.75238561950531e-8  -0.03173413361149422  0.000000  ]
+ [  -3.001908486600605e-7  0.3199999999992802  -6.087268236349997e-7  0.000000  ]
+ [  0.03966766701436773  9.51135664510475e-8  0.030438071450540387  0.000000  ]
+ [  232.23269777471313  -32.00037349268863  -310.8648423038639  1.000000  ]
+ Object Inverse Transform:
+ [  15.219035725326258  -0.0000029315512656558074  15.867066805746934  0.000000  ]
+ [  -0.000023452410066177295  3.1249999999929714  0.00003804542647142361  0.000000  ]
+ [  -19.83383350718364  -0.000005944597902929338  12.17522858021628  0.000000  ]
+ [  -9699.99999999987  99.99999999999648  100.00000000007711  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 9:
+Object Name:<none>
+ Object Transform:
+ [  0.02000000000021966  -4.795521065568344e-8  -0.03464101615121803  0.000000  ]
+ [  -3.83641684314076e-7  0.31999999999908  -6.644868893745916e-7  0.000000  ]
+ [  0.04330127018902241  1.0382607671610076e-7  0.025000000000130175  0.000000  ]
+ [  189.66991134739038  -32.00047554805783  -338.5177902181364  1.000000  ]
+ Object Inverse Transform:
+ [  12.500000000136792  -0.0000037465008344561568  17.320508075608796  0.000000  ]
+ [  -0.00002997200660307839  3.1249999999910174  0.00004153043057850291  0.000000  ]
+ [  -21.650635094510935  -0.0000064891297935631975  10.000000000052212  0.000000  ]
+ [  -9699.999999999864  99.99999999999625  100.00000000008714  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 10:
+Object Name:<none>
+ Object Transform:
+ [  0.015307337294871059  -5.9207092064395804e-8  -0.036955181300293745  0.000000  ]
+ [  -4.736567355594912e-7  0.31999999999886414  -7.088774002064784e-7  0.000000  ]
+ [  0.046193976625366985  1.1076209402729241e-7  0.01913417161841069  0.000000  ]
+ [  143.8618214633794  -32.00058538488756  -360.3786048869469  1.000000  ]
+ Object Inverse Transform:
+ [  9.56708580929395  -0.000004625554070991633  18.477590650146613  0.000000  ]
+ [  -0.00003700443248277684  3.12499999998891  0.00004430483750371526  0.000000  ]
+ [  -23.09698831268317  -0.000006922630874511837  7.65366864736444  0.000000  ]
+ [  -9699.999999999856  99.99999999999598  100.00000000009757  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 11:
+Object Name:<none>
+ Object Transform:
+ [  0.010352761804416959  -7.108697761166183e-8  -0.038637033051413125  0.000000  ]
+ [  -5.686958199126187e-7  0.31999999999863615  -7.41138822182956e-7  0.000000  ]
+ [  0.048296291314266146  1.1580294120450756e-7  0.012940952255307472  0.000000  ]
+ [  95.59221724099311  -32.0007011238392  -376.07324171035145  1.000000  ]
+ Object Inverse Transform:
+ [  6.470476127760148  -0.0000055536701304564895  19.31851652570627  0.000000  ]
+ [  -0.000044429360948715006  3.124999999986686  0.00004632117637535966  0.000000  ]
+ [  -24.148145657132705  -0.000007237683821770258  5.176380902123175  0.000000  ]
+ [  -9699.99999999985  99.99999999999572  100.00000000010829  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 12:
+Object Name:<none>
+ Object Transform:
+ [  0.005221047689166385  -8.33915991606046e-8  -0.039657794454817284  0.000000  ]
+ [  -6.671327922903738e-7  0.3199999999984  -7.607191534294541e-7  0.000000  ]
+ [  0.04957224306852128  1.188623679533651e-7  0.006526309611207381  0.000000  ]
+ [  45.68700499133434  -32.000820784587205  -385.3331611009276  1.000000  ]
+ Object Inverse Transform:
+ [  3.263154805728567  -0.00000651496869027296  19.828897227408305  0.000000  ]
+ [  -0.000052119749416262235  3.1249999999843823  0.0000475449470763077  0.000000  ]
+ [  -24.78612153426022  -0.0000074288979921566245  2.6105238444831715  0.000000  ]
+ [  -9699.999999999844  99.99999999999548  100.00000000011849  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 13:
+Object Name:<none>
+ Object Transform:
+ [  4.1071920170443477e-13  -9.591042122533084e-8  -0.03999999999988554  0.000000  ]
+ [  -7.67283368803498e-7  0.3199999999981598  -7.672833690496537e-7  0.000000  ]
+ [  0.049999999999856555  1.1988802663613507e-7  2.253353753589593e-13  0.000000  ]
+ [  -4.999923267671271  -32.00094231970299  -387.99992327056884  1.000000  ]
+ Object Inverse Transform:
+ [  2.5634148062813427e-10  -0.00000749300166319995  19.99999999994239  0.000000  ]
+ [  -0.000059944013203193754  3.124999999982037  0.00004795521055078824  0.000000  ]
+ [  -24.999999999927812  -0.0000074930016582541725  9.037454118399069e-11  0.000000  ]
+ [  -9699.999999999838  99.99999999999521  100.00000000012945  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 14:
+Object Name:<none>
+ Object Transform:
+ [  -0.005221047688348049  -1.0842924329003295e-7  -0.03965779445486451  0.000000  ]
+ [  -8.674339453208759e-7  0.3199999999979196  -7.607191534943503e-7  0.000000  ]
+ [  0.04957224306858024  1.1886236794362581e-7  -0.0065263096107605004  0.000000  ]
+ [  -55.60130014044568  -32.00106364968705  -384.0278991791869  1.000000  ]
+ Object Inverse Transform:
+ [  -3.263154805217702  -0.000008471034639023767  19.828897227431845  0.000000  ]
+ [  -0.00006776827699686438  3.1249999999796936  0.00004754494707636428  0.000000  ]
+ [  -24.786121534289606  -0.000007428897988659422  -2.6105238443039642  0.000000  ]
+ [  -9699.999999999834  99.99999999999493  100.0000000001406  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 15:
+Object Name:<none>
+ Object Transform:
+ [  -0.010352761803607878  -1.207338648405092e-7  -0.0386370330515068  0.000000  ]
+ [  -9.658709177135302e-7  0.3199999999976835  -7.411388223548221e-7  0.000000  ]
+ [  0.048296291314383066  1.1580294120821369e-7  -0.012940952254871897  0.000000  ]
+ [  -105.25132203934858  -32.00118269854972  -373.4850512602382  1.000000  ]
+ Object Inverse Transform:
+ [  -6.47047612725488  -0.000009432333199110854  19.318516525752965  0.000000  ]
+ [  -0.00007545866546772871  3.1249999999773888  0.00004632117637490675  0.000000  ]
+ [  -24.148145657190994  -0.000007237683814609319  -5.176380901948568  0.000000  ]
+ [  -9699.999999999836  99.99999999999466  100.00000000015163  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 16:
+Object Name:<none>
+ Object Transform:
+ [  -0.015307337294077232  -1.326137503895673e-7  -0.03695518130043227  0.000000  ]
+ [  -0.0000010609100020953924  0.3199999999974556  -7.08877400482456e-7  0.000000  ]
+ [  0.04619397662553989  1.1076209404372243e-7  -0.019134171617993898  0.000000  ]
+ [  -153.10046332410795  -32.00129742933195  -356.5517705646445  1.000000  ]
+ Object Inverse Transform:
+ [  -9.567085808797994  -0.000010360449258478566  18.477590650215692  0.000000  ]
+ [  -0.00008288359393687246  3.124999999975164  0.000044304837502410875  0.000000  ]
+ [  -23.096988312769383  -0.000006922630863798185  -7.65366864719742  0.000000  ]
+ [  -9699.999999999838  99.99999999999439  100.00000000016223  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 17:
+Object Name:<none>
+ Object Transform:
+ [  -0.01999999999944683  -1.4386563180190992e-7  -0.03464101615139907  0.000000  ]
+ [  -0.0000011509250533828862  0.3199999999972397  -6.644868897500403e-7  0.000000  ]
+ [  0.04330127018924836  1.038260767430888e-7  -0.0249999999997393  0.000000  ]
+ [  -198.33001192105803  -32.001405878958245  -333.51779021989825  1.000000  ]
+ Object Inverse Transform:
+ [  -12.499999999653728  -0.000011239502494486686  17.320508075699085  0.000000  ]
+ [  -0.00008991601981961016  3.124999999973057  0.00004153043057601958  0.000000  ]
+ [  -21.650635094623617  -0.000006489129779352343  -9.999999999895632  0.000000  ]
+ [  -9699.99999999984  99.99999999999413  100.00000000017252  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 18:
+Object Name:<none>
+ Object Transform:
+ [  -0.02435045715977635  -1.5429698626675905e-7  -0.0317341336117147  0.000000  ]
+ [  -0.0000012343758890916044  0.3199999999970396  -6.087268241035769e-7  0.000000  ]
+ [  0.039667667014642895  9.511356648809043e-8  -0.030438071450182142  0.000000  ]
+ [  -240.1660777137095  -32.001506191825435  -304.7772280159215  1.000000  ]
+ Object Inverse Transform:
+ [  -15.21903572485942  -0.000012054452062093546  15.867066805856908  0.000000  ]
+ [  -0.00009643561635933212  3.1249999999711036  0.00003804542646745407  0.000000  ]
+ [  -19.83383350732089  -0.000005944597885249037  -12.17522858007282  0.000000  ]
+ [  -9699.999999999845  99.99999999999386  100.00000000018328  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 19:
+Object Name:<none>
+ Object Transform:
+ [  -0.028284271246878403  -1.63729330416856e-7  -0.02828427124757297  0.000000  ]
+ [  -0.0000013098346422856365  0.31999999999685863  -5.42551273725882e-7  0.000000  ]
+ [  0.03535533905946575  8.477363674209538e-8  -0.03535533905908766  0.000000  ]
+ [  -277.8928340172056  -32.00159665155254  -270.82184294041076  1.000000  ]
+ Object Inverse Transform:
+ [  -17.67766952929794  -0.000012791353948576889  14.14213562378606  0.000000  ]
+ [  -0.00010233083145167067  3.124999999969336  0.000033909454563237234  0.000000  ]
+ [  -17.67766952973235  -0.0000052983522729199706  -14.14213562363507  0.000000  ]
+ [  -9699.999999999856  99.99999999999359  100.00000000019276  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 20:
+Object Name:<none>
+ Object Transform:
+ [  -0.03173413361106374  -1.7200127422865844e-7  -0.02435045716050656  0.000000  ]
+ [  -0.000001376010192776721  0.3199999999967  -4.6709252063124e-7  0.000000  ]
+ [  0.03043807145063277  7.298320657256025e-8  -0.03966766701434381  0.000000  ]
+ [  -310.8647655713641  -32.001675710348565  -232.23262104621597  1.000000  ]
+ Object Inverse Transform:
+ [  -19.833833506913514  -0.000013437599558102642  12.175228580252886  0.000000  ]
+ [  -0.00010750079633193405  3.1249999999677867  0.000029193282489357864  0.000000  ]
+ [  -15.219035725315898  -0.000004561450384132915  -15.867066805737567  0.000000  ]
+ [  -9699.999999999867  99.99999999999342  100.00000000020022  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 21:
+Object Name:<none>
+ Object Transform:
+ [  -0.034641016150798946  -1.7897128245028942e-7  -0.020000000000204098  0.000000  ]
+ [  -0.000001431770258548633  0.31999999999656625  -3.8364168500621144e-7  0.000000  ]
+ [  0.02500000000025473  5.994401350714155e-8  -0.0433012701890334  0.000000  ]
+ [  -338.5177134857502  -32.00174201549558  -189.6698346188965  1.000000  ]
+ Object Inverse Transform:
+ [  -21.65063509424775  -0.000013982131449402635  10.000000000101707  0.000000  ]
+ [  -0.0001118570514676364  3.124999999966481  0.000023977605257569532  0.000000  ]
+ [  -12.500000000126937  -0.0000037465008144721423  -17.320508075613446  0.000000  ]
+ [  -9699.999999999874  99.99999999999322  100.00000000020593  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 22:
+Object Name:<none>
+ Object Transform:
+ [  -0.036955181299889346  -1.8452009630960464e-7  -0.015307337294852532  0.000000  ]
+ [  -0.0000014761607694164103  0.3199999999964598  -2.93626633785275e-7  0.000000  ]
+ [  0.019134171618565315  4.587916175557621e-8  -0.04619397662541273  0.000000  ]
+ [  -360.3785281547059  -32.00179443249414  -143.86174473485337  1.000000  ]
+ Object Inverse Transform:
+ [  -23.096988312428994  -0.000014415632530656586  7.653668647425985  0.000000  ]
+ [  -0.00011532506012562416  3.124999999965442  0.00001835166455136652  0.000000  ]
+ [  -9.567085809282304  -0.000002867447577020732  -18.47759065016521  0.000000  ]
+ [  -9699.999999999882  99.99999999999307  100.00000000021058  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 23:
+Object Name:<none>
+ Object Transform:
+ [  -0.03863703305102642  -1.8855277406240881e-7  -0.010352761804391855  0.000000  ]
+ [  -0.000001508422191431734  0.3199999999963824  -1.9858754945169904e-7  0.000000  ]
+ [  0.012940952255489517  3.102930483005282e-8  -0.0482962913143459  0.000000  ]
+ [  -376.07316497828464  -32.001832064474854  -95.59214051239996  1.000000  ]
+ Object Inverse Transform:
+ [  -24.14814565688944  -0.000014730685478248073  5.176380902195723  0.000000  ]
+ [  -0.00011784548371624591  3.124999999964687  0.000012411721776036845  0.000000  ]
+ [  -6.4704761277445035  -0.000001939331516417897  -19.318516525738502  0.000000  ]
+ [  -9699.99999999989  99.99999999999291  100.0000000002145  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 24:
+Object Name:<none>
+ Object Transform:
+ [  -0.039999999999542006  -1.9182084243493801e-7  -3.6212612769537245e-13  0.000000  ]
+ [  -0.0000015345667383822924  0.31999999999631956  -5.838939962627448e-16  0.000000  ]
+ [  4.524748631329345e-13  3.221092987526162e-16  -0.04999999999999978  0.000000  ]
+ [  -387.99984653892534  -32.00186066180122  4.999999996498445  1.000000  ]
+ Object Inverse Transform:
+ [  -24.999999999711317  -0.0000149860033152871  1.8106299792819414e-10  0.000000  ]
+ [  -0.00011988802643611107  3.1249999999640763  -3.5625083231102523e-14  0.000000  ]
+ [  -2.2623743233619676e-10  1.999621537582724e-14  -20.00000000000009  0.000000  ]
+ [  -9699.99999999991  99.99999999999253  100.00000000022064  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 25:
+Object Name:<none>
+ Object Transform:
+ [  -0.03965779445445098  -1.9100031547485896e-7  -0.005221047689131203  0.000000  ]
+ [  -0.0000015280025227193688  0.3199999999963354  -1.0015057708823403e-7  0.000000  ]
+ [  0.006526309611413759  1.564852789973218e-8  -0.04957224306863372  0.000000  ]
+ [  -385.33308436906105  -32.001854267544104  -45.68692826264025  1.000000  ]
+ Object Inverse Transform:
+ [  -24.786121534029594  -0.000014921899648911996  2.6105238445654924  0.000000  ]
+ [  -0.00011937519709307289  3.1249999999642286  0.000006259410999329092  0.000000  ]
+ [  -3.2631548057067437  -9.780329557756984e-7  -19.828897227453645  0.000000  ]
+ [  -9699.999999999902  99.99999999999274  100.00000000021815  1.000000  ]
+Object Parent:0
+Object Color:120 160 210
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:18
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2:  0.0 200.0   0.0
+Vertex 3:1600.0 200.0   0.0
+Vertex 4:1600.0  25.0   0.0
+Vertex 5:1600.0   0.0   0.0
+Vertex 6:200.0 175.0   0.0
+Vertex 7:200.0  25.0   0.0
+Vertex 8:1400.0  25.0   0.0
+Vertex 9:1400.0 175.0   0.0
+Vertex 10:200.0 175.0 200.0
+Vertex 11:200.0  25.0 200.0
+Vertex 12:1400.0  25.0 200.0
+Vertex 13:  0.0   0.0 200.0
+Vertex 14:  0.0 200.0 200.0
+Vertex 15:1600.0   0.0 200.0
+Vertex 16:1600.0  25.0 200.0
+Vertex 17:1600.0 200.0 200.0
+Vertex 18:1400.0 175.0 200.0
+ Number of Faces:12
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (5 le's):1 2 3 4 5 
+	Bound 2 (4 le's):6 7 8 9 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):7 6 10 11 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):7 11 12 8 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):1 13 14 2 
+Face:5 (2 bounds)
+	Bound 1 (5 le's):13 15 16 17 14 
+	Bound 2 (4 le's):11 10 18 12 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):13 1 5 15 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):2 14 17 3 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):18 10 6 9 
+Face:9 (1 bounds)
+	Bound 1 (3 le's):16 15 4 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):3 17 16 4 
+Face:11 (1 bounds)
+	Bound 1 (3 le's):5 4 15 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):8 12 18 9 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 26:
+Object Name:<none>
+ Object Transform:
+ [  1.6470509803999998  1.370927286719955e-15  -6.732965931514397e-16  0.000000  ]
+ [  6.100771546435988e-31  -7.799821717161375e-16  -1.6470509803999986  0.000000  ]
+ [  -1.2515499485017102e-15  1.6001035924937461  3.7624874398681764e-15  0.000000  ]
+ [  -0.022795162067950514  -40.00446901080721  -3.791389424634417e-9  1.000000  ]
+ Object Inverse Transform:
+ [  0.6071457483101961  -2.4819460280723125e-16  -5.2018674120794925e-16  0.000000  ]
+ [  4.749347616572752e-16  1.4276439743593903e-15  0.6249595368019327  0.000000  ]
+ [  -7.222237291452134e-35  -0.6071457483101965  -2.9595762520423033e-16  0.000000  ]
+ [  0.013839985731617013  -2.3018688628735344e-9  25.00117442300135  1.000000  ]
+Object Parent:0
+Object Color:100 100 100
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:144
+ VFE List:
+Vertex 1: 42.5   0.0   0.0
+Vertex 2:42.34 3.703   0.0
+Vertex 3:41.855 7.38   0.0
+Vertex 4:41.05  11.0   0.0
+Vertex 5:39.938 14.535   0.0
+Vertex 6:38.52 17.96   0.0
+Vertex 7:36.805 21.25   0.0
+Vertex 8:34.813 24.38   0.0
+Vertex 9:32.56 27.32   0.0
+Vertex 10:30.05 30.05   0.0
+Vertex 11:27.32 32.56   0.0
+Vertex 12:24.38 34.813   0.0
+Vertex 13:21.25 36.805   0.0
+Vertex 14:17.96 38.52   0.0
+Vertex 15:14.535 39.938   0.0
+Vertex 16: 11.0 41.05   0.0
+Vertex 17:7.38 41.855   0.0
+Vertex 18:3.703 42.34   0.0
+Vertex 19:  0.0  42.5   0.0
+Vertex 20:-3.703 42.34   0.0
+Vertex 21:-7.38 41.855   0.0
+Vertex 22:-11.0 41.05   0.0
+Vertex 23:-14.535 39.938   0.0
+Vertex 24:-17.96 38.52   0.0
+Vertex 25:-21.25 36.805   0.0
+Vertex 26:-24.38 34.813   0.0
+Vertex 27:-27.32 32.56   0.0
+Vertex 28:-30.05 30.05   0.0
+Vertex 29:-32.56 27.32   0.0
+Vertex 30:-34.813 24.38   0.0
+Vertex 31:-36.805 21.25   0.0
+Vertex 32:-38.52 17.96   0.0
+Vertex 33:-39.938 14.535   0.0
+Vertex 34:-41.05  11.0   0.0
+Vertex 35:-41.855 7.38   0.0
+Vertex 36:-42.34 3.703   0.0
+Vertex 37:-42.5   0.0   0.0
+Vertex 38:-42.34 -3.703   0.0
+Vertex 39:-41.855 -7.38   0.0
+Vertex 40:-41.05 -11.0   0.0
+Vertex 41:-39.938 -14.535   0.0
+Vertex 42:-38.52 -17.96   0.0
+Vertex 43:-36.805 -21.25   0.0
+Vertex 44:-34.813 -24.38   0.0
+Vertex 45:-32.56 -27.32   0.0
+Vertex 46:-30.05 -30.05   0.0
+Vertex 47:-27.32 -32.56   0.0
+Vertex 48:-24.38 -34.813   0.0
+Vertex 49:-21.25 -36.805   0.0
+Vertex 50:-17.96 -38.52   0.0
+Vertex 51:-14.535 -39.938   0.0
+Vertex 52:-11.0 -41.05   0.0
+Vertex 53:-7.38 -41.855   0.0
+Vertex 54:-3.703 -42.34   0.0
+Vertex 55:  0.0 -42.5   0.0
+Vertex 56:3.703 -42.34   0.0
+Vertex 57:7.38 -41.855   0.0
+Vertex 58: 11.0 -41.05   0.0
+Vertex 59:14.535 -39.938   0.0
+Vertex 60:17.96 -38.52   0.0
+Vertex 61:21.25 -36.805   0.0
+Vertex 62:24.38 -34.813   0.0
+Vertex 63:27.32 -32.56   0.0
+Vertex 64:30.05 -30.05   0.0
+Vertex 65:32.56 -27.32   0.0
+Vertex 66:34.813 -24.38   0.0
+Vertex 67:36.805 -21.25   0.0
+Vertex 68:38.52 -17.96   0.0
+Vertex 69:39.938 -14.535   0.0
+Vertex 70:41.05 -11.0   0.0
+Vertex 71:41.855 -7.38   0.0
+Vertex 72:42.34 -3.703   0.0
+Vertex 73: 42.5   0.0  50.0
+Vertex 74:42.34 3.703  50.0
+Vertex 75:41.855 7.38  50.0
+Vertex 76:41.05  11.0  50.0
+Vertex 77:39.938 14.535  50.0
+Vertex 78:38.52 17.96  50.0
+Vertex 79:36.805 21.25  50.0
+Vertex 80:34.813 24.38  50.0
+Vertex 81:32.56 27.32  50.0
+Vertex 82:30.05 30.05  50.0
+Vertex 83:27.32 32.56  50.0
+Vertex 84:24.38 34.813  50.0
+Vertex 85:21.25 36.805  50.0
+Vertex 86:17.96 38.52  50.0
+Vertex 87:14.535 39.938  50.0
+Vertex 88: 11.0 41.05  50.0
+Vertex 89:7.38 41.855  50.0
+Vertex 90:3.703 42.34  50.0
+Vertex 91:  0.0  42.5  50.0
+Vertex 92:-3.703 42.34  50.0
+Vertex 93:-7.38 41.855  50.0
+Vertex 94:-11.0 41.05  50.0
+Vertex 95:-14.535 39.938  50.0
+Vertex 96:-17.96 38.52  50.0
+Vertex 97:-21.25 36.805  50.0
+Vertex 98:-24.38 34.813  50.0
+Vertex 99:-27.32 32.56  50.0
+Vertex 100:-30.05 30.05  50.0
+Vertex 101:-32.56 27.32  50.0
+Vertex 102:-34.813 24.38  50.0
+Vertex 103:-36.805 21.25  50.0
+Vertex 104:-38.52 17.96  50.0
+Vertex 105:-39.938 14.535  50.0
+Vertex 106:-41.05  11.0  50.0
+Vertex 107:-41.855 7.38  50.0
+Vertex 108:-42.34 3.703  50.0
+Vertex 109:-42.5   0.0  50.0
+Vertex 110:-42.34 -3.703  50.0
+Vertex 111:-41.855 -7.38  50.0
+Vertex 112:-41.05 -11.0  50.0
+Vertex 113:-39.938 -14.535  50.0
+Vertex 114:-38.52 -17.96  50.0
+Vertex 115:-36.805 -21.25  50.0
+Vertex 116:-34.813 -24.38  50.0
+Vertex 117:-32.56 -27.32  50.0
+Vertex 118:-30.05 -30.05  50.0
+Vertex 119:-27.32 -32.56  50.0
+Vertex 120:-24.38 -34.813  50.0
+Vertex 121:-21.25 -36.805  50.0
+Vertex 122:-17.96 -38.52  50.0
+Vertex 123:-14.535 -39.938  50.0
+Vertex 124:-11.0 -41.05  50.0
+Vertex 125:-7.38 -41.855  50.0
+Vertex 126:-3.703 -42.34  50.0
+Vertex 127:  0.0 -42.5  50.0
+Vertex 128:3.703 -42.34  50.0
+Vertex 129:7.38 -41.855  50.0
+Vertex 130: 11.0 -41.05  50.0
+Vertex 131:14.535 -39.938  50.0
+Vertex 132:17.96 -38.52  50.0
+Vertex 133:21.25 -36.805  50.0
+Vertex 134:24.38 -34.813  50.0
+Vertex 135:27.32 -32.56  50.0
+Vertex 136:30.05 -30.05  50.0
+Vertex 137:32.56 -27.32  50.0
+Vertex 138:34.813 -24.38  50.0
+Vertex 139:36.805 -21.25  50.0
+Vertex 140:38.52 -17.96  50.0
+Vertex 141:39.938 -14.535  50.0
+Vertex 142:41.05 -11.0  50.0
+Vertex 143:41.855 -7.38  50.0
+Vertex 144:42.34 -3.703  50.0
+ Number of Faces:74
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (72 le's):144 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 
+Face:2 (1 bounds)
+	Bound 1 (72 le's):1 72 71 70 69 68 67 66 65 64 63 62 61 60 59 58 57 56 55 54 53 52 51 50 49 48 47 46 45 44 43 42 41 40 39 38 37 36 35 34 33 32 31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):74 73 1 2 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):75 74 2 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):76 75 3 4 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):77 76 4 5 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):78 77 5 6 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):79 78 6 7 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):80 79 7 8 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):81 80 8 9 
+Face:11 (1 bounds)
+	Bound 1 (4 le's):82 81 9 10 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):83 82 10 11 
+Face:13 (1 bounds)
+	Bound 1 (4 le's):84 83 11 12 
+Face:14 (1 bounds)
+	Bound 1 (4 le's):85 84 12 13 
+Face:15 (1 bounds)
+	Bound 1 (4 le's):86 85 13 14 
+Face:16 (1 bounds)
+	Bound 1 (4 le's):87 86 14 15 
+Face:17 (1 bounds)
+	Bound 1 (4 le's):88 87 15 16 
+Face:18 (1 bounds)
+	Bound 1 (4 le's):89 88 16 17 
+Face:19 (1 bounds)
+	Bound 1 (4 le's):90 89 17 18 
+Face:20 (1 bounds)
+	Bound 1 (4 le's):91 90 18 19 
+Face:21 (1 bounds)
+	Bound 1 (4 le's):92 91 19 20 
+Face:22 (1 bounds)
+	Bound 1 (4 le's):93 92 20 21 
+Face:23 (1 bounds)
+	Bound 1 (4 le's):94 93 21 22 
+Face:24 (1 bounds)
+	Bound 1 (4 le's):95 94 22 23 
+Face:25 (1 bounds)
+	Bound 1 (4 le's):96 95 23 24 
+Face:26 (1 bounds)
+	Bound 1 (4 le's):97 96 24 25 
+Face:27 (1 bounds)
+	Bound 1 (4 le's):98 97 25 26 
+Face:28 (1 bounds)
+	Bound 1 (4 le's):99 98 26 27 
+Face:29 (1 bounds)
+	Bound 1 (4 le's):100 99 27 28 
+Face:30 (1 bounds)
+	Bound 1 (4 le's):101 100 28 29 
+Face:31 (1 bounds)
+	Bound 1 (4 le's):102 101 29 30 
+Face:32 (1 bounds)
+	Bound 1 (4 le's):103 102 30 31 
+Face:33 (1 bounds)
+	Bound 1 (4 le's):104 103 31 32 
+Face:34 (1 bounds)
+	Bound 1 (4 le's):105 104 32 33 
+Face:35 (1 bounds)
+	Bound 1 (4 le's):106 105 33 34 
+Face:36 (1 bounds)
+	Bound 1 (4 le's):107 106 34 35 
+Face:37 (1 bounds)
+	Bound 1 (4 le's):108 107 35 36 
+Face:38 (1 bounds)
+	Bound 1 (4 le's):109 108 36 37 
+Face:39 (1 bounds)
+	Bound 1 (4 le's):110 109 37 38 
+Face:40 (1 bounds)
+	Bound 1 (4 le's):111 110 38 39 
+Face:41 (1 bounds)
+	Bound 1 (4 le's):112 111 39 40 
+Face:42 (1 bounds)
+	Bound 1 (4 le's):113 112 40 41 
+Face:43 (1 bounds)
+	Bound 1 (4 le's):114 113 41 42 
+Face:44 (1 bounds)
+	Bound 1 (4 le's):115 114 42 43 
+Face:45 (1 bounds)
+	Bound 1 (4 le's):116 115 43 44 
+Face:46 (1 bounds)
+	Bound 1 (4 le's):117 116 44 45 
+Face:47 (1 bounds)
+	Bound 1 (4 le's):118 117 45 46 
+Face:48 (1 bounds)
+	Bound 1 (4 le's):119 118 46 47 
+Face:49 (1 bounds)
+	Bound 1 (4 le's):120 119 47 48 
+Face:50 (1 bounds)
+	Bound 1 (4 le's):121 120 48 49 
+Face:51 (1 bounds)
+	Bound 1 (4 le's):122 121 49 50 
+Face:52 (1 bounds)
+	Bound 1 (4 le's):123 122 50 51 
+Face:53 (1 bounds)
+	Bound 1 (4 le's):124 123 51 52 
+Face:54 (1 bounds)
+	Bound 1 (4 le's):125 124 52 53 
+Face:55 (1 bounds)
+	Bound 1 (4 le's):126 125 53 54 
+Face:56 (1 bounds)
+	Bound 1 (4 le's):127 126 54 55 
+Face:57 (1 bounds)
+	Bound 1 (4 le's):128 127 55 56 
+Face:58 (1 bounds)
+	Bound 1 (4 le's):129 128 56 57 
+Face:59 (1 bounds)
+	Bound 1 (4 le's):130 129 57 58 
+Face:60 (1 bounds)
+	Bound 1 (4 le's):131 130 58 59 
+Face:61 (1 bounds)
+	Bound 1 (4 le's):132 131 59 60 
+Face:62 (1 bounds)
+	Bound 1 (4 le's):133 132 60 61 
+Face:63 (1 bounds)
+	Bound 1 (4 le's):134 133 61 62 
+Face:64 (1 bounds)
+	Bound 1 (4 le's):135 134 62 63 
+Face:65 (1 bounds)
+	Bound 1 (4 le's):136 135 63 64 
+Face:66 (1 bounds)
+	Bound 1 (4 le's):137 136 64 65 
+Face:67 (1 bounds)
+	Bound 1 (4 le's):138 137 65 66 
+Face:68 (1 bounds)
+	Bound 1 (4 le's):139 138 66 67 
+Face:69 (1 bounds)
+	Bound 1 (4 le's):140 139 67 68 
+Face:70 (1 bounds)
+	Bound 1 (4 le's):141 140 68 69 
+Face:71 (1 bounds)
+	Bound 1 (4 le's):142 141 69 70 
+Face:72 (1 bounds)
+	Bound 1 (4 le's):143 142 70 71 
+Face:73 (1 bounds)
+	Bound 1 (4 le's):144 143 71 72 
+Face:74 (1 bounds)
+	Bound 1 (4 le's):73 144 72 1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 27:
+Object Name:<none>
+ Object Transform:
+ [  3.529392343633364  6.494562556456362e-15  -1.9971295805008867e-15  0.000000  ]
+ [  5.12223102880622e-31  -1.0724659651528688e-15  -3.5293923436333623  0.000000  ]
+ [  -1.0507343310655787e-15  2.2001229078001425  9.14531778257316e-15  0.000000  ]
+ [  -0.022795162067941632  219.9613472001838  -3.791519986862113e-9  1.000000  ]
+ Object Inverse Transform:
+ [  0.28333489242245624  -1.6032688909343696e-16  -8.363788117202918e-16  0.000000  ]
+ [  1.35315207389769e-16  1.1777467617419024e-15  0.45452006179049304  0.000000  ]
+ [  3.009265538105056e-36  -0.2833348924224564  -1.3811366073505608e-16  0.000000  ]
+ [  0.006458664792242934  -1.074528970014221e-9  -99.97684512094764  1.000000  ]
+Object Parent:0
+Object Color:100 100 100
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:152
+ VFE List:
+Vertex 1:-38.52 17.96   0.0
+Vertex 2:-36.805 21.25   0.0
+Vertex 3:-34.813 24.38   0.0
+Vertex 4:-32.56 27.32   0.0
+Vertex 5:-30.05 30.05   0.0
+Vertex 6:-27.32 32.56   0.0
+Vertex 7:-24.38 34.813   0.0
+Vertex 8:-21.25 36.805   0.0
+Vertex 9:-17.96 38.52   0.0
+Vertex 10:-14.535 39.938   0.0
+Vertex 11:-11.0 41.05   0.0
+Vertex 12:-7.38 41.855   0.0
+Vertex 13:-3.703 42.34   0.0
+Vertex 14:  0.0  42.5   0.0
+Vertex 15:3.703 42.34   0.0
+Vertex 16:7.38 41.855   0.0
+Vertex 17: 11.0 41.05   0.0
+Vertex 18:14.535 39.938   0.0
+Vertex 19:17.96 38.52   0.0
+Vertex 20:21.25 36.805   0.0
+Vertex 21:24.38 34.813   0.0
+Vertex 22:27.32 32.56   0.0
+Vertex 23:30.05 30.05   0.0
+Vertex 24:32.56 27.32   0.0
+Vertex 25:34.813 24.38   0.0
+Vertex 26:36.805 21.25   0.0
+Vertex 27:38.52 17.96   0.0
+Vertex 28:39.938 14.535   0.0
+Vertex 29:41.05  11.0   0.0
+Vertex 30:41.855 7.38   0.0
+Vertex 31:42.34 3.703   0.0
+Vertex 32: 42.5   0.0   0.0
+Vertex 33:42.34 -3.703   0.0
+Vertex 34:41.855 -7.38   0.0
+Vertex 35:41.05 -11.0   0.0
+Vertex 36:39.938 -14.535   0.0
+Vertex 37:38.52 -17.96   0.0
+Vertex 38:36.805 -21.25   0.0
+Vertex 39:34.813 -24.38   0.0
+Vertex 40:32.56 -27.32   0.0
+Vertex 41:30.05 -30.05   0.0
+Vertex 42:27.32 -32.56   0.0
+Vertex 43:24.38 -34.813   0.0
+Vertex 44:21.25 -36.805   0.0
+Vertex 45:17.96 -38.52   0.0
+Vertex 46:14.535 -39.938   0.0
+Vertex 47: 11.0 -41.05   0.0
+Vertex 48:7.38 -41.855   0.0
+Vertex 49:3.703 -42.34   0.0
+Vertex 50:  0.0 -42.5   0.0
+Vertex 51:-3.703 -42.34   0.0
+Vertex 52:-7.38 -41.855   0.0
+Vertex 53:-11.0 -41.05   0.0
+Vertex 54:-14.535 -39.938   0.0
+Vertex 55:-17.96 -38.52   0.0
+Vertex 56:-21.25 -36.805   0.0
+Vertex 57:-24.38 -34.813   0.0
+Vertex 58:-27.32 -32.56   0.0
+Vertex 59:-30.05 -30.05   0.0
+Vertex 60:-32.56 -27.32   0.0
+Vertex 61:-34.813 -24.38   0.0
+Vertex 62:-36.805 -21.25   0.0
+Vertex 63:-38.52 -17.96   0.0
+Vertex 64:-39.938 -14.535   0.0
+Vertex 65:-41.05 -11.0   0.0
+Vertex 66:-41.855 -7.38   0.0
+Vertex 67:-42.34 -3.703   0.0
+Vertex 68:-42.5   0.0   0.0
+Vertex 69:-42.34 3.703   0.0
+Vertex 70:-41.855 7.38   0.0
+Vertex 71:-41.05  11.0   0.0
+Vertex 72:-39.938 14.535   0.0
+Vertex 73:-36.805 21.25  50.0
+Vertex 74:-34.813 24.38  50.0
+Vertex 75:-32.56 27.32  50.0
+Vertex 76:-24.38 34.813  50.0
+Vertex 77:-27.32 32.56  50.0
+Vertex 78:-21.25 36.805  50.0
+Vertex 79:-30.05 30.05  50.0
+Vertex 80:-38.52 17.96  50.0
+Vertex 81:-39.938 14.535  50.0
+Vertex 82:-41.05  11.0  50.0
+Vertex 83:-41.855 7.38  50.0
+Vertex 84:-42.34 3.703  50.0
+Vertex 85:-42.5   0.0  50.0
+Vertex 86:-17.96 38.52  50.0
+Vertex 87:-14.535 39.938  50.0
+Vertex 88:-11.0 41.05  50.0
+Vertex 89:-7.38 41.855  50.0
+Vertex 90:-3.703 42.34  50.0
+Vertex 91:  0.0  42.5  50.0
+Vertex 92:-42.34 -3.703  50.0
+Vertex 93:-41.855 -7.38  50.0
+Vertex 94:-41.05 -11.0  50.0
+Vertex 95:-39.938 -14.535  50.0
+Vertex 96:-38.52 -17.96  50.0
+Vertex 97:-36.805 -21.25  50.0
+Vertex 98:-34.813 -24.38  50.0
+Vertex 99:-32.56 -27.32  50.0
+Vertex 100:-30.05 -30.05  50.0
+Vertex 101:-27.32 -32.56  50.0
+Vertex 102:-24.38 -34.813  50.0
+Vertex 103:-21.25 -36.805  50.0
+Vertex 104:-17.96 -38.52  50.0
+Vertex 105:-14.535 -39.938  50.0
+Vertex 106:-11.0 -41.05  50.0
+Vertex 107:-7.38 -41.855  50.0
+Vertex 108:-3.703 -42.34  50.0
+Vertex 109:  0.0 -42.5  50.0
+Vertex 110:3.703 -42.34  50.0
+Vertex 111:7.38 -41.855  50.0
+Vertex 112: 11.0 -41.05  50.0
+Vertex 113:14.535 -39.938  50.0
+Vertex 114:17.96 -38.52  50.0
+Vertex 115:21.25 -36.805  50.0
+Vertex 116:24.38 -34.813  50.0
+Vertex 117:27.32 -32.56  50.0
+Vertex 118:30.05 -30.05  50.0
+Vertex 119:32.56 -27.32  50.0
+Vertex 120:34.813 -24.38  50.0
+Vertex 121:36.805 -21.25  50.0
+Vertex 122:38.52 -17.96  50.0
+Vertex 123:39.938 -14.535  50.0
+Vertex 124:41.05 -11.0  50.0
+Vertex 125:41.855 -7.38  50.0
+Vertex 126:42.34 -3.703  50.0
+Vertex 127: 42.5   0.0  50.0
+Vertex 128:42.34 3.703  50.0
+Vertex 129:41.855 7.38  50.0
+Vertex 130:41.05  11.0  50.0
+Vertex 131:39.938 14.535  50.0
+Vertex 132:38.52 17.96  50.0
+Vertex 133:36.805 21.25  50.0
+Vertex 134:34.813 24.38  50.0
+Vertex 135:32.56 27.32  50.0
+Vertex 136:30.05 30.05  50.0
+Vertex 137:27.32 32.56  50.0
+Vertex 138:24.38 34.813  50.0
+Vertex 139:21.25 36.805  50.0
+Vertex 140:17.96 38.52  50.0
+Vertex 141:14.535 39.938  50.0
+Vertex 142: 11.0 41.05  50.0
+Vertex 143:7.38 41.855  50.0
+Vertex 144:3.703 42.34  50.0
+Vertex 145:-19.816 -5.668  50.0
+Vertex 146:-19.816 5.668  50.0
+Vertex 147:19.85 5.668  50.0
+Vertex 148:19.85 -5.668  50.0
+Vertex 149:-19.816 5.668 34.125
+Vertex 150:-19.816 -5.668 34.125
+Vertex 151:19.85 -5.668 34.125
+Vertex 152:19.85 5.668 34.125
+ Number of Faces:79
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (72 le's):1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):3 2 73 74 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):4 3 74 75 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):76 7 6 77 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):78 8 7 76 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):79 5 4 75 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):6 5 79 77 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):73 2 1 80 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):1 72 81 80 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):72 71 82 81 
+Face:11 (1 bounds)
+	Bound 1 (4 le's):71 70 83 82 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):70 69 84 83 
+Face:13 (1 bounds)
+	Bound 1 (4 le's):69 68 85 84 
+Face:14 (1 bounds)
+	Bound 1 (4 le's):9 8 78 86 
+Face:15 (1 bounds)
+	Bound 1 (4 le's):87 10 9 86 
+Face:16 (1 bounds)
+	Bound 1 (4 le's):88 11 10 87 
+Face:17 (1 bounds)
+	Bound 1 (4 le's):89 12 11 88 
+Face:18 (1 bounds)
+	Bound 1 (4 le's):90 13 12 89 
+Face:19 (1 bounds)
+	Bound 1 (4 le's):91 14 13 90 
+Face:20 (1 bounds)
+	Bound 1 (4 le's):68 67 92 85 
+Face:21 (1 bounds)
+	Bound 1 (4 le's):67 66 93 92 
+Face:22 (1 bounds)
+	Bound 1 (4 le's):66 65 94 93 
+Face:23 (1 bounds)
+	Bound 1 (4 le's):65 64 95 94 
+Face:24 (1 bounds)
+	Bound 1 (4 le's):64 63 96 95 
+Face:25 (1 bounds)
+	Bound 1 (4 le's):63 62 97 96 
+Face:26 (1 bounds)
+	Bound 1 (4 le's):62 61 98 97 
+Face:27 (1 bounds)
+	Bound 1 (4 le's):61 60 99 98 
+Face:28 (1 bounds)
+	Bound 1 (4 le's):60 59 100 99 
+Face:29 (1 bounds)
+	Bound 1 (4 le's):59 58 101 100 
+Face:30 (1 bounds)
+	Bound 1 (4 le's):58 57 102 101 
+Face:31 (1 bounds)
+	Bound 1 (4 le's):57 56 103 102 
+Face:32 (1 bounds)
+	Bound 1 (4 le's):56 55 104 103 
+Face:33 (1 bounds)
+	Bound 1 (4 le's):55 54 105 104 
+Face:34 (1 bounds)
+	Bound 1 (4 le's):54 53 106 105 
+Face:35 (1 bounds)
+	Bound 1 (4 le's):53 52 107 106 
+Face:36 (1 bounds)
+	Bound 1 (4 le's):52 51 108 107 
+Face:37 (1 bounds)
+	Bound 1 (4 le's):51 50 109 108 
+Face:38 (2 bounds)
+	Bound 1 (72 le's):75 74 73 80 81 82 83 84 85 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 91 90 89 88 87 86 78 76 77 79 
+	Bound 2 (4 le's):145 146 147 148 
+Face:39 (1 bounds)
+	Bound 1 (4 le's):144 15 14 91 
+Face:40 (1 bounds)
+	Bound 1 (4 le's):143 16 15 144 
+Face:41 (1 bounds)
+	Bound 1 (4 le's):142 17 16 143 
+Face:42 (1 bounds)
+	Bound 1 (4 le's):141 18 17 142 
+Face:43 (1 bounds)
+	Bound 1 (4 le's):140 19 18 141 
+Face:44 (1 bounds)
+	Bound 1 (4 le's):139 20 19 140 
+Face:45 (1 bounds)
+	Bound 1 (4 le's):138 21 20 139 
+Face:46 (1 bounds)
+	Bound 1 (4 le's):137 22 21 138 
+Face:47 (1 bounds)
+	Bound 1 (4 le's):136 23 22 137 
+Face:48 (1 bounds)
+	Bound 1 (4 le's):135 24 23 136 
+Face:49 (1 bounds)
+	Bound 1 (4 le's):134 25 24 135 
+Face:50 (1 bounds)
+	Bound 1 (4 le's):133 26 25 134 
+Face:51 (1 bounds)
+	Bound 1 (4 le's):132 27 26 133 
+Face:52 (1 bounds)
+	Bound 1 (4 le's):131 28 27 132 
+Face:53 (1 bounds)
+	Bound 1 (4 le's):130 29 28 131 
+Face:54 (1 bounds)
+	Bound 1 (4 le's):129 30 29 130 
+Face:55 (1 bounds)
+	Bound 1 (4 le's):128 31 30 129 
+Face:56 (1 bounds)
+	Bound 1 (4 le's):127 32 31 128 
+Face:57 (1 bounds)
+	Bound 1 (4 le's):50 49 110 109 
+Face:58 (1 bounds)
+	Bound 1 (4 le's):49 48 111 110 
+Face:59 (1 bounds)
+	Bound 1 (4 le's):48 47 112 111 
+Face:60 (1 bounds)
+	Bound 1 (4 le's):47 46 113 112 
+Face:61 (1 bounds)
+	Bound 1 (4 le's):46 45 114 113 
+Face:62 (1 bounds)
+	Bound 1 (4 le's):45 44 115 114 
+Face:63 (1 bounds)
+	Bound 1 (4 le's):126 33 32 127 
+Face:64 (1 bounds)
+	Bound 1 (4 le's):125 34 33 126 
+Face:65 (1 bounds)
+	Bound 1 (4 le's):124 35 34 125 
+Face:66 (1 bounds)
+	Bound 1 (4 le's):123 36 35 124 
+Face:67 (1 bounds)
+	Bound 1 (4 le's):122 37 36 123 
+Face:68 (1 bounds)
+	Bound 1 (4 le's):121 38 37 122 
+Face:69 (1 bounds)
+	Bound 1 (4 le's):117 42 41 118 
+Face:70 (1 bounds)
+	Bound 1 (4 le's):41 40 119 118 
+Face:71 (1 bounds)
+	Bound 1 (4 le's):44 43 116 115 
+Face:72 (1 bounds)
+	Bound 1 (4 le's):43 42 117 116 
+Face:73 (1 bounds)
+	Bound 1 (4 le's):119 40 39 120 
+Face:74 (1 bounds)
+	Bound 1 (4 le's):120 39 38 121 
+Face:75 (1 bounds)
+	Bound 1 (4 le's):149 150 151 152 
+Face:76 (1 bounds)
+	Bound 1 (4 le's):149 146 145 150 
+Face:77 (1 bounds)
+	Bound 1 (4 le's):147 146 149 152 
+Face:78 (1 bounds)
+	Bound 1 (4 le's):150 145 148 151 
+Face:79 (1 bounds)
+	Bound 1 (4 le's):148 147 152 151 
+Faces with different colors:5
+	Face 75:100 100 100
+	Face 76:100 100 100
+	Face 77:100 100 100
+	Face 78:100 100 100
+	Face 79:100 100 100
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 28:
+Object Name:<none>
+ Object Transform:
+ [  0.7058800000000004  6.01782138882475e-16  -2.5208028105061954e-16  0.000000  ]
+ [  2.5577192426838378e-31  -5.362055262054405e-15  -0.7058799999999996  0.000000  ]
+ [  -5.247063198642227e-16  11.000051282051292  1.704759600162364e-15  0.000000  ]
+ [  -0.0227951620679665  -330.04121690238094  -3.7913290250324305e-9  1.000000  ]
+ Object Inverse Transform:
+ [  1.416671388904629  -5.059144923661964e-16  -7.750214218543692e-17  0.000000  ]
+ [  6.758645292731513e-17  2.1955208103689436e-16  0.09090866709246104  0.000000  ]
+ [  -9.62964972193618e-35  -1.4166713889046305  -6.905668056177864e-16  0.000000  ]
+ [  0.032293253907154526  -5.3709949059835365e-9  30.003607114169274  1.000000  ]
+Object Parent:0
+Object Color:100 100 100
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:144
+ VFE List:
+Vertex 1: 42.5   0.0   0.0
+Vertex 2:42.34 3.703   0.0
+Vertex 3:41.855 7.38   0.0
+Vertex 4:41.05  11.0   0.0
+Vertex 5:39.938 14.535   0.0
+Vertex 6:38.52 17.96   0.0
+Vertex 7:36.805 21.25   0.0
+Vertex 8:34.813 24.38   0.0
+Vertex 9:32.56 27.32   0.0
+Vertex 10:30.05 30.05   0.0
+Vertex 11:27.32 32.56   0.0
+Vertex 12:24.38 34.813   0.0
+Vertex 13:21.25 36.805   0.0
+Vertex 14:17.96 38.52   0.0
+Vertex 15:14.535 39.938   0.0
+Vertex 16: 11.0 41.05   0.0
+Vertex 17:7.38 41.855   0.0
+Vertex 18:3.703 42.34   0.0
+Vertex 19:  0.0  42.5   0.0
+Vertex 20:-3.703 42.34   0.0
+Vertex 21:-7.38 41.855   0.0
+Vertex 22:-11.0 41.05   0.0
+Vertex 23:-14.535 39.938   0.0
+Vertex 24:-17.96 38.52   0.0
+Vertex 25:-21.25 36.805   0.0
+Vertex 26:-24.38 34.813   0.0
+Vertex 27:-27.32 32.56   0.0
+Vertex 28:-30.05 30.05   0.0
+Vertex 29:-32.56 27.32   0.0
+Vertex 30:-34.813 24.38   0.0
+Vertex 31:-36.805 21.25   0.0
+Vertex 32:-38.52 17.96   0.0
+Vertex 33:-39.938 14.535   0.0
+Vertex 34:-41.05  11.0   0.0
+Vertex 35:-41.855 7.38   0.0
+Vertex 36:-42.34 3.703   0.0
+Vertex 37:-42.5   0.0   0.0
+Vertex 38:-42.34 -3.703   0.0
+Vertex 39:-41.855 -7.38   0.0
+Vertex 40:-41.05 -11.0   0.0
+Vertex 41:-39.938 -14.535   0.0
+Vertex 42:-38.52 -17.96   0.0
+Vertex 43:-36.805 -21.25   0.0
+Vertex 44:-34.813 -24.38   0.0
+Vertex 45:-32.56 -27.32   0.0
+Vertex 46:-30.05 -30.05   0.0
+Vertex 47:-27.32 -32.56   0.0
+Vertex 48:-24.38 -34.813   0.0
+Vertex 49:-21.25 -36.805   0.0
+Vertex 50:-17.96 -38.52   0.0
+Vertex 51:-14.535 -39.938   0.0
+Vertex 52:-11.0 -41.05   0.0
+Vertex 53:-7.38 -41.855   0.0
+Vertex 54:-3.703 -42.34   0.0
+Vertex 55:  0.0 -42.5   0.0
+Vertex 56:3.703 -42.34   0.0
+Vertex 57:7.38 -41.855   0.0
+Vertex 58: 11.0 -41.05   0.0
+Vertex 59:14.535 -39.938   0.0
+Vertex 60:17.96 -38.52   0.0
+Vertex 61:21.25 -36.805   0.0
+Vertex 62:24.38 -34.813   0.0
+Vertex 63:27.32 -32.56   0.0
+Vertex 64:30.05 -30.05   0.0
+Vertex 65:32.56 -27.32   0.0
+Vertex 66:34.813 -24.38   0.0
+Vertex 67:36.805 -21.25   0.0
+Vertex 68:38.52 -17.96   0.0
+Vertex 69:39.938 -14.535   0.0
+Vertex 70:41.05 -11.0   0.0
+Vertex 71:41.855 -7.38   0.0
+Vertex 72:42.34 -3.703   0.0
+Vertex 73: 42.5   0.0  50.0
+Vertex 74:42.34 3.703  50.0
+Vertex 75:41.855 7.38  50.0
+Vertex 76:41.05  11.0  50.0
+Vertex 77:39.938 14.535  50.0
+Vertex 78:38.52 17.96  50.0
+Vertex 79:36.805 21.25  50.0
+Vertex 80:34.813 24.38  50.0
+Vertex 81:32.56 27.32  50.0
+Vertex 82:30.05 30.05  50.0
+Vertex 83:27.32 32.56  50.0
+Vertex 84:24.38 34.813  50.0
+Vertex 85:21.25 36.805  50.0
+Vertex 86:17.96 38.52  50.0
+Vertex 87:14.535 39.938  50.0
+Vertex 88: 11.0 41.05  50.0
+Vertex 89:7.38 41.855  50.0
+Vertex 90:3.703 42.34  50.0
+Vertex 91:  0.0  42.5  50.0
+Vertex 92:-3.703 42.34  50.0
+Vertex 93:-7.38 41.855  50.0
+Vertex 94:-11.0 41.05  50.0
+Vertex 95:-14.535 39.938  50.0
+Vertex 96:-17.96 38.52  50.0
+Vertex 97:-21.25 36.805  50.0
+Vertex 98:-24.38 34.813  50.0
+Vertex 99:-27.32 32.56  50.0
+Vertex 100:-30.05 30.05  50.0
+Vertex 101:-32.56 27.32  50.0
+Vertex 102:-34.813 24.38  50.0
+Vertex 103:-36.805 21.25  50.0
+Vertex 104:-38.52 17.96  50.0
+Vertex 105:-39.938 14.535  50.0
+Vertex 106:-41.05  11.0  50.0
+Vertex 107:-41.855 7.38  50.0
+Vertex 108:-42.34 3.703  50.0
+Vertex 109:-42.5   0.0  50.0
+Vertex 110:-42.34 -3.703  50.0
+Vertex 111:-41.855 -7.38  50.0
+Vertex 112:-41.05 -11.0  50.0
+Vertex 113:-39.938 -14.535  50.0
+Vertex 114:-38.52 -17.96  50.0
+Vertex 115:-36.805 -21.25  50.0
+Vertex 116:-34.813 -24.38  50.0
+Vertex 117:-32.56 -27.32  50.0
+Vertex 118:-30.05 -30.05  50.0
+Vertex 119:-27.32 -32.56  50.0
+Vertex 120:-24.38 -34.813  50.0
+Vertex 121:-21.25 -36.805  50.0
+Vertex 122:-17.96 -38.52  50.0
+Vertex 123:-14.535 -39.938  50.0
+Vertex 124:-11.0 -41.05  50.0
+Vertex 125:-7.38 -41.855  50.0
+Vertex 126:-3.703 -42.34  50.0
+Vertex 127:  0.0 -42.5  50.0
+Vertex 128:3.703 -42.34  50.0
+Vertex 129:7.38 -41.855  50.0
+Vertex 130: 11.0 -41.05  50.0
+Vertex 131:14.535 -39.938  50.0
+Vertex 132:17.96 -38.52  50.0
+Vertex 133:21.25 -36.805  50.0
+Vertex 134:24.38 -34.813  50.0
+Vertex 135:27.32 -32.56  50.0
+Vertex 136:30.05 -30.05  50.0
+Vertex 137:32.56 -27.32  50.0
+Vertex 138:34.813 -24.38  50.0
+Vertex 139:36.805 -21.25  50.0
+Vertex 140:38.52 -17.96  50.0
+Vertex 141:39.938 -14.535  50.0
+Vertex 142:41.05 -11.0  50.0
+Vertex 143:41.855 -7.38  50.0
+Vertex 144:42.34 -3.703  50.0
+ Number of Faces:74
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (72 le's):144 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 
+Face:2 (1 bounds)
+	Bound 1 (72 le's):1 72 71 70 69 68 67 66 65 64 63 62 61 60 59 58 57 56 55 54 53 52 51 50 49 48 47 46 45 44 43 42 41 40 39 38 37 36 35 34 33 32 31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):74 73 1 2 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):75 74 2 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):76 75 3 4 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):77 76 4 5 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):78 77 5 6 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):79 78 6 7 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):80 79 7 8 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):81 80 8 9 
+Face:11 (1 bounds)
+	Bound 1 (4 le's):82 81 9 10 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):83 82 10 11 
+Face:13 (1 bounds)
+	Bound 1 (4 le's):84 83 11 12 
+Face:14 (1 bounds)
+	Bound 1 (4 le's):85 84 12 13 
+Face:15 (1 bounds)
+	Bound 1 (4 le's):86 85 13 14 
+Face:16 (1 bounds)
+	Bound 1 (4 le's):87 86 14 15 
+Face:17 (1 bounds)
+	Bound 1 (4 le's):88 87 15 16 
+Face:18 (1 bounds)
+	Bound 1 (4 le's):89 88 16 17 
+Face:19 (1 bounds)
+	Bound 1 (4 le's):90 89 17 18 
+Face:20 (1 bounds)
+	Bound 1 (4 le's):91 90 18 19 
+Face:21 (1 bounds)
+	Bound 1 (4 le's):92 91 19 20 
+Face:22 (1 bounds)
+	Bound 1 (4 le's):93 92 20 21 
+Face:23 (1 bounds)
+	Bound 1 (4 le's):94 93 21 22 
+Face:24 (1 bounds)
+	Bound 1 (4 le's):95 94 22 23 
+Face:25 (1 bounds)
+	Bound 1 (4 le's):96 95 23 24 
+Face:26 (1 bounds)
+	Bound 1 (4 le's):97 96 24 25 
+Face:27 (1 bounds)
+	Bound 1 (4 le's):98 97 25 26 
+Face:28 (1 bounds)
+	Bound 1 (4 le's):99 98 26 27 
+Face:29 (1 bounds)
+	Bound 1 (4 le's):100 99 27 28 
+Face:30 (1 bounds)
+	Bound 1 (4 le's):101 100 28 29 
+Face:31 (1 bounds)
+	Bound 1 (4 le's):102 101 29 30 
+Face:32 (1 bounds)
+	Bound 1 (4 le's):103 102 30 31 
+Face:33 (1 bounds)
+	Bound 1 (4 le's):104 103 31 32 
+Face:34 (1 bounds)
+	Bound 1 (4 le's):105 104 32 33 
+Face:35 (1 bounds)
+	Bound 1 (4 le's):106 105 33 34 
+Face:36 (1 bounds)
+	Bound 1 (4 le's):107 106 34 35 
+Face:37 (1 bounds)
+	Bound 1 (4 le's):108 107 35 36 
+Face:38 (1 bounds)
+	Bound 1 (4 le's):109 108 36 37 
+Face:39 (1 bounds)
+	Bound 1 (4 le's):110 109 37 38 
+Face:40 (1 bounds)
+	Bound 1 (4 le's):111 110 38 39 
+Face:41 (1 bounds)
+	Bound 1 (4 le's):112 111 39 40 
+Face:42 (1 bounds)
+	Bound 1 (4 le's):113 112 40 41 
+Face:43 (1 bounds)
+	Bound 1 (4 le's):114 113 41 42 
+Face:44 (1 bounds)
+	Bound 1 (4 le's):115 114 42 43 
+Face:45 (1 bounds)
+	Bound 1 (4 le's):116 115 43 44 
+Face:46 (1 bounds)
+	Bound 1 (4 le's):117 116 44 45 
+Face:47 (1 bounds)
+	Bound 1 (4 le's):118 117 45 46 
+Face:48 (1 bounds)
+	Bound 1 (4 le's):119 118 46 47 
+Face:49 (1 bounds)
+	Bound 1 (4 le's):120 119 47 48 
+Face:50 (1 bounds)
+	Bound 1 (4 le's):121 120 48 49 
+Face:51 (1 bounds)
+	Bound 1 (4 le's):122 121 49 50 
+Face:52 (1 bounds)
+	Bound 1 (4 le's):123 122 50 51 
+Face:53 (1 bounds)
+	Bound 1 (4 le's):124 123 51 52 
+Face:54 (1 bounds)
+	Bound 1 (4 le's):125 124 52 53 
+Face:55 (1 bounds)
+	Bound 1 (4 le's):126 125 53 54 
+Face:56 (1 bounds)
+	Bound 1 (4 le's):127 126 54 55 
+Face:57 (1 bounds)
+	Bound 1 (4 le's):128 127 55 56 
+Face:58 (1 bounds)
+	Bound 1 (4 le's):129 128 56 57 
+Face:59 (1 bounds)
+	Bound 1 (4 le's):130 129 57 58 
+Face:60 (1 bounds)
+	Bound 1 (4 le's):131 130 58 59 
+Face:61 (1 bounds)
+	Bound 1 (4 le's):132 131 59 60 
+Face:62 (1 bounds)
+	Bound 1 (4 le's):133 132 60 61 
+Face:63 (1 bounds)
+	Bound 1 (4 le's):134 133 61 62 
+Face:64 (1 bounds)
+	Bound 1 (4 le's):135 134 62 63 
+Face:65 (1 bounds)
+	Bound 1 (4 le's):136 135 63 64 
+Face:66 (1 bounds)
+	Bound 1 (4 le's):137 136 64 65 
+Face:67 (1 bounds)
+	Bound 1 (4 le's):138 137 65 66 
+Face:68 (1 bounds)
+	Bound 1 (4 le's):139 138 66 67 
+Face:69 (1 bounds)
+	Bound 1 (4 le's):140 139 67 68 
+Face:70 (1 bounds)
+	Bound 1 (4 le's):141 140 68 69 
+Face:71 (1 bounds)
+	Bound 1 (4 le's):142 141 69 70 
+Face:72 (1 bounds)
+	Bound 1 (4 le's):143 142 70 71 
+Face:73 (1 bounds)
+	Bound 1 (4 le's):144 143 71 72 
+Face:74 (1 bounds)
+	Bound 1 (4 le's):73 144 72 1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 29:
+Object Name:<none>
+ Object Transform:
+ [  -6.002143226879753e-16  1.370927286719955e-15  -1.6470509804000004  0.000000  ]
+ [  -1.6470509803999993  -7.799821717161375e-16  9.020562075079397e-17  0.000000  ]
+ [  3.762487439868178e-15  1.6001035924937461  1.2515499485017108e-15  0.000000  ]
+ [  -3.791382319098639e-9  -200.00258981234285  0.022795162067950517  1.000000  ]
+ Object Inverse Transform:
+ [  -3.325213351879738e-17  -0.6071457483101963  -2.959576252042301e-16  0.000000  ]
+ [  4.74894104075807e-16  1.4276439743690838e-15  0.6249595368019326  0.000000  ]
+ [  -0.6071457483101959  2.2125458072122844e-16  5.20186741207949e-16  0.000000  ]
+ [  0.01383998573169299  -2.301636127810521e-9  124.99352588830872  1.000000  ]
+Object Parent:0
+Object Color:100 100 100
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:144
+ VFE List:
+Vertex 1: 42.5   0.0   0.0
+Vertex 2:42.34 3.703   0.0
+Vertex 3:41.855 7.38   0.0
+Vertex 4:41.05  11.0   0.0
+Vertex 5:39.938 14.535   0.0
+Vertex 6:38.52 17.96   0.0
+Vertex 7:36.805 21.25   0.0
+Vertex 8:34.813 24.38   0.0
+Vertex 9:32.56 27.32   0.0
+Vertex 10:30.05 30.05   0.0
+Vertex 11:27.32 32.56   0.0
+Vertex 12:24.38 34.813   0.0
+Vertex 13:21.25 36.805   0.0
+Vertex 14:17.96 38.52   0.0
+Vertex 15:14.535 39.938   0.0
+Vertex 16: 11.0 41.05   0.0
+Vertex 17:7.38 41.855   0.0
+Vertex 18:3.703 42.34   0.0
+Vertex 19:  0.0  42.5   0.0
+Vertex 20:-3.703 42.34   0.0
+Vertex 21:-7.38 41.855   0.0
+Vertex 22:-11.0 41.05   0.0
+Vertex 23:-14.535 39.938   0.0
+Vertex 24:-17.96 38.52   0.0
+Vertex 25:-21.25 36.805   0.0
+Vertex 26:-24.38 34.813   0.0
+Vertex 27:-27.32 32.56   0.0
+Vertex 28:-30.05 30.05   0.0
+Vertex 29:-32.56 27.32   0.0
+Vertex 30:-34.813 24.38   0.0
+Vertex 31:-36.805 21.25   0.0
+Vertex 32:-38.52 17.96   0.0
+Vertex 33:-39.938 14.535   0.0
+Vertex 34:-41.05  11.0   0.0
+Vertex 35:-41.855 7.38   0.0
+Vertex 36:-42.34 3.703   0.0
+Vertex 37:-42.5   0.0   0.0
+Vertex 38:-42.34 -3.703   0.0
+Vertex 39:-41.855 -7.38   0.0
+Vertex 40:-41.05 -11.0   0.0
+Vertex 41:-39.938 -14.535   0.0
+Vertex 42:-38.52 -17.96   0.0
+Vertex 43:-36.805 -21.25   0.0
+Vertex 44:-34.813 -24.38   0.0
+Vertex 45:-32.56 -27.32   0.0
+Vertex 46:-30.05 -30.05   0.0
+Vertex 47:-27.32 -32.56   0.0
+Vertex 48:-24.38 -34.813   0.0
+Vertex 49:-21.25 -36.805   0.0
+Vertex 50:-17.96 -38.52   0.0
+Vertex 51:-14.535 -39.938   0.0
+Vertex 52:-11.0 -41.05   0.0
+Vertex 53:-7.38 -41.855   0.0
+Vertex 54:-3.703 -42.34   0.0
+Vertex 55:  0.0 -42.5   0.0
+Vertex 56:3.703 -42.34   0.0
+Vertex 57:7.38 -41.855   0.0
+Vertex 58: 11.0 -41.05   0.0
+Vertex 59:14.535 -39.938   0.0
+Vertex 60:17.96 -38.52   0.0
+Vertex 61:21.25 -36.805   0.0
+Vertex 62:24.38 -34.813   0.0
+Vertex 63:27.32 -32.56   0.0
+Vertex 64:30.05 -30.05   0.0
+Vertex 65:32.56 -27.32   0.0
+Vertex 66:34.813 -24.38   0.0
+Vertex 67:36.805 -21.25   0.0
+Vertex 68:38.52 -17.96   0.0
+Vertex 69:39.938 -14.535   0.0
+Vertex 70:41.05 -11.0   0.0
+Vertex 71:41.855 -7.38   0.0
+Vertex 72:42.34 -3.703   0.0
+Vertex 73: 42.5   0.0  50.0
+Vertex 74:42.34 3.703  50.0
+Vertex 75:41.855 7.38  50.0
+Vertex 76:41.05  11.0  50.0
+Vertex 77:39.938 14.535  50.0
+Vertex 78:38.52 17.96  50.0
+Vertex 79:36.805 21.25  50.0
+Vertex 80:34.813 24.38  50.0
+Vertex 81:32.56 27.32  50.0
+Vertex 82:30.05 30.05  50.0
+Vertex 83:27.32 32.56  50.0
+Vertex 84:24.38 34.813  50.0
+Vertex 85:21.25 36.805  50.0
+Vertex 86:17.96 38.52  50.0
+Vertex 87:14.535 39.938  50.0
+Vertex 88: 11.0 41.05  50.0
+Vertex 89:7.38 41.855  50.0
+Vertex 90:3.703 42.34  50.0
+Vertex 91:  0.0  42.5  50.0
+Vertex 92:-3.703 42.34  50.0
+Vertex 93:-7.38 41.855  50.0
+Vertex 94:-11.0 41.05  50.0
+Vertex 95:-14.535 39.938  50.0
+Vertex 96:-17.96 38.52  50.0
+Vertex 97:-21.25 36.805  50.0
+Vertex 98:-24.38 34.813  50.0
+Vertex 99:-27.32 32.56  50.0
+Vertex 100:-30.05 30.05  50.0
+Vertex 101:-32.56 27.32  50.0
+Vertex 102:-34.813 24.38  50.0
+Vertex 103:-36.805 21.25  50.0
+Vertex 104:-38.52 17.96  50.0
+Vertex 105:-39.938 14.535  50.0
+Vertex 106:-41.05  11.0  50.0
+Vertex 107:-41.855 7.38  50.0
+Vertex 108:-42.34 3.703  50.0
+Vertex 109:-42.5   0.0  50.0
+Vertex 110:-42.34 -3.703  50.0
+Vertex 111:-41.855 -7.38  50.0
+Vertex 112:-41.05 -11.0  50.0
+Vertex 113:-39.938 -14.535  50.0
+Vertex 114:-38.52 -17.96  50.0
+Vertex 115:-36.805 -21.25  50.0
+Vertex 116:-34.813 -24.38  50.0
+Vertex 117:-32.56 -27.32  50.0
+Vertex 118:-30.05 -30.05  50.0
+Vertex 119:-27.32 -32.56  50.0
+Vertex 120:-24.38 -34.813  50.0
+Vertex 121:-21.25 -36.805  50.0
+Vertex 122:-17.96 -38.52  50.0
+Vertex 123:-14.535 -39.938  50.0
+Vertex 124:-11.0 -41.05  50.0
+Vertex 125:-7.38 -41.855  50.0
+Vertex 126:-3.703 -42.34  50.0
+Vertex 127:  0.0 -42.5  50.0
+Vertex 128:3.703 -42.34  50.0
+Vertex 129:7.38 -41.855  50.0
+Vertex 130: 11.0 -41.05  50.0
+Vertex 131:14.535 -39.938  50.0
+Vertex 132:17.96 -38.52  50.0
+Vertex 133:21.25 -36.805  50.0
+Vertex 134:24.38 -34.813  50.0
+Vertex 135:27.32 -32.56  50.0
+Vertex 136:30.05 -30.05  50.0
+Vertex 137:32.56 -27.32  50.0
+Vertex 138:34.813 -24.38  50.0
+Vertex 139:36.805 -21.25  50.0
+Vertex 140:38.52 -17.96  50.0
+Vertex 141:39.938 -14.535  50.0
+Vertex 142:41.05 -11.0  50.0
+Vertex 143:41.855 -7.38  50.0
+Vertex 144:42.34 -3.703  50.0
+ Number of Faces:74
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (72 le's):144 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 
+Face:2 (1 bounds)
+	Bound 1 (72 le's):1 72 71 70 69 68 67 66 65 64 63 62 61 60 59 58 57 56 55 54 53 52 51 50 49 48 47 46 45 44 43 42 41 40 39 38 37 36 35 34 33 32 31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):74 73 1 2 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):75 74 2 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):76 75 3 4 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):77 76 4 5 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):78 77 5 6 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):79 78 6 7 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):80 79 7 8 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):81 80 8 9 
+Face:11 (1 bounds)
+	Bound 1 (4 le's):82 81 9 10 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):83 82 10 11 
+Face:13 (1 bounds)
+	Bound 1 (4 le's):84 83 11 12 
+Face:14 (1 bounds)
+	Bound 1 (4 le's):85 84 12 13 
+Face:15 (1 bounds)
+	Bound 1 (4 le's):86 85 13 14 
+Face:16 (1 bounds)
+	Bound 1 (4 le's):87 86 14 15 
+Face:17 (1 bounds)
+	Bound 1 (4 le's):88 87 15 16 
+Face:18 (1 bounds)
+	Bound 1 (4 le's):89 88 16 17 
+Face:19 (1 bounds)
+	Bound 1 (4 le's):90 89 17 18 
+Face:20 (1 bounds)
+	Bound 1 (4 le's):91 90 18 19 
+Face:21 (1 bounds)
+	Bound 1 (4 le's):92 91 19 20 
+Face:22 (1 bounds)
+	Bound 1 (4 le's):93 92 20 21 
+Face:23 (1 bounds)
+	Bound 1 (4 le's):94 93 21 22 
+Face:24 (1 bounds)
+	Bound 1 (4 le's):95 94 22 23 
+Face:25 (1 bounds)
+	Bound 1 (4 le's):96 95 23 24 
+Face:26 (1 bounds)
+	Bound 1 (4 le's):97 96 24 25 
+Face:27 (1 bounds)
+	Bound 1 (4 le's):98 97 25 26 
+Face:28 (1 bounds)
+	Bound 1 (4 le's):99 98 26 27 
+Face:29 (1 bounds)
+	Bound 1 (4 le's):100 99 27 28 
+Face:30 (1 bounds)
+	Bound 1 (4 le's):101 100 28 29 
+Face:31 (1 bounds)
+	Bound 1 (4 le's):102 101 29 30 
+Face:32 (1 bounds)
+	Bound 1 (4 le's):103 102 30 31 
+Face:33 (1 bounds)
+	Bound 1 (4 le's):104 103 31 32 
+Face:34 (1 bounds)
+	Bound 1 (4 le's):105 104 32 33 
+Face:35 (1 bounds)
+	Bound 1 (4 le's):106 105 33 34 
+Face:36 (1 bounds)
+	Bound 1 (4 le's):107 106 34 35 
+Face:37 (1 bounds)
+	Bound 1 (4 le's):108 107 35 36 
+Face:38 (1 bounds)
+	Bound 1 (4 le's):109 108 36 37 
+Face:39 (1 bounds)
+	Bound 1 (4 le's):110 109 37 38 
+Face:40 (1 bounds)
+	Bound 1 (4 le's):111 110 38 39 
+Face:41 (1 bounds)
+	Bound 1 (4 le's):112 111 39 40 
+Face:42 (1 bounds)
+	Bound 1 (4 le's):113 112 40 41 
+Face:43 (1 bounds)
+	Bound 1 (4 le's):114 113 41 42 
+Face:44 (1 bounds)
+	Bound 1 (4 le's):115 114 42 43 
+Face:45 (1 bounds)
+	Bound 1 (4 le's):116 115 43 44 
+Face:46 (1 bounds)
+	Bound 1 (4 le's):117 116 44 45 
+Face:47 (1 bounds)
+	Bound 1 (4 le's):118 117 45 46 
+Face:48 (1 bounds)
+	Bound 1 (4 le's):119 118 46 47 
+Face:49 (1 bounds)
+	Bound 1 (4 le's):120 119 47 48 
+Face:50 (1 bounds)
+	Bound 1 (4 le's):121 120 48 49 
+Face:51 (1 bounds)
+	Bound 1 (4 le's):122 121 49 50 
+Face:52 (1 bounds)
+	Bound 1 (4 le's):123 122 50 51 
+Face:53 (1 bounds)
+	Bound 1 (4 le's):124 123 51 52 
+Face:54 (1 bounds)
+	Bound 1 (4 le's):125 124 52 53 
+Face:55 (1 bounds)
+	Bound 1 (4 le's):126 125 53 54 
+Face:56 (1 bounds)
+	Bound 1 (4 le's):127 126 54 55 
+Face:57 (1 bounds)
+	Bound 1 (4 le's):128 127 55 56 
+Face:58 (1 bounds)
+	Bound 1 (4 le's):129 128 56 57 
+Face:59 (1 bounds)
+	Bound 1 (4 le's):130 129 57 58 
+Face:60 (1 bounds)
+	Bound 1 (4 le's):131 130 58 59 
+Face:61 (1 bounds)
+	Bound 1 (4 le's):132 131 59 60 
+Face:62 (1 bounds)
+	Bound 1 (4 le's):133 132 60 61 
+Face:63 (1 bounds)
+	Bound 1 (4 le's):134 133 61 62 
+Face:64 (1 bounds)
+	Bound 1 (4 le's):135 134 62 63 
+Face:65 (1 bounds)
+	Bound 1 (4 le's):136 135 63 64 
+Face:66 (1 bounds)
+	Bound 1 (4 le's):137 136 64 65 
+Face:67 (1 bounds)
+	Bound 1 (4 le's):138 137 65 66 
+Face:68 (1 bounds)
+	Bound 1 (4 le's):139 138 66 67 
+Face:69 (1 bounds)
+	Bound 1 (4 le's):140 139 67 68 
+Face:70 (1 bounds)
+	Bound 1 (4 le's):141 140 68 69 
+Face:71 (1 bounds)
+	Bound 1 (4 le's):142 141 69 70 
+Face:72 (1 bounds)
+	Bound 1 (4 le's):143 142 70 71 
+Face:73 (1 bounds)
+	Bound 1 (4 le's):144 143 71 72 
+Face:74 (1 bounds)
+	Bound 1 (4 le's):73 144 72 1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 30:
+Object Name:<none>
+ Object Transform:
+ [  1.000000  0.000000  0.000000  0.000000  ]
+ [  0.000000  1.000000  0.000000  0.000000  ]
+ [  0.000000  0.000000  1.000000  0.000000  ]
+ [  70.01599999999989  -171.9985943775094  -11.99999999999997  1.000000  ]
+ Object Inverse Transform:
+ [  1.0000000000000002  -2.98369999501678e-16  -2.0816681711721633e-17  0.000000  ]
+ [  5.551115123125783e-17  1.000000  0.000000  0.000000  ]
+ [  0.000000  0.000000  1.000000  0.000000  ]
+ [  -70.01599999999989  171.9985943775094  11.99999999999997  1.000000  ]
+Object Parent:0
+Object Color:100 100 100
+Object has 4 properties:
+Nonmanifold
+Grouper
+Noshadow
+Forcedcpnormal
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 31:
+Object Name:<none>
+ Object Transform:
+ [  9.955124224969609e-15  -2.455513487098922e-14  3.7408000000000032  0.000000  ]
+ [  -6.216791123366269e-17  0.37590361445782217  -5.79773474947346e-17  0.000000  ]
+ [  -0.47999999999999876  -8.220707695240376e-17  7.676707857960067e-19  0.000000  ]
+ [  12.000000000000064  -171.99859437750973  70.01599999999993  1.000000  ]
+ Object Inverse Transform:
+ [  0.000000  0.000000  -2.0833333333333384  0.000000  ]
+ [  4.163336342344337e-17  2.6602564102564754  -3.608224830031759e-16  0.000000  ]
+ [  0.2673224978614198  1.7462295483656284e-14  5.544226404874194e-15  0.000000  ]
+ [  -18.716852010265146  457.56036324787243  24.99999999999975  1.000000  ]
+Object Parent:30
+Object Color:100 100 100
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2: 85.0   0.0   0.0
+Vertex 3: 85.0 63.75   0.0
+Vertex 4:  0.0 63.75   0.0
+Vertex 5:  0.0   0.0  50.0
+Vertex 6: 85.0   0.0  50.0
+Vertex 7: 85.0 63.75  50.0
+Vertex 8:  0.0 63.75  50.0
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):8 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):1 4 3 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):6 5 1 2 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):7 6 2 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):8 7 3 4 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):5 8 4 1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 32:
+Object Name:<none>
+ Object Transform:
+ [  -6.626643678231403e-15  -2.51958020240383e-14  -3.7408000000000023  0.000000  ]
+ [  4.724709415642123e-18  0.3759036144578224  4.697472839771808e-17  0.000000  ]
+ [  0.47999999999999865  0.000000  -1.8214596497756474e-17  0.000000  ]
+ [  -11.999999999999961  -171.99859437750953  -70.01599999999988  1.000000  ]
+ Object Inverse Transform:
+ [  2.37430073700846e-16  1.5914295317824257e-29  2.0833333333333393  0.000000  ]
+ [  6.938893903907228e-17  2.6602564102564727  -5.551115123125783e-17  0.000000  ]
+ [  -0.26732249786141987  -1.791790361580434e-14  -3.690522792713355e-15  0.000000  ]
+ [  -18.716852010265125  457.5603632478714  24.999999999999723  1.000000  ]
+Object Parent:30
+Object Color:100 100 100
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2: 85.0   0.0   0.0
+Vertex 3: 85.0 63.75   0.0
+Vertex 4:  0.0 63.75   0.0
+Vertex 5:  0.0   0.0  50.0
+Vertex 6: 85.0   0.0  50.0
+Vertex 7: 85.0 63.75  50.0
+Vertex 8:  0.0 63.75  50.0
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):8 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):1 4 3 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):6 5 1 2 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):7 6 2 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):8 7 3 4 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):5 8 4 1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 33:
+Object Name:<none>
+ Object Transform:
+ [  -3.7408000000000023  -2.5195802024038297e-14  6.768596100270588e-15  0.000000  ]
+ [  5.1699437813360096e-17  0.37590361445782233  -1.629399402883606e-17  0.000000  ]
+ [  1.744692571196051e-17  -8.22070769524029e-17  -0.47999999999999876  0.000000  ]
+ [  -70.01599999999988  -171.99859437750965  12.000000000000012  1.000000  ]
+ Object Inverse Transform:
+ [  -0.26732249786141987  -1.7462295483656294e-14  -3.787479589216029e-15  0.000000  ]
+ [  5.551115123125783e-17  2.6602564102564736  -8.326672684688674e-17  0.000000  ]
+ [  -9.716574502758197e-18  -4.556081321480789e-16  -2.083333333333339  0.000000  ]
+ [  -18.716852010265132  457.56036324787186  24.999999999999815  1.000000  ]
+Object Parent:30
+Object Color:100 100 100
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2: 85.0   0.0   0.0
+Vertex 3: 85.0 63.75   0.0
+Vertex 4:  0.0 63.75   0.0
+Vertex 5:  0.0   0.0  50.0
+Vertex 6: 85.0   0.0  50.0
+Vertex 7: 85.0 63.75  50.0
+Vertex 8:  0.0 63.75  50.0
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):8 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):1 4 3 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):6 5 1 2 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):7 6 2 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):8 7 3 4 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):5 8 4 1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 34:
+Object Name:<none>
+ Object Transform:
+ [  3.740800000000001  -2.51958020240383e-14  -6.797808648486756e-15  0.000000  ]
+ [  -4.697472839771807e-17  0.3759036144578224  4.7247094156421345e-18  0.000000  ]
+ [  0.000000  0.000000  0.4799999999999986  0.000000  ]
+ [  70.01599999999989  -171.9985943775094  -11.99999999999997  1.000000  ]
+ Object Inverse Transform:
+ [  0.2673224978614199  1.7462295483656265e-14  3.8453037050819206e-15  0.000000  ]
+ [  4.163336342344337e-17  2.660256410256473  0.000000  0.000000  ]
+ [  0.000000  0.000000  2.0833333333333393  0.000000  ]
+ [  -18.716852010265143  457.5603632478711  24.999999999999734  1.000000  ]
+Object Parent:30
+Object Color:100 100 100
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2: 85.0   0.0   0.0
+Vertex 3: 85.0 63.75   0.0
+Vertex 4:  0.0 63.75   0.0
+Vertex 5:  0.0   0.0  50.0
+Vertex 6: 85.0   0.0  50.0
+Vertex 7: 85.0 63.75  50.0
+Vertex 8:  0.0 63.75  50.0
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):8 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):1 4 3 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):6 5 1 2 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):7 6 2 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):8 7 3 4 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):5 8 4 1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 35:
+Object Name:<none>
+ Object Transform:
+ [  1.000000  0.000000  0.000000  0.000000  ]
+ [  0.000000  1.000000  0.000000  0.000000  ]
+ [  0.000000  0.000000  1.000000  0.000000  ]
+ [  70.01600000000008  -11.99859437750936  -11.99999999999997  1.000000  ]
+ Object Inverse Transform:
+ [  1.000000  0.000000  0.000000  0.000000  ]
+ [  0.000000  1.000000  0.000000  0.000000  ]
+ [  0.000000  0.000000  1.000000  0.000000  ]
+ [  -70.01600000000008  11.99859437750936  11.99999999999997  1.000000  ]
+Object Parent:0
+Object Color:100 100 100
+Object has 4 properties:
+Nonmanifold
+Grouper
+Noshadow
+Forcedcpnormal
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:1
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+ Number of Faces:1
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (1 le's):1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 36:
+Object Name:<none>
+ Object Transform:
+ [  9.955124224969609e-15  -2.455513487098922e-14  3.7408000000000032  0.000000  ]
+ [  -6.216791123366269e-17  0.37590361445782217  -5.79773474947346e-17  0.000000  ]
+ [  -0.47999999999999876  -8.220707695240376e-17  7.676707857960067e-19  0.000000  ]
+ [  12.000000000000227  -11.9985943775097  70.01599999999993  1.000000  ]
+ Object Inverse Transform:
+ [  2.2318426927879292e-17  -4.429697942736813e-16  -2.083333333333339  0.000000  ]
+ [  0.000000  2.660256410256475  -4.440892098500626e-16  0.000000  ]
+ [  0.2673224978614198  1.7462295483656256e-14  5.544226404874194e-15  0.000000  ]
+ [  -18.71685201026515  31.91933760683626  25.000000000000146  1.000000  ]
+Object Parent:35
+Object Color:100 100 100
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2: 85.0   0.0   0.0
+Vertex 3: 85.0 63.75   0.0
+Vertex 4:  0.0 63.75   0.0
+Vertex 5:  0.0   0.0  50.0
+Vertex 6: 85.0   0.0  50.0
+Vertex 7: 85.0 63.75  50.0
+Vertex 8:  0.0 63.75  50.0
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):8 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):1 4 3 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):6 5 1 2 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):7 6 2 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):8 7 3 4 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):5 8 4 1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 37:
+Object Name:<none>
+ Object Transform:
+ [  -6.626643678231403e-15  -2.51958020240383e-14  -3.7408000000000023  0.000000  ]
+ [  4.724709415642123e-18  0.3759036144578224  4.697472839771808e-17  0.000000  ]
+ [  0.47999999999999865  0.000000  -1.8214596497756474e-17  0.000000  ]
+ [  -11.999999999999787  -11.998594377509502  -70.01599999999988  1.000000  ]
+ Object Inverse Transform:
+ [  -2.37430073700846e-16  -1.5914295317824263e-29  2.0833333333333393  0.000000  ]
+ [  0.000000  2.660256410256474  0.000000  0.000000  ]
+ [  -0.26732249786141987  -1.7917903615804345e-14  -3.690522792713358e-15  0.000000  ]
+ [  -18.716852010265143  31.919337606835683  24.99999999999937  1.000000  ]
+Object Parent:35
+Object Color:100 100 100
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2: 85.0   0.0   0.0
+Vertex 3: 85.0 63.75   0.0
+Vertex 4:  0.0 63.75   0.0
+Vertex 5:  0.0   0.0  50.0
+Vertex 6: 85.0   0.0  50.0
+Vertex 7: 85.0 63.75  50.0
+Vertex 8:  0.0 63.75  50.0
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):8 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):1 4 3 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):6 5 1 2 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):7 6 2 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):8 7 3 4 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):5 8 4 1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 38:
+Object Name:<none>
+ Object Transform:
+ [  -3.7408000000000023  -2.5195802024038297e-14  6.768596100270588e-15  0.000000  ]
+ [  5.1699437813360096e-17  0.37590361445782233  -1.629399402883606e-17  0.000000  ]
+ [  1.744692571196051e-17  -8.22070769524029e-17  -0.47999999999999876  0.000000  ]
+ [  -70.0159999999997  -11.998594377509615  12.000000000000012  1.000000  ]
+ Object Inverse Transform:
+ [  -0.2673224978614198  -1.78849054437991e-14  -3.773023560249431e-15  0.000000  ]
+ [  2.220446049250313e-16  2.6602564102564736  0.000000  0.000000  ]
+ [  -9.716574502758206e-18  -4.55608132148079e-16  -2.083333333333339  0.000000  ]
+ [  -18.716852010265093  31.91933760683599  24.999999999999826  1.000000  ]
+Object Parent:35
+Object Color:100 100 100
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2: 85.0   0.0   0.0
+Vertex 3: 85.0 63.75   0.0
+Vertex 4:  0.0 63.75   0.0
+Vertex 5:  0.0   0.0  50.0
+Vertex 6: 85.0   0.0  50.0
+Vertex 7: 85.0 63.75  50.0
+Vertex 8:  0.0 63.75  50.0
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):8 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):1 4 3 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):6 5 1 2 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):7 6 2 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):8 7 3 4 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):5 8 4 1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 39:
+Object Name:<none>
+ Object Transform:
+ [  3.740800000000001  -2.51958020240383e-14  -6.797808648486756e-15  0.000000  ]
+ [  -4.697472839771807e-17  0.3759036144578224  4.7247094156421345e-18  0.000000  ]
+ [  0.000000  0.000000  0.4799999999999986  0.000000  ]
+ [  70.01600000000008  -11.99859437750936  -11.99999999999997  1.000000  ]
+ Object Inverse Transform:
+ [  0.2673224978614199  1.7940276668082922e-14  3.816391647148802e-15  0.000000  ]
+ [  0.000000  2.6602564102564736  0.000000  0.000000  ]
+ [  0.000000  0.000000  2.0833333333333393  0.000000  ]
+ [  -18.7168520102652  31.9193376068353  24.99999999999974  1.000000  ]
+Object Parent:35
+Object Color:100 100 100
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:8
+ VFE List:
+Vertex 1:  0.0   0.0   0.0
+Vertex 2: 85.0   0.0   0.0
+Vertex 3: 85.0 63.75   0.0
+Vertex 4:  0.0 63.75   0.0
+Vertex 5:  0.0   0.0  50.0
+Vertex 6: 85.0   0.0  50.0
+Vertex 7: 85.0 63.75  50.0
+Vertex 8:  0.0 63.75  50.0
+ Number of Faces:6
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (4 le's):8 5 6 7 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):1 4 3 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):6 5 1 2 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):7 6 2 3 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):8 7 3 4 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):5 8 4 1 
+Faces with different colors:0
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 40:
+Object Name:<none>
+ Object Transform:
+ [  10.634754450921182  1.878671553422275e-14  1.1118537185069255e-13  0.000000  ]
+ [  -4.041264143911725e-15  2.750031431085977e-15  -10.635055350553516  0.000000  ]
+ [  -1.6879322592254606e-14  1.2799999999999805  -2.242147461113705e-14  0.000000  ]
+ [  -0.022795162067545505  -191.9999999999987  -3.790738389852777e-9  1.000000  ]
+ Object Inverse Transform:
+ [  0.09403132010381114  9.830609194534784e-16  -1.3801091110138833e-15  0.000000  ]
+ [  1.2399884721445154e-15  -1.6470790665927852e-15  0.781250000000012  0.000000  ]
+ [  -3.5731398644806906e-17  -0.09402865965788824  2.0201700740787759e-16  0.000000  ]
+ [  0.0021434591814297028  -3.5675426668331085e-10  150.00000000000128  1.000000  ]
+Object Parent:0
+Object Color:100 100 100
+Object has 1 properties:
+Visible
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:288
+ VFE List:
+Vertex 1:-34.813 24.38   0.0
+Vertex 2:-32.56 27.32   0.0
+Vertex 3:-30.05 30.05   0.0
+Vertex 4:-27.32 32.56   0.0
+Vertex 5:-24.38 34.813   0.0
+Vertex 6:-21.25 36.805   0.0
+Vertex 7:-17.96 38.52   0.0
+Vertex 8:-14.535 39.938   0.0
+Vertex 9:-11.0 41.05   0.0
+Vertex 10:-7.38 41.855   0.0
+Vertex 11:-3.703 42.34   0.0
+Vertex 12:  0.0  42.5   0.0
+Vertex 13:3.703 42.34   0.0
+Vertex 14:7.38 41.855   0.0
+Vertex 15: 11.0 41.05   0.0
+Vertex 16:14.535 39.938   0.0
+Vertex 17:17.96 38.52   0.0
+Vertex 18:21.25 36.805   0.0
+Vertex 19:24.38 34.813   0.0
+Vertex 20:27.32 32.56   0.0
+Vertex 21:30.05 30.05   0.0
+Vertex 22:32.56 27.32   0.0
+Vertex 23:34.813 24.38   0.0
+Vertex 24:36.805 21.25   0.0
+Vertex 25:38.52 17.96   0.0
+Vertex 26:39.938 14.535   0.0
+Vertex 27:41.05  11.0   0.0
+Vertex 28:41.855 7.38   0.0
+Vertex 29:42.34 3.703   0.0
+Vertex 30: 42.5   0.0   0.0
+Vertex 31:42.34 -3.703   0.0
+Vertex 32:41.855 -7.38   0.0
+Vertex 33:41.05 -11.0   0.0
+Vertex 34:39.938 -14.535   0.0
+Vertex 35:38.52 -17.96   0.0
+Vertex 36:36.805 -21.25   0.0
+Vertex 37:34.813 -24.38   0.0
+Vertex 38:32.56 -27.32   0.0
+Vertex 39:30.05 -30.05   0.0
+Vertex 40:27.32 -32.56   0.0
+Vertex 41:24.38 -34.813   0.0
+Vertex 42:21.25 -36.805   0.0
+Vertex 43:17.96 -38.52   0.0
+Vertex 44:14.535 -39.938   0.0
+Vertex 45: 11.0 -41.05   0.0
+Vertex 46:7.38 -41.855   0.0
+Vertex 47:3.703 -42.34   0.0
+Vertex 48:  0.0 -42.5   0.0
+Vertex 49:-3.703 -42.34   0.0
+Vertex 50:-7.38 -41.855   0.0
+Vertex 51:-11.0 -41.05   0.0
+Vertex 52:-14.535 -39.938   0.0
+Vertex 53:-17.96 -38.52   0.0
+Vertex 54:-21.25 -36.805   0.0
+Vertex 55:-24.38 -34.813   0.0
+Vertex 56:-27.32 -32.56   0.0
+Vertex 57:-30.05 -30.05   0.0
+Vertex 58:-32.56 -27.32   0.0
+Vertex 59:-34.813 -24.38   0.0
+Vertex 60:-36.805 -21.25   0.0
+Vertex 61:-38.52 -17.96   0.0
+Vertex 62:-39.938 -14.535   0.0
+Vertex 63:-41.05 -11.0   0.0
+Vertex 64:-41.855 -7.38   0.0
+Vertex 65:-42.34 -3.703   0.0
+Vertex 66:-42.5   0.0   0.0
+Vertex 67:-42.34 3.703   0.0
+Vertex 68:-41.855 7.38   0.0
+Vertex 69:-41.05  11.0   0.0
+Vertex 70:-39.938 14.535   0.0
+Vertex 71:-38.52 17.96   0.0
+Vertex 72:-36.805 21.25   0.0
+Vertex 73:-31.59 18.242   0.0
+Vertex 74:-33.063 15.418   0.0
+Vertex 75:-34.28 12.477   0.0
+Vertex 76:-35.24 9.44   0.0
+Vertex 77:-35.926 6.332   0.0
+Vertex 78:-36.344 3.18   0.0
+Vertex 79:-36.48   0.0   0.0
+Vertex 80:-36.344 -3.18   0.0
+Vertex 81:-35.926 -6.332   0.0
+Vertex 82:-35.24 -9.44   0.0
+Vertex 83:-34.28 -12.477   0.0
+Vertex 84:-33.063 -15.418   0.0
+Vertex 85:-31.59 -18.242   0.0
+Vertex 86:-29.883 -20.926   0.0
+Vertex 87:-27.945 -23.45   0.0
+Vertex 88:-25.793 -25.793   0.0
+Vertex 89:-23.45 -27.945   0.0
+Vertex 90:-20.926 -29.883   0.0
+Vertex 91:-18.24 -31.594   0.0
+Vertex 92:-15.418 -33.063   0.0
+Vertex 93:-12.477 -34.28   0.0
+Vertex 94:-9.44 -35.24   0.0
+Vertex 95:-6.332 -35.926   0.0
+Vertex 96:-3.18 -36.344   0.0
+Vertex 97:  0.0 -36.48   0.0
+Vertex 98:3.18 -36.344   0.0
+Vertex 99:6.332 -35.926   0.0
+Vertex 100:9.44 -35.24   0.0
+Vertex 101:12.477 -34.28   0.0
+Vertex 102:15.418 -33.063   0.0
+Vertex 103:18.24 -31.594   0.0
+Vertex 104:20.926 -29.883   0.0
+Vertex 105:23.45 -27.945   0.0
+Vertex 106:25.793 -25.793   0.0
+Vertex 107:27.945 -23.45   0.0
+Vertex 108:29.883 -20.926   0.0
+Vertex 109:31.59 -18.242   0.0
+Vertex 110:33.063 -15.418   0.0
+Vertex 111:34.28 -12.477   0.0
+Vertex 112:35.24 -9.44   0.0
+Vertex 113:35.926 -6.332   0.0
+Vertex 114:36.344 -3.18   0.0
+Vertex 115:36.48   0.0   0.0
+Vertex 116:36.344 3.18   0.0
+Vertex 117:35.926 6.332   0.0
+Vertex 118:35.24 9.44   0.0
+Vertex 119:34.28 12.477   0.0
+Vertex 120:33.063 15.418   0.0
+Vertex 121:31.59 18.242   0.0
+Vertex 122:29.883 20.926   0.0
+Vertex 123:27.945 23.45   0.0
+Vertex 124:25.793 25.793   0.0
+Vertex 125:23.45 27.945   0.0
+Vertex 126:20.926 29.883   0.0
+Vertex 127:18.24 31.594   0.0
+Vertex 128:15.418 33.063   0.0
+Vertex 129:12.477 34.28   0.0
+Vertex 130:9.44 35.24   0.0
+Vertex 131:6.332 35.926   0.0
+Vertex 132:3.18 36.344   0.0
+Vertex 133:  0.0 36.48   0.0
+Vertex 134:-3.18 36.344   0.0
+Vertex 135:-6.332 35.926   0.0
+Vertex 136:-9.44 35.24   0.0
+Vertex 137:-12.477 34.28   0.0
+Vertex 138:-15.418 33.063   0.0
+Vertex 139:-18.24 31.594   0.0
+Vertex 140:-20.926 29.883   0.0
+Vertex 141:-23.45 27.945   0.0
+Vertex 142:-25.793 25.793   0.0
+Vertex 143:-27.945 23.45   0.0
+Vertex 144:-29.883 20.926   0.0
+Vertex 145:-36.805 21.25  50.0
+Vertex 146:-34.813 24.38  50.0
+Vertex 147:-32.56 27.32  50.0
+Vertex 148:-24.38 34.813  50.0
+Vertex 149:-27.32 32.56  50.0
+Vertex 150:-21.25 36.805  50.0
+Vertex 151:-30.05 30.05  50.0
+Vertex 152:-38.52 17.96  50.0
+Vertex 153:-39.938 14.535  50.0
+Vertex 154:-41.05  11.0  50.0
+Vertex 155:-41.855 7.38  50.0
+Vertex 156:-42.34 3.703  50.0
+Vertex 157:-42.5   0.0  50.0
+Vertex 158:-17.96 38.52  50.0
+Vertex 159:-14.535 39.938  50.0
+Vertex 160:-11.0 41.05  50.0
+Vertex 161:-7.38 41.855  50.0
+Vertex 162:-3.703 42.34  50.0
+Vertex 163:  0.0  42.5  50.0
+Vertex 164:-42.34 -3.703  50.0
+Vertex 165:-41.855 -7.38  50.0
+Vertex 166:-41.05 -11.0  50.0
+Vertex 167:-39.938 -14.535  50.0
+Vertex 168:-38.52 -17.96  50.0
+Vertex 169:-36.805 -21.25  50.0
+Vertex 170:-34.813 -24.38  50.0
+Vertex 171:-32.56 -27.32  50.0
+Vertex 172:-30.05 -30.05  50.0
+Vertex 173:-27.32 -32.56  50.0
+Vertex 174:-24.38 -34.813  50.0
+Vertex 175:-21.25 -36.805  50.0
+Vertex 176:-17.96 -38.52  50.0
+Vertex 177:-14.535 -39.938  50.0
+Vertex 178:-11.0 -41.05  50.0
+Vertex 179:-7.38 -41.855  50.0
+Vertex 180:-3.703 -42.34  50.0
+Vertex 181:  0.0 -42.5  50.0
+Vertex 182:3.703 -42.34  50.0
+Vertex 183:7.38 -41.855  50.0
+Vertex 184: 11.0 -41.05  50.0
+Vertex 185:14.535 -39.938  50.0
+Vertex 186:17.96 -38.52  50.0
+Vertex 187:21.25 -36.805  50.0
+Vertex 188:24.38 -34.813  50.0
+Vertex 189:27.32 -32.56  50.0
+Vertex 190:30.05 -30.05  50.0
+Vertex 191:32.56 -27.32  50.0
+Vertex 192:34.813 -24.38  50.0
+Vertex 193:36.805 -21.25  50.0
+Vertex 194:38.52 -17.96  50.0
+Vertex 195:39.938 -14.535  50.0
+Vertex 196:41.05 -11.0  50.0
+Vertex 197:41.855 -7.38  50.0
+Vertex 198:42.34 -3.703  50.0
+Vertex 199: 42.5   0.0  50.0
+Vertex 200:42.34 3.703  50.0
+Vertex 201:41.855 7.38  50.0
+Vertex 202:41.05  11.0  50.0
+Vertex 203:39.938 14.535  50.0
+Vertex 204:38.52 17.96  50.0
+Vertex 205:36.805 21.25  50.0
+Vertex 206:34.813 24.38  50.0
+Vertex 207:32.56 27.32  50.0
+Vertex 208:30.05 30.05  50.0
+Vertex 209:27.32 32.56  50.0
+Vertex 210:24.38 34.813  50.0
+Vertex 211:21.25 36.805  50.0
+Vertex 212:17.96 38.52  50.0
+Vertex 213:14.535 39.938  50.0
+Vertex 214: 11.0 41.05  50.0
+Vertex 215:7.38 41.855  50.0
+Vertex 216:3.703 42.34  50.0
+Vertex 217:-35.24 9.44  50.0
+Vertex 218:-34.28 12.477  50.0
+Vertex 219:-33.063 15.418  50.0
+Vertex 220:-31.59 18.242  50.0
+Vertex 221:-29.883 20.926  50.0
+Vertex 222:-27.945 23.45  50.0
+Vertex 223:-25.793 25.793  50.0
+Vertex 224:-23.45 27.945  50.0
+Vertex 225:-20.926 29.883  50.0
+Vertex 226:-18.24 31.594  50.0
+Vertex 227:-15.418 33.063  50.0
+Vertex 228:-12.477 34.28  50.0
+Vertex 229:-9.44 35.24  50.0
+Vertex 230:-6.332 35.926  50.0
+Vertex 231:-3.18 36.344  50.0
+Vertex 232:  0.0 36.48  50.0
+Vertex 233:3.18 36.344  50.0
+Vertex 234:6.332 35.926  50.0
+Vertex 235:9.44 35.24  50.0
+Vertex 236:12.477 34.28  50.0
+Vertex 237:15.418 33.063  50.0
+Vertex 238:18.24 31.594  50.0
+Vertex 239:20.926 29.883  50.0
+Vertex 240:23.45 27.945  50.0
+Vertex 241:25.793 25.793  50.0
+Vertex 242:27.945 23.45  50.0
+Vertex 243:29.883 20.926  50.0
+Vertex 244:31.59 18.242  50.0
+Vertex 245:33.063 15.418  50.0
+Vertex 246:34.28 12.477  50.0
+Vertex 247:35.24 9.44  50.0
+Vertex 248:35.926 6.332  50.0
+Vertex 249:36.344 3.18  50.0
+Vertex 250:36.48   0.0  50.0
+Vertex 251:36.344 -3.18  50.0
+Vertex 252:35.926 -6.332  50.0
+Vertex 253:35.24 -9.44  50.0
+Vertex 254:34.28 -12.477  50.0
+Vertex 255:33.063 -15.418  50.0
+Vertex 256:31.59 -18.242  50.0
+Vertex 257:29.883 -20.926  50.0
+Vertex 258:27.945 -23.45  50.0
+Vertex 259:25.793 -25.793  50.0
+Vertex 260:23.45 -27.945  50.0
+Vertex 261:20.926 -29.883  50.0
+Vertex 262:18.24 -31.594  50.0
+Vertex 263:15.418 -33.063  50.0
+Vertex 264:12.477 -34.28  50.0
+Vertex 265:9.44 -35.24  50.0
+Vertex 266:6.332 -35.926  50.0
+Vertex 267:3.18 -36.344  50.0
+Vertex 268:  0.0 -36.48  50.0
+Vertex 269:-3.18 -36.344  50.0
+Vertex 270:-6.332 -35.926  50.0
+Vertex 271:-9.44 -35.24  50.0
+Vertex 272:-12.477 -34.28  50.0
+Vertex 273:-15.418 -33.063  50.0
+Vertex 274:-18.24 -31.594  50.0
+Vertex 275:-20.926 -29.883  50.0
+Vertex 276:-23.45 -27.945  50.0
+Vertex 277:-25.793 -25.793  50.0
+Vertex 278:-27.945 -23.45  50.0
+Vertex 279:-29.883 -20.926  50.0
+Vertex 280:-31.59 -18.242  50.0
+Vertex 281:-33.063 -15.418  50.0
+Vertex 282:-34.28 -12.477  50.0
+Vertex 283:-35.24 -9.44  50.0
+Vertex 284:-35.926 -6.332  50.0
+Vertex 285:-36.344 -3.18  50.0
+Vertex 286:-36.48   0.0  50.0
+Vertex 287:-36.344 3.18  50.0
+Vertex 288:-35.926 6.332  50.0
+ Number of Faces:146
+ FVE List:
+Face:1 (2 bounds)
+	Bound 1 (72 le's):1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 
+	Bound 2 (72 le's):73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):1 72 145 146 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):2 1 146 147 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):148 5 4 149 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):150 6 5 148 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):151 3 2 147 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):4 3 151 149 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):145 72 71 152 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):71 70 153 152 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):70 69 154 153 
+Face:11 (1 bounds)
+	Bound 1 (4 le's):69 68 155 154 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):68 67 156 155 
+Face:13 (1 bounds)
+	Bound 1 (4 le's):67 66 157 156 
+Face:14 (1 bounds)
+	Bound 1 (4 le's):7 6 150 158 
+Face:15 (1 bounds)
+	Bound 1 (4 le's):159 8 7 158 
+Face:16 (1 bounds)
+	Bound 1 (4 le's):160 9 8 159 
+Face:17 (1 bounds)
+	Bound 1 (4 le's):161 10 9 160 
+Face:18 (1 bounds)
+	Bound 1 (4 le's):162 11 10 161 
+Face:19 (1 bounds)
+	Bound 1 (4 le's):163 12 11 162 
+Face:20 (1 bounds)
+	Bound 1 (4 le's):66 65 164 157 
+Face:21 (1 bounds)
+	Bound 1 (4 le's):65 64 165 164 
+Face:22 (1 bounds)
+	Bound 1 (4 le's):64 63 166 165 
+Face:23 (1 bounds)
+	Bound 1 (4 le's):63 62 167 166 
+Face:24 (1 bounds)
+	Bound 1 (4 le's):62 61 168 167 
+Face:25 (1 bounds)
+	Bound 1 (4 le's):61 60 169 168 
+Face:26 (1 bounds)
+	Bound 1 (4 le's):60 59 170 169 
+Face:27 (1 bounds)
+	Bound 1 (4 le's):59 58 171 170 
+Face:28 (1 bounds)
+	Bound 1 (4 le's):58 57 172 171 
+Face:29 (1 bounds)
+	Bound 1 (4 le's):57 56 173 172 
+Face:30 (1 bounds)
+	Bound 1 (4 le's):56 55 174 173 
+Face:31 (1 bounds)
+	Bound 1 (4 le's):55 54 175 174 
+Face:32 (1 bounds)
+	Bound 1 (4 le's):54 53 176 175 
+Face:33 (1 bounds)
+	Bound 1 (4 le's):53 52 177 176 
+Face:34 (1 bounds)
+	Bound 1 (4 le's):52 51 178 177 
+Face:35 (1 bounds)
+	Bound 1 (4 le's):51 50 179 178 
+Face:36 (1 bounds)
+	Bound 1 (4 le's):50 49 180 179 
+Face:37 (1 bounds)
+	Bound 1 (4 le's):49 48 181 180 
+Face:38 (2 bounds)
+	Bound 1 (72 le's):147 146 145 152 153 154 155 156 157 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 163 162 161 160 159 158 150 148 149 151 
+	Bound 2 (72 le's):217 218 219 220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 256 257 258 259 260 261 262 263 264 265 266 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 285 286 287 288 
+Face:39 (1 bounds)
+	Bound 1 (4 le's):216 13 12 163 
+Face:40 (1 bounds)
+	Bound 1 (4 le's):215 14 13 216 
+Face:41 (1 bounds)
+	Bound 1 (4 le's):214 15 14 215 
+Face:42 (1 bounds)
+	Bound 1 (4 le's):213 16 15 214 
+Face:43 (1 bounds)
+	Bound 1 (4 le's):212 17 16 213 
+Face:44 (1 bounds)
+	Bound 1 (4 le's):211 18 17 212 
+Face:45 (1 bounds)
+	Bound 1 (4 le's):210 19 18 211 
+Face:46 (1 bounds)
+	Bound 1 (4 le's):209 20 19 210 
+Face:47 (1 bounds)
+	Bound 1 (4 le's):208 21 20 209 
+Face:48 (1 bounds)
+	Bound 1 (4 le's):207 22 21 208 
+Face:49 (1 bounds)
+	Bound 1 (4 le's):206 23 22 207 
+Face:50 (1 bounds)
+	Bound 1 (4 le's):205 24 23 206 
+Face:51 (1 bounds)
+	Bound 1 (4 le's):204 25 24 205 
+Face:52 (1 bounds)
+	Bound 1 (4 le's):203 26 25 204 
+Face:53 (1 bounds)
+	Bound 1 (4 le's):202 27 26 203 
+Face:54 (1 bounds)
+	Bound 1 (4 le's):201 28 27 202 
+Face:55 (1 bounds)
+	Bound 1 (4 le's):200 29 28 201 
+Face:56 (1 bounds)
+	Bound 1 (4 le's):199 30 29 200 
+Face:57 (1 bounds)
+	Bound 1 (4 le's):48 47 182 181 
+Face:58 (1 bounds)
+	Bound 1 (4 le's):47 46 183 182 
+Face:59 (1 bounds)
+	Bound 1 (4 le's):46 45 184 183 
+Face:60 (1 bounds)
+	Bound 1 (4 le's):45 44 185 184 
+Face:61 (1 bounds)
+	Bound 1 (4 le's):44 43 186 185 
+Face:62 (1 bounds)
+	Bound 1 (4 le's):43 42 187 186 
+Face:63 (1 bounds)
+	Bound 1 (4 le's):198 31 30 199 
+Face:64 (1 bounds)
+	Bound 1 (4 le's):197 32 31 198 
+Face:65 (1 bounds)
+	Bound 1 (4 le's):196 33 32 197 
+Face:66 (1 bounds)
+	Bound 1 (4 le's):195 34 33 196 
+Face:67 (1 bounds)
+	Bound 1 (4 le's):194 35 34 195 
+Face:68 (1 bounds)
+	Bound 1 (4 le's):193 36 35 194 
+Face:69 (1 bounds)
+	Bound 1 (4 le's):189 40 39 190 
+Face:70 (1 bounds)
+	Bound 1 (4 le's):39 38 191 190 
+Face:71 (1 bounds)
+	Bound 1 (4 le's):42 41 188 187 
+Face:72 (1 bounds)
+	Bound 1 (4 le's):41 40 189 188 
+Face:73 (1 bounds)
+	Bound 1 (4 le's):191 38 37 192 
+Face:74 (1 bounds)
+	Bound 1 (4 le's):192 37 36 193 
+Face:75 (1 bounds)
+	Bound 1 (4 le's):144 143 222 221 
+Face:76 (1 bounds)
+	Bound 1 (4 le's):142 141 224 223 
+Face:77 (1 bounds)
+	Bound 1 (4 le's):141 140 225 224 
+Face:78 (1 bounds)
+	Bound 1 (4 le's):143 142 223 222 
+Face:79 (1 bounds)
+	Bound 1 (4 le's):74 73 220 219 
+Face:80 (1 bounds)
+	Bound 1 (4 le's):76 75 218 217 
+Face:81 (1 bounds)
+	Bound 1 (4 le's):75 74 219 218 
+Face:82 (1 bounds)
+	Bound 1 (4 le's):77 76 217 288 
+Face:83 (1 bounds)
+	Bound 1 (4 le's):78 77 288 287 
+Face:84 (1 bounds)
+	Bound 1 (4 le's):79 78 287 286 
+Face:85 (1 bounds)
+	Bound 1 (4 le's):73 144 221 220 
+Face:86 (1 bounds)
+	Bound 1 (4 le's):139 138 227 226 
+Face:87 (1 bounds)
+	Bound 1 (4 le's):138 137 228 227 
+Face:88 (1 bounds)
+	Bound 1 (4 le's):140 139 226 225 
+Face:89 (1 bounds)
+	Bound 1 (4 le's):137 136 229 228 
+Face:90 (1 bounds)
+	Bound 1 (4 le's):136 135 230 229 
+Face:91 (1 bounds)
+	Bound 1 (4 le's):135 134 231 230 
+Face:92 (1 bounds)
+	Bound 1 (4 le's):134 133 232 231 
+Face:93 (1 bounds)
+	Bound 1 (4 le's):80 79 286 285 
+Face:94 (1 bounds)
+	Bound 1 (4 le's):81 80 285 284 
+Face:95 (1 bounds)
+	Bound 1 (4 le's):82 81 284 283 
+Face:96 (1 bounds)
+	Bound 1 (4 le's):83 82 283 282 
+Face:97 (1 bounds)
+	Bound 1 (4 le's):84 83 282 281 
+Face:98 (1 bounds)
+	Bound 1 (4 le's):85 84 281 280 
+Face:99 (1 bounds)
+	Bound 1 (4 le's):86 85 280 279 
+Face:100 (1 bounds)
+	Bound 1 (4 le's):87 86 279 278 
+Face:101 (1 bounds)
+	Bound 1 (4 le's):88 87 278 277 
+Face:102 (1 bounds)
+	Bound 1 (4 le's):89 88 277 276 
+Face:103 (1 bounds)
+	Bound 1 (4 le's):90 89 276 275 
+Face:104 (1 bounds)
+	Bound 1 (4 le's):91 90 275 274 
+Face:105 (1 bounds)
+	Bound 1 (4 le's):92 91 274 273 
+Face:106 (1 bounds)
+	Bound 1 (4 le's):93 92 273 272 
+Face:107 (1 bounds)
+	Bound 1 (4 le's):94 93 272 271 
+Face:108 (1 bounds)
+	Bound 1 (4 le's):95 94 271 270 
+Face:109 (1 bounds)
+	Bound 1 (4 le's):96 95 270 269 
+Face:110 (1 bounds)
+	Bound 1 (4 le's):96 269 268 97 
+Face:111 (1 bounds)
+	Bound 1 (4 le's):133 132 233 232 
+Face:112 (1 bounds)
+	Bound 1 (4 le's):132 131 234 233 
+Face:113 (1 bounds)
+	Bound 1 (4 le's):131 130 235 234 
+Face:114 (1 bounds)
+	Bound 1 (4 le's):130 129 236 235 
+Face:115 (1 bounds)
+	Bound 1 (4 le's):129 128 237 236 
+Face:116 (1 bounds)
+	Bound 1 (4 le's):128 127 238 237 
+Face:117 (1 bounds)
+	Bound 1 (4 le's):127 126 239 238 
+Face:118 (1 bounds)
+	Bound 1 (4 le's):126 125 240 239 
+Face:119 (1 bounds)
+	Bound 1 (4 le's):125 124 241 240 
+Face:120 (1 bounds)
+	Bound 1 (4 le's):124 123 242 241 
+Face:121 (1 bounds)
+	Bound 1 (4 le's):123 122 243 242 
+Face:122 (1 bounds)
+	Bound 1 (4 le's):122 121 244 243 
+Face:123 (1 bounds)
+	Bound 1 (4 le's):121 120 245 244 
+Face:124 (1 bounds)
+	Bound 1 (4 le's):120 119 246 245 
+Face:125 (1 bounds)
+	Bound 1 (4 le's):119 118 247 246 
+Face:126 (1 bounds)
+	Bound 1 (4 le's):118 117 248 247 
+Face:127 (1 bounds)
+	Bound 1 (4 le's):117 116 249 248 
+Face:128 (1 bounds)
+	Bound 1 (4 le's):116 115 250 249 
+Face:129 (1 bounds)
+	Bound 1 (4 le's):97 268 267 98 
+Face:130 (1 bounds)
+	Bound 1 (4 le's):99 98 267 266 
+Face:131 (1 bounds)
+	Bound 1 (4 le's):100 99 266 265 
+Face:132 (1 bounds)
+	Bound 1 (4 le's):101 100 265 264 
+Face:133 (1 bounds)
+	Bound 1 (4 le's):104 103 262 261 
+Face:134 (1 bounds)
+	Bound 1 (4 le's):102 101 264 263 
+Face:135 (1 bounds)
+	Bound 1 (4 le's):103 102 263 262 
+Face:136 (1 bounds)
+	Bound 1 (4 le's):109 108 257 256 
+Face:137 (1 bounds)
+	Bound 1 (4 le's):115 114 251 250 
+Face:138 (1 bounds)
+	Bound 1 (4 le's):114 113 252 251 
+Face:139 (1 bounds)
+	Bound 1 (4 le's):113 112 253 252 
+Face:140 (1 bounds)
+	Bound 1 (4 le's):111 110 255 254 
+Face:141 (1 bounds)
+	Bound 1 (4 le's):112 111 254 253 
+Face:142 (1 bounds)
+	Bound 1 (4 le's):110 109 256 255 
+Face:143 (1 bounds)
+	Bound 1 (4 le's):107 106 259 258 
+Face:144 (1 bounds)
+	Bound 1 (4 le's):105 104 261 260 
+Face:145 (1 bounds)
+	Bound 1 (4 le's):106 105 260 259 
+Face:146 (1 bounds)
+	Bound 1 (4 le's):108 107 258 257 
+Faces with different colors:72
+	Face 75:100 100 100
+	Face 76:100 100 100
+	Face 77:100 100 100
+	Face 78:100 100 100
+	Face 79:100 100 100
+	Face 80:100 100 100
+	Face 81:100 100 100
+	Face 82:100 100 100
+	Face 83:100 100 100
+	Face 84:100 100 100
+	Face 85:100 100 100
+	Face 86:100 100 100
+	Face 87:100 100 100
+	Face 88:100 100 100
+	Face 89:100 100 100
+	Face 90:100 100 100
+	Face 91:100 100 100
+	Face 92:100 100 100
+	Face 93:100 100 100
+	Face 94:100 100 100
+	Face 95:100 100 100
+	Face 96:100 100 100
+	Face 97:100 100 100
+	Face 98:100 100 100
+	Face 99:100 100 100
+	Face 100:100 100 100
+	Face 101:100 100 100
+	Face 102:100 100 100
+	Face 103:100 100 100
+	Face 104:100 100 100
+	Face 105:100 100 100
+	Face 106:100 100 100
+	Face 107:100 100 100
+	Face 108:100 100 100
+	Face 109:100 100 100
+	Face 110:100 100 100
+	Face 111:100 100 100
+	Face 112:100 100 100
+	Face 113:100 100 100
+	Face 114:100 100 100
+	Face 115:100 100 100
+	Face 116:100 100 100
+	Face 117:100 100 100
+	Face 118:100 100 100
+	Face 119:100 100 100
+	Face 120:100 100 100
+	Face 121:100 100 100
+	Face 122:100 100 100
+	Face 123:100 100 100
+	Face 124:100 100 100
+	Face 125:100 100 100
+	Face 126:100 100 100
+	Face 127:100 100 100
+	Face 128:100 100 100
+	Face 129:100 100 100
+	Face 130:100 100 100
+	Face 131:100 100 100
+	Face 132:100 100 100
+	Face 133:100 100 100
+	Face 134:100 100 100
+	Face 135:100 100 100
+	Face 136:100 100 100
+	Face 137:100 100 100
+	Face 138:100 100 100
+	Face 139:100 100 100
+	Face 140:100 100 100
+	Face 141:100 100 100
+	Face 142:100 100 100
+	Face 143:100 100 100
+	Face 144:100 100 100
+	Face 145:100 100 100
+	Face 146:100 100 100
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+
+
+	Object 41:
+Object Name:<none>
+ Object Transform:
+ [  10.634754450921182  1.878671553422275e-14  1.1118537185069255e-13  0.000000  ]
+ [  -4.041264143911725e-15  2.750031431085977e-15  -10.635055350553516  0.000000  ]
+ [  -1.6879322592254606e-14  1.2799999999999805  -2.242147461113705e-14  0.000000  ]
+ [  -0.022795162067609454  -31.999999999998646  -3.7908520766904985e-9  1.000000  ]
+ Object Inverse Transform:
+ [  0.09403132010381114  9.830609194534784e-16  -1.3801091110138833e-15  0.000000  ]
+ [  1.2400020246716714e-15  -1.6470790665944008e-15  0.7812500000000119  0.000000  ]
+ [  -3.57313986448069e-17  -0.09402865965788824  2.020170074078776e-16  0.000000  ]
+ [  0.0021434591812373176  -3.565014238536278e-10  24.99999999999932  1.000000  ]
+Object Parent:0
+Object Color:100 100 100
+Object has 3 properties:
+Visible
+Selectable
+Picked
+Object Selectechnique:set_object_selectable
+Object Drawtechnique:normal_draw_technique
+Object Screenbboxtechnique:Normal
+
+Number of Shells:1
+Shell 1:
+ Number of Vertices:148
+ VFE List:
+Vertex 1:-42.34 -3.703   0.0
+Vertex 2:-42.5   0.0   0.0
+Vertex 3:-36.48   0.0   0.0
+Vertex 4:-36.344 -3.18   0.0
+Vertex 5:-35.926 -6.332   0.0
+Vertex 6:-35.24 -9.44   0.0
+Vertex 7:-34.28 -12.477   0.0
+Vertex 8:-33.063 -15.418   0.0
+Vertex 9:-31.59 -18.242   0.0
+Vertex 10:-29.883 -20.926   0.0
+Vertex 11:-27.945 -23.45   0.0
+Vertex 12:-25.793 -25.793   0.0
+Vertex 13:-23.45 -27.945   0.0
+Vertex 14:-20.926 -29.883   0.0
+Vertex 15:-18.24 -31.594   0.0
+Vertex 16:-15.418 -33.063   0.0
+Vertex 17:-12.477 -34.28   0.0
+Vertex 18:-9.44 -35.24   0.0
+Vertex 19:-6.332 -35.926   0.0
+Vertex 20:-3.18 -36.344   0.0
+Vertex 21:  0.0 -36.48   0.0
+Vertex 22:3.18 -36.344   0.0
+Vertex 23:6.332 -35.926   0.0
+Vertex 24:9.44 -35.24   0.0
+Vertex 25:12.477 -34.28   0.0
+Vertex 26:15.418 -33.063   0.0
+Vertex 27:18.24 -31.594   0.0
+Vertex 28:20.926 -29.883   0.0
+Vertex 29:23.45 -27.945   0.0
+Vertex 30:25.793 -25.793   0.0
+Vertex 31:27.945 -23.45   0.0
+Vertex 32:29.883 -20.926   0.0
+Vertex 33:31.59 -18.242   0.0
+Vertex 34:33.063 -15.418   0.0
+Vertex 35:34.28 -12.477   0.0
+Vertex 36:35.24 -9.44   0.0
+Vertex 37:35.926 -6.332   0.0
+Vertex 38:36.344 -3.18   0.0
+Vertex 39:36.48   0.0   0.0
+Vertex 40: 42.5   0.0   0.0
+Vertex 41:42.34 -3.703   0.0
+Vertex 42:41.855 -7.38   0.0
+Vertex 43:41.05 -11.0   0.0
+Vertex 44:39.938 -14.535   0.0
+Vertex 45:38.52 -17.96   0.0
+Vertex 46:36.805 -21.25   0.0
+Vertex 47:34.813 -24.38   0.0
+Vertex 48:32.56 -27.32   0.0
+Vertex 49:30.05 -30.05   0.0
+Vertex 50:27.32 -32.56   0.0
+Vertex 51:24.38 -34.813   0.0
+Vertex 52:21.25 -36.805   0.0
+Vertex 53:17.96 -38.52   0.0
+Vertex 54:14.535 -39.938   0.0
+Vertex 55: 11.0 -41.05   0.0
+Vertex 56:7.38 -41.855   0.0
+Vertex 57:3.703 -42.34   0.0
+Vertex 58:  0.0 -42.5   0.0
+Vertex 59:-3.703 -42.34   0.0
+Vertex 60:-7.38 -41.855   0.0
+Vertex 61:-11.0 -41.05   0.0
+Vertex 62:-14.535 -39.938   0.0
+Vertex 63:-17.96 -38.52   0.0
+Vertex 64:-21.25 -36.805   0.0
+Vertex 65:-24.38 -34.813   0.0
+Vertex 66:-27.32 -32.56   0.0
+Vertex 67:-30.05 -30.05   0.0
+Vertex 68:-32.56 -27.32   0.0
+Vertex 69:-34.813 -24.38   0.0
+Vertex 70:-36.805 -21.25   0.0
+Vertex 71:-38.52 -17.96   0.0
+Vertex 72:-39.938 -14.535   0.0
+Vertex 73:-41.05 -11.0   0.0
+Vertex 74:-41.855 -7.38   0.0
+Vertex 75:-42.34 -3.703  50.0
+Vertex 76:-42.5   0.0  50.0
+Vertex 77:-41.855 -7.38  50.0
+Vertex 78:-36.48   0.0  50.0
+Vertex 79:-36.344 -3.18  50.0
+Vertex 80:-35.926 -6.332  50.0
+Vertex 81:-41.05 -11.0  50.0
+Vertex 82:-35.24 -9.44  50.0
+Vertex 83:-39.938 -14.535  50.0
+Vertex 84:-38.52 -17.96  50.0
+Vertex 85:-34.28 -12.477  50.0
+Vertex 86:-33.063 -15.418  50.0
+Vertex 87:-36.805 -21.25  50.0
+Vertex 88:-31.59 -18.242  50.0
+Vertex 89:-29.883 -20.926  50.0
+Vertex 90:-34.813 -24.38  50.0
+Vertex 91:-32.56 -27.32  50.0
+Vertex 92:-27.945 -23.45  50.0
+Vertex 93:-25.793 -25.793  50.0
+Vertex 94:-30.05 -30.05  50.0
+Vertex 95:-27.32 -32.56  50.0
+Vertex 96:-23.45 -27.945  50.0
+Vertex 97:-20.926 -29.883  50.0
+Vertex 98:-24.38 -34.813  50.0
+Vertex 99:-21.25 -36.805  50.0
+Vertex 100:-18.24 -31.594  50.0
+Vertex 101:-15.418 -33.063  50.0
+Vertex 102:-12.477 -34.28  50.0
+Vertex 103:-17.96 -38.52  50.0
+Vertex 104:-14.535 -39.938  50.0
+Vertex 105:-11.0 -41.05  50.0
+Vertex 106:-9.44 -35.24  50.0
+Vertex 107:-6.332 -35.926  50.0
+Vertex 108:-3.18 -36.344  50.0
+Vertex 109:  0.0 -36.48  50.0
+Vertex 110:-7.38 -41.855  50.0
+Vertex 111:-3.703 -42.34  50.0
+Vertex 112:  0.0 -42.5  50.0
+Vertex 113:3.703 -42.34  50.0
+Vertex 114:7.38 -41.855  50.0
+Vertex 115: 11.0 -41.05  50.0
+Vertex 116:14.535 -39.938  50.0
+Vertex 117:17.96 -38.52  50.0
+Vertex 118:21.25 -36.805  50.0
+Vertex 119:24.38 -34.813  50.0
+Vertex 120:27.32 -32.56  50.0
+Vertex 121:30.05 -30.05  50.0
+Vertex 122:32.56 -27.32  50.0
+Vertex 123:34.813 -24.38  50.0
+Vertex 124:36.805 -21.25  50.0
+Vertex 125:38.52 -17.96  50.0
+Vertex 126:39.938 -14.535  50.0
+Vertex 127:41.05 -11.0  50.0
+Vertex 128:41.855 -7.38  50.0
+Vertex 129:42.34 -3.703  50.0
+Vertex 130: 42.5   0.0  50.0
+Vertex 131:36.48   0.0  50.0
+Vertex 132:36.344 -3.18  50.0
+Vertex 133:35.926 -6.332  50.0
+Vertex 134:35.24 -9.44  50.0
+Vertex 135:34.28 -12.477  50.0
+Vertex 136:33.063 -15.418  50.0
+Vertex 137:31.59 -18.242  50.0
+Vertex 138:29.883 -20.926  50.0
+Vertex 139:27.945 -23.45  50.0
+Vertex 140:25.793 -25.793  50.0
+Vertex 141:23.45 -27.945  50.0
+Vertex 142:20.926 -29.883  50.0
+Vertex 143:18.24 -31.594  50.0
+Vertex 144:15.418 -33.063  50.0
+Vertex 145:12.477 -34.28  50.0
+Vertex 146:9.44 -35.24  50.0
+Vertex 147:6.332 -35.926  50.0
+Vertex 148:3.18 -36.344  50.0
+ Number of Faces:76
+ FVE List:
+Face:1 (1 bounds)
+	Bound 1 (74 le's):1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 
+Face:2 (1 bounds)
+	Bound 1 (4 le's):1 75 76 2 
+Face:3 (1 bounds)
+	Bound 1 (4 le's):1 74 77 75 
+Face:4 (1 bounds)
+	Bound 1 (4 le's):4 3 78 79 
+Face:5 (1 bounds)
+	Bound 1 (4 le's):80 5 4 79 
+Face:6 (1 bounds)
+	Bound 1 (4 le's):74 73 81 77 
+Face:7 (1 bounds)
+	Bound 1 (4 le's):82 6 5 80 
+Face:8 (1 bounds)
+	Bound 1 (4 le's):73 72 83 81 
+Face:9 (1 bounds)
+	Bound 1 (4 le's):72 71 84 83 
+Face:10 (1 bounds)
+	Bound 1 (4 le's):85 7 6 82 
+Face:11 (1 bounds)
+	Bound 1 (4 le's):86 8 7 85 
+Face:12 (1 bounds)
+	Bound 1 (4 le's):71 70 87 84 
+Face:13 (1 bounds)
+	Bound 1 (4 le's):88 9 8 86 
+Face:14 (1 bounds)
+	Bound 1 (4 le's):89 10 9 88 
+Face:15 (1 bounds)
+	Bound 1 (4 le's):70 69 90 87 
+Face:16 (1 bounds)
+	Bound 1 (4 le's):69 68 91 90 
+Face:17 (1 bounds)
+	Bound 1 (4 le's):92 11 10 89 
+Face:18 (1 bounds)
+	Bound 1 (4 le's):93 12 11 92 
+Face:19 (1 bounds)
+	Bound 1 (4 le's):68 67 94 91 
+Face:20 (1 bounds)
+	Bound 1 (4 le's):67 66 95 94 
+Face:21 (1 bounds)
+	Bound 1 (4 le's):96 13 12 93 
+Face:22 (1 bounds)
+	Bound 1 (4 le's):97 14 13 96 
+Face:23 (1 bounds)
+	Bound 1 (4 le's):66 65 98 95 
+Face:24 (1 bounds)
+	Bound 1 (4 le's):65 64 99 98 
+Face:25 (1 bounds)
+	Bound 1 (4 le's):100 15 14 97 
+Face:26 (1 bounds)
+	Bound 1 (4 le's):101 16 15 100 
+Face:27 (1 bounds)
+	Bound 1 (4 le's):102 17 16 101 
+Face:28 (1 bounds)
+	Bound 1 (4 le's):64 63 103 99 
+Face:29 (1 bounds)
+	Bound 1 (4 le's):63 62 104 103 
+Face:30 (1 bounds)
+	Bound 1 (4 le's):62 61 105 104 
+Face:31 (1 bounds)
+	Bound 1 (4 le's):106 18 17 102 
+Face:32 (1 bounds)
+	Bound 1 (4 le's):107 19 18 106 
+Face:33 (1 bounds)
+	Bound 1 (4 le's):108 20 19 107 
+Face:34 (1 bounds)
+	Bound 1 (4 le's):20 108 109 21 
+Face:35 (1 bounds)
+	Bound 1 (4 le's):61 60 110 105 
+Face:36 (1 bounds)
+	Bound 1 (4 le's):60 59 111 110 
+Face:37 (1 bounds)
+	Bound 1 (4 le's):59 58 112 111 
+Face:38 (1 bounds)
+	Bound 1 (74 le's):76 75 77 81 83 84 87 90 91 94 95 98 99 103 104 105 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 109 108 107 106 102 101 100 97 96 93 92 89 88 86 85 82 80 79 78 
+Face:39 (1 bounds)
+	Bound 1 (4 le's):38 132 131 39 
+Face:40 (1 bounds)
+	Bound 1 (4 le's):38 37 133 132 
+Face:41 (1 bounds)
+	Bound 1 (4 le's):41 40 130 129 
+Face:42 (1 bounds)
+	Bound 1 (4 le's):41 129 128 42 
+Face:43 (1 bounds)
+	Bound 1 (4 le's):37 36 134 133 
+Face:44 (1 bounds)
+	Bound 1 (4 le's):36 35 135 134 
+Face:45 (1 bounds)
+	Bound 1 (4 le's):42 128 127 43 
+Face:46 (1 bounds)
+	Bound 1 (4 le's):33 32 138 137 
+Face:47 (1 bounds)
+	Bound 1 (4 le's):35 34 136 135 
+Face:48 (1 bounds)
+	Bound 1 (4 le's):43 127 126 44 
+Face:49 (1 bounds)
+	Bound 1 (4 le's):44 126 125 45 
+Face:50 (1 bounds)
+	Bound 1 (4 le's):136 34 33 137 
+Face:51 (1 bounds)
+	Bound 1 (4 le's):45 125 124 46 
+Face:52 (1 bounds)
+	Bound 1 (4 le's):142 28 27 143 
+Face:53 (1 bounds)
+	Bound 1 (4 le's):21 109 148 22 
+Face:54 (1 bounds)
+	Bound 1 (4 le's):147 23 22 148 
+Face:55 (1 bounds)
+	Bound 1 (4 le's):146 24 23 147 
+Face:56 (1 bounds)
+	Bound 1 (4 le's):58 57 113 112 
+Face:57 (1 bounds)
+	Bound 1 (4 le's):57 56 114 113 
+Face:58 (1 bounds)
+	Bound 1 (4 le's):56 55 115 114 
+Face:59 (1 bounds)
+	Bound 1 (4 le's):144 26 25 145 
+Face:60 (1 bounds)
+	Bound 1 (4 le's):145 25 24 146 
+Face:61 (1 bounds)
+	Bound 1 (4 le's):27 26 144 143 
+Face:62 (1 bounds)
+	Bound 1 (4 le's):54 53 117 116 
+Face:63 (1 bounds)
+	Bound 1 (4 le's):55 54 116 115 
+Face:64 (1 bounds)
+	Bound 1 (4 le's):53 52 118 117 
+Face:65 (1 bounds)
+	Bound 1 (4 le's):30 29 141 140 
+Face:66 (1 bounds)
+	Bound 1 (4 le's):32 31 139 138 
+Face:67 (1 bounds)
+	Bound 1 (4 le's):139 31 30 140 
+Face:68 (1 bounds)
+	Bound 1 (4 le's):141 29 28 142 
+Face:69 (1 bounds)
+	Bound 1 (4 le's):49 48 122 121 
+Face:70 (1 bounds)
+	Bound 1 (4 le's):49 121 120 50 
+Face:71 (1 bounds)
+	Bound 1 (4 le's):46 124 123 47 
+Face:72 (1 bounds)
+	Bound 1 (4 le's):47 123 122 48 
+Face:73 (1 bounds)
+	Bound 1 (4 le's):51 50 120 119 
+Face:74 (1 bounds)
+	Bound 1 (4 le's):52 51 119 118 
+Face:75 (1 bounds)
+	Bound 1 (4 le's):3 2 76 78 
+Face:76 (1 bounds)
+	Bound 1 (4 le's):40 39 131 130 
+Faces with different colors:36
+	Face 4:100 100 100
+	Face 5:100 100 100
+	Face 7:100 100 100
+	Face 10:100 100 100
+	Face 11:100 100 100
+	Face 13:100 100 100
+	Face 14:100 100 100
+	Face 17:100 100 100
+	Face 18:100 100 100
+	Face 21:100 100 100
+	Face 22:100 100 100
+	Face 25:100 100 100
+	Face 26:100 100 100
+	Face 27:100 100 100
+	Face 31:100 100 100
+	Face 32:100 100 100
+	Face 33:100 100 100
+	Face 34:100 100 100
+	Face 39:100 100 100
+	Face 40:100 100 100
+	Face 43:100 100 100
+	Face 44:100 100 100
+	Face 46:100 100 100
+	Face 47:100 100 100
+	Face 50:100 100 100
+	Face 52:100 100 100
+	Face 53:100 100 100
+	Face 54:100 100 100
+	Face 55:100 100 100
+	Face 59:100 100 100
+	Face 60:100 100 100
+	Face 61:100 100 100
+	Face 65:100 100 100
+	Face 66:100 100 100
+	Face 67:100 100 100
+	Face 68:100 100 100
+Vertices with properties:0
+Edges with properties:0
+Faces with properties:0
+Vertices with CPL private code:0
+Edges with CPL private code:0
+Faces with CPL private code:0
+** End of file Space Station V **

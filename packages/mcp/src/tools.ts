@@ -17,6 +17,47 @@ const ROOM_TEXT =
   'The room runs x -511..510 (left to right), y -382..383 (floor to ceiling), z -499..500 ' +
   '(back wall to front; the plane starts at the front). The crosshair always lies in the plane.';
 
+/**
+ * What the agent is told when it connects: how to work the app without the slips a long
+ * build ran into (docs/MCP.md, "Working well", says the same at more length).
+ */
+export const INSTRUCTIONS = [
+  'Cutplane is worked as a person works it: the crosshair, the plane, the button, keys. ' +
+    ROOM_TEXT,
+  "Before a run of work, hands_off {off: true}, so the person's mouse resting on the room " +
+    "can't steer the crosshair; it lapses after two minutes without a call, so turn it on " +
+    'again after a long stretch of reading code, and off when done.',
+  'Check by numbers, not by eye: inspect after each step, and save now and then. inspect ' +
+    'with all: true lists every object, long on a curved world; pick what you mean to check.',
+  'A press takes the nearest part: within about 12 of a face (a thin bar, a face lying near ' +
+    'the plane) it takes that face, and a drag then moves the face, reshaping the object. To ' +
+    'pick or move a whole object, use the grabber (on the arrange rail; open it with the ' +
+    "rail's handle and find it with locate arrangers), or press well inside its section. " +
+    'Ctrl-Z undoes a slip.',
+  'A drag is held where things line up (faces, the room): the result says where it ended. To ' +
+    'land a small correction, move past it and come back; a move of a unit or two may not ' +
+    "register. A face left flush with another's (a cutter's top level with the face it " +
+    'cuts) is better set clear of it.',
+  'The scale box stands 20 outside the object, and that margin scales with it. A corner or ' +
+    'edge handle scales about the opposite corner of the box, so to take an object from size ' +
+    's to S along an axis, drag the handle to the far box face + (s + 40)·S/s. Click away and ' +
+    'on the object again after a move or a scale, so the box fits it before the next drag. ' +
+    "The corners are taken only with the plane at the box's front or back; with the plane " +
+    'inside, a press takes an edge handle (across and up only). The room stops a handle, so ' +
+    'a large factor takes two drags, the object moved first to give the handle room.',
+  'R puts the rotate tool at the crosshair and keeps what is picked, and the picking goes on ' +
+    'with it: an object under the crosshair when R is pressed is picked too, and turns ' +
+    'with the rest. Slide along a bar a unit per degree. R on its centre puts it away.',
+  'D copies what is picked. A copy of a copy goes on by the move and turn that took the one ' +
+    'before to it (a ring by a turn each time); a first copy, or one scaled since, goes 100 ' +
+    'over and 100 up (or on by the move between middles). Grouped, a set copies as one.',
+  'A primitive comes from the primitives box (locate prims, click it open, drag a stamp ' +
+    "out); its cylinder's axis is the depth (z). The drill (on the tools' rail) presses on " +
+    'an object and cuts its copy from all it overlaps when let go; let go in place, it cuts ' +
+    'where the object is; then delete the cutter. \\ slices what is picked at the plane and ' +
+    'moves the halves 10 apart.',
+].join('\n\n');
+
 const lookArg = z
   .boolean()
   .optional()

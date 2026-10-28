@@ -54,6 +54,13 @@ describe('the MCP server', () => {
     );
   });
 
+  it('tells the agent how to work well when it connects', () => {
+    const told = client.getInstructions() ?? '';
+    expect(told).toMatch(/hands_off/);
+    expect(told).toMatch(/grabber/);
+    expect(told).toMatch(/margin scales/);
+  });
+
   it('says so when no page is open', async () => {
     const r = await client.callTool({ name: 'state', arguments: {} });
     expect(r.isError).toBe(true);

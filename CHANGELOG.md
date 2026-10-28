@@ -12,6 +12,13 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 27, 2026
 
+- **A new sample: Space Station V, in progress.** The station the Orion III docks at in _2001_,
+  built in the app by an agent through MCP: a finished ring, a ring half bare struts, their
+  spokes, the hub and the docking bay. It's in the model menu, and will gain detail and colour.
+- **The agent is told how to work well.** The MCP server gives a connecting agent instructions
+  on the slips a long build ran into (a press near a face takes the face, the scale box's margin
+  scales too, R picks what's under the crosshair, small moves held by guides), and
+  [docs/MCP.md](docs/MCP.md#working-well) says the same at more length.
 - **D goes on by a move and turn only.** A copy D made, then scaled (a crossbar's copy stood up
   as a post), no longer makes the next copy scaled as much again: the next is just moved as
   far on. A copy reshaped since (a union of D's copies) starts afresh, 100 right and up, rather

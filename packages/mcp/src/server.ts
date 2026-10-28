@@ -5,7 +5,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { WebSocketServer } from 'ws';
 import { Bridge } from './bridge.ts';
 import { Recorder } from './record.ts';
-import { addTools } from './tools.ts';
+import { addTools, INSTRUCTIONS } from './tools.ts';
 
 export const DEFAULT_PORT = 5174;
 
@@ -38,7 +38,10 @@ export async function serve({
   const http: Server = createServer((req, res) => {
     const path = new URL(req.url ?? '/', 'http://x').pathname;
     if (path === '/mcp') {
-      const server = new McpServer({ name: 'cutplane', version: '0.0.0' });
+      const server = new McpServer(
+        { name: 'cutplane', version: '0.0.0' },
+        { instructions: INSTRUCTIONS },
+      );
       addTools(server, bridge, saveDir, recorder);
       // (No session ids: stateless.)
       const transport = new StreamableHTTPServerTransport({ enableJsonResponse: true });
