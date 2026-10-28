@@ -9,8 +9,8 @@ One is new: `orion-iii.cut`, the Pan Am Orion III shuttle from _2001: A Space Od
 original (`"original": null` in the index). So is `space-station-v.cut`, the station the Orion
 docks at, built the same way and still in progress: two rings (one finished, one half bare
 struts), their spokes, the hub and the docking bay. And `eva-pod.cut`, one of _Discovery_'s EVA
-pods, made with the direct calls: the hull with its window canted back, the side thruster cones,
-four grabbers, the headlamps, the emergency hatch Dave blows (an object of its own), and inside,
+pods, made with the direct calls: the hull with its window canted back, the side thruster cones with their dark
+panels and radial grooves, the grab-bar dimples for an astronaut outside, four grabbers, the headlamps, the emergency hatch Dave blows (an object of its own), and inside,
 the seat and control panel.
 
 The full archive (116 files, including scratch and test files) is kept out of the repo. To run the

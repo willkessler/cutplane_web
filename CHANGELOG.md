@@ -13,9 +13,10 @@ New in 2026: none of these were in the 1991 original.
 ### October 28, 2026
 
 - **A new sample: the EVA pod.** One of _Discovery_'s pods from _2001_, built by an agent with
-  the direct calls: the window canted back above the grabbers, thruster cones on the sides,
-  headlamps, the emergency hatch Dave blows as an object of its own, and a seat and controls
-  inside. It's in the model menu.
+  the direct calls: the window canted back above the grabbers, thruster cones on the sides with
+  their four dark panels and the radial grooves round them, headlamps, the dimples with grab bars
+  Dave pulls himself along on his EVA, the emergency hatch he blows as an object of its own, and a
+  seat and controls inside. It's in the model menu.
 - **The agent works by number too.** Besides its hand on the crosshair, the MCP server now
   has direct calls: a primitive put in at a size and place, things moved, turned and scaled
   exactly, copied in a row or ring in one call, painted, named, deleted, unioned, cut (as the
