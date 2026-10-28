@@ -252,7 +252,9 @@ export function sliceObject(
   const backs = solidsOf(r.back).map((g) => brepOf(g, [o]));
   const fronts = solidsOf(r.front).map((g) => brepOf(g, [o]));
   if (backs.length === 0 || fronts.length === 0) return none;
-  rt.unpick(o);
+  // New here: its scale box goes now, not when the unpick message comes round:
+  // a picked object is the box's child, and the pieces were put in beside it.
+  rt.unpickNow(o);
   rt.reshape(o, backs[0]!);
   const back = [o, ...backs.slice(1).map((x) => rt.spawnBeside(o, x))];
   const front = fronts.map((x) => rt.spawnBeside(o, x));

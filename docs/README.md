@@ -685,6 +685,10 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   Here, while a drill or union tool carries something, every object it overlaps (and only those,
   less a cutter's own original) is selectable, whole, and `CPBOOLEAN` takes each one, not just the first. The scripts are as
   they were.
+- **A piece cut off with `\` is an object of its own.** `\` slices what is picked without unpicking
+  it first, as the saw does, and a picked object is its scale box's child while the box stands,
+  so the pieces were put in beside it, under the box: once the box went they could be neither
+  picked nor dragged. The box now goes before the pieces are made.
 - **A group takes a colour in every part.** `rom.cpl` meant a group picked to take a colour
   in itself and all its descendants, gathering them with `OR`; but `OR` of features keeps only
   the first of each side, so only the group and its first part were painted. Each descendant

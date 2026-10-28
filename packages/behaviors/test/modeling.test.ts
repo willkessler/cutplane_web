@@ -266,6 +266,26 @@ describe('the saw (slice.cpl, slice_object)', () => {
     expect(body.children).toEqual([part]);
   });
 
+  it('\\ cuts a lone object into pieces of their own, each picked and moved alone (cutplane_web)', () => {
+    const w = setup();
+    w.click([40, 30]);
+    w.controls.slice();
+    w.frame();
+    const pieces = w.solids();
+    expect(pieces).toHaveLength(2);
+    const front = pieces.find((o) => w.rt.bbox(o)![0][2] > 0)!;
+    w.at(0, 0, 50);
+    w.click([0, 0]);
+    expect(w.rt.picked()).toEqual([front]);
+    w.controls.pressPick(false);
+    w.frame();
+    w.move(0, 40);
+    w.controls.releasePick();
+    w.frame();
+    expect(w.rt.bbox(front)![0][1]).toBeCloseTo(-60);
+    expect(w.rt.picked()).toEqual([front]);
+  });
+
   it('clicking on nothing with the saw cuts nothing', () => {
     const w = setup();
     w.take(1);
