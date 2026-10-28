@@ -464,6 +464,27 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     expect(mid(d())).toEqual([300, -300, 0]);
   });
 
+  it('a copy scaled as well as moved: the next goes as far on, not scaled again', () => {
+    const { rt, d, mid } = copies();
+    const first = d();
+    rt.moveBranch(first, [100, -100, 0]); // 200 right
+    rt.transformBranch(first, mat4.scaleAbout([200, 0, 0], [0.5, 2, 1]));
+    const next = d();
+    expect(mid(next)).toEqual([400, 0, 0]);
+    const b = rt.bbox(next)!;
+    expect(b[1][0] - b[0][0]).toBeCloseTo(rt.bbox(first)![1][0] - rt.bbox(first)![0][0], 6);
+  });
+
+  it('a copy reshaped since (a union of copies) starts afresh', () => {
+    const { rt, d, mid } = copies();
+    const first = d();
+    rt.moveBranch(first, [200, -100, 0]); // 300 right
+    first.brep = createCube(100, 300, 100); // as a union of it and others leaves it
+    rt.changed(first);
+    const [x, y, z] = mid(first);
+    expect(mid(d())).toEqual([x! + 100, y! + 100, z]); // not another 300 on
+  });
+
   it('a copy flipped over to meet its original: the next goes on, not back', () => {
     const { rt, d, mid } = copies();
     const first = d();

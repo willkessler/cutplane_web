@@ -421,6 +421,10 @@ export const TOOLBAR_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void
       if (!fb) continue;
       const width = fb[1][0] - fb[0][0];
       const height = fb[1][1] - fb[0][1];
+      // New here: in the order they hang down it, so a handle let go where it was (a click)
+      // keeps its slot, and one dropped part-way down goes in there (ADOPT appends it).
+      const top = (h: CutObject) => groupBox(rt, h, true)?.[1][1] ?? -Infinity;
+      toolbar.children.sort((a, b) => top(b) - top(a));
       toolbar.children.forEach((handle, i) => {
         const hb = groupBox(rt, handle, true);
         if (!hb) return;
@@ -446,7 +450,8 @@ export const TOOLBAR_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void
         const bar = objectOf(f);
         const bb = bar ? rt.bbox(bar) : null;
         if (!bar || !bb) continue;
-        const d = bb[1][2] - bb[0][2];
+        // The rail is flat (no depth of its own); its handles stand in front of it.
+        const d = Math.max(bb[1][2] - bb[0][2], NORMALPAD_SQUARE);
         const lo: V3 = [bb[0][0], bb[0][1], bb[0][2] - d];
         const hi: V3 = [bb[1][0], bb[1][1], bb[1][2] + d];
         if ([0, 1, 2].every((k) => lo[k]! <= hb[1][k]! && hi[k]! >= hb[0][k]!)) {

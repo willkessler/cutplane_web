@@ -12,6 +12,14 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 27, 2026
 
+- **D goes on by a move and turn only.** A copy D made, then scaled (a crossbar's copy stood up
+  as a post), no longer makes the next copy scaled as much again: the next is just moved as
+  far on. A copy reshaped since (a union of D's copies) starts afresh, 100 right and up, rather
+  than going on by a step from the copy it once was.
+- **A pad clicked on its rail stays on it.** Letting go of a pad's handle, even a plain click,
+  floated it off its rail with its tool, and the room kept it so after a reload: the pencil's
+  pad left over the saw's, with three pads on the rail. A handle let go at the rail now goes
+  back on it, in the order the pads hang, so one dropped part-way down goes in there.
 - **A union where two solids graze.** Joining a long ellipsoid onto a cone at a shallow angle
   was refused: on the grid, one face's edge ran out to a point and straight back, and a sliver
   triangle's corners fell in a line. The spur now goes, and the sliver's middle corner goes

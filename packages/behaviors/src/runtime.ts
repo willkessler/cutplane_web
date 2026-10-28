@@ -883,7 +883,9 @@ export class Runtime implements Host {
    * New here: where D puts a copy. A copy of a copy goes on from it as that went on from
    * its own original, turned as that was (so a turn each time makes a ring), but for a
    * half turn (a copy flipped to meet its original), which would bring it back: then just
-   * moved as that was. A first copy goes DUPLICATE_OFFSET over, as controls.c put each.
+   * moved as that was. So too for a copy that was scaled (a bar stood up from a copy of a
+   * crossbar): the next isn't scaled again. A first copy goes DUPLICATE_OFFSET over, as
+   * controls.c put each.
    */
   placeCopy(copy: CutObject): void {
     const from = this.copiedFrom.get(copy);
@@ -891,13 +893,14 @@ export class Runtime implements Host {
     // was copied from something elsewhere, and starts afresh.
     const before = from && this.duplicatedFrom.get(from);
     if (from) this.duplicatedFrom.set(copy, from);
-    if (!from || !before) {
+    // One reshaped since (a union of copies, say) is no longer a copy to go on from.
+    if (!from || !before || !sameShape(before.brep, from.brep)) {
       this.moveBranch(copy, DUPLICATE_OFFSET);
       return;
     }
     // The move that took the one before to the one copied: from = before · step.
     const step = mat4.multiply(mat4.invert(before.xform) ?? mat4.identity(), from.xform);
-    if (step[0]! + step[5]! + step[10]! > -1 + 1e-6) {
+    if (rigid(step) && step[0]! + step[5]! + step[10]! > -1 + 1e-6) {
       this.transformBranch(copy, step);
       return;
     }
@@ -2266,4 +2269,28 @@ function between(a: V3, b: V3): { axis: V3; angle: number } {
     };
   }
   return { axis, angle: Math.acos(c) };
+}
+
+/** A move and turn only (rows of the 3×3 part square to each other and of length 1). */
+function rigid(m: ArrayLike<number>): boolean {
+  for (let i = 0; i < 3; i++)
+    for (let j = 0; j < 3; j++) {
+      let s = 0;
+      for (let k = 0; k < 3; k++) s += m[i * 4 + k]! * m[j * 4 + k]!;
+      if (Math.abs(s - (i === j ? 1 : 0)) > 1e-6) return false;
+    }
+  return true;
+}
+
+/** The same solid in its own frame: as many corners, each where the other's is. */
+function sameShape(a: Brep, b: Brep): boolean {
+  if (a === b) return true;
+  const va = a.vertices();
+  const vb = b.vertices();
+  if (va.length !== vb.length) return false;
+  return va.every((v, i) => {
+    const p = a.vertexPos(v);
+    const q = b.vertexPos(vb[i]!);
+    return p[0] === q[0] && p[1] === q[1] && p[2] === q[2];
+  });
 }
