@@ -4,7 +4,7 @@
  * watches sees it go), the button pressed and let go, a key, the wheel, the room turned,
  * a look at the room. The hand makes no geometry itself: the tools, the plane and the
  * world's CPL do, as they do for anyone. Save is the app's own. Hands off sets the person's own
- * mouse and keys aside while the agent works. A sequence is several of these in a row,
+ * mouse and keys aside while the agent works; its goal, what a step is for, shows at the top. A sequence is several of these in a row,
  * and inspect gives back the shapes of what is picked, to check work by. A recording
  * starts from the world as it is (worldText) and the toolbar's choices (settings); its
  * replay opens that world (openText) and sets them as they were. New: direct calls do in
@@ -32,7 +32,10 @@ export function connectMcp(url: string, hooks: Hooks): void {
     ws.addEventListener('message', (e) => {
       const { id, op, args } = JSON.parse(String(e.data)) as { id: number; op: string; args: Args }; // prettier-ignore
       clearTimeout(idle);
-      idle = setTimeout(() => hooks.handsOff(false), HANDS_OFF_IDLE);
+      idle = setTimeout(() => {
+        hooks.handsOff(false);
+        hooks.goal('');
+      }, HANDS_OFF_IDLE);
       const f = ops[op];
       Promise.resolve()
         .then(() => {
@@ -47,6 +50,7 @@ export function connectMcp(url: string, hooks: Hooks): void {
     });
     ws.addEventListener('close', () => {
       hooks.handsOff(false); // the agent is gone: the app is the person's again
+      hooks.goal('');
       setTimeout(open, RETRY);
     });
   };
@@ -197,6 +201,11 @@ function operations(h: Hooks): Record<string, (a: Args) => unknown> {
     hands(a) {
       h.handsOff(!!a['off']);
       return state();
+    },
+    /** What the agent's next steps are for, at the top of the room for whoever watches. */
+    goal(a) {
+      h.goal(typeof a['text'] === 'string' ? a['text'] : '');
+      return null;
     },
     press(a) {
       h.press(!!a['shift']);

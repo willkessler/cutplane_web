@@ -64,6 +64,17 @@ describe('the MCP server', () => {
     expect(JSON.parse(text(r))).toEqual({ objects: [{ id: 1 }] });
   });
 
+  it("shows a call's goal in the room first, and passes on the call without it", async () => {
+    await page((r) => (r.op === 'direct' ? { objects: [{ id: 1 }] } : null));
+    const goal = 'the right side: its grooves';
+    await client.callTool({ name: 'move_objects', arguments: { objects: [1], by: [1, 0, 0], goal } }); // prettier-ignore
+    expect(asked.map((r) => r.op)).toEqual(['goal', 'direct']);
+    expect(asked[0]!.args).toEqual({ text: goal });
+    expect(asked[1]!.args).toEqual({ call: 'move', args: { objects: [1], by: [1, 0, 0] } });
+    const { tools } = await client.listTools();
+    expect(tools.every((t) => 'goal' in (t.inputSchema.properties ?? {}))).toBe(true);
+  });
+
   it('tells the agent how to work well when it connects', () => {
     const told = client.getInstructions() ?? '';
     expect(told).toMatch(/hands_off/);

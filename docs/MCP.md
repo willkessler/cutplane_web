@@ -102,6 +102,10 @@ The server tells an agent the same when it connects (its instructions, `INSTRUCT
 - **Hands off first.** Turn `hands_off` on before a run of work, or a mouse resting on the room
   steers the crosshair. It lapses after two minutes without a call, so after a long stretch of
   reading code, turn it on again.
+- **Say what each step is for.** Every tool takes a `goal`, a few words on what the call is
+  after ("the left side's grooves: turn the cutter to them"). The app shows it at the top of
+  the room, under the hands-off banner, until the next one, so whoever watches can follow the
+  agent's thinking and not only what moved. It goes when the agent does.
 - **Check by numbers.** `inspect` after each step says exactly where things came out; a look
   doesn't. Save now and then. `inspect` with `all: true` on a world of 72-sided cylinders runs
   to tens of thousands of characters: pick what you mean to check.

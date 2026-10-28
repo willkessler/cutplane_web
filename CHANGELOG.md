@@ -12,11 +12,16 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 28, 2026
 
+- **See what the agent is after.** Every MCP call can carry a goal, a few words on what the
+  step is for, and the app shows it at the top of the room as the step is done. A run of
+  direct calls (a sphere here, a cut there) is hard to follow on its own; with the goal shown,
+  a person watching can.
 - **A new sample: the EVA pod.** One of _Discovery_'s pods from _2001_, built by an agent with
-  the direct calls: the window canted back above the grabbers, thruster cones on the sides with
+  the direct calls: the window canted back above the grabbers (a ribbed oval, flush with the shell), thruster cones on the sides with
   their four dark panels and the radial grooves round them, headlamps, the dimples with grab bars
   Dave pulls himself along on his EVA, the emergency hatch he blows as an object of its own, and a
-  seat and controls inside. It's in the model menu.
+  seat and controls inside. It comes as one group, to take apart if you want. It's in the model
+  menu.
 - **The agent works by number too.** Besides its hand on the crosshair, the MCP server now
   has direct calls: a primitive put in at a size and place, things moved, turned and scaled
   exactly, copied in a row or ring in one call, painted, named, deleted, unioned, cut (as the

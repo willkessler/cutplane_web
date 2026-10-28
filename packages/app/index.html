@@ -138,6 +138,24 @@
       #handsoff.shown {
         display: flex;
       }
+      /* What the agent is doing: under the banner, or in its place. */
+      #goal {
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: none;
+        max-width: min(70vw, 720px);
+        padding: 6px 12px;
+        color: var(--accent);
+        text-align: center;
+        pointer-events: none;
+      }
+      #goal.shown {
+        display: block;
+      }
+      #handsoff.shown ~ #goal {
+        top: 56px;
+      }
       #pause {
         inset: 0;
         border-radius: 0;
@@ -316,6 +334,7 @@
         <span>An agent is working the app: your mouse and keys are set aside.</span>
         <button id="takeover">Take over</button>
       </div>
+      <div id="goal" class="panel" aria-live="polite"></div>
       <div id="pause" class="panel">
         <div>
           <p>Paused — the pointer was released.</p>

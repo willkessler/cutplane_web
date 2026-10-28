@@ -1254,6 +1254,8 @@ for (const type of [
     },
     { capture: true, passive: false },
   );
+/** New: what the agent is doing (?mcp), each step's goal, under the banner. */
+const agentGoal = $<HTMLDivElement>('goal');
 $<HTMLButtonElement>('takeover').addEventListener('click', () => setHandsOff(false));
 canvas.addEventListener(
   'wheel',
@@ -1798,6 +1800,8 @@ declare global {
       takes(): string | null;
       /** Sets the person's own mouse and keys aside (an agent at work) or not; whether they are. */
       handsOff(on?: boolean): boolean;
+      /** Shows what the agent is doing, and why, at the top of the room ('' hides it). */
+      goal(text: string): void;
       /**
        * The shapes of what is picked (or of every object in the world, `all`): each one's
        * box, corners and faces (corners in order, the outer loop first; normal), in room
@@ -2127,6 +2131,10 @@ async function start(): Promise<void> {
     handsOff(on) {
       if (on !== undefined) setHandsOff(on);
       return handsOff;
+    },
+    goal(text) {
+      agentGoal.textContent = text;
+      agentGoal.classList.toggle('shown', text !== '');
     },
     inspect(all) {
       catchUp();

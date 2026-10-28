@@ -38,6 +38,9 @@ export const INSTRUCTIONS = [
   "Before a run of work, hands_off {off: true}, so the person's mouse resting on the room " +
     "can't steer the crosshair; it lapses after two minutes without a call, so turn it on " +
     'again after a long stretch of reading code, and off when done.',
+  'Give each call a goal: what the step is for, in a few words ("the left side\'s grooves: ' +
+    'turn the cutter to them"). It shows at the top of the room, so whoever watches can ' +
+    'follow what you are after, not only what moved.',
   'Check by numbers, not by eye: inspect after each step, and save now and then. inspect ' +
     'with all: true lists every object, long on a curved world; pick what you mean to check.',
   'A press takes the nearest part: within about 12 of a face (a thin bar, a face lying near ' +
@@ -82,6 +85,15 @@ export const INSTRUCTIONS = [
     'where the object is; then delete the cutter. \\ slices what is picked at the plane and ' +
     'moves the halves 10 apart.',
 ].join('\n\n');
+
+const goal = z
+  .string()
+  .max(200)
+  .optional()
+  .describe(
+    'What this step is for, in a few words ("cut the grooves on the right side"): shown at ' +
+      'the top of the room for whoever watches, until the next.',
+  );
 
 const lookArg = z
   .boolean()
@@ -146,6 +158,19 @@ export function addTools(
       ],
     };
   };
+  /**
+   * Every tool takes a goal too: what the step is for, shown at the top of the room for
+   * whoever watches (a direct call alone says little of what the agent is after).
+   */
+  const register = ((name, config, cb) =>
+    server.registerTool(
+      name,
+      { ...config, inputSchema: { ...config.inputSchema, goal } },
+      async ({ goal: g, ...a }: Record<string, unknown>, extra: unknown) => {
+        if (typeof g === 'string' && g.trim()) await bridge.call('goal', { text: g.trim() }).catch(() => {}); // prettier-ignore
+        return (cb as (a: unknown, e: unknown) => Promise<CallToolResult>)(a, extra);
+      },
+    )) as typeof server.registerTool;
   const guard =
     <A>(f: (a: A) => Promise<CallToolResult>) =>
     async (a: A): Promise<CallToolResult> => {
@@ -156,7 +181,7 @@ export function addTools(
       }
     };
 
-  server.registerTool(
+  register(
     'look',
     {
       title: 'Look at the room',
@@ -170,7 +195,7 @@ export function addTools(
     guard(looked),
   );
 
-  server.registerTool(
+  register(
     'state',
     {
       title: 'Where things are',
@@ -190,7 +215,7 @@ export function addTools(
     guard(() => act('state', {})),
   );
 
-  server.registerTool(
+  register(
     'hands_off',
     {
       title: "Set the person's input aside",
@@ -205,7 +230,7 @@ export function addTools(
     guard((a) => act('hands', a)),
   );
 
-  server.registerTool(
+  register(
     'move_to',
     {
       title: 'Move the crosshair',
@@ -219,7 +244,7 @@ export function addTools(
     guard(({ look, ...a }) => act('move', a, look)),
   );
 
-  server.registerTool(
+  register(
     'turn_view',
     {
       title: 'Turn the room',
@@ -236,7 +261,7 @@ export function addTools(
     guard(({ look, ...a }) => act('turn', a, look)),
   );
 
-  server.registerTool(
+  register(
     'press',
     {
       title: 'Press the button',
@@ -254,7 +279,7 @@ export function addTools(
     guard((a) => act('press', a)),
   );
 
-  server.registerTool(
+  register(
     'release',
     {
       title: 'Release the button',
@@ -264,7 +289,7 @@ export function addTools(
     guard(({ look }) => act('release', {}, look)),
   );
 
-  server.registerTool(
+  register(
     'click',
     {
       title: 'Click',
@@ -278,7 +303,7 @@ export function addTools(
     guard(({ look, ...a }) => act('click', a, look)),
   );
 
-  server.registerTool(
+  register(
     'drag',
     {
       title: 'Drag',
@@ -290,7 +315,7 @@ export function addTools(
     guard(({ look, ...a }) => act('drag', a, look)),
   );
 
-  server.registerTool(
+  register(
     'key',
     {
       title: 'Press a key',
@@ -317,7 +342,7 @@ export function addTools(
     guard(({ look, ...a }) => act('key', a, look)),
   );
 
-  server.registerTool(
+  register(
     'wheel',
     {
       title: 'Roll the wheel',
@@ -329,7 +354,7 @@ export function addTools(
     guard(({ look, ...a }) => act('wheel', a, look)),
   );
 
-  server.registerTool(
+  register(
     'sequence',
     {
       title: 'Several moves in a row',
@@ -353,7 +378,7 @@ export function addTools(
     ),
   );
 
-  server.registerTool(
+  register(
     'inspect',
     {
       title: 'The shapes of things',
@@ -384,7 +409,7 @@ export function addTools(
     .describe('"x", "y", "z" (or "-x"…), or a direction [x, y, z].');
   const glide = ms.describe('How long it takes, to be seen (default 0: at once).');
 
-  server.registerTool(
+  register(
     'list_objects',
     {
       title: 'What is in the world',
@@ -397,7 +422,7 @@ export function addTools(
     guard(() => direct('list', {})),
   );
 
-  server.registerTool(
+  register(
     'add_primitive',
     {
       title: 'Put in a primitive',
@@ -420,7 +445,7 @@ export function addTools(
     guard(({ look, ...a }) => direct('add', a, look)),
   );
 
-  server.registerTool(
+  register(
     'move_objects',
     {
       title: 'Move things',
@@ -432,7 +457,7 @@ export function addTools(
     guard(({ look, ...a }) => direct('move', a, look)),
   );
 
-  server.registerTool(
+  register(
     'rotate_objects',
     {
       title: 'Turn things',
@@ -445,7 +470,7 @@ export function addTools(
     guard(({ look, ...a }) => direct('rotate', a, look)),
   );
 
-  server.registerTool(
+  register(
     'scale_objects',
     {
       title: 'Scale things',
@@ -464,7 +489,7 @@ export function addTools(
     guard(({ look, ...a }) => direct('scale', a, look)),
   );
 
-  server.registerTool(
+  register(
     'copy_objects',
     {
       title: 'Copy things',
@@ -485,7 +510,7 @@ export function addTools(
     guard(({ look, ...a }) => direct('copy', a, look)),
   );
 
-  server.registerTool(
+  register(
     'delete_objects',
     {
       title: 'Delete things',
@@ -495,7 +520,7 @@ export function addTools(
     guard(({ look, ...a }) => direct('remove', a, look)),
   );
 
-  server.registerTool(
+  register(
     'paint_objects',
     {
       title: 'Paint things',
@@ -514,7 +539,7 @@ export function addTools(
     guard(({ look, ...a }) => direct('paint', a, look)),
   );
 
-  server.registerTool(
+  register(
     'name_object',
     {
       title: 'Name a thing',
@@ -524,7 +549,7 @@ export function addTools(
     guard((a) => direct('name', a)),
   );
 
-  server.registerTool(
+  register(
     'pick_objects',
     {
       title: 'Pick things',
@@ -536,7 +561,7 @@ export function addTools(
     guard(({ look, ...a }) => direct('pick', a, look)),
   );
 
-  server.registerTool(
+  register(
     'group_objects',
     {
       title: 'Group things',
@@ -546,7 +571,7 @@ export function addTools(
     guard(({ look, ...a }) => direct('group', a, look)),
   );
 
-  server.registerTool(
+  register(
     'ungroup_object',
     {
       title: 'Take a group apart',
@@ -556,7 +581,7 @@ export function addTools(
     guard(({ look, ...a }) => direct('ungroup', a, look)),
   );
 
-  server.registerTool(
+  register(
     'arrange_objects',
     {
       title: 'Line things up',
@@ -568,7 +593,7 @@ export function addTools(
     guard(({ look, ...a }) => direct('arrange', a, look)),
   );
 
-  server.registerTool(
+  register(
     'boolean',
     {
       title: 'Union, subtract, intersect',
@@ -588,7 +613,7 @@ export function addTools(
     guard(({ look, ...a }) => direct('boolean', a, look)),
   );
 
-  server.registerTool(
+  register(
     'slice_objects',
     {
       title: 'Slice things',
@@ -601,7 +626,7 @@ export function addTools(
     guard(({ look, ...a }) => direct('slice', a, look)),
   );
 
-  server.registerTool(
+  register(
     'move_face',
     {
       title: 'Pull a face',
@@ -623,7 +648,7 @@ export function addTools(
     guard(({ look, ...a }) => direct('face', a, look)),
   );
 
-  server.registerTool(
+  register(
     'locate',
     {
       title: 'Where is it',
@@ -637,7 +662,7 @@ export function addTools(
     guard((a) => act('locate', a)),
   );
 
-  server.registerTool(
+  register(
     'open',
     {
       title: 'Open a world',
@@ -649,7 +674,7 @@ export function addTools(
     guard(({ look, ...a }) => act('open', a, look)),
   );
 
-  server.registerTool(
+  register(
     'save',
     {
       title: 'Save the world',
@@ -667,7 +692,7 @@ export function addTools(
     }),
   );
 
-  server.registerTool(
+  register(
     'record',
     {
       title: 'Record the build',
@@ -693,7 +718,7 @@ export function addTools(
     }),
   );
 
-  server.registerTool(
+  register(
     'replay',
     {
       title: 'Replay a recording',
