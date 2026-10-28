@@ -51,6 +51,13 @@ export const INSTRUCTIONS = [
   'D copies what is picked. A copy of a copy goes on by the move and turn that took the one ' +
     'before to it (a ring by a turn each time); a first copy, or one scaled since, goes 100 ' +
     'over and 100 up (or on by the move between middles). Grouped, a set copies as one.',
+  'The grabber picks one thing whole and goes back to its pad; with it out, Shift-click picks ' +
+    'as without it. To pick many thin things whole, drag a marquee (moving the plane makes it ' +
+    'a 3D box; it takes what it touches): start it more than 12 from every face and scale-box ' +
+    'handle, or the press takes and drags that instead.',
+  'To paint, open the goodies box for the colour control and move it clear of the rotate ' +
+    "tool's dial (a press there turns all that is picked). Picking sets the bars to the " +
+    "thing's colour; dragging a bar gives what is picked all three bars' colour. Pick first.",
   'A primitive comes from the primitives box (locate prims, click it open, drag a stamp ' +
     "out); its cylinder's axis is the depth (z). The drill (on the tools' rail) presses on " +
     'an object and cuts its copy from all it overlaps when let go; let go in place, it cuts ' +

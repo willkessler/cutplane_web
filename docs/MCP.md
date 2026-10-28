@@ -91,6 +91,18 @@ The server tells an agent the same when it connects (its instructions, `INSTRUCT
 - **D goes on as the last copy went.** A copy of a copy is moved and turned as that one was (a
   ring by a turn each time). A first copy goes 100 over and 100 up; one scaled since goes on by
   the move between the middles. Grouped (G), a set copies as one.
+- **The grabber takes one thing, then goes back to its pad.** Each pick needs the pad clicked
+  again, and a Shift-click with it out picks as a plain Shift-click would (a face, an edge). To
+  pick many thin things whole, drag a **marquee**: moving the plane during the drag makes it a
+  3D box, and it takes whatever it touches, even partly. Start it more than 12 from every face
+  (or the press takes that face, or a scale box's handle, and drags it), and keep its edges clear
+  of things you don't want: a drag's end is held where it lines up with a face, which can pull
+  the marquee onto a neighbour.
+- **Painting.** Open the goodies box (`locate goodies`, click it) for the colour control and set
+  it somewhere clear: its bars stand close to the rotate tool's dial, and a press meant for a
+  bar can turn everything picked. A bar dragged sets what is picked to all three bars' colour,
+  and picking something sets the bars to its colour, so pick first, then drag each bar.
+  Ctrl-A, then a bar, paints everything.
 - **Primitives and cuts.** A primitive comes from the primitives box (`locate prims`, click it
   open, drag a stamp out); its cylinder's axis is the depth (z), so stand it up with R. The drill
   copies what it presses and, let go (in place, if the cutter is already where it should cut),

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createCube, createObject, mat4 } from '@cutplane/kernel';
 import { COLOR_CRTNS, createColorControl } from '../src/index.ts';
 import { world } from './world.ts';
 
@@ -46,6 +47,34 @@ describe('the colour control through colorbar.cpl and paint.cpl', () => {
     expect(rt.picked()).toEqual([cube]);
     rt.undo();
     expect(cube.color[0]).not.toBe(0);
+  });
+
+  it('a group picked takes the colour in every part (cutplane_web)', () => {
+    const { rt, cube, controls, frame, at, move } = setup();
+    // The cube with two parts under it, as G makes a group of picked things.
+    const parts = [0, 1].map((i) => {
+      const o = createObject(createCube(20, 20, 20), {
+        xform: mat4.translation(-100 + 40 * i, 120, -10),
+      });
+      o.attrs.props = ['Visible'];
+      rt.importObjects(rt.primary, [o]);
+      rt.adopt(cube, o, true);
+      return o;
+    });
+    at(0, 0, 0);
+    controls.pressPick(false);
+    frame();
+    controls.releasePick();
+    frame();
+    expect(rt.picked()).toEqual([cube]);
+    at(215, 50, 0);
+    controls.pressPick(false);
+    frame();
+    move(0, -40);
+    controls.releasePick();
+    frame();
+    const red = Math.round((255 * 51) / 95);
+    expect([cube, ...parts].map((o) => o.color[0])).toEqual([red, red, red]);
   });
 
   it('a dragged copy of the chip paints what it is let go on', () => {

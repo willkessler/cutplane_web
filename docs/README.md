@@ -685,6 +685,10 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   Here, while a drill or union tool carries something, every object it overlaps (and only those,
   less a cutter's own original) is selectable, whole, and `CPBOOLEAN` takes each one, not just the first. The scripts are as
   they were.
+- **A group takes a colour in every part.** `rom.cpl` meant a group picked to take a colour
+  in itself and all its descendants, gathering them with `OR`; but `OR` of features keeps only
+  the first of each side, so only the group and its first part were painted. Each descendant
+  is now set in turn.
 - **A hole is the colour of what cut it.** In the original, every face of a subtraction's result
   took the drilled object's colour, so a hole was the colour of the object around it. Here the
   walls a cutter leaves are its colour; for the drill, whose cutter `drill.cpl` turns red, that

@@ -113,9 +113,9 @@ _Check_colormsg	BNEQUAL	A:R2,Msg:Adoptcolor,A:_Check_pickmsg&
 
 ;		ANCEST	A:R1*,A:R2			; color this motherobj
 		DESCEND	A:R1*,A:R4			; and all descendants
-		NOP
-		OR	A:R1*,A:R4,A:R5
-		MOVE	A:R5,A:R1
+;		(New here: OR of features keeps only the first of each, so a
+;		group's later parts went unpainted; each descendant is set.)
+		SETCOLOR A:R4*,A:R3*
 
 _Finish_color	SETCOLOR A:R1*,A:R3*			
 		JUMP	A:_End_CPnormal&
