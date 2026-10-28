@@ -10,6 +10,11 @@ export interface Request {
 /** The app's answer: what it did, or why it couldn't. */
 export type Reply = { id: number; ok: true; result: unknown } | { id: number; ok: false; error: string }; // prettier-ignore
 
+/** What the bridge tells a listener (a recording): each call as it ends, and the page coming and going. */
+export type Tapped =
+  | { op: string; args: Record<string, unknown>; started: number; took: number; reply: Reply }
+  | { page: 'connected' | 'closed' };
+
 /** How long the app has to answer (an animated move takes as long as it is asked to). */
 export const REPLY_MS = 30_000;
 
@@ -20,6 +25,8 @@ export const REPLY_MS = 30_000;
 export class Bridge {
   private socket: WebSocket | null = null;
   private next = 1;
+  /** Told of every call and of the page coming and going (see record.ts). */
+  tap: ((t: Tapped) => void) | null = null;
   private readonly waiting = new Map<number, { done: (r: Reply) => void; timer: NodeJS.Timeout }>(); // prettier-ignore
 
   get connected(): boolean {
@@ -29,6 +36,7 @@ export class Bridge {
   attach(socket: WebSocket): void {
     this.socket?.close(1000, 'another page took over');
     this.socket = socket;
+    this.tap?.({ page: 'connected' });
     socket.on('message', (data) => {
       let reply: Reply;
       try {
@@ -45,6 +53,7 @@ export class Bridge {
     socket.on('close', () => {
       if (this.socket !== socket) return;
       this.socket = null;
+      this.tap?.({ page: 'closed' });
       for (const [id, w] of this.waiting) {
         clearTimeout(w.timer);
         w.done({ id, ok: false, error: 'the page closed' });
@@ -61,6 +70,7 @@ export class Bridge {
         'No Cutplane page is connected. Open the app with ?mcp (http://localhost:5173/?mcp).',
       );
     const id = this.next++;
+    const started = Date.now();
     const reply = await new Promise<Reply>((done) => {
       const timer = setTimeout(() => {
         this.waiting.delete(id);
@@ -69,6 +79,7 @@ export class Bridge {
       this.waiting.set(id, { done, timer });
       socket.send(JSON.stringify({ id, op, args } satisfies Request));
     });
+    this.tap?.({ op, args, started, took: Date.now() - started, reply });
     if (!reply.ok) throw new Error(reply.error);
     return reply.result;
   }

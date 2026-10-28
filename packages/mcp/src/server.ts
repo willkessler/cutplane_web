@@ -4,6 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { WebSocketServer } from 'ws';
 import { Bridge } from './bridge.ts';
+import { Recorder } from './record.ts';
 import { addTools } from './tools.ts';
 
 export const DEFAULT_PORT = 5174;
@@ -18,6 +19,7 @@ export interface Options {
 export interface Running {
   port: number;
   bridge: Bridge;
+  recorder: Recorder;
   close(): Promise<void>;
 }
 
@@ -31,11 +33,13 @@ export async function serve({
   saveDir,
 }: Options): Promise<Running> {
   const bridge = new Bridge();
+  // (One for the server: each request has its own McpServer, the recording goes on across them.)
+  const recorder = new Recorder(bridge, saveDir);
   const http: Server = createServer((req, res) => {
     const path = new URL(req.url ?? '/', 'http://x').pathname;
     if (path === '/mcp') {
       const server = new McpServer({ name: 'cutplane', version: '0.0.0' });
-      addTools(server, bridge, saveDir);
+      addTools(server, bridge, saveDir, recorder);
       // (No session ids: stateless.)
       const transport = new StreamableHTTPServerTransport({ enableJsonResponse: true });
       res.on('close', () => {
@@ -64,7 +68,9 @@ export async function serve({
   return {
     port: (http.address() as AddressInfo).port,
     bridge,
+    recorder,
     close: async () => {
+      recorder.stop();
       bridge.close();
       sockets.close();
       http.closeAllConnections();

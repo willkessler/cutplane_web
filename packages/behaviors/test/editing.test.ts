@@ -99,6 +99,47 @@ describe('editing through rom.cpl and cursor.cpl', () => {
     expect(volume(cube.brep)).toBeCloseTo(200 ** 3, 3);
   });
 
+  it('extrude mode: a tilted face dragged along its own plane slides, as a stretch does', () => {
+    const { rt, controls, frame, at, move } = world();
+    rt.faceDrag = 'extrude';
+    // A box turned 8° about x, all but (as the Orion's tail end): its back face leans
+    // across the plane, and out of square with x by no more than rounding.
+    const box = createObject(createCube(100, 100, 100), {
+      name: 'Tilted',
+      xform: mat4.multiply(
+        mat4.multiply(mat4.translation(-50, -50, -50), mat4.rotationAbout([0, 0, 0], [1, 0, 1e-9], 0.14)), // prettier-ignore
+        mat4.translation(0, 250, -250),
+      ),
+    });
+    box.attrs.props = ['Visible'];
+    rt.importObjects(rt.primary, [box]);
+    const g = () => rt.world(box);
+    const back = box.brep.faces().find((f) => g().faceNormal(f)[2] < -0.9)!;
+    const corners = () => box.brep.loopHalfEdges(box.brep.faceLoop(back)).map((h) => box.brep.heVertex(h)); // prettier-ignore
+    const xs = () => corners().map((v) => g().x(v));
+    const before = xs();
+    // On the back face's section, at its middle depth.
+    const ys = corners().map((v) => g().y(v));
+    const zs = corners().map((v) => g().z(v));
+    at(0, (Math.min(...ys) + Math.max(...ys)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2);
+    expect(kinds(rt.selected())).toEqual(['face']);
+    // Across, the way its normal leans by that rounding.
+    const n = g().faceNormal(back);
+    expect(Math.abs(n[0])).toBeGreaterThan(0);
+    expect(Math.abs(n[0])).toBeLessThan(1e-6);
+    const way = Math.sign(n[0]);
+    const faces = box.brep.numFaces;
+    controls.pressPick(false);
+    frame();
+    move(10 * way, 0);
+    move(20 * way, 0);
+    controls.releasePick();
+    frame();
+    // Not extruded by nothing (and taken back on release, the move with it): slid across.
+    expect(box.brep.numFaces).toBe(faces);
+    xs().forEach((x, i) => expect(x).toBeCloseTo(before[i]! + 30 * way, 6));
+  });
+
   it('extrude mode: a lamina lying flat (a plan) is pulled up into a solid, or down, by either face or an edge', () => {
     const { rt, cube, controls, frame, at, move } = world();
     rt.faceDrag = 'extrude';

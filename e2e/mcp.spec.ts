@@ -248,3 +248,50 @@ test('through MCP: a glide zooms with the magnifier as far as a jump does, not o
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('through MCP: a recorded build replays to the same shape, from the world it started with', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName !== 'chromium', 'one browser is enough for the link');
+  const dir = mkdtempSync(join(tmpdir(), 'cutplane-mcp-'));
+  const server = await serve({ port: 0, host: '127.0.0.1', saveDir: dir });
+  try {
+    await page.setViewportSize({ width: 1024, height: 700 });
+    await page.goto(`/?still=1&mcp=ws://127.0.0.1:${server.port}/bridge`);
+    await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+    await expect.poll(() => server.bridge.connected).toBe(true);
+    const agent = await connect(`http://127.0.0.1:${server.port}/mcp`);
+    const call = (name: string, args: Record<string, unknown> = {}) =>
+      agent.callTool({ name, arguments: args });
+    const shape = async () => JSON.stringify(json(await call('inspect', { all: true }))['objects']);
+
+    await call('open', { model: 'new:cube' });
+    await call('record', { name: 'pull' });
+    await call('sequence', {
+      steps: [
+        { do: 'turn_view', yaw: -30, pitch: 20 },
+        { do: 'move_to', x: 97, y: 103, z: 100 },
+        { do: 'move_to', x: 100, y: 100 },
+        { do: 'press' },
+        { do: 'move_to', x: 140, y: 150 },
+        { do: 'move_to', z: 160 },
+        { do: 'release' },
+      ],
+    });
+    await call('key', { key: 'd' });
+    const made = await shape();
+    await call('record', { stop: true });
+
+    // Something else altogether in the room; the replay starts from the cube again.
+    await call('open', { model: 'samples/discovery.cut' });
+    const r = json(await call('replay', { name: 'pull' }));
+    expect(r).toMatchObject({ done: 2, drifted: 0 });
+    expect(r).not.toHaveProperty('failed');
+    expect(await shape()).toBe(made);
+    await agent.close();
+  } finally {
+    await server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

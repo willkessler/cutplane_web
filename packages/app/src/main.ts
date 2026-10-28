@@ -1802,6 +1802,11 @@ declare global {
       saveAs(title: string): { file: string; text: string };
       /** Picks a world from the model menu (new:cube, samples/…, saved:…), once it's loaded. */
       open(src: string): Promise<void>;
+      /**
+       * The toolbar's choices kept in this browser (planeStyle, faceDrag, groupPick,
+       * levelHold, planeStick), each set first as asked, as a person picks it.
+       */
+      settings(set?: Record<string, string>): Record<string, string>;
       /** The room as the user sees it: a JPEG this many pixels wide, as a data URL. */
       snapshot(width: number): string;
       /** Every colour a drawn face has, as "r,g,b". */
@@ -1966,6 +1971,22 @@ async function start(): Promise<void> {
       modelSelect.value = `${SAVED}${file}`;
       store('model', modelSelect.value);
       return { file, text };
+    },
+    settings(set = {}) {
+      const selects = {
+        planeStyle: styleSelect,
+        faceDrag: faceDragSelect,
+        groupPick: groupPickSelect,
+        levelHold: levelSelect,
+        planeStick: stickSelect,
+      };
+      for (const [k, sel] of Object.entries(selects)) {
+        const v = set[k];
+        if (v === undefined || v === sel.value) continue;
+        sel.value = v;
+        sel.dispatchEvent(new Event('change'));
+      }
+      return Object.fromEntries(Object.entries(selects).map(([k, sel]) => [k, sel.value]));
     },
     async open(src) {
       if (![...modelSelect.options].some((o) => o.value === src))

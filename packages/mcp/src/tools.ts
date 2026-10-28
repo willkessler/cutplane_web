@@ -4,6 +4,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { Bridge } from './bridge.ts';
+import { logPath, readLog, replay, type Recorder } from './record.ts';
 
 /** What the app sends back for a look: the room as a JPEG, and its state then. */
 interface Look {
@@ -53,9 +54,14 @@ const SEQUENCE_MS = 120_000;
  * The tools: a hand on the app. Each one is input a person gives (the crosshair moved,
  * the button pressed, a key, the wheel, the room turned) or something they'd see (a
  * look, where things are, their shapes); none makes geometry itself. Save is the app's own.
- * A sequence is several hand moves in one call.
+ * A sequence is several hand moves in one call. A recording keeps every call, to replay.
  */
-export function addTools(server: McpServer, bridge: Bridge, saveDir: string): void {
+export function addTools(
+  server: McpServer,
+  bridge: Bridge,
+  saveDir: string,
+  recorder: Recorder,
+): void {
   /** The app's answer as text, then a look if asked for. */
   const act = async (op: string, args: Record<string, unknown>, look?: boolean, ms?: number) => {
     const result = await bridge.call(op, args, ms);
@@ -338,6 +344,56 @@ export function addTools(server: McpServer, bridge: Bridge, saveDir: string): vo
       const path = join(saveDir, file.replace(/[/\\]/g, '_'));
       await writeFile(path, text);
       return { content: [{ type: 'text', text: `Saved ${path} (${text.length} characters).` }] };
+    }),
+  );
+
+  server.registerTool(
+    'record',
+    {
+      title: 'Record the build',
+      description:
+        'Starts recording every call made of the app from here on (each tool, with its ' +
+        'arguments, how long it took and where things were after), to replay the build the ' +
+        'same way. It begins with the world as it is now, the toolbar choices and the view. ' +
+        'stop: true ends it. The log goes in corpus/mcp/logs/<name>.jsonl; starting another ' +
+        'ends the one before.',
+      inputSchema: {
+        name: z.string().min(1).optional().describe("The recording's name (to start one)."),
+        stop: z.boolean().optional(),
+      },
+    },
+    guard(async ({ name, stop }) => {
+      const text = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t }] });
+      if (stop) {
+        const path = recorder.stop();
+        return text(path ? `Recorded ${path}.` : 'Nothing was being recorded.');
+      }
+      if (!name) return text(`Recording: ${recorder.recording ?? 'nothing'}. Give a name to start.`); // prettier-ignore
+      return text(`Recording to ${await recorder.start(name)}.`);
+    }),
+  );
+
+  server.registerTool(
+    'replay',
+    {
+      title: 'Replay a recording',
+      description:
+        'Does a recorded build again: opens the world it started from, sets the toolbar and ' +
+        'view as they were, then makes each call it made, in order (not the looks), and ' +
+        'says where it came out otherwise than recorded (drift) or failed. pace "recorded" ' +
+        'keeps the pauses between calls (to watch, or film); up_to stops after that many.',
+      inputSchema: {
+        name: z.string().min(1),
+        pace: z.enum(['fast', 'recorded']).optional(),
+        up_to: z.number().int().min(1).optional(),
+      },
+    },
+    guard(async ({ name, pace, up_to }) => {
+      const r = await replay(bridge, readLog(logPath(saveDir, name)), { pace, upTo: up_to });
+      const drift = r.drift.slice(0, 10);
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ ...r, drift, drifted: r.drift.length }) }],
+      };
     }),
   );
 }

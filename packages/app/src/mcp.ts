@@ -5,7 +5,9 @@
  * a look at the room. Nothing here makes geometry: the tools, the plane and the world's
  * CPL do, as they do for anyone. Save is the app's own. Hands off sets the person's own
  * mouse and keys aside while the agent works. A sequence is several of these in a row,
- * and inspect gives back the shapes of what is picked, to check work by.
+ * and inspect gives back the shapes of what is picked, to check work by. A recording
+ * starts from the world as it is (worldText) and the toolbar's choices (settings); its
+ * replay opens that world (openText) and sets them as they were.
  */
 
 type Hooks = NonNullable<Window['__cutplane']>;
@@ -248,6 +250,18 @@ function operations(h: Hooks): Record<string, (a: Args) => unknown> {
     },
     save(a) {
       return h.saveAs(String(a['name']));
+    },
+    /** The world as a .cut file's text, as Save would write it (a recording's start). */
+    worldText() {
+      return h.saveText();
+    },
+    /** The world from a .cut file's text (a recording's start), not from the menu. */
+    openText(a) {
+      h.openText(String(a['text']));
+      return state();
+    },
+    settings(a) {
+      return h.settings((a['set'] ?? {}) as Record<string, string>);
     },
     inspect(a) {
       return h.inspect(!!a['all']);

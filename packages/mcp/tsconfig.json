@@ -1,7 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node"],
+    // Node runs these files as they are, stripping the types: nothing that needs compiling.
+    "erasableSyntaxOnly": true
   },
   "include": ["src", "test"]
 }

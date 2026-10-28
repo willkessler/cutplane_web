@@ -50,9 +50,29 @@ crosshair still and works by the move (the magnifier) gets each step once.
 | `save`             | Save: the app writes the `.cut` file, keeps a copy in the browser, and the server puts it in `corpus/mcp/`.                                                                                                                                                                        |
 | `hands_off`        | Your own mouse, wheel and keys set aside while the agent works (a banner says so; its **Take over** button gives the app back). It lapses after two idle minutes.                                                                                                                  |
 | `sequence`         | Several of the moves above in one call (`[{"do": "press"}, {"do": "move_to", "x": 40}, …]`), a frame apart; the state after the last. A whole gesture is one call.                                                                                                                 |
+| `record`, `replay` | A log of every call, from the world as it was (see below); the build done again from it.                                                                                                                                                                                           |
 | `inspect`          | The shapes of what is picked (or of everything): each object's box, vertices and faces (corners, normal) in room coordinates, and the picked parts. To check work without a look.                                                                                                  |
 
 Each action tool takes `look: true` to send a screenshot back with its result.
+
+## Recording a build, and replaying it
+
+`record` with a name starts a log of every call the agent makes of the app, in
+`corpus/mcp/logs/<name>.jsonl`, one JSON line each; `record` with `stop: true` ends it. The
+first line is where the build started: the world as it was (its `.cut` text), the toolbar's
+choices (plane style, faces drag, group pick, level hold, plane stick, which the browser
+remembers) and the crosshair, plane and view. Each call after it keeps its arguments, when it
+was made, how long it took and where things were after it: the crosshair and plane, the view,
+what was picked, how many objects, and whether hands off was on (it lapses after two idle
+minutes, so a log shows where it did). Looks keep their state, not their picture. The page
+reconnecting (a reload) is a line of its own.
+
+`replay` does a recording again: it opens the world it started from, sets the toolbar and the
+view as they were, and makes each call in order, all but the ones that only look (`look`,
+`state`, `locate`, `inspect`, `save`). After each it checks where things are against the
+recording and reports what came out otherwise (`drift`, with the line in the log), or the
+call that failed where it hadn't. `pace: "recorded"` keeps the pauses between calls, to watch
+it or film it; `up_to` stops after that many calls, to replay part of a build.
 
 The room runs x −511…510 (left to right), y −382…383 (floor to ceiling) and z −499…500 (back
 wall to front). The crosshair always lies in the plane.

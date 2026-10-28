@@ -50,7 +50,7 @@ describe('the MCP server', () => {
   it('offers a hand on the app, and nothing that makes geometry', async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(
-      ['click', 'drag', 'hands_off', 'inspect', 'key', 'locate', 'look', 'move_to', 'open', 'press', 'release', 'save', 'sequence', 'state', 'turn_view', 'wheel'].sort(), // prettier-ignore
+      ['click', 'drag', 'hands_off', 'inspect', 'key', 'locate', 'look', 'move_to', 'open', 'press', 'record', 'release', 'replay', 'save', 'sequence', 'state', 'turn_view', 'wheel'].sort(), // prettier-ignore
     );
   });
 
@@ -133,5 +133,48 @@ describe('the MCP server', () => {
     const r = await client.callTool({ name: 'locate', arguments: { what: 'nothing' } });
     expect(r.isError).toBe(true);
     expect(text(r)).toBe('no such thing');
+  });
+
+  it('records every call, from the world as it was, and replays it the same way', async () => {
+    // A page whose crosshair goes where it's moved, and which keeps a world.
+    let world = '(the start)';
+    const at = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0, picked: [] as string[], objects: 1 };
+    await page((r) => {
+      const a = r.args;
+      if (r.op === 'worldText') return world;
+      if (r.op === 'openText') world = String(a['text']);
+      if (r.op === 'settings') return { faceDrag: 'extrude' };
+      if (r.op === 'move') Object.assign(at, { x: a['x'] ?? at.x, y: a['y'] ?? at.y });
+      if (r.op === 'key' && a['key'] === 'd') at.objects++;
+      if (r.op === 'look') return { image: 'data:image/jpeg;base64,AAAA', state: { ...at } };
+      return { ...at };
+    });
+    expect(text(await client.callTool({ name: 'record', arguments: { name: 'build' } }))).toContain('build.jsonl'); // prettier-ignore
+    await client.callTool({ name: 'move_to', arguments: { x: 40, y: 20 } });
+    await client.callTool({ name: 'key', arguments: { key: 'd', look: true } });
+    await client.callTool({ name: 'record', arguments: { stop: true } });
+    const lines = (await readFile(join(dir, 'logs', 'build.jsonl'), 'utf8')).trim().split('\n').map((l) => JSON.parse(l) as Record<string, unknown>); // prettier-ignore
+    expect(lines[0]).toMatchObject({ kind: 'start', world: '(the start)', settings: { faceDrag: 'extrude' }, view: { x: 0, y: 0 } }); // prettier-ignore
+    expect(lines.slice(1).map((l) => l['op'] ?? l['kind'])).toEqual([
+      'move',
+      'key',
+      'look',
+      'stop',
+    ]);
+    expect(lines[1]).toMatchObject({ args: { x: 40, y: 20 }, ok: true, after: { x: 40, y: 20, objects: 1 } }); // prettier-ignore
+    expect(lines[3]).toMatchObject({ after: { objects: 2 } }); // a look's state is kept, not its image
+    expect(JSON.stringify(lines[3])).not.toContain('AAAA');
+
+    // The world goes on; a replay goes back to the start and does it again, without the look.
+    world = '(later)';
+    Object.assign(at, { x: 99, objects: 5 });
+    asked.length = 0;
+    const r = JSON.parse(text(await client.callTool({ name: 'replay', arguments: { name: 'build' } }))); // prettier-ignore
+    expect(asked.map((a) => a.op)).toEqual(['openText', 'settings', 'turn', 'move', 'move', 'key']);
+    expect(asked[0]!.args).toEqual({ text: '(the start)' });
+    expect(asked[1]!.args).toEqual({ set: { faceDrag: 'extrude' } });
+    // Its objects came out otherwise (the stand-in doesn't reopen them): that's drift.
+    expect(r).toMatchObject({ done: 2, drifted: 2 });
+    expect(r.drift[0]).toMatchObject({ line: 2, op: 'move', was: { objects: 1 }, now: { objects: 5 } }); // prettier-ignore
   });
 });

@@ -1,6 +1,6 @@
 import Module from 'manifold-3d';
 import type { Manifold, ManifoldToplevel, Mat4 as ManifoldMat4 } from 'manifold-3d';
-import { Brep, buildShell, mat4, validate, type Mat4 } from '@cutplane/kernel';
+import { Brep, buildShell, mat4, snap, validate, type Mat4 } from '@cutplane/kernel';
 
 type V3 = [number, number, number];
 
@@ -488,6 +488,7 @@ function fromManifold(
     for (const a of assigned) faces.push({ loops: a.loops, source: pf.source });
   }
 
+  mergeCoincident(faces, positions);
   dropStraightVertices(faces, positions);
 
   // Shells: faces joined through shared vertices.
@@ -634,6 +635,32 @@ function inside(p: [number, number], poly: readonly [number, number][]): boolean
  * Removes vertices that only sit in the middle of a straight edge: two neighbours
  * in every loop that has them, and in line with both (triangulation leftovers).
  */
+/**
+ * Vertices at one point of the grid (two of manifold's closer than a grid step, as where
+ * a fine sphere meets another solid) become one, and a loop doesn't go from it to itself:
+ * the B-rep snaps them together anyway, an edge of no length, and the result was refused.
+ * A loop or face that comes to nothing goes.
+ */
+function mergeCoincident(faces: ResultFace[], pos: readonly V3[]): void {
+  const first = new Map<string, number>();
+  const to = pos.map((p, v) => {
+    const k = `${snap(p[0])},${snap(p[1])},${snap(p[2])}`;
+    const u = first.get(k);
+    if (u !== undefined) return u;
+    first.set(k, v);
+    return v;
+  });
+  if (to.every((u, v) => u === v)) return;
+  for (const f of faces) {
+    const loops = f.loops.map((l) =>
+      l.map((v) => to[v]!).filter((v, i, m) => v !== m[(i + 1) % m.length]),
+    );
+    // The outer loop gone, the face is: its holes don't stand for it.
+    f.loops = loops[0]!.length >= 3 ? loops.filter((l) => l.length >= 3) : [];
+  }
+  for (let i = faces.length - 1; i >= 0; i--) if (faces[i]!.loops.length === 0) faces.splice(i, 1);
+}
+
 function dropStraightVertices(faces: ResultFace[], pos: readonly V3[]): void {
   const neighbours = new Map<number, Set<number>>();
   for (const f of faces)

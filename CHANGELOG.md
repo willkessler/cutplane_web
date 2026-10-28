@@ -12,6 +12,10 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 27, 2026
 
+- **A build recorded, and replayed.** The agent's `record` tool logs every call it makes of
+  the app, from the world as it was and the toolbar's choices, with where things were after
+  each; `replay` does the build again from the log, the same way, and says where it came out
+  otherwise. See [docs/MCP.md](docs/MCP.md#recording-a-build-and-replaying-it).
 - **An agent's hand on the app.** An MCP server (`docker compose up mcp`) lets an agent such as
   Claude Code work Cutplane as a person does, while you watch in your own browser (open it with
   `?mcp`). It moves the crosshair, gliding so its moves can be followed, and presses and lets
@@ -33,6 +37,10 @@ New in 2026: none of these were in the 1991 original.
   presses meant for the colour bars, the pads and the goodies box.
 - **A scale-box corner let go lets go.** Pulled in depth to a thin box and let go, it stayed
   held, and the object went on scaling as the crosshair moved.
+- **A sphere joins a cone.** A union or drill whose result had two points closer than a
+  grid step was refused, so B did nothing: the B-rep put them together, an edge of no length.
+- **A tilted face slid along its own plane slides, with faces extruding.** Rounding in its
+  normal took the slide for a pull outward, and the face came back where it was on release.
 - **A colour bar at its least can be raised again.** A press on it took the whole colour control
   and dragged it off.
 - **The colour control comes back whole.** A room kept for the next visit could bring the

@@ -126,7 +126,10 @@ back**. Pull a corner out and push it back, and the cube is a cube again.
 a dragged face's vertices move, and the faces around it stretch to follow. _Faces extrude_ is new,
 to try out: a flat face pulled outward grows four (or more) walls of its own, so the faces
 around it keep their shape and the edges where the face was stay in the model. Pulled back to
-where it started, the walls go again; a face pushed inward stretches, as in the original.
+where it started, the walls go again; a face pushed inward, or slid along its own plane,
+stretches, as in the original. (A slide was once taken for a pull outward by a rounding error
+in a tilted face's normal: it grew walls of no depth, and on release they were taken back, and
+the slide with them.)
 
 A highlighted edge on the far side of its object, its faces all turned away from you, is drawn
 dimmer than one on the near side, so the two can't be confused.
@@ -692,8 +695,9 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   tagged by face, manifold-3d does the operation, and the result comes back as the original's
   kind of polygon faces, holes included: faces from one face are joined again, coplanar faces of
   the two objects merge, and vertices are exact (an input vertex keeps its position; a new one is
-  solved on the planes of its faces). An operation whose result wouldn't be a sound closed solid
-  is refused and changes nothing.
+  solved on the planes of its faces). Points that come out closer than a grid step (1/256), as
+  where a finely divided sphere meets a cone, become one point, so no edge of no length is left.
+  An operation whose result wouldn't be a sound closed solid is refused and changes nothing.
 - **Trackpads and two-button mice.** The SGI had a three-button mouse (middle drags the
   plane, right turns the room). That layout still works, and so do ⌥ / ⌘ quasimodes for
   trackpads and two-button mice, all at once with nothing to set.

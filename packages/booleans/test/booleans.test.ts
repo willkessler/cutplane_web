@@ -67,6 +67,19 @@ describe('booleans through manifold-3d, back to polygon faces', () => {
     expect(volume(i)).toBeCloseTo(50 * 100 * 100, 6);
   });
 
+  it('points closer than a grid step become one (a fine sphere on a cone, cutplane_web)', () => {
+    // Stacked with an overlap of a thousandth: corners that far apart snap together.
+    const a = cube(100, 100, 100);
+    const c = cube(100, 100, 100, T(50, 99.999, 50));
+    for (const op of ['union', 'subtract'] as const) {
+      const r = booleanSolids(a, c, op);
+      expect(r).not.toBeNull();
+      sound(brepOf(r!));
+    }
+    // The thousandth snaps away: two cubes' worth, near enough.
+    expect(volume(brepOf(booleanSolids(a, c, 'union')!))).toBeCloseTo(2 * 100 ** 3, -1);
+  });
+
   it('keeps where each face came from', () => {
     const a = cube(100, 100, 100);
     const r = booleanSolids(a, cube(100, 100, 100, T(50, 50, 0)), 'subtract')!;

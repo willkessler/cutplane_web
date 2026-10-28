@@ -158,6 +158,8 @@ export type GroupPick = 'parts' | 'whole';
 
 /** The least an extruded face must stand out of its old place for its walls to stay. */
 const EXTRUDE_MIN = 1;
+/** How far out of a face's plane (a share of the move) a move along it may stray by rounding. */
+const ALONG_FACE = 1e-6;
 
 function healthOf(b: Brep) {
   const r = validate(b, { maxIssuesPerCode: 0 });
@@ -1072,14 +1074,19 @@ export class Runtime implements Host {
       if (b.faces(b.faceShell(face)).length !== 2) return;
     }
     if (b.faceSurface.has(face)) return;
+    // Outward by more than rounding: a move along the face's own plane (an agent's,
+    // exactly) slides it as a stretch does. Taken as outward, it was extruded by
+    // nothing and let go no further out, so the extrusion, and the move, were taken back.
+    const length = Math.hypot(d[0], d[1], d[2]);
+    const outward = (n: Vec3) => n[0]! * d[0] + n[1]! * d[1] + n[2]! * d[2] > ALONG_FACE * length;
     let n = this.world(o).faceNormal(face);
-    if (n[0] * d[0] + n[1] * d[1] + n[2] * d[2] <= 0) {
+    if (!outward(n)) {
       // A lamina's two faces lie on each other: taken by the one facing away, the other is pulled.
       const twin = [...b.faces(b.faceShell(face))];
       if (twin.length !== 2) return;
       face = twin[0] === face ? twin[1]! : twin[0]!;
       n = this.world(o).faceNormal(face);
-      if (n[0] * d[0] + n[1] * d[1] + n[2] * d[2] <= 0) return;
+      if (!outward(n)) return;
     }
     extrudeFace(b, face, 0, 0, 0);
     plan.extruded = { face, normal: [n[0], n[1], n[2]] };
