@@ -839,6 +839,11 @@ export class Runtime implements Host {
     return o;
   }
 
+  /** What `o` was copied from (a drill's cutter: the object pressed), or `o` itself. */
+  originalOf(o: CutObject): CutObject {
+    return this.copiedFrom.get(o) ?? o;
+  }
+
   duplicate(obj: Feature): CutObject {
     const o = obj as CutObject;
     const copy = duplicateTree(o);

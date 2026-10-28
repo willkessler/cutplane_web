@@ -280,8 +280,9 @@ undo away.
   cutter is taken out of that object, and of every other object it overlaps (but the one it was
   copied from): wherever the crosshair is, what it would cut is drawn selectable as it's
   carried. Let go overlapping nothing, the cutter is thrown away. A cut that leaves pieces apart
-  makes each piece an object. The hole's faces are the object's colour, as in the original, not
-  the cutter's. Pressed and let go on the same object, the drill does nothing.
+  makes each piece an object. The hole's walls are the colour of the object the cutter was
+  copied from (painted faces keep their paint), so a black cylinder drills a hole with black
+  walls. Pressed and let go on the same object, the drill does nothing.
 - **Pencil.** Press and draw in the plane. Let go and the stroke is closed with a straight line
   back to where it started, and becomes a solid 50 deep, straddling the plane. A stroke that
   crosses itself keeps the largest region it encloses. Only a scrap too small to be a face comes
@@ -684,6 +685,11 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   Here, while a drill or union tool carries something, every object it overlaps (and only those,
   less a cutter's own original) is selectable, whole, and `CPBOOLEAN` takes each one, not just the first. The scripts are as
   they were.
+- **A hole is the colour of what cut it.** In the original, every face of a subtraction's result
+  took the drilled object's colour, so a hole was the colour of the object around it. Here the
+  walls a cutter leaves are its colour; for the drill, whose cutter `drill.cpl` turns red, that
+  is the colour of the object it was copied from. To drill a dark exhaust or a black window,
+  colour the cutter first.
 - **A drill click does nothing.** Pressed and let go on one object, the drill's cutter is an
   exact copy of it, and `CPBOOLEAN` took the whole object away. A subtraction that would leave
   nothing now leaves the object as it was.

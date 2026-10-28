@@ -313,6 +313,34 @@ describe('the drill (drill.cpl, CPBOOLEAN)', () => {
     expect(w.rt.undo()).toBe(true);
     expect(volume(w.cube.brep)).toBeCloseTo(200 ** 3, 3);
   });
+  it("a hole's walls are the colour of what it was drilled with, not the red cutter's (cutplane_web)", () => {
+    const w = setup();
+    const bar = createObject(createCube(40, 40, 400), {
+      name: 'Bar',
+      xform: mat4.translation(-320, -20, -200),
+    });
+    bar.attrs.props = ['Visible'];
+    bar.color = [0, 0, 200];
+    w.rt.importObjects(w.rt.primary, [bar]);
+    w.rt.commit();
+    w.take(2);
+    w.at(-300, 0, 0);
+    w.frame();
+    w.controls.pressPick(false);
+    w.frame();
+    w.move(150, 0);
+    w.move(150, 0);
+    w.controls.releasePick();
+    w.frame();
+    w.frame();
+    const b = w.cube.brep;
+    // The hole's four walls are blue; the cube's own six faces aren't painted.
+    const painted = b.faces().filter((f) => b.faceColors.has(f));
+    expect(painted).toHaveLength(4);
+    for (const f of painted) expect(b.faceColors.get(f)).toEqual([0, 0, 200]);
+    expect(b.faces()).toHaveLength(10);
+  });
+
   it('after a cut, the drilled object is not left selectable from anywhere', () => {
     const w = setup();
     const bar = createObject(createCube(40, 40, 400), {

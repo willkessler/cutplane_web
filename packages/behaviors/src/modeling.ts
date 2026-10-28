@@ -16,6 +16,7 @@ import {
   mat4,
   subtree,
   type CutObject,
+  type Rgb,
   type SectionLoop,
 } from '@cutplane/kernel';
 import { isObject, isSub, type WorldFeature } from './features.ts';
@@ -30,12 +31,20 @@ import type { Runtime } from './runtime.ts';
 const objectOf = (f: Feature | null | undefined): CutObject | null =>
   isObject(f) ? f : isSub(f) ? f.object : null;
 
-/** A result solid as a B-rep, its faces keeping the colours they were painted. */
-function brepOf(shells: readonly ResultShell[], operands: readonly CutObject[]): Brep {
+/**
+ * A result solid as a B-rep, its faces keeping the colours they were painted. New here:
+ * a face from an operand with a colour in `walls` (the cutter of a subtraction) that
+ * wasn't painted takes that colour, so a hole's walls are the colour of what cut it.
+ */
+function brepOf(
+  shells: readonly ResultShell[],
+  operands: readonly CutObject[],
+  walls: readonly (Rgb | undefined)[] = [],
+): Brep {
   const { brep, sources } = shellsToBrep(shells);
   for (const [face, src] of sources) {
     if (!src) continue;
-    const c = operands[src.operand]?.brep.faceColors.get(src.face);
+    const c = operands[src.operand]?.brep.faceColors.get(src.face) ?? walls[src.operand];
     if (c) brep.faceColors.set(face, [...c]);
   }
   return brep;
@@ -72,7 +81,10 @@ export function booleanObjects(
     if (kind === 'subtract' && !keepB) rt.killNow(b);
     return [];
   }
-  const breps = solidsOf(shells).map((g) => brepOf(g, [a, b]));
+  // A cut's walls: the cutter's colour, the drill's (red, as drill.cpl makes it) being that
+  // of the object it was copied from.
+  const walls = kind === 'subtract' ? [undefined, rt.originalOf(b).color] : [];
+  const breps = solidsOf(shells).map((g) => brepOf(g, [a, b], walls));
   if (!keepB) rt.killNow(b);
   if (breps.length === 0) {
     if (kind !== 'subtract') rt.killNow(a);

@@ -12,6 +12,11 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 27, 2026
 
+- **A hole is the colour of what cut it.** The walls the drill (or any subtraction) leaves are
+  the colour of the cutter, the drill's being that of the object it was copied from rather
+  than its red: colour a cylinder black and the hole it drills has black walls.
+- **A new sample: the Orion III.** The Pan Am shuttle from _2001: A Space Odyssey_, built in the
+  app by an agent working it through MCP, is in the model menu with the 1991 samples.
 - **A build recorded, and replayed.** The agent's `record` tool logs every call it makes of
   the app, from the world as it was and the toolbar's choices, with where things were after
   each; `replay` does the build again from the log, the same way, and says where it came out
