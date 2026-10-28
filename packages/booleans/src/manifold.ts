@@ -489,7 +489,9 @@ function fromManifold(
   }
 
   mergeCoincident(faces, positions);
+  dropSpurs(faces);
   dropStraightVertices(faces, positions);
+  dropFlatTriangles(faces, positions);
 
   // Shells: faces joined through shared vertices.
   const parent = new Int32Array(nv).map((_, i) => i);
@@ -659,6 +661,67 @@ function mergeCoincident(faces: ResultFace[], pos: readonly V3[]): void {
     f.loops = loops[0]!.length >= 3 ? loops.filter((l) => l.length >= 3) : [];
   }
   for (let i = faces.length - 1; i >= 0; i--) if (faces[i]!.loops.length === 0) faces.splice(i, 1);
+}
+
+/**
+ * A loop that goes out to a vertex and straight back (a, b, a) loses the spur: where a
+ * grazing cut leaves slivers finer than the grid, a face can chain into one, of no area.
+ * Its edges' partners in the faces either side then pair with each other, so the shell
+ * stays closed. A loop or face that comes to nothing goes.
+ */
+function dropSpurs(faces: ResultFace[]): void {
+  for (const f of faces) {
+    f.loops = f.loops.map((l) => {
+      const m = [...l];
+      for (let i = 0; m.length >= 3 && i < m.length;) {
+        const n = m.length;
+        if (m[(i + n - 1) % n] !== m[(i + 1) % n]) {
+          i++;
+          continue;
+        }
+        // m[i] is the spur's tip: it goes, with the repeat of the vertex before it.
+        const at = [i, (i + 1) % n].sort((a, b) => b - a);
+        for (const k of at) m.splice(k, 1);
+        i = Math.max(0, i - 2);
+      }
+      return m;
+    });
+    f.loops = f.loops[0]!.length >= 3 ? f.loops.filter((l) => l.length >= 3) : [];
+  }
+  for (let i = faces.length - 1; i >= 0; i--) if (faces[i]!.loops.length === 0) faces.splice(i, 1);
+}
+
+/**
+ * A triangle of no area once its corners are on the grid (in a line, as a grazing cut can
+ * leave them) goes, and its middle corner goes into the face across its long edge instead,
+ * so that face's edge meets the two short edges' faces as the triangle's did.
+ */
+function dropFlatTriangles(faces: ResultFace[], pos: readonly V3[]): void {
+  for (let i = faces.length - 1; i >= 0; i--) {
+    const f = faces[i]!;
+    if (f.loops.length !== 1 || f.loops[0]!.length !== 3) continue;
+    const l = f.loops[0]!;
+    const at = (v: number) => pos[v]!.map(snap) as V3;
+    const [p, q, r] = l.map(at) as [V3, V3, V3];
+    if (norm(cross(sub(q, p), sub(r, p))) >= 1e-9) continue;
+    // The middle corner is the one across from the longest edge, which runs a → c.
+    const span = (k: number) => norm(sub(at(l[(k + 1) % 3]!), at(l[(k + 2) % 3]!)));
+    const k = [0, 1, 2].reduce((m, j) => (span(j) > span(m) ? j : m), 0);
+    const [b, c, a] = [l[k]!, l[(k + 1) % 3]!, l[(k + 2) % 3]!];
+    // This triangle's edge c → a has its partner a → c in another face: b goes between.
+    let done = false;
+    for (const g of faces) {
+      if (g === f || done) continue;
+      for (const gl of g.loops) {
+        const j = gl.findIndex((v, j) => v === a && gl[(j + 1) % gl.length] === c);
+        if (j < 0) continue;
+        gl.splice(j + 1, 0, b);
+        done = true;
+        break;
+      }
+    }
+    if (done) faces.splice(i, 1);
+  }
 }
 
 function dropStraightVertices(faces: ResultFace[], pos: readonly V3[]): void {

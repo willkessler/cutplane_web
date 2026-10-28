@@ -12,6 +12,10 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 27, 2026
 
+- **A union where two solids graze.** Joining a long ellipsoid onto a cone at a shallow angle
+  was refused: on the grid, one face's edge ran out to a point and straight back, and a sliver
+  triangle's corners fell in a line. The spur now goes, and the sliver's middle corner goes
+  into the face across its long edge, so the shell comes back closed.
 - **A hole is the colour of what cut it.** The walls the drill (or any subtraction) leaves are
   the colour of the cutter, the drill's being that of the object it was copied from rather
   than its red: colour a cylinder black and the hole it drills has black walls.

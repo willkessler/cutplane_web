@@ -1,5 +1,14 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { createCube, mat4, validate, volume, type Brep, type Mat4 } from '@cutplane/kernel';
+import {
+  createCube,
+  createOvalCone,
+  createSphere,
+  mat4,
+  validate,
+  volume,
+  type Brep,
+  type Mat4,
+} from '@cutplane/kernel';
 import {
   booleanSolids,
   initBooleans,
@@ -78,6 +87,35 @@ describe('booleans through manifold-3d, back to polygon faces', () => {
     }
     // The thousandth snaps away: two cubes' worth, near enough.
     expect(volume(brepOf(booleanSolids(a, c, 'union')!))).toBeCloseTo(2 * 100 ** 3, -1);
+  });
+
+  it('a long ellipsoid grazing a cone joins it (slivers finer than the grid go)', () => {
+    // The Orion III's nose (a cone, its point drawn down) and the flat ellipsoid that curves
+    // its top: they meet at a shallow angle, and the union chained a face out to a vertex
+    // and back, and left a triangle whose corners fell in a line on the grid.
+    const nose = createOvalCone(42.5, 42.5, 50, 72);
+    const tip = nose.vertices().find((v) => nose.vertexPos(v)[2] === 50)!;
+    nose.setVertexPos(tip, -1.2890625, -35.703125, 49.99609375);
+    const r = booleanSolids(
+      {
+        brep: nose,
+        xform: new Float64Array([
+          1.06352, 0, 0, 0, 0, 1.053169896468035, 0.1480133763330488, 0, 0, -0.7237001249923404,
+          5.149393957456167, 0, -1.2587942564569303, -27.89564016921352, 208.76789464185978, 1,
+        ]),
+      },
+      {
+        brep: createSphere(42.5, 72),
+        xform: new Float64Array([
+          0.4832, 0, 0, 0, 0, 0.47264663583642347, 0.22807936695920575, 0, 0, -1.108616032867996,
+          2.297374134956713, 0, -1.2587942564569303, -34.32846617747509, 281.7884005450943, 1,
+        ]),
+      },
+      'union',
+    );
+    expect(r).not.toBeNull();
+    expect(r).toHaveLength(1);
+    sound(brepOf(r!));
   });
 
   it('keeps where each face came from', () => {
