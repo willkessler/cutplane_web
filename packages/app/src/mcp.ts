@@ -2,12 +2,14 @@
  * New: an agent's hand on the app (?mcp). The MCP server (packages/mcp) passes on what the
  * agent does, and this does it as a person would: the crosshair moved (gliding, so whoever
  * watches sees it go), the button pressed and let go, a key, the wheel, the room turned,
- * a look at the room. Nothing here makes geometry: the tools, the plane and the world's
- * CPL do, as they do for anyone. Save is the app's own. Hands off sets the person's own
+ * a look at the room. The hand makes no geometry itself: the tools, the plane and the
+ * world's CPL do, as they do for anyone. Save is the app's own. Hands off sets the person's own
  * mouse and keys aside while the agent works. A sequence is several of these in a row,
  * and inspect gives back the shapes of what is picked, to check work by. A recording
  * starts from the world as it is (worldText) and the toolbar's choices (settings); its
- * replay opens that world (openText) and sets them as they were.
+ * replay opens that world (openText) and sets them as they were. New: direct calls do in
+ * one what a gesture would (a primitive put in, things moved, turned, cut, by number;
+ * direct.ts), with the app's own operations.
  */
 
 type Hooks = NonNullable<Window['__cutplane']>;
@@ -265,6 +267,10 @@ function operations(h: Hooks): Record<string, (a: Args) => unknown> {
     },
     inspect(a) {
       return h.inspect(!!a['all']);
+    },
+    /** A direct call (direct.ts): a primitive added, things moved, turned, cut… by number. */
+    direct(a) {
+      return h.direct(String(a['call']), (a['args'] ?? {}) as Args);
     },
     async sequence(a) {
       const steps = Array.isArray(a['steps']) ? (a['steps'] as Args[]) : [];

@@ -48,6 +48,7 @@ import {
   type V3,
 } from '@cutplane/behaviors';
 import { DEMO_SECONDS, demoPose } from './demo.ts';
+import { Direct } from './direct.ts';
 import {
   NOTHING_HELD,
   keyLines,
@@ -336,6 +337,7 @@ async function loadCpl(): Promise<void> {
 let stage!: AppStage;
 let rt!: Runtime;
 let controls!: Controls;
+let direct!: Direct;
 let rotateTool!: ReturnType<typeof installRotateTool>;
 let falls!: Falls;
 let magnet!: Magnet;
@@ -378,6 +380,13 @@ function makeWorld(): void {
   // (After it: which one shows follows what is picked, nothing for a session to keep.)
   hintPlates = installHintPlates(rt, hintLines(MAC));
   controls = new Controls(rt);
+  direct = new Direct({
+    rt,
+    controls,
+    tops: worldTops,
+    settle,
+    frame: () => (document.hidden ? Promise.resolve() : nextFrame()),
+  });
   ready = true;
 }
 
@@ -789,6 +798,7 @@ function loadDocument(doc: CutDocument): void {
   if (controls.pickHeld) controls.releasePick();
   rt.clearWorld(rt.primary);
   rt.journal.clear();
+  direct?.forget();
   rt.importObjects(rt.primary, doc.roots);
   display = { step: 0, picked: false, keep: new Set() }; // a new world is drawn as it is
   // A fall used to make its objects Nonselectable while it lasted, and an autosave in
@@ -1794,6 +1804,8 @@ declare global {
        * coordinates; and the picked parts, by those indices.
        */
       inspect(all?: boolean): Inspected;
+      /** New, for an agent: a direct call (list, add, move, rotate, scale, copy…; direct.ts). */
+      direct(op: string, args: Record<string, unknown>): Promise<unknown>;
       color(): { rgb: number[]; hover: string | null; base: number[] };
       locate(what: string): unknown;
       scribble(): { segments: number; start: number[]; line: boolean };
@@ -2179,6 +2191,32 @@ async function start(): Promise<void> {
         return [];
       });
       return { objects, picked };
+    },
+    async direct(op, args) {
+      catchUp();
+      const d = direct;
+      const calls: Record<string, () => unknown> = {
+        list: () => d.list(),
+        add: () => d.add(args),
+        move: () => d.move(args),
+        rotate: () => d.rotate(args),
+        scale: () => d.scale(args),
+        copy: () => d.copy(args),
+        remove: () => d.remove(args),
+        paint: () => d.paint(args),
+        name: () => d.name(args),
+        pick: () => d.pick(args),
+        group: () => d.group(args, false),
+        ungroup: () => d.group(args, true),
+        arrange: () => d.arrange(args),
+        boolean: () => d.boolean(args),
+        slice: () => d.slice(args),
+        face: () => d.moveFace(args),
+      };
+      const f = calls[op];
+      if (!f) throw new Error(`no such call: ${op}`);
+      if (controls.pickHeld) throw new Error('the button is held: release first');
+      return await f();
     },
     undo() {
       undo();

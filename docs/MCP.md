@@ -3,9 +3,11 @@
 New in 2026. An agent such as Claude Code can work Cutplane the way a person does, through an
 [MCP](https://modelcontextprotocol.io) server: it moves the crosshair, presses and lets go of
 the button, presses keys, rolls the wheel, turns the room and looks at the room, while you
-watch it happen in your own browser. None of its tools makes geometry. Everything is made by
-the app's tools, the plane and the world's CPL, as it is for anyone, and the file is written
-by the app's own Save.
+watch it happen in your own browser. Or it works directly, by number: a primitive put in at a
+size and place, things moved, turned, scaled, copied in a ring, cut and sliced, each in one
+call (see [Direct calls](#direct-calls)). Either way the geometry is made by the app's own
+operations (its primitives, booleans, slicing, grouping), and the file is written by the app's
+own Save.
 
 ## Running it
 
@@ -54,6 +56,41 @@ crosshair still and works by the move (the magnifier) gets each step once.
 | `inspect`          | The shapes of what is picked (or of everything): each object's box, vertices and faces (corners, normal) in room coordinates, and the picked parts. To check work without a look.                                                                                                  |
 
 Each action tool takes `look: true` to send a screenshot back with its result.
+
+## Direct calls
+
+A gesture by hand takes several calls (move the plane, press, drag, let go) and lands where
+the guides hold it. A direct call does the same work in one, exactly where it is asked, the
+way Blender's MCP server works Blender. Each is one step of the undo history (Ctrl-Z takes it
+back), and the room shows it happen: a move, turn or scale given `ms` glides there for whoever
+is watching. They are done with the app's own operations (`packages/app/src/direct.ts`).
+
+Things are named by **id**: `list_objects` numbers every object in the world, in order, a
+group before its parts, and each keeps its number while the world is open (a picked object
+moves into its scale box, so its place in the world's list is no guide). A call that makes
+something says the new ids. Names (`name_object`) work as well as ids, and `"picked"` takes
+what is picked.
+
+| Tool              | What it does                                                                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list_objects`    | Every object at the top of the world: id, name, colour, box, middle, size, and a group's parts.                                                       |
+| `add_primitive`   | A box, cylinder, cone, sphere, pyramid or torus, made to a size [w, h, d] with its middle at a point; `axis` is the way a cylinder or cone runs.      |
+| `move_objects`    | Moved `by` [dx, dy, dz], or `to` a point (their middle there).                                                                                        |
+| `rotate_objects`  | Turned by degrees about an axis through a point (by default their middle).                                                                            |
+| `scale_objects`   | Scaled by a factor (or [fx, fy, fz]), or to a size (`null` where it stays), about a point.                                                            |
+| `copy_objects`    | `count` copies, each from the one before, scaled, turned (`rotate`) and moved (`by`): a row, or a ring about a centre, in one call.                   |
+| `delete_objects`  | Gone, a group with its parts.                                                                                                                         |
+| `paint_objects`   | A colour, in every part; one face of an object (`face: "+y"`); `all_faces` paints over a cut's walls too.                                             |
+| `name_object`     | A name, saved with it.                                                                                                                                |
+| `pick_objects`    | Picked whole, nothing else: for a key (D, `\`) or a tool used by hand afterwards.                                                                     |
+| `group_objects`   | Grouped as G groups them; `ungroup_object` takes a group apart.                                                                                       |
+| `arrange_objects` | Lined up as A does, or spaced out evenly (`spread`) as Shift-A does.                                                                                  |
+| `boolean`         | `union` fuses them; `subtract` cuts a tool out of each as the drill does (its walls the tool's colour); `intersect` keeps what each shares with it.   |
+| `slice_objects`   | Sliced through at depth z as `\` slices at the plane, the pieces left where they were (or `gap` apart).                                               |
+| `move_face`       | One face pulled as a drag of it pulls it: `to` a coordinate along the side it faces, or `by` a distance; `extrude` pulls a new block out of the face. |
+
+The hand is still there for what these don't cover: the pencil, text, the magnet, the camera,
+and anything you want to show being done by hand.
 
 ## Working well
 

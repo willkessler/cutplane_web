@@ -295,3 +295,67 @@ test('through MCP: a recorded build replays to the same shape, from the world it
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('through MCP: direct calls put in, move, turn, copy, cut and pull by number, each one undo', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName !== 'chromium', 'one browser is enough for the link');
+  const dir = mkdtempSync(join(tmpdir(), 'cutplane-mcp-'));
+  const server = await serve({ port: 0, host: '127.0.0.1', saveDir: dir });
+  try {
+    await page.setViewportSize({ width: 1024, height: 700 });
+    await page.goto(`/?still=1&mcp=ws://127.0.0.1:${server.port}/bridge`);
+    await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+    await expect.poll(() => server.bridge.connected).toBe(true);
+    const agent = await connect(`http://127.0.0.1:${server.port}/mcp`);
+    const call = (name: string, args: Record<string, unknown> = {}) =>
+      agent.callTool({ name, arguments: args });
+    type Info = { id: number; box: number[][]; center: number[]; size: number[]; color: number[]; parts?: number[] }; // prettier-ignore
+    const list = async () => (json(await call('list_objects')) as { objects: Info[] }).objects;
+
+    await call('open', { model: 'new:cube' });
+    expect(await list()).toMatchObject([{ id: 1, center: [0, 0, 0], size: [200, 200, 200] }]);
+
+    // A primitive at a size and place; a move glided is still one step to undo.
+    const post = json(await call('add_primitive', { kind: 'box', size: [10, 60, 10], center: [0, 0, 300], color: [255, 220, 60] })) as Info; // prettier-ignore
+    expect(post).toMatchObject({ id: 2, box: [[-5, -30, 295], [5, 30, 305]], color: [255, 220, 60] }); // prettier-ignore
+    await call('move_objects', { objects: 1, by: [100, 50, 0], ms: 200 });
+    expect((await list())[0]).toMatchObject({ center: [100, 50, 0] });
+    await call('key', { key: 'z', ctrl: true });
+    expect((await list())[0]).toMatchObject({ center: [0, 0, 0] });
+
+    // A ring of copies in one call, turned about the middle of the room.
+    const ring = json(await call('copy_objects', { objects: 2, count: 11, rotate: { axis: 'y', degrees: 30, point: [0, 0, 0] } })) as { copies: number[][] }; // prettier-ignore
+    expect(ring.copies[0]).toHaveLength(11);
+    const all = await list();
+    expect(all).toHaveLength(13);
+    expect(all.find((o) => o.id === 5)!.center).toEqual([300, 0, 0]); // the third copy: 90° round
+    const g = json(await call('group_objects', { objects: [2, ...ring.copies[0]!] })) as Info;
+    expect(g.parts).toHaveLength(12);
+    expect(g.size).toEqual([610, 60, 610]);
+
+    // The cube turned, a hole drilled through it, its top pulled up to y 120.
+    await call('rotate_objects', { objects: 1, axis: 'y', degrees: 45 });
+    const drill = json(await call('add_primitive', { kind: 'cylinder', size: [40, 40, 400], center: [0, 0, 0] })) as Info; // prettier-ignore
+    const cut = json(await call('boolean', { op: 'subtract', objects: 1, tool: drill.id })) as { objects: Info[] }; // prettier-ignore
+    expect(cut.objects).toHaveLength(1);
+    const pulled = json(await call('move_face', { object: 1, face: '+y', to: 120 })) as Info;
+    expect(pulled.box[1]![1]).toBeCloseTo(120);
+    expect(pulled.box[0]![1]).toBeCloseTo(-100);
+    // Sliced in two at z 0, and the copies' group scaled to half its height.
+    const halves = json(await call('slice_objects', { objects: 1, z: 0 })) as { back: Info[]; front: Info[] }; // prettier-ignore
+    expect(halves.back).toHaveLength(1);
+    expect(halves.front).toHaveLength(1);
+    expect(halves.front[0]!.box[0]![2]).toBeCloseTo(0);
+    const half = json(await call('scale_objects', { objects: g.id, size: [null, 30, null] })) as { objects: Info[] }; // prettier-ignore
+    expect(half.objects[0]!.size).toEqual([610, 30, 610]);
+    // What the room draws: the cube's halves and the twelve posts.
+    expect((json(await call('state')) as { objects: number }).objects).toBe(3);
+
+    await agent.close();
+  } finally {
+    await server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

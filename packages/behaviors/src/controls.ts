@@ -151,6 +151,19 @@ export class Controls {
     this.vm.encodeInstruction(' QMSG A:R3*,Const:Noprioritymsg');
   }
 
+  /** New, for an agent's call: these picked whole, and nothing else (as a marquee would). */
+  pickOnly(fs: Feature[]): void {
+    this.events = true;
+    this.vm.encodeInstruction(' MAKEMSG Msg:Unpick');
+    this.vm.encodeInstruction(' QMSG Prop:Picked*,Const:Noprioritymsg');
+    if (fs.length === 0) return;
+    this.rt.handOver = fs;
+    this.vm.encodeInstruction(' CRTN Crtn:handed_over');
+    this.vm.encodeInstruction(' POP A:R3');
+    this.vm.encodeInstruction(' MAKEMSG Msg:Pick');
+    this.vm.encodeInstruction(' QMSG A:R3*,Const:Noprioritymsg');
+  }
+
   duplicate(): void {
     this.events = true;
     this.vm.encodeInstruction(' DUP Prop:Picked*,A:R3');

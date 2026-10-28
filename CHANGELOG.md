@@ -10,6 +10,15 @@ has the detail on each.
 
 New in 2026: none of these were in the 1991 original.
 
+### October 28, 2026
+
+- **The agent works by number too.** Besides its hand on the crosshair, the MCP server now
+  has direct calls: a primitive put in at a size and place, things moved, turned and scaled
+  exactly, copied in a row or ring in one call, painted, named, deleted, unioned, cut (as the
+  drill cuts), intersected, sliced, grouped, lined up, and a face pulled to a coordinate. Each
+  is one step to undo, and the room shows it happen. See
+  [docs/MCP.md](docs/MCP.md#direct-calls).
+
 ### October 27, 2026
 
 - **Space Station V lit, with the Orion III on approach.** Rows of yellow windows set flush in

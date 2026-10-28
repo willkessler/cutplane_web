@@ -24,6 +24,17 @@ const ROOM_TEXT =
 export const INSTRUCTIONS = [
   'Cutplane is worked as a person works it: the crosshair, the plane, the button, keys. ' +
     ROOM_TEXT,
+  'Or directly, by number, which is quicker and exact: list_objects numbers what is in the ' +
+    'world (ids, boxes, middles, sizes); add_primitive puts in a box, cylinder, cone, ' +
+    'sphere, pyramid or torus at a size and place; move_objects, rotate_objects and ' +
+    'scale_objects move, turn and scale things; copy_objects makes a row or ring of copies ' +
+    'in one call; paint_objects, name_object, delete_objects; boolean (union, subtract: ' +
+    "the drill's cut, intersect), slice_objects (the saw at a depth), group_objects, " +
+    'ungroup_object, arrange_objects (A, Shift-A); move_face pulls one face (to a ' +
+    'coordinate, or by a distance), as a drag of it does. Each is one undo step, and the ' +
+    'room shows it (ms glides a move, turn or scale for whoever watches). Prefer these; ' +
+    'use the hand (move_to, press, drag, key) for what they do not cover, and pick_objects ' +
+    'to pick things for a key (D, \\) or a tool by hand.',
   "Before a run of work, hands_off {off: true}, so the person's mouse resting on the room " +
     "can't steer the crosshair; it lapses after two minutes without a call, so turn it on " +
     'again after a long stretch of reading code, and off when done.',
@@ -110,6 +121,7 @@ const SEQUENCE_MS = 120_000;
  * the button pressed, a key, the wheel, the room turned) or something they'd see (a
  * look, where things are, their shapes); none makes geometry itself. Save is the app's own.
  * A sequence is several hand moves in one call. A recording keeps every call, to replay.
+ * New: direct calls (the app's direct.ts) do by number what a gesture would, in one call.
  */
 export function addTools(
   server: McpServer,
@@ -356,6 +368,259 @@ export function addTools(
       inputSchema: { all: z.boolean().optional() },
     },
     guard((a) => act('inspect', a)),
+  );
+
+  // ---- direct calls (the app's direct.ts): by number, in one call, each one undo step ----
+
+  const direct = (call: string, args: Record<string, unknown>, look?: boolean) =>
+    act('direct', { call, args }, look);
+  const ref = z.union([z.number().int(), z.string()]);
+  const objects = z
+    .union([ref, z.array(ref).min(1), z.literal('picked')])
+    .describe('Ids from list_objects (or names), one or a list; or "picked". A group moves whole.'); // prettier-ignore
+  const v3 = z.tuple([z.number(), z.number(), z.number()]);
+  const axis = z
+    .union([z.enum(['x', 'y', 'z', '-x', '-y', '-z']), v3])
+    .describe('"x", "y", "z" (or "-x"…), or a direction [x, y, z].');
+  const glide = ms.describe('How long it takes, to be seen (default 0: at once).');
+
+  server.registerTool(
+    'list_objects',
+    {
+      title: 'What is in the world',
+      description:
+        'Every object at the top of the world, numbered: id, name, colour, box [least, ' +
+        'greatest], center and size; a group with its parts (ids too). The ids are what the ' +
+        "direct calls take; each keeps its id while the world is open (a copy's is new).",
+      inputSchema: {},
+    },
+    guard(() => direct('list', {})),
+  );
+
+  server.registerTool(
+    'add_primitive',
+    {
+      title: 'Put in a primitive',
+      description:
+        'A new object (as stamped from the primitives box), made to size [w, h, d] across x, ' +
+        'y and z of the room, its middle at center (default: the crosshair). axis: the way a ' +
+        "cylinder's length, a cone's point, a pyramid's apex or a torus's hole runs (default " +
+        'z for a cylinder and cone, y for a pyramid and torus). Says its id.',
+      inputSchema: {
+        kind: z.enum(['box', 'cylinder', 'cone', 'sphere', 'pyramid', 'torus']),
+        size: v3.optional().describe('[w, h, d] (default [100, 100, 100]).'),
+        center: v3.optional(),
+        axis: axis.optional(),
+        color: v3.optional().describe('[r, g, b], 0..255 (default a light grey).'),
+        segments: z.number().int().min(3).max(144).optional().describe('Sides round a curve (default 72).'), // prettier-ignore
+        name: z.string().optional(),
+        look: lookArg,
+      },
+    },
+    guard(({ look, ...a }) => direct('add', a, look)),
+  );
+
+  server.registerTool(
+    'move_objects',
+    {
+      title: 'Move things',
+      description:
+        'Moves things by [dx, dy, dz], or to: their middle (of all of them together) to a ' +
+        'point. Not held by guides, as a drag is: exactly there.',
+      inputSchema: { objects, by: v3.optional(), to: v3.optional(), ms: glide, look: lookArg },
+    },
+    guard(({ look, ...a }) => direct('move', a, look)),
+  );
+
+  server.registerTool(
+    'rotate_objects',
+    {
+      title: 'Turn things',
+      description:
+        'Turns things by degrees about the line through point (default: their middle) along ' +
+        'axis, right-handed (counter-clockwise looking back down the axis: about y, +x ' +
+        'goes to -z).',
+      inputSchema: { objects, axis, degrees: z.number(), point: v3.optional(), ms: glide, look: lookArg }, // prettier-ignore
+    },
+    guard(({ look, ...a }) => direct('rotate', a, look)),
+  );
+
+  server.registerTool(
+    'scale_objects',
+    {
+      title: 'Scale things',
+      description:
+        'Scales things by factor (one number, or [fx, fy, fz]), or to size [w, h, d] (null ' +
+        'for one that stays), about a point (default: their middle). Factors more than 0.',
+      inputSchema: {
+        objects,
+        factor: z.union([z.number(), v3]).optional(),
+        size: z.tuple([z.number().nullable(), z.number().nullable(), z.number().nullable()]).optional(), // prettier-ignore
+        about: v3.optional(),
+        ms: glide,
+        look: lookArg,
+      },
+    },
+    guard(({ look, ...a }) => direct('scale', a, look)),
+  );
+
+  server.registerTool(
+    'copy_objects',
+    {
+      title: 'Copy things',
+      description:
+        'Copies each thing count times (default 1), each copy made from the one before and ' +
+        'then scaled (about its middle), turned (rotate: axis, degrees, point; without a ' +
+        'point, about its own middle) and moved (by). A row: by. A ring: rotate about the ' +
+        "ring's centre. With none, the copies lie on the original. Says the copies' ids.",
+      inputSchema: {
+        objects,
+        count: z.number().int().min(1).max(500).optional(),
+        by: v3.optional(),
+        rotate: z.object({ axis, degrees: z.number(), point: v3.optional() }).optional(),
+        scale: z.number().optional(),
+        look: lookArg,
+      },
+    },
+    guard(({ look, ...a }) => direct('copy', a, look)),
+  );
+
+  server.registerTool(
+    'delete_objects',
+    {
+      title: 'Delete things',
+      description: 'Deletes things (a group with its parts).',
+      inputSchema: { objects, look: lookArg },
+    },
+    guard(({ look, ...a }) => direct('remove', a, look)),
+  );
+
+  server.registerTool(
+    'paint_objects',
+    {
+      title: 'Paint things',
+      description:
+        'Gives things a colour, every part of a group. Faces with colours of their own (a ' +
+        "cut's walls take the cutter's) keep them, unless all_faces. face: only that face of " +
+        'one object ("+x"… the side it faces, or its index in inspect).',
+      inputSchema: {
+        objects,
+        color: v3.describe('[r, g, b], 0..255.'),
+        face: z.union([z.enum(['+x', '-x', '+y', '-y', '+z', '-z']), z.number().int()]).optional(),
+        all_faces: z.boolean().optional(),
+        look: lookArg,
+      },
+    },
+    guard(({ look, ...a }) => direct('paint', a, look)),
+  );
+
+  server.registerTool(
+    'name_object',
+    {
+      title: 'Name a thing',
+      description: 'Names an object (saved with it; the calls take names as well as ids). An empty name takes it off.', // prettier-ignore
+      inputSchema: { object: ref, name: z.string() },
+    },
+    guard((a) => direct('name', a)),
+  );
+
+  server.registerTool(
+    'pick_objects',
+    {
+      title: 'Pick things',
+      description:
+        'Picks these whole and nothing else (none: unpicks all), as a marquee would: for ' +
+        'a key (D, \\\\, Delete) or a tool used by hand afterwards.',
+      inputSchema: { objects: objects.optional(), look: lookArg },
+    },
+    guard(({ look, ...a }) => direct('pick', a, look)),
+  );
+
+  server.registerTool(
+    'group_objects',
+    {
+      title: 'Group things',
+      description: 'Groups things into one (G), which then moves, turns and copies whole. Says its id.', // prettier-ignore
+      inputSchema: { objects, look: lookArg },
+    },
+    guard(({ look, ...a }) => direct('group', a, look)),
+  );
+
+  server.registerTool(
+    'ungroup_object',
+    {
+      title: 'Take a group apart',
+      description: 'Takes a group apart (G on it): its parts are things of their own again.',
+      inputSchema: { object: ref, look: lookArg },
+    },
+    guard(({ look, ...a }) => direct('ungroup', a, look)),
+  );
+
+  server.registerTool(
+    'arrange_objects',
+    {
+      title: 'Line things up',
+      description:
+        'Lines things up as A does (along the way they mostly lie already), or with spread, ' +
+        'spaces them out evenly as Shift-A does.',
+      inputSchema: { objects, spread: z.boolean().optional(), look: lookArg },
+    },
+    guard(({ look, ...a }) => direct('arrange', a, look)),
+  );
+
+  server.registerTool(
+    'boolean',
+    {
+      title: 'Union, subtract, intersect',
+      description:
+        'union: the objects fused into one (the first keeps its id). subtract: the tool cut ' +
+        "out of each object, as the drill cuts (the cut's walls take the tool's colour). " +
+        'intersect: each keeps only what it shares with the tool. The tool goes unless ' +
+        'keep_tool. A group counts as its parts. Says what came of it (a cut in two is two).',
+      inputSchema: {
+        op: z.enum(['union', 'subtract', 'intersect']),
+        objects,
+        tool: ref.optional().describe('The cutter (subtract, intersect): one object.'),
+        keep_tool: z.boolean().optional(),
+        look: lookArg,
+      },
+    },
+    guard(({ look, ...a }) => direct('boolean', a, look)),
+  );
+
+  server.registerTool(
+    'slice_objects',
+    {
+      title: 'Slice things',
+      description:
+        'Slices things through at depth z, as \\\\ does at the plane: each piece an object of ' +
+        'its own (back: behind z, front: before it). gap moves each piece that far off z ' +
+        '(default 0, where they were; \\\\ by hand moves them 10).',
+      inputSchema: { objects, z: z.number(), gap: z.number().optional(), look: lookArg },
+    },
+    guard(({ look, ...a }) => direct('slice', a, look)),
+  );
+
+  server.registerTool(
+    'move_face',
+    {
+      title: 'Pull a face',
+      description:
+        'Moves one face of an object as a drag of it does, the solid reshaped around it: ' +
+        'face "+y" (the side it faces: its top) or an index (inspect); to: the coordinate ' +
+        "along that side to put it at (a box's top to y 120); or by: a distance along its " +
+        'normal (out positive), or [dx, dy, dz]. extrude: pulled out as a new block on the ' +
+        "face (the toolbar's Extrude) instead of stretching the object. A group's part, by id.",
+      inputSchema: {
+        object: ref,
+        face: z.union([z.enum(['+x', '-x', '+y', '-y', '+z', '-z']), z.number().int()]),
+        to: z.number().optional(),
+        by: z.union([z.number(), v3]).optional(),
+        extrude: z.boolean().optional(),
+        look: lookArg,
+      },
+    },
+    guard(({ look, ...a }) => direct('face', a, look)),
   );
 
   server.registerTool(

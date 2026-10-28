@@ -121,6 +121,11 @@ export class Journal {
   private open: OpenStep | null = null;
   /** Counts edits made, undone and redone: it changes whenever the world does (autosave watches it). */
   edits = 0;
+  /**
+   * New, for an agent's call that takes several frames (a move glided): while held, the
+   * frames' commits leave the step open, so the call is undone as one.
+   */
+  hold = false;
 
   constructor(
     private readonly root: () => CutObject,
@@ -157,6 +162,7 @@ export class Journal {
 
   /** Closes the step; returns it if anything actually changed. */
   commit(): Step | undefined {
+    if (this.hold) return undefined;
     const s = this.open;
     this.open = null;
     if (!s) return undefined;

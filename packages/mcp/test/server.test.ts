@@ -47,11 +47,21 @@ afterEach(async () => {
 });
 
 describe('the MCP server', () => {
-  it('offers a hand on the app, and nothing that makes geometry', async () => {
+  it('offers a hand on the app, and direct calls by number', async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(
-      ['click', 'drag', 'hands_off', 'inspect', 'key', 'locate', 'look', 'move_to', 'open', 'press', 'record', 'release', 'replay', 'save', 'sequence', 'state', 'turn_view', 'wheel'].sort(), // prettier-ignore
+      [
+        ...['click', 'drag', 'hands_off', 'inspect', 'key', 'locate', 'look', 'move_to', 'open', 'press', 'record', 'release', 'replay', 'save', 'sequence', 'state', 'turn_view', 'wheel'], // prettier-ignore
+        ...['add_primitive', 'arrange_objects', 'boolean', 'copy_objects', 'delete_objects', 'group_objects', 'list_objects', 'move_face', 'move_objects', 'name_object', 'paint_objects', 'pick_objects', 'rotate_objects', 'scale_objects', 'slice_objects', 'ungroup_object'], // prettier-ignore
+      ].sort(),
     );
+  });
+
+  it('passes a direct call to the page as one', async () => {
+    await page((r) => (r.op === 'direct' ? { objects: [{ id: 1 }] } : null));
+    const r = await client.callTool({ name: 'move_objects', arguments: { objects: [1], by: [10, 0, 0] } }); // prettier-ignore
+    expect(asked.at(-1)).toMatchObject({ op: 'direct', args: { call: 'move', args: { objects: [1], by: [10, 0, 0] } } }); // prettier-ignore
+    expect(JSON.parse(text(r))).toEqual({ objects: [{ id: 1 }] });
   });
 
   it('tells the agent how to work well when it connects', () => {
