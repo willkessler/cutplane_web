@@ -8,7 +8,10 @@ One is new: `orion-iii.cut`, the Pan Am Orion III shuttle from _2001: A Space Od
 2026 by Claude working the app by hand through its MCP server (see `docs/MCP.md`). It has no
 original (`"original": null` in the index). So is `space-station-v.cut`, the station the Orion
 docks at, built the same way and still in progress: two rings (one finished, one half bare
-struts), their spokes, the hub and the docking bay.
+struts), their spokes, the hub and the docking bay. And `eva-pod.cut`, one of _Discovery_'s EVA
+pods, made with the direct calls: the hull with its window canted back, the side thruster cones,
+four grabbers, the headlamps, the emergency hatch Dave blows (an object of its own), and inside,
+the seat and control panel.
 
 The full archive (116 files, including scratch and test files) is kept out of the repo. To run the
 corpus tests against it, put it in `corpus/cut/` (git-ignored) or point `CUTPLANE_CORPUS` at it.

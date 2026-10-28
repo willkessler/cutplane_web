@@ -37,7 +37,7 @@ describe('original resources (rsc/, icons/)', () => {
 });
 
 describe('bundled samples', () => {
-  it('finds them', () => expect(samples.length).toBe(29));
+  it('finds them', () => expect(samples.length).toBe(30));
   it.each(samples.map((p) => [basename(p), p]))('%s loads, validates and round-trips', (_n, p) =>
     check(p),
   );
