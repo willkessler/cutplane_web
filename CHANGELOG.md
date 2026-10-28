@@ -12,6 +12,10 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 27, 2026
 
+- **Space Station V lit, with the Orion III on approach.** Rows of yellow windows set flush in
+  the rings, and the Orion nose up below the docking bay. The agent's instructions now cover
+  trimming a small block (an edge takes a press ahead of a face) and copies moved far (D
+  repeats the whole move).
 - **A piece cut off with `\` can be picked.** The pieces `\` made of a picked object could be
   neither picked nor dragged; now each is an object like any other.
 - **A group takes a colour in every part.** Painting a picked group with the colour bars

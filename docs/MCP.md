@@ -73,6 +73,11 @@ The server tells an agent the same when it connects (its instructions, `INSTRUCT
   To pick or move a whole object, take the **grabber** from the arrange rail (open the rail with
   its handle; `locate arrangers` gives its pads), or press well inside the object's section.
   Ctrl-Z undoes a slip.
+- **Small blocks have no face to press.** An edge takes a press ahead of a face within about 12
+  of it, so where the section is under 24 across, every press takes an edge. Trim a small block
+  one way while it is still broad the other: its depth first (press the face in the plane and
+  move the plane), then its width, then its height. Or drag the two edges (the section's
+  corners) one after the other, which moves the face between them.
 - **Drags are held where things line up.** A move stops at faces it lines up with, and the
   result says where it ended. To land a small correction, go past it and come back: a move of
   a unit or two may not register at all. A cutter's face left flush with the face it cuts is
@@ -90,7 +95,11 @@ The server tells an agent the same when it connects (its instructions, `INSTRUCT
   Slide along a bar a unit per degree. R on its centre puts it away (and unpicks).
 - **D goes on as the last copy went.** A copy of a copy is moved and turned as that one was (a
   ring by a turn each time). A first copy goes 100 over and 100 up; one scaled since goes on by
-  the move between the middles. Grouped (G), a set copies as one.
+  the move between the middles. Grouped (G), a set copies as one. The step is the whole move
+  from the source, so a copy moved far (a window lifted to the other ring) sends its own copy
+  as far again, out of the room maybe; reshape it (`\` a sliver off) and it starts afresh. For
+  a ring: copy, put the copy back on its source, turn it with R about the centre, then D again
+  and again.
 - **The grabber takes one thing, then goes back to its pad.** Each pick needs the pad clicked
   again, and a Shift-click with it out picks as a plain Shift-click would (a face, an edge). To
   pick many thin things whole, drag a **marquee**: moving the plane during the drag makes it a

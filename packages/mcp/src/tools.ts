@@ -33,7 +33,10 @@ export const INSTRUCTIONS = [
     'the plane) it takes that face, and a drag then moves the face, reshaping the object. To ' +
     'pick or move a whole object, use the grabber (on the arrange rail; open it with the ' +
     "rail's handle and find it with locate arrangers), or press well inside its section. " +
-    'Ctrl-Z undoes a slip.',
+    'Ctrl-Z undoes a slip. An edge takes a press ahead of a face within about 12 of it too, ' +
+    'so a section under 24 across has no face to press: trim a small block one way while it ' +
+    'is still broad the other (its depth by the face in the plane, then its width, then its ' +
+    'height), or drag the two edges (corners, in the section) one after the other.',
   'A drag is held where things line up (faces, the room): the result says where it ended. To ' +
     'land a small correction, move past it and come back; a move of a unit or two may not ' +
     "register. A face left flush with another's (a cutter's top level with the face it " +
@@ -50,7 +53,11 @@ export const INSTRUCTIONS = [
     'with the rest. Slide along a bar a unit per degree. R on its centre puts it away.',
   'D copies what is picked. A copy of a copy goes on by the move and turn that took the one ' +
     'before to it (a ring by a turn each time); a first copy, or one scaled since, goes 100 ' +
-    'over and 100 up (or on by the move between middles). Grouped, a set copies as one.',
+    'over and 100 up (or on by the move between middles). Grouped, a set copies as one. ' +
+    'The step is the whole move from the source, so a copy moved far (a window lifted to the ' +
+    'other ring) sends its own copy as far again, out of the room maybe; reshape it (\\ a ' +
+    'sliver off) and it goes 100 over and up instead. For a ring: copy, put the copy back on ' +
+    'its source, turn it with R about the centre, then D again and again.',
   'The grabber picks one thing whole and goes back to its pad; with it out, Shift-click picks ' +
     'as without it. To pick many thin things whole, drag a marquee (moving the plane makes it ' +
     'a 3D box; it takes what it touches): start it more than 12 from every face and scale-box ' +
