@@ -26,6 +26,17 @@ export const GUIDING = 8;
  */
 export type LevelHold = 'off' | 'stretches' | 'all';
 
+/**
+ * New here: what the tool in hand carries, if anything: the drill's red cutter, or what the
+ * union tool picked up. Not the tool's own parts, whose shapes are locked.
+ */
+export function carried(rt: Runtime): CutObject | null {
+  const tool = rt.cursorObj.children.find((c) => rt.hasProp(c, 'Tool'));
+  return (
+    tool?.children.find((c) => c.brep.numFaces > 0 && !rt.hasProp(c, 'Lockedgeometry')) ?? null
+  );
+}
+
 /** How squarely a face must lie along an axis to give a level (about 8°, as the plane's). */
 const SQUARE = 0.99;
 
@@ -82,8 +93,7 @@ export class DragGuides {
    */
   holdDepth(free: number, at: V3): number {
     this.deep = null;
-    const picked = this.rt.picked();
-    const whole = picked.length === 1 && isObject(picked[0]!) ? (picked[0] as CutObject) : null;
+    const whole = this.whole();
     const box = whole ? this.rt.branchBox(whole) : this.rt.draggedBox();
     if (box) {
       const dz = free - at[2];
@@ -122,11 +132,17 @@ export class DragGuides {
     this.levels = null;
   }
 
+  /** One thing picked whole (an object, or a group's root), or carried by the tool in hand. */
+  private whole(): CutObject | null {
+    const picked = this.rt.picked();
+    if (picked.length === 1 && isObject(picked[0]!)) return picked[0] as CutObject;
+    return picked.length === 0 ? carried(this.rt) : null;
+  }
+
   /** `along`: Ctrl's axis lock; then only lines square across it hold, so it stays on it. */
   private stop(free: V3, at: V3, along?: 0 | 1) {
-    // One thing picked whole (an object, or a group's root), or features dragged.
-    const picked = this.rt.picked();
-    const whole = picked.length === 1 && isObject(picked[0]!) ? (picked[0] as CutObject) : null;
+    // One thing picked whole (or carried), or features dragged.
+    const whole = this.whole();
     const box = whole ? this.rt.branchBox(whole) : this.rt.draggedBox();
     if (!box) return null;
     // Where its middle would be with the crosshair where the user has it.

@@ -553,7 +553,9 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   if that's at another depth. A turned thing's own axis out of the plane is kept as it is too:
   where it passes through the dragged thing's plane is a point to hold on, so a turned copy
   moved in depth goes back on its original's axis (coaxial cylinders). The crosshair stays where the pointer has it meanwhile, so it
-  comes off again by being dragged on; let go, it's put where the thing held. `packages/behaviors/src/guides.ts`, `packages/app/src/world/guides.ts`.
+  comes off again by being dragged on; let go, it's put where the thing held. The drill's red
+  cutter, carried, holds on them too (and in depth), as does what the union tool carries, so a
+  cutter can be centred on what it cuts. `packages/behaviors/src/guides.ts`, `packages/app/src/world/guides.ts`.
 - **Depth holds while carrying.** New too: guide lines only hold a drag across, as the plane
   sees it, so lining two things up in depth meant parking the plane on one's front face and
   watching the other's come flush. Now, once a drag has gone in depth (the wheel or a plane drag

@@ -20,6 +20,12 @@ New in 2026: none of these were in the 1991 original.
   took every press after, so nothing could be picked; now it cuts or throws the cutter away and
   goes home. The union tool too. And a cut between two rings on one axis (a tyre trimmed by a
   larger copy) was refused; it cuts now.
+- **The drill's cutter holds on the guides.** Carried with the drill (or carried by the union
+  tool), it lines up with what is near it as a dragged thing does, across and in depth, so a
+  cutter can be centred on a ring without eyeballing it.
+- **Fixed: a room kept from before a primitive changed.** A browser's kept room fitted any room
+  with the same names, so the box's new ring came back with the old torus's turn, edge on. A
+  kept room now fits only one whose shapes are the same too; otherwise the room is built fresh.
 - **A new sample: the Also TMB-1.** The electric bike, built by an agent with the direct calls:
   spoked wheels, the motor block with its battery cover, pedals and chain, the frame, fork, bars
   and saddle. It's in the model menu.

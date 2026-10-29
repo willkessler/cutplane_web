@@ -131,7 +131,7 @@ so the cube above has grown a box out of its right side. Push it back and the wa
   struts at even spacing. Turn the copy as well and each next one turns as much again, so a
   copy turned 30° about a point makes a ring of twelve. A copy flipped over to meet its
   original isn't flipped back: the next just moves on as far.
-- **Guide lines.** Drag something and lines run through the middles of the things nearest it,
+- **Guide lines.** Drag something (the drill's red cutter too) and lines run through the middles of the things nearest it,
   along the room's axes (and each thing's own, if it's turned). Bring its middle near one and it
   holds on it, the line drawn dashed in yellow across the room; near where two cross (even two
   things' lines), it holds there. Things line up as you see them from in front, however deep

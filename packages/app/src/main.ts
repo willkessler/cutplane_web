@@ -67,7 +67,7 @@ import { setLineResolution } from './render/lines.ts';
 import { ModelView, type DrawStyle, type Model } from './render/models.ts';
 import { CameraSlide } from './render/cameraslide.ts';
 import { ScribbleView } from './render/scribbles.ts';
-import { DragGuides, type LevelHold } from './world/guides.ts';
+import { DragGuides, carried, type LevelHold } from './world/guides.ts';
 import { LabelView } from './render/labels.ts';
 import { PadView } from './render/pads.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
@@ -962,8 +962,9 @@ let lastLight = '';
 
 /** Is `o` carried by the crosshair (a tool in hand, tool.cpl's ADOPT to Crosshair_part)? */
 /**
- * A drag of what is picked, by hand (no tool, not the plane): the guides' to hold. With Ctrl,
- * once its axis lock has chosen an axis, only the guides square across it.
+ * A drag of what is picked, by hand (no tool, or one carrying the drill's cutter; not the
+ * plane): the guides' to hold. With Ctrl, once its axis lock has chosen an axis, only the
+ * guides square across it.
  */
 /**
  * New here: what is picked, carried in depth, holds where its back, middle or front meets
@@ -976,8 +977,8 @@ function holdDepth(): void {
   const carrying =
     controls.pickHeld &&
     !controls.pressedRoom &&
-    rt.picked().length > 0 &&
-    !rt.cursorObj.children.some((c) => rt.hasProp(c, 'Tool'));
+    (rt.picked().length > 0 || !!carried(rt)) &&
+    toolFree();
   control.carrying = carrying;
   if (!carrying) {
     deep = null;
@@ -1002,8 +1003,13 @@ function guiding(): boolean {
     !controls.pressedRoom && // the rotate tool's bar or dial: it puts the crosshair itself
     (!held.ctrl || control.lockedAxis !== undefined) &&
     control.motion !== 'plane' &&
-    !rt.cursorObj.children.some((c) => rt.hasProp(c, 'Tool'))
+    toolFree()
   );
+}
+
+/** No tool in hand, or one carrying something (the drill's cutter): its drag is guided too. */
+function toolFree(): boolean {
+  return !rt.cursorObj.children.some((c) => rt.hasProp(c, 'Tool')) || !!carried(rt);
 }
 
 function heldBy(o: CutObject, crosshair: CutObject): boolean {

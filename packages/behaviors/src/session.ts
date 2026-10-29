@@ -53,6 +53,11 @@ const VERSION = 2;
 export interface RoomSnapshot {
   /** The built objects' names, in order: a snapshot fits only the room it came from. */
   names: string;
+  /**
+   * New: their corners, counted, in order. Names alone let the primitives box's torus,
+   * turned to face the plane, put its turn on the flat ring made in its place.
+   */
+  shapes?: string;
   version?: number;
   objects: (Kept | null)[];
   /** The light the bulb set, if it has been moved (it stays where it was set). */
@@ -77,6 +82,8 @@ const positions = (o: CutObject): Float64Array => {
 };
 const same = (a: Float64Array, b: Float64Array) => a.length === b.length && a.every((x, i) => x === b[i]); // prettier-ignore
 const signature = (objects: CutObject[]) => objects.map((o) => o.name ?? '').join('|');
+/** How many corners each had as built: a stamp made another shape since is another room. */
+const shapesOf = (b: Built) => b.verts.map((v) => v.length / 3).join('|');
 
 /** Takes note of the room as built: call once every tool and goodie is in it. */
 export function markRoom(rt: Runtime): void {
@@ -154,6 +161,7 @@ export function snapshotRoom(rt: Runtime): RoomSnapshot | null {
   }));
   return {
     names: signature(b.objects),
+    shapes: shapesOf(b),
     version: VERSION,
     objects,
     ...(light ? { light } : {}),
@@ -168,6 +176,7 @@ export function restoreRoom(rt: Runtime, snap: RoomSnapshot): boolean {
     !b ||
     snap.version !== VERSION ||
     snap.names !== signature(b.objects) ||
+    snap.shapes !== shapesOf(b) ||
     snap.objects.length !== b.objects.length
   )
     return false;

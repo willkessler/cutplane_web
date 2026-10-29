@@ -530,6 +530,44 @@ test('the drill: a red cutter made from a copy of the cube cuts a corner out of 
   expect(errors).toEqual([]);
 });
 
+test('the drill’s cutter, carried, holds on the guides as a dragged thing does', async ({
+  page,
+}) => {
+  const errors = await open(page, 'sample=cube');
+  await set(page, { yaw: -30, pitch: 20, z: 0, x: 0, y: 0 });
+  type P3 = [number, number, number];
+  const click = async (at: P3) => {
+    await set(page, { x: at[0], y: at[1] });
+    await press(page);
+    await release(page);
+  };
+  await click([0, 0, 0]);
+  await page.keyboard.press('KeyD'); // the copy, its middle at (100, 100)
+  await click([300, -250, 0]);
+  await click(await locate<P3>(page, 'toolpads'));
+  const [, , drill] = await locate<P3[]>(page, 'pads');
+  await click(drill!);
+  const guidesOf = () => page.evaluate(() => window.__cutplane!.guides());
+  // The cutter made at (160, 160) and carried up, its middle to 4 off the cube's upright line.
+  await set(page, { x: 160, y: 160 });
+  await press(page);
+  for (const [x, y] of [
+    [140, 220],
+    [100, 280],
+    [64, 300],
+  ] as const)
+    await set(page, { x, y });
+  const on = await guidesOf();
+  expect(on.some((g) => g.dir.map(Math.abs).join() === '0,1,0')).toBe(true);
+  // Held there, its middle on the line (the crosshair 60 right of it, as taken).
+  expect((await page.evaluate(() => window.__cutplane!.state())).x).toBeCloseTo(60, 3);
+  // Let go clear of the cube, the cutter goes and nothing is cut.
+  await release(page);
+  expect(await guidesOf()).toEqual([]);
+  expect((await edit(page)).faces).toBe(12);
+  expect(errors).toEqual([]);
+});
+
 const doubleClick = (page: Page) => page.evaluate(() => window.__cutplane!.doubleClick());
 type Falls = { mids: number[][]; spans: number[][]; lows: number[] };
 const falls = (page: Page) => page.evaluate(() => window.__cutplane!.falls()) as Promise<Falls>;

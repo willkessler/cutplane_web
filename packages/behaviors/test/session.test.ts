@@ -143,6 +143,12 @@ describe('the room kept for the next visit (new)', () => {
     const b = setup();
     const before = b.rt.version;
     expect(restoreRoom(b.rt, { ...snap, names: `${snap.names}|More` })).toBe(false);
+    // The same names, a shape made otherwise (the box's torus become a flat ring), or a
+    // snapshot from before shapes were noted: turned away.
+    const shapes = snap.shapes!.split('|');
+    shapes[shapes.length - 1] = '99999';
+    expect(restoreRoom(b.rt, { ...snap, shapes: shapes.join('|') })).toBe(false);
+    expect(restoreRoom(b.rt, { ...snap, shapes: undefined })).toBe(false);
     expect(b.rt.version).toBe(before);
   });
 
