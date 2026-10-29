@@ -8,7 +8,7 @@ import {
   mat4,
   type CutObject,
 } from '@cutplane/kernel';
-import { decalFrame, decalIn, eigen3, placeDecal, projectDecal } from './decals.ts';
+import { decalFrame, decalIn, eigen3, placeDecal, projectDecal, uprightLean } from './decals.ts';
 import { triangulate } from './models.ts';
 
 /** An object's triangles in the room and each one's normal, as add_decal takes them. */
@@ -16,7 +16,16 @@ function tris(o: CutObject) {
   const g = new WorldGeometry(o.brep, o.xform);
   const pos: number[] = [];
   const faces: number[] = [];
-  triangulate(o.brep, g, () => true, () => [0, 0, 0], pos, [], undefined, faces);
+  triangulate(
+    o.brep,
+    g,
+    () => true,
+    () => [0, 0, 0],
+    pos,
+    [],
+    undefined,
+    faces,
+  );
   return { pos, normals: faces.flatMap((f) => g.faceNormal(f)) };
 }
 
@@ -91,10 +100,7 @@ describe('decals (new): lettering laid on a surface', () => {
 
   it('kept in the object’s own coordinates, goes where the object goes', () => {
     const o = createObject(createCube(100, 100, 100), {
-      xform: mat4.multiply(
-        mat4.scaleAbout([0, 0, 0], [2, 2, 2]),
-        mat4.translation(10, 0, 0),
-      ),
+      xform: mat4.multiply(mat4.scaleAbout([0, 0, 0], [2, 2, 2]), mat4.translation(10, 0, 0)),
     });
     const t = tris(o);
     const f = placeDecal(t.pos, t.normals, [120, 100, 300], 8);
@@ -104,5 +110,25 @@ describe('decals (new): lettering laid on a surface', () => {
     close(back.at, f.at);
     close(back.u, f.u);
     expect(back.height).toBeCloseTo(8);
+  });
+
+  it('leaning, is laid as a slanted box; upright stands its sides up in the room', () => {
+    const box = createObject(createCube(200, 200, 200));
+    const b = tris(box);
+    const f = { ...placeDecal(b.pos, b.normals, [100, 100, 210], 10), lean: 45 };
+    const p = projectDecal(b.pos, f, 50, 20, 20);
+    const xs = (pick: (y: number) => boolean) =>
+      p.pos.filter((_, i) => i % 3 === 0 && pick(p.pos[i + 1]!));
+    // Its top is 10 over (tan 45° × half its height), its bottom 10 back: as wide, slanted.
+    expect(Math.max(...xs((y) => y > 109.99))).toBeCloseTo(135);
+    expect(Math.min(...xs((y) => y < 90.01))).toBeCloseTo(65);
+    // On a hull tilted 8° (reading along it), upright leans back by the tilt.
+    const t = (8 * Math.PI) / 180;
+    const u: [number, number, number] = [0, -Math.sin(t), Math.cos(t)];
+    const n: [number, number, number] = [1, 0, 0];
+    const v: [number, number, number] = [0, Math.cos(t), Math.sin(t)];
+    expect(uprightLean({ at: [0, 0, 0], u, v, n, height: 10 })).toBeCloseTo(-8, 1);
+    // Lying flat, there's no up to stand to.
+    expect(uprightLean({ at: [0, 0, 0], u: [1, 0, 0], v: [0, 0, -1], n: [0, 1, 0], height: 10 })).toBe(0); // prettier-ignore
   });
 });

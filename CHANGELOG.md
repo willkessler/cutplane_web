@@ -12,6 +12,16 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 29, 2026
 
+- **The T chip: lettering by hand.** The colour control has a grey T chip on its left. Drag it
+  onto a thing and the thing is lettered there, "TEXT" in the colour the bars show (the colour
+  its T shows), and a lettering plate opens in the plane with the text ready to type over. Return
+  sets it, Esc leaves it as it was, and an empty text takes the lettering off. Click on lettering
+  (the plane through it) to open the plate for it again; click elsewhere to put the plate away.
+- **Leaning lettering.** Lettering can lean: by degrees, as italics, or "up", standing its
+  capitals straight up in the room, as a row of windows stepping up a slope stands, however its
+  line runs. The plate's Lean field takes either; `add_decal` and the new `edit_decal` take
+  `lean`, and `edit_decal` changes what lettering says, its colour or height. The Orion III's PAN
+  AMERICAN now stands upright beside its windows.
 - **Lettering on things (decals).** `add_decal` lays text on a surface, as a decal is laid on:
   a livery's name, a brand, a number. It goes on the surface nearest the point given, facing out
   of it, and reads along that surface's axis (a hull's or a tube's length), or level on a flat or

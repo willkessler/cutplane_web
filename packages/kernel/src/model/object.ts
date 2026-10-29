@@ -22,6 +22,11 @@ export interface TextDecal {
   at: [number, number, number];
   normal: [number, number, number];
   along: [number, number, number];
+  /**
+   * How far the capitals lean from square to the line they stand on, in degrees: more
+   * than 0 leans their tops the way it reads (as italics), less, back. Unset, square.
+   */
+  lean?: number;
 }
 
 /** A decal's own copy (its vectors not shared). */

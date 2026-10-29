@@ -26,6 +26,8 @@ import {
   installToolboxes,
   bulbLightOf,
   cameraViewOf,
+  installLettering,
+  letteringPlateOf,
   installStoragePad,
   installHelpPad,
   installHintPlates,
@@ -48,7 +50,7 @@ import {
   type V3,
 } from '@cutplane/behaviors';
 import { DEMO_SECONDS, demoPose } from './demo.ts';
-import { Direct } from './direct.ts';
+import { Direct, letterer } from './direct.ts';
 import {
   NOTHING_HELD,
   keyLines,
@@ -226,6 +228,9 @@ const CPL_FILES = [
   'lens.cpl',
   'save.cpl',
   'load.cpl',
+  // The T chip's and its lettering plate's fields' (new).
+  'letter.cpl',
+  'lettering.cpl',
   // The measure pad's, and its plates' and fields'.
   'measurepad.cpl',
   'cubeplate.cpl',
@@ -325,6 +330,8 @@ async function loadCpl(): Promise<void> {
     'scalebbox.cpl',
     'goodies.cpl',
     'colorbar.cpl',
+    'letter.cpl',
+    'lettering.cpl',
   ]);
   await Promise.all(
     CPL_FILES.map(async (f) => {
@@ -377,6 +384,8 @@ function makeWorld(): void {
     },
   });
   installMeasurePad(rt, resource, source);
+  installLettering(rt, source);
+  rt.letterer = letterer(rt);
   keysPlate = keysPlateOf(installHelpPad(rt, keyLines(MAC)));
   markRoom(rt); // the room as built: what a session left is put back on it
   // (After it: which one shows follows what is picked, nothing for a session to keep.)
@@ -2069,6 +2078,9 @@ async function start(): Promise<void> {
         stamps: () => toolboxes.prims.children.filter((c) => rt.hasProp(c, 'Stamp')).map(box),
         base: () => box(cc.base),
         chip: () => box(cc.chip),
+        glass: () => box(cc.glass),
+        letter: () => box(cc.letter),
+        lettering: () => box(letteringPlateOf(rt)?.plate),
         bars: () => cc.bars.map((b) => ({ center: box(b), top: rt.bbox(b)![1][1] })),
         picked: () => box(rt.pickedObjects()[0]),
         bulb: () => box(rt.findObject('Lightbulb') ?? undefined),
@@ -2237,6 +2249,7 @@ async function start(): Promise<void> {
         paint: () => d.paint(args),
         decal: () => d.decal(args),
         undecal: () => d.undecal(args),
+        edit_decal: () => d.editDecal(args),
         name: () => d.name(args),
         pick: () => d.pick(args),
         group: () => d.group(args, false),

@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-import { mat4, type CutObject, type TextDecal } from '@cutplane/kernel';
+import type { DecalFrame } from '@cutplane/kernel';
+
+export { decalFrame, decalIn, uprightLean, type DecalFrame } from '@cutplane/kernel';
 
 /**
  * New: lettering on objects (TextDecal), as a decal is laid on: the text is
@@ -29,52 +31,6 @@ const unit = (a: V3): V3 => {
   const l = Math.hypot(...a);
   return l > 0 ? [a[0] / l, a[1] / l, a[2] / l] : [0, 0, 0];
 };
-
-/** A decal as the room has it: its middle, the way it reads (u), up (v) and out (n). */
-export interface DecalFrame {
-  at: V3;
-  u: V3;
-  v: V3;
-  n: V3;
-  /** The capitals' height, in the room. */
-  height: number;
-}
-
-function applyDir(m: mat4.Mat4, d: readonly number[]): V3 {
-  const o = mat4.transformPoint(m, 0, 0, 0);
-  const p = mat4.transformPoint(m, d[0]!, d[1]!, d[2]!);
-  return sub(p, o);
-}
-
-/** Where `d`, kept in `o`'s own coordinates, lies in the room. */
-export function decalFrame(o: CutObject, d: TextDecal): DecalFrame {
-  const at = mat4.transformPoint(o.xform, ...d.at);
-  const n = unit(applyDir(o.xform, d.normal));
-  let u = applyDir(o.xform, d.along);
-  u = unit(sub(u, n.map((c) => c * dot(u, n)) as V3));
-  const v = cross(n, u);
-  const vl = cross(unit([...d.normal]), unit([...d.along]));
-  return { at, u, v, n, height: d.height * Math.hypot(...applyDir(o.xform, vl)) };
-}
-
-/** The other way: a decal at a frame in the room, kept in `o`'s coordinates. */
-export function decalIn(
-  o: CutObject,
-  f: DecalFrame,
-  text: string,
-  color: readonly number[],
-): TextDecal {
-  const at = mat4.transformPoint(o.invXform, ...f.at);
-  const v = applyDir(o.invXform, f.v);
-  return {
-    text,
-    color: [color[0]!, color[1]!, color[2]!],
-    height: f.height * Math.hypot(...v),
-    at,
-    normal: unit(applyDir(o.invXform, f.n)),
-    along: unit(applyDir(o.invXform, f.u)),
-  };
-}
 
 /** What the text takes up, in units of the capitals' height: its width and the picture's height. */
 export interface TextBox {
@@ -135,13 +91,16 @@ export function projectDecal(
     [2, -depth],
     [2, depth],
   ];
+  // Leaning, the picture's up is v + k·u: a point x·u + y·v is at (x − k·y, y) in it.
+  const k = Math.tan(((f.lean ?? 0) * Math.PI) / 180);
   for (let t = 0; t + 8 < pos.length; t += 9) {
     const p: V3[] = [0, 3, 6].map((k) => [pos[t + k]!, pos[t + k + 1]!, pos[t + k + 2]!]);
     const tn = unit(cross(sub(p[1]!, p[0]!), sub(p[2]!, p[0]!)));
     if (dot(tn, f.n) < FACING) continue;
     let poly: V3[] = p.map((q) => {
       const r = sub(q, f.at);
-      return [dot(r, f.u), dot(r, f.v), dot(r, f.n)];
+      const y = dot(r, f.v);
+      return [dot(r, f.u) - k * y, y, dot(r, f.n)];
     });
     for (const [k, c] of lim) {
       const keep = (q: V3) => (c < 0 ? q[k] >= c : q[k] <= c);
@@ -159,7 +118,7 @@ export function projectDecal(
       if (poly.length < 3) break;
     }
     if (poly.length < 3) continue;
-    const world = (q: V3) => [0, 1, 2].map((i) => f.at[i]! + q[0] * f.u[i]! + q[1] * f.v[i]! + q[2] * f.n[i]!); // prettier-ignore
+    const world = (q: V3) => [0, 1, 2].map((i) => f.at[i]! + (q[0] + k * q[1]) * f.u[i]! + q[1] * f.v[i]! + q[2] * f.n[i]!); // prettier-ignore
     for (let i = 1; i + 1 < poly.length; i++)
       for (const q of [poly[0]!, poly[i]!, poly[i + 1]!]) {
         out.pos.push(...world(q));
@@ -218,7 +177,11 @@ export function placeDecal(
     dist.push(d);
     // Of two as near (an edge between faces), the one facing the point more.
     const facing = dot(n3(t), sub(point, q));
-    if (d < best.d - 1e-6 || (d < best.d + 1e-6 && best.t >= 0 && facing > dot(n3(best.t), sub(point, best.at)))) // prettier-ignore
+    if (
+      d < best.d - 1e-6 ||
+      (d < best.d + 1e-6 && best.t >= 0 && facing > dot(n3(best.t), sub(point, best.at)))
+    )
+      // prettier-ignore
       best = { d, at: q, t };
   }
   if (best.t < 0) throw new Error('no surface to put it on');
@@ -288,7 +251,11 @@ export function eigen3(m: readonly number[]): { values: V3; vectors: [V3, V3, V3
   for (let sweep = 0; sweep < 32; sweep++) {
     const off = a[1]! ** 2 + a[2]! ** 2 + a[5]! ** 2;
     if (off < 1e-24) break;
-    for (const [p, q] of [[0, 1], [0, 2], [1, 2]] as const) {
+    for (const [p, q] of [
+      [0, 1],
+      [0, 2],
+      [1, 2],
+    ] as const) {
       const apq = a[p * 3 + q]!;
       if (Math.abs(apq) < 1e-30) continue;
       const theta = (a[q * 3 + q]! - a[p * 3 + p]!) / (2 * apq);

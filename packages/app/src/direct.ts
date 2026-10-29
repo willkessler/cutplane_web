@@ -25,7 +25,14 @@ import {
   type V3,
 } from '@cutplane/behaviors';
 import { clearance, crossings, worldVolume } from './probe.ts';
-import { decalIn, decalSize, placeDecal, type DecalFrame } from './render/decals.ts';
+import {
+  decalFrame,
+  decalIn,
+  decalSize,
+  placeDecal,
+  uprightLean,
+  type DecalFrame,
+} from './render/decals.ts';
 import { triangulate } from './render/models.ts';
 
 /**
@@ -507,19 +514,11 @@ export class Direct {
     const color = a['color'] === undefined ? [20, 20, 20] : vec(a['color'], 'color').map((c) => Math.max(0, Math.min(255, Math.round(c)))); // prettier-ignore
     const along = a['along'] === undefined ? undefined : vec(a['along'], 'along');
     const roll = num(a['roll']) ?? 0;
-    let best: { o: CutObject; f: DecalFrame; d: number } | null = null;
-    for (const o of this.solids(thing)) {
-      const g = this.rt.world(o);
-      const pos: number[] = [];
-      const faces: number[] = [];
-      triangulate(o.brep, g, () => true, () => [0, 0, 0], pos, [], undefined, faces);
-      if (faces.length === 0) continue;
-      const f = placeDecal(pos, faces.flatMap((x) => g.faceNormal(x)), near, height, along, roll);
-      const d = Math.hypot(...f.at.map((c, k) => c - near[k]!));
-      if (!best || d < best.d) best = { o, f, d };
-    }
+    const best = placeOn(this.rt, this.solids(thing), near, () => height, along, roll);
     if (!best) throw new Error('object: nothing solid to put it on');
-    const { o, f } = best;
+    const { object: o, frame: f } = best;
+    const lean = leanOf(a['lean'], f);
+    if (lean) f.lean = lean;
     this.rt.journal.touch(o);
     o.decals = [...(o.decals ?? []), decalIn(o, f, text.trim(), color)];
     this.rt.changed(o);
@@ -534,8 +533,39 @@ export class Direct {
       out: f.n.map(r3),
       reads: f.u.map(r3),
       up: f.v.map(r3),
+      ...(f.lean ? { lean: f.lean } : {}),
       size: [r1(w), r1(f.height)],
     };
+  }
+
+  /** New: lettering already on a part changed: what it says, its lean, colour or height. */
+  editDecal(a: Args): Args {
+    const o = this.one(a['object'], 'object');
+    const index = num(a['index']) ?? 0;
+    const d = o.decals?.[index];
+    if (!d) throw new Error(o.decals?.length ? `index: 0..${o.decals.length - 1}` : 'object: it has no lettering (name the part)'); // prettier-ignore
+    const next = { ...d };
+    if (a['text'] !== undefined) {
+      if (typeof a['text'] !== 'string' || !a['text'].trim()) throw new Error('text: what it says');
+      next.text = a['text'].trim();
+    }
+    if (a['color'] !== undefined) next.color = vec(a['color'], 'color').map((c) => Math.max(0, Math.min(255, Math.round(c)))) as V3; // prettier-ignore
+    const height = num(a['height']);
+    if (height !== undefined) {
+      if (!(height > 0)) throw new Error("height: the capitals' height, more than 0");
+      next.height = (d.height * height) / decalFrame(o, d).height;
+    }
+    if (a['lean'] !== undefined) {
+      const lean = leanOf(a['lean'], { ...decalFrame(o, d), lean: 0 });
+      if (lean) next.lean = lean;
+      else delete next.lean;
+    }
+    this.rt.journal.touch(o);
+    o.decals = o.decals!.map((x, i) => (i === index ? next : x));
+    this.rt.changed(o);
+    this.rt.commit();
+    this.h.settle();
+    return { object: this.idOf(o), decal: index, ...this.info(o) };
   }
 
   /** Takes lettering off: every decal on a thing's parts, or one (`index`) of one part's. */
@@ -812,4 +842,84 @@ export class Direct {
     if (!step) throw new Error('the face could not move so (the solid would break): nothing changed'); // prettier-ignore
     return this.info(o);
   }
+}
+
+/** A lean asked for: degrees (within ±60), or "upright", standing straight up in the room. */
+function leanOf(v: unknown, f: DecalFrame): number {
+  if (v === undefined) return 0;
+  if (v === 'upright') return uprightLean(f);
+  const n = num(v);
+  if (n === undefined) throw new Error('lean: degrees, or "upright"');
+  return Math.max(-60, Math.min(60, n));
+}
+
+/**
+ * New: where lettering goes on the nearest of `objects` to `near` (each solid part's
+ * triangles): its frame, `height(o)` high.
+ */
+export function placeOn(
+  rt: Runtime,
+  objects: readonly CutObject[],
+  near: V3,
+  height: (o: CutObject) => number,
+  along?: V3,
+  roll?: number,
+): { object: CutObject; frame: DecalFrame } | null {
+  let best: { object: CutObject; frame: DecalFrame; d: number } | null = null;
+  for (const o of objects) {
+    const g = rt.world(o);
+    const pos: number[] = [];
+    const faces: number[] = [];
+    triangulate(
+      o.brep,
+      g,
+      () => true,
+      () => [0, 0, 0],
+      pos,
+      [],
+      undefined,
+      faces,
+    );
+    if (faces.length === 0) continue;
+    const f = placeDecal(
+      pos,
+      faces.flatMap((x) => g.faceNormal(x)),
+      near,
+      height(o),
+      along,
+      roll,
+    );
+    const d = Math.hypot(...f.at.map((c, k) => c - near[k]!));
+    if (!best || d < best.d) best = { object: o, frame: f, d };
+  }
+  return best && { object: best.object, frame: best.frame };
+}
+
+/**
+ * New: the T chip's letterer (Runtime.letterer): let go (or a click) on lettering, that;
+ * else new lettering on the nearest surface, an eighth of the thing's middle size high (6 to 40).
+ */
+export function letterer(rt: Runtime): NonNullable<Runtime['letterer']> {
+  return (objects, at, there) => {
+    for (const o of objects)
+      for (const [index, d] of (o.decals ?? []).entries()) {
+        const f = decalFrame(o, d);
+        const { w, h, depth } = decalSize(f, d.text);
+        const r = at.map((c, k) => c - f.at[k]!);
+        const dot = (a: readonly number[]) => r[0]! * a[0]! + r[1]! * a[1]! + r[2]! * a[2]!;
+        const y = dot(f.v);
+        const x = dot(f.u) - Math.tan(((f.lean ?? 0) * Math.PI) / 180) * y;
+        if (Math.abs(x) <= w / 2 && Math.abs(y) <= h / 2 && Math.abs(dot(f.n)) <= depth)
+          return { object: o, index };
+      }
+    if (there) return null;
+    const size = (o: CutObject) => {
+      const b = rt.bbox(o);
+      if (!b) return 20;
+      const s = [0, 1, 2].map((k) => b[1][k]! - b[0][k]!).sort((p, q) => p - q);
+      return Math.max(6, Math.min(40, Math.round(s[1]! / 8)));
+    };
+    const solid = objects.filter((o) => o.brep.faces().length > 0);
+    return placeOn(rt, solid, at, size);
+  };
 }

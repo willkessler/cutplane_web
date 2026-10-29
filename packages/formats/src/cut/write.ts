@@ -94,7 +94,9 @@ function writeObject(w: (s: string) => void, o: CutObject, label: number, parent
     const r = (c: number, k: number) => fmtF(Number(c.toFixed(k)) || 0, k);
     const v = (p: readonly number[]) => p.map((c) => r(c, 4)).join(' ');
     const text = d.text.replace(/\s*[\r\n]+\s*/g, ' ');
-    w(`Object Decal:${d.color.join(' ')}|${r(d.height, 4)}|${v(d.at)}|${v(d.normal)}|${v(d.along)}|${text}\n`); // prettier-ignore
+    // Its lean, if any, before the text (and 0 if the text could be taken for one).
+    const lean = d.lean || /^\s*Lean -?[\d.]+\s*\|/.test(text) ? `Lean ${r(d.lean ?? 0, 2)}|` : '';
+    w(`Object Decal:${d.color.join(' ')}|${r(d.height, 4)}|${v(d.at)}|${v(d.normal)}|${v(d.along)}|${lean}${text}\n`); // prettier-ignore
   }
   if (o.attrs.privateSource !== undefined) {
     w(`Object CPL private code:${codeLines(o.attrs.privateSource)} lines\n`);

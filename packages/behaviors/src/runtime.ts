@@ -39,6 +39,7 @@ import {
   volume,
   WorldGeometry,
   type CutObject,
+  type DecalFrame,
   type FeatureAttrs,
   type Mat4,
   type ObjectSection,
@@ -288,6 +289,15 @@ export class Runtime implements Host {
    * crosshair. True if it saw to the snap itself (its drag showed where it would go).
    */
   magnetSnap: ((source: Feature, under: Feature) => boolean) | null = null;
+  /**
+   * New here: where the T chip, let go at `at` over `objects`, letters: lettering already
+   * on one there (its index), or a new place (where on its surface, how big); `there`,
+   * only lettering already there (a click on it). The host works it out, as it has the
+   * surfaces' triangles; none, no lettering.
+   */
+  letterer:
+    | ((objects: CutObject[], at: V3, there?: boolean) => { object: CutObject; index?: number; frame?: DecalFrame } | null) // prettier-ignore
+    | null = null;
   /**
    * New here: what a boolean tool (the drill's cutter, what the union tool picked
    * up) carries out of the world. While it is carried, what it overlaps is what's

@@ -64,12 +64,15 @@ describe('a see-through object (new)', () => {
 });
 
 describe('lettering on an object (new)', () => {
-  it('keeps its decals, what they say last, bars and all', async () => {
+  it('keeps its decals, what they say last, bars and all, and how they lean', async () => {
     const { createCube, createObject } = await import('@cutplane/kernel');
     const o = createObject(createCube(10, 10, 10), {
       decals: [
         { text: 'PAN AMERICAN', color: [20, 30, 40], height: 4.5, at: [1, 2.25, 3], normal: [0, 1, 0], along: [1, 0, 0] }, // prettier-ignore
         { text: 'A|B  C', color: [0, 0, 0], height: 1, at: [0, 0, 5], normal: [0, 0, 1], along: [0.6, 0.8, 0] }, // prettier-ignore
+        { text: 'Lean 5|2001', color: [9, 9, 9], height: 2, at: [5, 5, 10], normal: [0, 0, 1], along: [1, 0, 0], lean: -8.13 }, // prettier-ignore
+        { text: 'Lean 5|unleaned', color: [9, 9, 9], height: 2, at: [5, 5, 10], normal: [0, 0, 1], along: [1, 0, 0] }, // prettier-ignore
+        { text: 'Lean 5', color: [9, 9, 9], height: 2, at: [5, 5, 10], normal: [0, 0, 1], along: [1, 0, 0] }, // prettier-ignore
       ],
     });
     const text = writeCut({ title: 't', contains: 'World', name: null, roots: [o] });

@@ -287,6 +287,12 @@ const width = (s: string, xscale: number) =>
 /** Who is listening to the keyboard (obj_charstream_list). */
 const streams = new WeakMap<Runtime, Feature[]>();
 export const charstreamOf = (rt: Runtime): readonly Feature[] => streams.get(rt) ?? [];
+/** New here: `f` listens to the keyboard, as add_obj_charstream has it (a plate opened for it). */
+export function joinCharstream(rt: Runtime, f: Feature): void {
+  const l = streams.get(rt) ?? [];
+  if (!l.includes(f)) l.push(f);
+  streams.set(rt, l);
+}
 /** `f` stops listening to the keyboard (its plate was put away). */
 export function leaveCharstream(rt: Runtime, f: Feature): void {
   const l = streams.get(rt);
@@ -301,10 +307,7 @@ export function leaveCharstream(rt: Runtime, f: Feature): void {
 export const TEXT_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>> = {
   add_obj_charstream(rt, vm) {
     const f = first(vm.pop());
-    if (!f) return;
-    const l = streams.get(rt) ?? [];
-    if (!l.includes(f)) l.push(f);
-    streams.set(rt, l);
+    if (f) joinCharstream(rt, f);
   },
   rem_obj_charstream(rt, vm) {
     const f = first(vm.pop());

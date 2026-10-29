@@ -19,6 +19,7 @@ import { isObject, isSub } from './features.ts';
 import type { Runtime, V3 } from './runtime.ts';
 import { alignPicked, distributePicked } from './align.ts';
 import { unionPicked } from './modeling.ts';
+import { closeLettering, letteringOf, openLettering } from './tools/lettering.ts';
 import { charstreamOf } from './tools/plates.ts';
 
 /**
@@ -89,12 +90,29 @@ export class Controls {
     this.rt.pickHeld = false;
     this.events = true;
     this.rt.setSelectables();
+    if (!this.alreadyValidDrag && !this.pressedRoom) this.clickedLettering();
     this.vm.storeInstruction(
       opcodeWord(this.multiple ? Op.MRELEAS : Op.RELEAS),
       propWord(P.Selectable, true),
     );
     this.dragOrigin = null;
     this.alreadyValidDrag = false;
+  }
+
+  /**
+   * New here: a click (no drag) in the world on lettering opens the lettering plate for
+   * it; anywhere else in the world, the plate is put away. (The room's own things, the
+   * plate's fields among them, leave it as it is.)
+   */
+  private clickedLettering(): void {
+    const objects = new Set<CutObject>();
+    for (const f of this.vm.props.features(this.rt.primary, P.Selectable)) {
+      const o = isObject(f) ? f : isSub(f) ? f.object : null;
+      if (o) objects.add(o);
+    }
+    const hit = objects.size ? this.rt.letterer?.([...objects], this.rt.cursor(), true) : null;
+    if (hit?.index !== undefined) openLettering(this.rt, hit.object, hit.index);
+    else if (letteringOf(this.rt)) closeLettering(this.rt);
   }
 
   pressPlane(): void {

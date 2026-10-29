@@ -7,6 +7,7 @@ import {
   type CutObject,
   type FeatureAttrs,
   type Rgb,
+  type TextDecal,
 } from '@cutplane/kernel';
 import { CutParseError, type CutDocument, type ReadResult } from './document.ts';
 import { floats, ints } from './numbers.ts';
@@ -190,14 +191,19 @@ function readObject(L: Lines, warn: (m: string) => void): { object: CutObject; p
   for (let d = L.maybe(/^Object Decal:(.*)$/); d; d = L.maybe(/^Object Decal:(.*)$/)) {
     const [c, h, at, nor, along, ...text] = d[1]!.split('|');
     const v3 = (t = '') => floats(t).slice(0, 3) as [number, number, number];
-    (object.decals ??= []).push({
+    // A lean, if any, before the text ("Lean 8.13|PAN AMERICAN").
+    const lean = text.length > 1 ? /^Lean (-?[\d.]+)$/.exec(text[0]!.trim()) : null;
+    if (lean) text.shift();
+    const decal: TextDecal = {
       text: text.join('|').trim(),
       color: ints(c ?? '').slice(0, 3) as Rgb,
       height: Number(h),
       at: v3(at),
       normal: v3(nor),
       along: v3(along),
-    });
+    };
+    if (lean && Number(lean[1])) decal.lean = Number(lean[1]);
+    (object.decals ??= []).push(decal);
   }
   const code = L.maybe(/^Object CPL private code:\s*(\d+)/);
   if (code) object.attrs.privateSource = L.code(n(code));

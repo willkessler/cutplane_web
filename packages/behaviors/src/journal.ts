@@ -1,4 +1,11 @@
-import { copyDecal, type Brep, type CutObject, type Mat4, type Rgb, type TextDecal } from '@cutplane/kernel';
+import {
+  copyDecal,
+  type Brep,
+  type CutObject,
+  type Mat4,
+  type Rgb,
+  type TextDecal,
+} from '@cutplane/kernel';
 
 /**
  * Undo (new: the original had none). Everything a step changes in the world

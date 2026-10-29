@@ -7,7 +7,9 @@ import type { Runtime, V3 } from '../runtime.ts';
  * goodies.cpl drags it), three bars (Colorbar: colorbar.cpl) whose top faces
  * are their Hotspots, and a white paint chip (Paint: paint.cpl). New here: a
  * glass chip beside it, a quarter as wide, paints the same colour half see-through
- * (opacity 0.5); the paint chip makes a thing solid again. The C
+ * (opacity 0.5); the paint chip makes a thing solid again. And on the left, the
+ * T chip (Letter: letter.cpl, tools/lettering.ts) letters a thing in the colour
+ * its T shows. The C
  * routines it calls are here: control_color limits a bar's drag and works out
  * the colour, set_color_bars sets the bars to a picked thing's colour.
  *
@@ -29,6 +31,8 @@ export interface ColorControl {
   chip: CutObject;
   /** New: the paint chip's see-through quarter (Glasschip). */
   glass: CutObject;
+  /** New: the T chip, on the base's left (Letterchip): lettering in the colour of its T. */
+  letter: CutObject;
   bars: [CutObject, CutObject, CutObject];
 }
 
@@ -78,6 +82,26 @@ export function createColorControl(rt: Runtime, corner: V3, width = 120): ColorC
   );
   rt.addProp(chip, 'Paint');
   rt.adopt(base, chip, true);
+  // The T chip leans as the paint chip does, off the base's other end. Its T is lettering
+  // (a TextDecal) on its face, the bars' colour; the chip itself stays grey.
+  const letter = make(
+    createCube(height + PK, Math.hypot(depth, height), CHIP_DEPTH),
+    mat4.multiply(tilt, at(-PK - (height + PK) - GLASS_GAP, 0, depth)),
+    [120, 120, 125],
+    'Letterchip',
+  );
+  letter.decals = [
+    {
+      text: 'T',
+      color: [255, 255, 255],
+      height: (height + PK) * 0.6,
+      at: [(height + PK) / 2, Math.hypot(depth, height) / 2, CHIP_DEPTH],
+      normal: [0, 0, 1],
+      along: [1, 0, 0],
+    },
+  ];
+  rt.addProp(letter, 'Letter');
+  rt.adopt(base, letter, true);
   const colours: Rgb[] = [[255, 0, 0], [0, 255, 0], [0, 0, 255]]; // prettier-ignore
   const bars = [0, 1, 2].map((i) => {
     const bar = make(
@@ -94,8 +118,8 @@ export function createColorControl(rt: Runtime, corner: V3, width = 120): ColorC
     return bar;
   }) as [CutObject, CutObject, CutObject];
   rt.addProp(base, 'Goodies');
-  for (const o of [base, chip, glass, ...bars]) rt.addProp(o, 'Lockedgeometry');
-  return { base, chip, glass, bars };
+  for (const o of [base, chip, glass, letter, ...bars]) rt.addProp(o, 'Lockedgeometry');
+  return { base, chip, glass, letter, bars };
 }
 
 /** The bars a base carries, in order (the children with no name: not the chips). */

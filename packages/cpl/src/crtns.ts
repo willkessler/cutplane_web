@@ -85,6 +85,11 @@ export const CRTN_NAMES = [
   'shrink_prim',
   'grow_stamp',
   'unstock_prim',
+  // cutplane_web: the T chip's lettering (letter.cpl), and its plate's fields (lettering.cpl).
+  'letter_on',
+  'letter_color',
+  'apply_lettering',
+  'close_lettering',
 ] as const;
 
 export type CrtnName = (typeof CRTN_NAMES)[number];

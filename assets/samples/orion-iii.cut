@@ -2828,8 +2828,8 @@ Visible
 Object Selectechnique:set_object_selectable
 Object Drawtechnique:normal_draw_technique
 Object Screenbboxtechnique:Normal
-Object Decal:30 32 45|6.5756|-41.9428 6.7159 31.8430|-0.9914 0.1306 0.0000|0.0000 0.0000 1.0000|PAN AMERICAN
-Object Decal:30 32 45|6.5756|41.9589 6.5942 31.8430|0.9914 0.1306 0.0000|0.0000 0.0000 -1.0000|PAN AMERICAN
+Object Decal:30 32 45|6.5756|-41.9428 6.7159 31.8430|-0.9914 0.1306 0.0000|0.0000 0.0000 1.0000|Lean -8.07|PAN AMERICAN
+Object Decal:30 32 45|6.5756|41.9589 6.5942 31.8430|0.9914 0.1306 0.0000|0.0000 0.0000 -1.0000|Lean 8.07|PAN AMERICAN
 
 Number of Shells:1
 Shell 1:

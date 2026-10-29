@@ -52,7 +52,7 @@ describe('the MCP server', () => {
     expect(tools.map((t) => t.name).sort()).toEqual(
       [
         ...['click', 'drag', 'hands_off', 'inspect', 'key', 'locate', 'look', 'move_to', 'open', 'press', 'record', 'release', 'replay', 'save', 'sequence', 'state', 'turn_view', 'wheel'], // prettier-ignore
-        ...['add_decal', 'add_primitive', 'arrange_objects', 'boolean', 'clearance', 'copy_objects', 'delete_objects', 'group_objects', 'list_objects', 'move_face', 'move_objects', 'name_object', 'paint_objects', 'pick_objects', 'ray', 'remove_decals', 'rotate_objects', 'scale_objects', 'slice_objects', 'ungroup_object'], // prettier-ignore
+        ...['add_decal', 'add_primitive', 'arrange_objects', 'boolean', 'clearance', 'copy_objects', 'delete_objects', 'edit_decal', 'group_objects', 'list_objects', 'move_face', 'move_objects', 'name_object', 'paint_objects', 'pick_objects', 'ray', 'remove_decals', 'rotate_objects', 'scale_objects', 'slice_objects', 'ungroup_object'], // prettier-ignore
       ].sort(),
     );
   });

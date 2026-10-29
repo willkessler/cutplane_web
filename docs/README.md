@@ -726,7 +726,12 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   way it reads, the capitals' height), so it goes where the object goes. Placed by `add_decal`,
   it reads along the surface's axis where there is one (the direction its faces' normals don't
   turn, the least eigenvector of Σ a·nnᵀ near the point), otherwise level, and upright. .cut
-  files keep each in an `Object Decal:` line. One typeface for now; glTF export leaves it out.
+  files keep each in an `Object Decal:` line (with `Lean n|` before the text if it leans: its
+  capitals sheared towards the way it reads; "up" works out the lean that stands them straight
+  up in the room). By hand, the colour control's T chip (`letter.cpl`, after `paint.cpl`) letters
+  what it is let go on and opens a lettering plate (a plate as `read_plate` makes them, its
+  fields `textinput.cpl` with `lettering.cpl` as their private code); a click on lettering opens
+  it again. One typeface for now; glTF export leaves it out.
 - **Booleans and slicing go through manifold-3d.** The original's own boolean (`boolean.c`)
   handled only an object's first shell and had known bugs. Here both operands become triangles
   tagged by face, manifold-3d does the operation, and the result comes back as the original's

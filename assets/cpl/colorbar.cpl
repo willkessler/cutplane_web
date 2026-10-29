@@ -4,7 +4,7 @@
 ;		Version: 1
 ;
 ;	cutplane_web: the bars colour the glass chip (Glasschip) beside the
-;	paint chip too. Changes marked "cutplane_web".
+;	paint chip too, and the T chip (Letterchip). Changes marked "cutplane_web".
 ;
 ;	These bars have to first of all adjust themselves to whatever's
 ;	picked upon a PICK that does not concern them, so that when you
@@ -61,9 +61,10 @@ _Adjustcolorbar	MOVE	AA:XAD,A:R2
 		MAKEMSG	Msg:Adoptcolor
 		MAKEMSG	A:R3*
 		MOVE	Obj:Paintchip,A:R2
-;		cutplane_web: and the glass chip.
+;		cutplane_web: and the glass chip, and the T chip.
 		OR	A:R2*,Obj:Glasschip,A:R5
-		OR	A:R5*,Obj:Lightbulb,A:R3
+		OR	A:R5*,Obj:Letterchip,A:R6
+		OR	A:R6*,Obj:Lightbulb,A:R3
 		WORLD	Const:WPrimary_world
 		OR	A:R3*,Prop:Picked*,A:R4
 		WORLD	Const:WEnvironment_world		

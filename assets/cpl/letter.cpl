@@ -1,0 +1,74 @@
+;		CPL Letter Property Codes: the T chip beside the colour bars
+;		cutplane_web (new), after paint.cpl
+;
+;	The T chip is dragged as the paint chip is (a copy of it goes with the
+;	crosshair); let go on a thing, it letters it where it was let go, in the
+;	colour the bars show (its T's colour), and opens the lettering plate to
+;	say what it says. Let go on lettering already there, it opens the plate
+;	for that.
+
+Letter		DEFPROP
+
+Letter		STARTPROP
+		BWIPED	AA:XOP*,A:_End_letter&		; Is event still active?
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get the chip
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+		UNQMSG	A:R2
+
+;		 The bars' colour: the T takes it.
+_Check_colormsg	BNEQUAL	A:R2,Msg:Adoptcolor,A:_End_letter&
+		UNQMSG	A:R3
+		PUSH	A:R1
+		PUSH	A:R3
+		CRTN	Crtn:letter_color
+		JUMP	A:_End_letter&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; Is it being carried?
+		BFALSE	A:R2,A:_Check_pick&
+
+;		 Event is a TRANSLATE of what is picked: it goes along.
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_release&
+		BNEQUAL	AA:XAS,Prop:Picked,A:_Check_release&
+		TRANS	A:R1*,Const:Quicktranslate,AA:XAD
+		WIPE	A:XOP*
+		JUMP	A:_End_letter&
+
+;		 Let go: letter what is under the crosshair, then the copy goes.
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_letter&
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_letter&
+
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*,A:R2
+		WORLD	Const:WEnvironment_world
+		PUSH	A:R2
+		PUSH	A:R1
+		CRTN	Crtn:letter_on
+
+		UNPICK	A:R1*
+		REMPROP	A:R1*,Prop:Active
+		WTRANS	A:R1*,Const:WPrimary_world
+		CPDELETE	A:R1*
+		WIPE	A:XOP*
+		JUMP	A:_End_letter&
+
+;		 A press on the chip takes a copy of it.
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_End_letter&
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_letter&
+
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_letter&
+
+		UNPICK	Prop:Picked*
+		DUP	A:R1*,A:R2
+		ADDPROP	A:R2*,Prop:Active
+		PICK	A:R2*
+		WIPE   	A:XOP*
+
+_End_letter	RTS

@@ -1,0 +1,34 @@
+;		CPL Private Code: the lettering plate's fields
+;		cutplane_web (new), after save.cpl
+;
+;	Return sets the lettering to what the plate's fields say and puts the
+;	plate away; Esc puts it away, the lettering as it was. Any other key
+;	goes on to the field (textinput.cpl).
+
+		OWNER	A:R1,Const:Motherobj		; Get textinput object
+_Check_messages	BNOMSGS	A:R1,A:_End_lettering&
+
+		CHKMSG	A:R2
+		BNEQUAL	A:R2,Msg:Incomingchar,A:_End_lettering&	; the field's own
+		UNQMSG	A:R2
+		UNQMSG	A:R3				; get typed char.
+
+		HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; is the field active?
+		BFALSE	A:R2,A:_End_lettering&		; no, ignore char
+
+_CheckCR	BNEQUAL	A:R3,Const:A0x0D,A:_CheckESC&
+		PUSH	A:R1
+		CRTN	Crtn:apply_lettering
+		JUMP	A:_End_lettering&
+
+_CheckESC	BNEQUAL	A:R3,Const:A0x1B,A:_Putbackmsg&
+		PUSH	A:R1
+		CRTN	Crtn:close_lettering
+		JUMP	A:_End_lettering&
+
+_Putbackmsg	MAKEMSG	Msg:Incomingchar		; give it to textinput
+		MAKEMSG	A:R3
+		QMSG	A:R1*,Const:Prioritymsg
+		JUMP	A:_End_lettering&
+
+_End_lettering	RTS
