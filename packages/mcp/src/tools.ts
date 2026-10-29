@@ -436,7 +436,9 @@ export function addTools(
         'A new object (as stamped from the primitives box), made to size [w, h, d] across x, ' +
         'y and z of the room, its middle at center (default: the crosshair). axis: the way a ' +
         "cylinder's length, a cone's point, a pyramid's apex or a torus's hole runs (default " +
-        'z for a cylinder and cone, y for a pyramid and torus). Says its id.',
+        "z for a cylinder and cone, y for a pyramid and torus). tube: how thick a torus's " +
+        'ring is, hole to rim (a tyre: size [300, 300, 50], tube 40); without it, a fat donut ' +
+        'with a small hole. Says its id.',
       inputSchema: {
         kind: z.enum(['box', 'cylinder', 'cone', 'sphere', 'pyramid', 'torus']),
         size: v3.optional().describe('[w, h, d] (default [100, 100, 100]).'),
@@ -444,6 +446,7 @@ export function addTools(
         axis: axis.optional(),
         color: v3.optional().describe('[r, g, b], 0..255 (default a light grey).'),
         segments: z.number().int().min(3).max(144).optional().describe('Sides round a curve (default 72).'), // prettier-ignore
+        tube: z.number().positive().optional().describe("A torus's ring thickness, hole to rim, less than half across."), // prettier-ignore
         name: z.string().optional(),
         look: lookArg,
       },

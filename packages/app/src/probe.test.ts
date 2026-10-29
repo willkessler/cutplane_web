@@ -35,4 +35,16 @@ describe('the probes', () => {
     expect(clearance(cube(100), cube(100, 50, 50, 50))).toMatchObject({ overlap: true, gap: 0 }); // prettier-ignore
     expect(clearance(cube(20, 40, 40, 40), cube(100))).toMatchObject({ overlap: true, aInB: true, bInA: false }); // prettier-ignore
   });
+
+  it('tell touching from cutting in: a block resting on another, a tilted pane', () => {
+    // Face to face, flush at one end and overhanging at the other.
+    expect(clearance(cube(50, 25, 100, 25), cube(100))).toMatchObject({ overlap: false, gap: 0 }); // prettier-ignore
+    expect(clearance(cube(50, 60, 100, 60), cube(100))).toMatchObject({ overlap: false, gap: 0 }); // prettier-ignore
+    expect(clearance(cube(100, 0, 100, 0), cube(100))).toMatchObject({ overlap: false, gap: 0 }); // prettier-ignore
+    // Tilted, as a pane on a sloped window floor; and sunk 1 into it, it cuts in.
+    const turn = (g: WorldGeometry) => new WorldGeometry(g.brep, mat4.multiply(g.xform, mat4.rotationAbout([0, 0, 0], [1, 0, 0], 0.8169))); // prettier-ignore
+    const pane = (y: number) => new WorldGeometry(createCube(36, 4, 36), mat4.translation(32, y, 32)); // prettier-ignore
+    expect(clearance(turn(pane(100)), turn(cube(100)))).toMatchObject({ overlap: false, gap: 0 });
+    expect(clearance(turn(pane(99)), turn(cube(100)))).toMatchObject({ overlap: true });
+  });
 });

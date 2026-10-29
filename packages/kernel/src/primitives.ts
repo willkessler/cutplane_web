@@ -100,8 +100,13 @@ export function createSphere(radius: number, segments: number): Brep {
 
 /** Torus whose hole width equals the tube radius, about the y axis. */
 export function createDonut(radius: number, segments: number): Brep {
+  return createTorus(radius * 1.5, radius, segments);
+}
+
+/** New: a torus of any proportion, about the y axis: its tube's centre `ring` out, `tube` thick round. */
+export function createTorus(ring: number, tube: number, segments: number): Brep {
   const b = new Brep();
-  const profile = oval(radius, radius, segments).map(([x, y, z]): P3 => [x + radius * 1.5, y, z]);
+  const profile = oval(tube, tube, segments).map(([x, y, z]): P3 => [x + ring, y, z]);
   revolve(b, profile, 'y', segments, true);
   return b;
 }

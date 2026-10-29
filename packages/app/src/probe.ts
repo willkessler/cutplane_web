@@ -176,6 +176,23 @@ function boxDistance(lo: V3, hi: V3, p: V3): number {
   return Math.sqrt(s);
 }
 
+/** How near a solid's surface p comes, if nearer than `within` (else Infinity). */
+function surfaceDistance(g: WorldGeometry, p: V3, within: number): number {
+  let best = Infinity;
+  for (const f of facesOf(g))
+    if (boxDistance(f.lo, f.hi, p) <= within) best = Math.min(best, nearestOnFace(f, p));
+  return best <= within ? best : Infinity;
+}
+
+/** Nearer a surface than this counts as on it (touching, not inside). */
+const ON = 1e-4;
+
+/** Where p lies against a solid: inside it, on its surface, or out. */
+function where(g: WorldGeometry, p: V3): 'in' | 'on' | 'out' {
+  if (surfaceDistance(g, p, ON) <= ON) return 'on';
+  return insideSolid(g, p) ? 'in' : 'out';
+}
+
 /** The corners of a solid (each once). */
 function corners(g: WorldGeometry): V3[] {
   return g.brep.vertices().map((v): V3 => [g.x(v), g.y(v), g.z(v)]);
@@ -190,9 +207,15 @@ function edgesCross(a: WorldGeometry, b: WorldGeometry): boolean {
     const pq = sub(q, p);
     const l = len(pq);
     if (l < EPS) continue;
-    // (Not counting an end that lies on a face: touching is not cutting in.)
-    const hits = crossings(b, p, [pq[0] / l, pq[1] / l, pq[2] / l], l);
-    if (hits.some((h) => h.t > 1e-4 && h.t < l - 1e-4)) return true;
+    // Cut at its crossings, does a piece of it run inside? (Not one along a face or past an
+    // edge of it: touching is not cutting in.)
+    const d: V3 = [pq[0] / l, pq[1] / l, pq[2] / l];
+    const ts = [0, ...crossings(b, p, d, l).map((h) => h.t), l];
+    for (let i = 1; i < ts.length; i++) {
+      if (ts[i]! - ts[i - 1]! < ON) continue;
+      const t = (ts[i]! + ts[i - 1]!) / 2;
+      if (where(b, [p[0] + d[0] * t, p[1] + d[1] * t, p[2] + d[2] * t]) === 'in') return true;
+    }
   }
   return false;
 }
@@ -209,17 +232,16 @@ export interface Clearance {
 
 /** How two solids sit: apart (and how far), touching, cutting into each other, one inside. */
 export function clearance(a: WorldGeometry, b: WorldGeometry): Clearance {
+  // (A corner lying on the other's surface touches it; it is not inside it. Counted as inside,
+  // a pane resting on a window floor, or a block on another, read as cutting in.)
   const ca = corners(a);
   const cb = corners(b);
-  const aInB = ca.length > 0 && ca.every((p) => insideSolid(b, p));
-  const bInA = cb.length > 0 && cb.every((p) => insideSolid(a, p));
+  const wa = ca.map((p) => where(b, p));
+  const wb = cb.map((p) => where(a, p));
+  const aInB = wa.length > 0 && wa.every((w) => w !== 'out') && wa.includes('in');
+  const bInA = wb.length > 0 && wb.every((w) => w !== 'out') && wb.includes('in');
   const overlap =
-    aInB ||
-    bInA ||
-    ca.some((p) => insideSolid(b, p)) ||
-    cb.some((p) => insideSolid(a, p)) ||
-    edgesCross(a, b) ||
-    edgesCross(b, a);
+    aInB || bInA || wa.includes('in') || wb.includes('in') || edgesCross(a, b) || edgesCross(b, a);
   let gap = Infinity;
   const fa = facesOf(a);
   const fb = facesOf(b);

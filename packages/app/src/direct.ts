@@ -9,6 +9,7 @@ import {
   createOvalCylinder,
   createPyramid,
   createSphere,
+  createTorus,
   mat4,
   subtree,
   type CutObject,
@@ -276,6 +277,19 @@ export class Direct {
           }) as V3)
         : vec(a['center'], 'center');
     const seg = Math.max(3, Math.min(144, Math.round(num(a['segments']) ?? SEGMENTS)));
+    const want = a['axis'] === undefined ? null : axisOf(a['axis']);
+    // A torus's tube: how thick its ring is, hole to rim (on its narrower side), in room units.
+    const tube = num(a['tube']);
+    let ratio = 0;
+    if (tube !== undefined) {
+      if (kind !== 'torus') throw new Error('tube: for a torus only');
+      const ax = want ?? [0, 1, 0];
+      const k = [0, 1, 2].reduce((m, i) => (Math.abs(ax[i]!) > Math.abs(ax[m]!) ? i : m), 0);
+      const wide = Math.min(...size.filter((_, i) => i !== k));
+      if (!(tube > 0 && tube < wide / 2))
+        throw new Error(`tube: more than 0 and less than half across the ring (${wide / 2})`);
+      ratio = tube / wide;
+    }
     // Each made about its own axis (the one it points along), then turned to the one asked.
     const made: Record<string, () => [Brep, V3]> = {
       box: () => [createCube(1, 1, 1), [0, 0, 1]],
@@ -283,17 +297,17 @@ export class Direct {
       cone: () => [createOvalCone(1, 1, 1, seg), [0, 0, 1]],
       sphere: () => [createSphere(1, seg), [1, 0, 0]],
       pyramid: () => [createPyramid(1, 1, 1), [0, 1, 0]],
-      torus: () => [createDonut(1, seg), [0, 1, 0]],
+      torus: () => [ratio ? createTorus(1 - ratio, ratio, seg) : createDonut(1, seg), [0, 1, 0]],
     };
     const make = made[kind];
     if (!make) throw new Error(`kind: one of ${Object.keys(made).join(', ')}`);
     const [b, own] = make();
-    const want = a['axis'] === undefined ? own : axisOf(a['axis']);
-    const dot = own[0] * want[0] + own[1] * want[1] + own[2] * want[2];
+    const to = want ?? own;
+    const dot = own[0] * to[0] + own[1] * to[1] + own[2] * to[2];
     const across: V3 = [
-      own[1] * want[2] - own[2] * want[1],
-      own[2] * want[0] - own[0] * want[2],
-      own[0] * want[1] - own[1] * want[0],
+      own[1] * to[2] - own[2] * to[1],
+      own[2] * to[0] - own[0] * to[2],
+      own[0] * to[1] - own[1] * to[0],
     ];
     const turn =
       dot > 1 - 1e-9
