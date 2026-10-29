@@ -389,6 +389,13 @@ function fromManifold(
       else edgeTris.set(key, [t]);
     }
   const group = new Int32Array(nt).fill(-1);
+  // A sliver whose corners merged into one (two output vertices at one position) has no
+  // area, and its edges, there and back, would hide its neighbour's edge from the face's
+  // boundary: it belongs to no face. (Two tori on one axis make them.)
+  for (let t = 0; t < nt; t++) {
+    const [a, b, c] = [0, 1, 2].map((k) => mesh.triVerts[3 * t + k]!);
+    if (a === b || b === c || c === a) group[t] = -2;
+  }
   const groups: number[][] = [];
   for (let t0 = 0; t0 < nt; t0++) {
     if (group[t0] !== -1) continue;

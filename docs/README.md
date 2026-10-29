@@ -216,7 +216,7 @@ The room is laid out as in the 3Form photos. Everything in it runs on the origin
   - The tools on the pads do their work: see [Modeling](#modeling) below.
 - **Toolboxes** stand on the floor by the back wall, bottom right; Space takes the plane there.
   Click one to open it, and what it holds stacks up above it.
-  - **Primitives box.** Pick a primitive (cube, cylinder, cone, sphere, pyramid) and a copy is
+  - **Primitives box.** Pick a primitive (cube, cylinder, cone, sphere, ring, pyramid) and a copy is
     stamped into the world, picked, ready to drag forward. The box closes again. Drop something
     of your own on it (a group too; it turns blue over the box) and it goes in as a primitive,
     shown the size of the 1991 ones there, and
@@ -626,6 +626,11 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   tools' rail (`assets/cpl/union.cpl`, after `drill.cpl`), and `B` unions everything picked. The
   grabber has a new picture, a claw, and the arranging rail's headpad three bars in a row. The rails are `assets/rsc/toolpads.rsc` and `arrangepads.rsc`, the new
   pictures in `assets/icons/`.
+- **The drill lets go of its cutter over a toolpad too.** In `drill.cpl` a release over a
+  toolpad or the headpad was left to the pad, so the red cutter stayed on the drill, in hand,
+  and every press after made another cutter: nothing could be picked. Here a release with a
+  cutter in hand always finishes, cutting what is under it or throwing the cutter away, and the
+  drill goes home (`assets/cpl/drill.cpl`); the union tool does the same with what it carries.
 - **H is the pan tool, P the pencil, M the ruler.** The original's P brought the pan tool.
   A tool key pressed while the button is held (a marquee, a drag) takes its tool once the
   button is up (`Controls.takeTool`): the original's only way to a tool was a click on its
@@ -769,7 +774,10 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   original left it by the back wall, and only a drag brought it into the plane. A plate's offset
   is taken from its pad, so a plate with no depth offset lies on its pad, not in the plane
   (where it flickered against the plane's stipple). Headpad pictures keep a margin inside the
-  pad.
+  pad. The primitives box holds a flat ring (a band, square in section, as a tyre's tread or a
+  washer, facing the plane) beside the original five, and all six are a fifth smaller than
+  `tools.h` made them, so the open stack stays in sight; a stamp comes out that size. The 1991
+  kernel's `create_donut` only tested the Euler code, and no box held it.
 - **A face's "mother edge".** `find_largergrain(face, edge)` returned an unset pointer, and
   `rom.cpl`'s test for an edge pick relied on getting something other than the face back; here
   it is the face's first edge.

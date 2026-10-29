@@ -5,6 +5,7 @@ import {
   createCubeHole,
   createDonut,
   createTorus,
+  createRing,
   createIsoscelesPrism,
   createLBeam,
   createOval,
@@ -30,6 +31,7 @@ const solids: [string, () => Brep, number][] = [
   ['sphere', () => createSphere(50, 12), 2],
   ['donut', () => createDonut(30, 12), 0],
   ['torus (a thin ring)', () => createTorus(60, 12, 16), 0],
+  ['flat ring', () => createRing(60, 40, 30, 16), 0],
   ['paraboloid', () => createParaboloid(100, 60, 10, 8), 2],
   ['vase', () => createVase(4, 4, 10), 2],
   ['L-beam', () => createLBeam(200, 180, 55, 200), 2],
@@ -78,5 +80,15 @@ describe('specific shapes', () => {
       expect(r.closedManifold).toBe(true);
       expect(b.numFaces).toBe(2);
     }
+  });
+});
+
+describe('a flat ring (new)', () => {
+  it('has its sides whole, each a face with a hole, and its band in quads', () => {
+    const b = createRing(60, 40, 30, 16);
+    expect(b.numFaces).toBe(2 + 2 * 16);
+    expect(b.faces().filter((f) => b.faceLoops(f).length === 2)).toHaveLength(2);
+    const zs = b.vertices().map((v) => b.vertexPos(v)[2]);
+    expect([Math.min(...zs), Math.max(...zs)]).toEqual([0, 30]);
   });
 });

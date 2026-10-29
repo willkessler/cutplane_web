@@ -161,7 +161,7 @@ describe('the room kept for the next visit (new)', () => {
     expect(snap.prims).toHaveLength(1);
     const b = setup();
     expect(restoreRoom(b.rt, snap)).toBe(true);
-    const back = b.prims.children.filter((c) => b.rt.hasProp(c, 'Stamp')).slice(5);
+    const back = b.prims.children.filter((c) => b.rt.hasProp(c, 'Stamp')).slice(6);
     expect(back).toHaveLength(1);
     const prim = back[0]!;
     expect(visible(b, prim)).toBe(false);
@@ -179,6 +179,6 @@ describe('the room kept for the next visit (new)', () => {
     // Kept again with nothing dropped in: none come back.
     const none = JSON.parse(JSON.stringify(snapshotRoom(setup().rt))) as RoomSnapshot;
     expect(restoreRoom(b.rt, none)).toBe(true);
-    expect(b.prims.children.filter((c) => b.rt.hasProp(c, 'Stamp'))).toHaveLength(5);
+    expect(b.prims.children.filter((c) => b.rt.hasProp(c, 'Stamp'))).toHaveLength(6);
   });
 });

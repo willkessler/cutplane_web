@@ -392,6 +392,34 @@ describe('the drill (drill.cpl, CPBOOLEAN)', () => {
     expect(w.rt.picked()).toEqual([w.cube]);
   });
 
+  it('let go over a toolpad, the cutter is thrown away and the drill goes home (cutplane_web)', () => {
+    const w = setup();
+    const bar = createObject(createCube(40, 40, 400), {
+      name: 'Bar',
+      xform: mat4.translation(-320, -20, -200),
+    });
+    bar.attrs.props = ['Visible'];
+    w.rt.importObjects(w.rt.primary, [bar]);
+    w.rt.commit();
+    const { pad, tool } = w.take(2);
+    w.at(-300, 0, 0);
+    w.frame();
+    w.controls.pressPick(false);
+    w.frame();
+    const [px, py] = w.center(pad);
+    for (let i = 1; i <= 10; i++) w.move((px + 300) / 10, py / 10);
+    w.controls.releasePick();
+    w.frame();
+    w.frame();
+    // The original left the cutter on the drill, in hand, and every press after made
+    // another cutter: nothing could be picked.
+    expect(tool.parent).toBe(pad);
+    expect(tool.children.some((c) => c.color[0] === 155)).toBe(false);
+    expect(w.solids().sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))).toEqual([bar, w.cube]); // prettier-ignore
+    w.click([-300, 0]);
+    expect(w.rt.picked()).toEqual([bar]);
+  });
+
   it('let go anywhere, the cutter takes a bite out of everything it overlaps (new)', () => {
     const w = setup();
     const slab = createObject(createCube(400, 40, 400), {

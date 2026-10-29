@@ -313,6 +313,7 @@ async function loadCpl(): Promise<void> {
     'toolbox.cpl',
     'stamp.cpl',
     'union.cpl',
+    'drill.cpl',
     'gravity.cpl',
     'pencil.cpl',
     'measurepad.cpl',

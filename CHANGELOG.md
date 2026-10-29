@@ -12,6 +12,14 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 28, 2026
 
+- **A ring in the primitives box.** The box holds a flat ring now, a band square in section
+  (a tyre's tread, a washer) with its sides whole faces, as well as the cube, cylinder, cone,
+  sphere and pyramid. All six are a fifth smaller than before, so the stack stays in sight when
+  the box is open. `add_primitive` makes one too (`ring`, its band as thick as `tube`).
+- **Fixed: the drill stuck in hand.** Let go over a toolpad, the drill kept its red cutter and
+  took every press after, so nothing could be picked; now it cuts or throws the cutter away and
+  goes home. The union tool too. And a cut between two rings on one axis (a tyre trimmed by a
+  larger copy) was refused; it cuts now.
 - **A new sample: the Also TMB-1.** The electric bike, built by an agent with the direct calls:
   spoked wheels, the motor block with its battery cover, pedals and chain, the frame, fork, bars
   and saddle. It's in the model menu.

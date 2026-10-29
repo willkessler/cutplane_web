@@ -69,9 +69,13 @@ _Check_events	BWIPED	AA:XOP*,A:_End_union&		; Is event still active?
 
 ;		 Picking selectables?
 _Check_usage	BNEQUAL	AA:XAS,Prop:Selectable,A:_End_union&
+;		What is carried is let go here, even over a toolpad or the headpad
+;		(the drill's way had it kept on the tool, which took every press).
+		BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_Check_pads&
+		BNEMPTY	A:_Carried_store,A:_Check_release&
 
 ;		Are there selectable toolpads?
-		AND	Prop:Selectable*,Prop:Toolpad*,A:R3
+_Check_pads	AND	Prop:Selectable*,Prop:Toolpad*,A:R3
 		BNEMPTY	A:R3,A:_End_union&		; yes, let toolpad work
 
 ;		Is the headpad selectable?

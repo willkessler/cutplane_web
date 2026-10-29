@@ -9,6 +9,7 @@ import {
   createOvalCylinder,
   createPyramid,
   createSphere,
+  createRing,
   createTorus,
   mat4,
   subtree,
@@ -278,12 +279,13 @@ export class Direct {
         : vec(a['center'], 'center');
     const seg = Math.max(3, Math.min(144, Math.round(num(a['segments']) ?? SEGMENTS)));
     const want = a['axis'] === undefined ? null : axisOf(a['axis']);
-    // A torus's tube: how thick its ring is, hole to rim (on its narrower side), in room units.
+    // A torus's or ring's tube: how thick it is, hole to rim (on its narrower side), in room
+    // units.
     const tube = num(a['tube']);
     let ratio = 0;
     if (tube !== undefined) {
-      if (kind !== 'torus') throw new Error('tube: for a torus only');
-      const ax = want ?? [0, 1, 0];
+      if (kind !== 'torus' && kind !== 'ring') throw new Error('tube: for a torus or ring only');
+      const ax = want ?? (kind === 'ring' ? [0, 0, 1] : [0, 1, 0]);
       const k = [0, 1, 2].reduce((m, i) => (Math.abs(ax[i]!) > Math.abs(ax[m]!) ? i : m), 0);
       const wide = Math.min(...size.filter((_, i) => i !== k));
       if (!(tube > 0 && tube < wide / 2))
@@ -298,6 +300,7 @@ export class Direct {
       sphere: () => [createSphere(1, seg), [1, 0, 0]],
       pyramid: () => [createPyramid(1, 1, 1), [0, 1, 0]],
       torus: () => [ratio ? createTorus(1 - ratio, ratio, seg) : createDonut(1, seg), [0, 1, 0]],
+      ring: () => [createRing(1, ratio ? 1 - 2 * ratio : 0.64, 1, seg), [0, 0, 1]],
     };
     const make = made[kind];
     if (!make) throw new Error(`kind: one of ${Object.keys(made).join(', ')}`);

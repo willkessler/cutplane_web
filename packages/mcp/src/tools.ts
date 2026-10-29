@@ -26,7 +26,7 @@ export const INSTRUCTIONS = [
     ROOM_TEXT,
   'Or directly, by number, which is quicker and exact: list_objects numbers what is in the ' +
     'world (ids, boxes, middles, sizes); add_primitive puts in a box, cylinder, cone, ' +
-    'sphere, pyramid or torus at a size and place; move_objects, rotate_objects and ' +
+    'sphere, pyramid, torus or flat ring at a size and place; move_objects, rotate_objects and ' +
     'scale_objects move, turn and scale things; copy_objects makes a row or ring of copies ' +
     'in one call; paint_objects, name_object, delete_objects; boolean (union, subtract: ' +
     "the drill's cut, intersect), slice_objects (the saw at a depth), group_objects, " +
@@ -435,18 +435,20 @@ export function addTools(
       description:
         'A new object (as stamped from the primitives box), made to size [w, h, d] across x, ' +
         'y and z of the room, its middle at center (default: the crosshair). axis: the way a ' +
-        "cylinder's length, a cone's point, a pyramid's apex or a torus's hole runs (default " +
-        "z for a cylinder and cone, y for a pyramid and torus). tube: how thick a torus's " +
-        'ring is, hole to rim (a tyre: size [300, 300, 50], tube 40); without it, a fat donut ' +
-        'with a small hole. Says its id.',
+        "cylinder's length, a cone's point, a pyramid's apex or a ring's or torus's hole runs " +
+        '(default z for a cylinder, cone and ring, y for a pyramid and torus). A ring is a flat ' +
+        "band, square in section (a tyre's tread, a washer); a torus is round in section. " +
+        'tube: how thick either is, hole to rim (a tyre: ring, size [300, 300, 50], tube 40); ' +
+        "without it, a ring's band is a fifth as thick as it is across, a torus a fat donut. " +
+        'Says its id.',
       inputSchema: {
-        kind: z.enum(['box', 'cylinder', 'cone', 'sphere', 'pyramid', 'torus']),
+        kind: z.enum(['box', 'cylinder', 'cone', 'sphere', 'pyramid', 'torus', 'ring']),
         size: v3.optional().describe('[w, h, d] (default [100, 100, 100]).'),
         center: v3.optional(),
         axis: axis.optional(),
         color: v3.optional().describe('[r, g, b], 0..255 (default a light grey).'),
         segments: z.number().int().min(3).max(144).optional().describe('Sides round a curve (default 72).'), // prettier-ignore
-        tube: z.number().positive().optional().describe("A torus's ring thickness, hole to rim, less than half across."), // prettier-ignore
+        tube: z.number().positive().optional().describe("A ring's or torus's thickness, hole to rim, less than half across."), // prettier-ignore
         name: z.string().optional(),
         look: lookArg,
       },

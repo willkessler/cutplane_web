@@ -46,7 +46,7 @@ describe('toolboxes through toolbox.cpl, stamp.cpl and goodies.cpl', () => {
   it('stand closed by the back wall; a click opens one, its contents stacked above it', () => {
     const w = setup();
     const prims = w.prims.children.filter((c) => w.rt.hasProp(c, 'Stamp'));
-    expect(prims).toHaveLength(5);
+    expect(prims).toHaveLength(6);
     expect(prims.some((p) => visible(w, p))).toBe(false);
     w.click(w.prims);
     expect(w.rt.hasProp(w.prims, 'Toolboxopen')).toBe(true);
@@ -56,6 +56,9 @@ describe('toolboxes through toolbox.cpl, stamp.cpl and goodies.cpl', () => {
     expect(Math.min(...bottoms)).toBeGreaterThan(top);
     // Stacked: each above the one before.
     for (let i = 1; i < bottoms.length; i++) expect(bottoms[i]!).toBeGreaterThan(bottoms[i - 1]!);
+    // The ring faces the plane, a flat band; and the stack stands well under the ceiling.
+    expect(size(w, prims[4]!).map((d) => Math.round(d))).toEqual([68, 68, 24]);
+    expect(w.rt.bbox(prims.at(-1)!)![1][1]).toBeLessThan(ROOM.max[1] - 100);
     w.click(w.prims);
     expect(prims.some((p) => visible(w, p))).toBe(false);
   });
@@ -195,7 +198,7 @@ describe('toolboxes through toolbox.cpl, stamp.cpl and goodies.cpl', () => {
     return [0, 1, 2].map((k) => b[1][k]! - b[0][k]!);
   };
   const added = (w: ReturnType<typeof setup>) =>
-    w.prims.children.filter((c) => w.rt.hasProp(c, 'Stamp')).slice(5);
+    w.prims.children.filter((c) => w.rt.hasProp(c, 'Stamp')).slice(6);
 
   it('a thing dropped on the goodies box stays in the world (only the primitives box takes it)', () => {
     const w = setup();
@@ -261,7 +264,7 @@ describe('toolboxes through toolbox.cpl, stamp.cpl and goodies.cpl', () => {
     const w = setup();
     dropOn(w, w.prims);
     expect(added(w)).toEqual([w.cube]);
-    expect(Math.max(...size(w, w.cube))).toBeCloseTo(85, 6);
+    expect(Math.max(...size(w, w.cube))).toBeCloseTo(68, 6);
     w.click(w.prims);
     w.click(w.cube);
     const copy = w.rt.picked()[0] as CutObject;
@@ -282,7 +285,7 @@ describe('toolboxes through toolbox.cpl, stamp.cpl and goodies.cpl', () => {
     w.rt.importObjects(w.rt.primary, [small]);
     dropOn(w, w.prims, small);
     expect(added(w)).toEqual([small]);
-    expect(size(w, small).map((d) => +d.toFixed(6))).toEqual([85, 42.5, 42.5]);
+    expect(size(w, small).map((d) => +d.toFixed(6))).toEqual([68, 34, 34]);
     w.click(w.prims);
     w.click(small);
     const copy = w.rt.picked()[0] as CutObject;
@@ -296,7 +299,7 @@ describe('toolboxes through toolbox.cpl, stamp.cpl and goodies.cpl', () => {
     w.rt.importObjects(w.rt.primary, [long]);
     dropOn(w, w.prims, long);
     expect(added(w)).toEqual([long]);
-    expect(size(w, long).map((d) => +d.toFixed(6))).toEqual([85, 42.5, 425]);
+    expect(size(w, long).map((d) => +d.toFixed(6))).toEqual([68, 34, 340]);
     // Opened, it stands forward, its back where the box's is (not through the back wall).
     w.click(w.prims);
     expect(w.rt.branchBox(long)![0][2]).toBeCloseTo(w.rt.bbox(w.prims)![0][2], 6);

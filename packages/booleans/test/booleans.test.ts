@@ -2,7 +2,9 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import {
   createCube,
   createOvalCone,
+  createOvalCylinder,
   createSphere,
+  createTorus,
   mat4,
   validate,
   volume,
@@ -114,6 +116,23 @@ describe('booleans through manifold-3d, back to polygon faces', () => {
       'union',
     );
     expect(r).not.toBeNull();
+    expect(r).toHaveLength(1);
+    sound(brepOf(r!));
+  });
+
+  it('a ring less a bigger copy on its axis (a tyre trimmed): slivers that fold flat go', () => {
+    // The primitives box's ring, hollowed by a cylinder, then cut by a copy of itself made
+    // larger, on the one axis (as a person placed them, turned and scaled by hand): the
+    // output repeats a vertex, a sliver's corners merged, and its edges hid a neighbour's
+    // from the face's boundary, so a face went and the cut was refused.
+    const up = mat4.rotationAbout([0, 0, 0], [1, 0, 0], -Math.PI / 2);
+    const hole = { brep: createOvalCylinder(20, 20, 40, 72), xform: mat4.multiply(T(0, 0, -20), up) }; // prettier-ignore
+    const hollow = booleanSolids({ brep: createTorus(23.8, 10.2, 72), xform: mat4.identity() }, hole, 'subtract'); // prettier-ignore
+    expect(hollow).toHaveLength(1);
+    const tyre = brepOf(hollow!);
+    const placed = (s: number, e: number) =>
+      new Float64Array([s, 3.5e-17, 7.8e-15, 0, 1.4e-15, e, s, 0, 8.3e-32, -s, 2.3e-16, 0, -249.91852054238825, 60.306118320636074, -495.25, 1]); // prettier-ignore
+    const r = booleanSolids({ brep: tyre, xform: placed(3.67989606336737, 9.5e-16) }, { brep: tyre, xform: placed(5.256538621543959, 7e-16) }, 'subtract'); // prettier-ignore
     expect(r).toHaveLength(1);
     sound(brepOf(r!));
   });

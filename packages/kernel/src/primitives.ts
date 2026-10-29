@@ -111,6 +111,27 @@ export function createTorus(ring: number, tube: number, segments: number): Brep 
   return b;
 }
 
+/**
+ * New: a flat ring (a tyre's band, a washer), `outer` and `inner` round and `depth` long
+ * along z from 0: its sides are whole faces with a hole, built as createCubeHole is.
+ */
+export function createRing(outer: number, inner: number, depth: number, segments: number): Brep {
+  const b = new Brep();
+  // The rim clockwise seen from +z, so the lamina's front faces −z; the hole the other way.
+  const rim = oval(outer, outer, segments, depth).reverse();
+  const { front, back } = makeLamina(b, rim);
+  const out = b.loopHe(b.faceLoop(front));
+  const hole = oval(inner, inner, segments, depth);
+  const strut = mev(b, out, out, ...hole[0]!);
+  kemr(b, strut.edge, strut.he);
+  let h = strut.he;
+  for (const [x, y, z] of hole.slice(1)) h = mev(b, h, h, x, y, z).he;
+  const { face: plug } = mef(b, h, strut.he);
+  kfmrh(b, back, plug);
+  extrudeFace(b, front, 0, 0, -depth);
+  return b;
+}
+
 /** A thick paraboloid dish, revolved about y and turned to face +z. */
 export function createParaboloid(
   width: number,

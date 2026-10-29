@@ -221,7 +221,7 @@ second), the **grabber** (always picks whole objects), the **ruler**, and the **
   Double-click with the globe again to turn it off.
 
 The **toolboxes** stand on the floor at the back (Space takes the plane there). Click one to open
-it. The primitives box holds a cube, cylinder, cone, sphere and pyramid: press on one and a copy
+it. The primitives box holds a cube, cylinder, cone, sphere, flat ring and pyramid: press on one and a copy
 comes out, picked, to carry forward into the world. Drop something of your own on it (a group
 too): held over the box it turns blue, and let go it goes in as a primitive of its own, shown
 as wide or tall as the built-in ones, to stamp out copies of its own size. To take it out again, drop

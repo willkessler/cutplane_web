@@ -9,6 +9,7 @@ import {
   createPyramid,
   createSphere,
   createSquare,
+  createRing,
   extrudeFace,
   makeLamina,
   mat4,
@@ -45,9 +46,14 @@ const TOOLBOX_DEPTH = 50;
 const TOOLBOX_LEAF = 0.5;
 const TOOLBOX_MARGIN = TOOLBOX_HEIGHT;
 const TOOLBOX_LEAFROT = 350;
-const PRIMS_W = TOOLBOX_WIDTH;
-const PRIMS_H = TOOLBOX_HEIGHT;
-const PRIMS_D = TOOLBOX_DEPTH;
+/**
+ * New here: the primitives a fifth smaller than tools.h had them, so that with the torus
+ * the stack still stands in the plane's sight when the box is open.
+ */
+const PRIMS_SCALE = 0.8;
+const PRIMS_W = TOOLBOX_WIDTH * PRIMS_SCALE;
+const PRIMS_H = TOOLBOX_HEIGHT * PRIMS_SCALE;
+const PRIMS_D = TOOLBOX_DEPTH * PRIMS_SCALE;
 const PRIMS_MARGIN = PRIMS_H / 5;
 const PRIMS_RES = 72; // 14 in 1991, when polygons were dear
 /**
@@ -158,11 +164,15 @@ export function setupPrimsToolbox(rt: Runtime): CutObject {
   rt.setName(toolbox, 'Primsbox');
   rt.discard(cube);
 
+  // New here: a flat ring (a tyre's band, a washer), facing the plane. (The 1991 kernel's
+  // donut only tested the Euler code; a ring like this is the commoner thing.)
+  const ring = createRing(PRIMS_W / 2, PRIMS_W * 0.32, PRIMS_D * 0.6, PRIMS_RES);
   const prims = [
     createCube(PRIMS_W, PRIMS_H * 0.75, PRIMS_D),
     createOvalCylinder(PRIMS_W / 2, PRIMS_H / 2, PRIMS_D, PRIMS_RES),
     createOvalCone(PRIMS_W / 2, PRIMS_H / 2, PRIMS_D, PRIMS_RES),
     createSphere(PRIMS_W / 2, PRIMS_RES),
+    ring,
     createPyramid(PRIMS_W * 1.5, PRIMS_H * 1.5, PRIMS_D * 1.5),
   ];
   for (const b of prims) {
