@@ -80,7 +80,7 @@ what is picked.
 | `scale_objects`   | Scaled by a factor (or [fx, fy, fz]), or to a size (`null` where it stays), about a point.                                                                                                                                                                                      |
 | `copy_objects`    | `count` copies, each from the one before, scaled, turned (`rotate`) and moved (`by`): a row, or a ring about a centre, in one call.                                                                                                                                             |
 | `delete_objects`  | Gone, a group with its parts.                                                                                                                                                                                                                                                   |
-| `paint_objects`   | A colour, in every part; one face of an object (`face: "+y"`); `all_faces` paints over a cut's walls too.                                                                                                                                                                       |
+| `paint_objects`   | A colour, in every part; one face of an object (`face: "+y"`); `all_faces` paints over a cut's walls too; `opacity` (0..1) makes it see-through glass.                                                                                                                          |
 | `name_object`     | A name, saved with it.                                                                                                                                                                                                                                                          |
 | `pick_objects`    | Picked whole, nothing else: for a key (D, `\`) or a tool used by hand afterwards.                                                                                                                                                                                               |
 | `group_objects`   | Grouped as G groups them; `ungroup_object` takes a group apart.                                                                                                                                                                                                                 |
@@ -161,7 +161,9 @@ The server tells an agent the same when it connects (its instructions, `INSTRUCT
   it somewhere clear: its bars stand close to the rotate tool's dial, and a press meant for a
   bar can turn everything picked. A bar dragged sets what is picked to all three bars' colour,
   and picking something sets the bars to its colour, so pick first, then drag each bar.
-  Ctrl-A, then a bar, paints everything.
+  Ctrl-A, then a bar, paints everything. Glass (a window pane, a cover over a works) is
+  `paint_objects` with `opacity: 0.5`, or the glass chip beside the paint chip dragged onto it;
+  `opacity: 1` makes it solid again.
 - **Primitives and cuts.** A primitive comes from the primitives box (`locate prims`, click it
   open, drag a stamp out); its cylinder's axis is the depth (z), so stand it up with R. The drill
   copies what it presses and, let go (in place, if the cutter is already where it should cut),

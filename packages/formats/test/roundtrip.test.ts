@@ -49,3 +49,16 @@ describe.skipIf(corpus.length === 0)('1991–94 archive corpus', () => {
     check(p),
   );
 });
+
+describe('a see-through object (new)', () => {
+  it('keeps its opacity; a solid one writes none', async () => {
+    const { createCube, createObject } = await import('@cutplane/kernel');
+    const glass = createObject(createCube(10, 10, 10), { opacity: 0.5 });
+    const solid = createObject(createCube(10, 10, 10));
+    const text = writeCut({ title: 't', contains: 'World', name: null, roots: [glass, solid] });
+    expect(text.match(/Object Opacity:/g)).toHaveLength(1);
+    const [a, b] = readCut(text).doc.roots;
+    expect(a!.opacity).toBe(0.5);
+    expect(b!.opacity).toBeUndefined();
+  });
+});

@@ -227,9 +227,10 @@ too): held over the box it turns blue, and let go it goes in as a primitive of i
 as wide or tall as the built-in ones, to stamp out copies of its own size. To take it out again, drop
 one of its copies back on the box: the copy turns red over the box, and
 when you let go it goes back where you picked it up and the primitive is gone from the box (the
-five built-in ones always stay). The goodies box holds a camera (section 7), a
-light bulb and the colour control (three bars and a paint chip: drag a bar and what is picked takes
-the colour, or drag the chip onto a face to paint it). **Double-click** the colour control's base
+six built-in ones always stay). The goodies box holds a camera (section 7), a
+light bulb and the colour control (three bars, a paint chip and a glass chip: drag a bar and what
+is picked takes the colour, or drag a chip onto a face to paint it; the glass chip leaves it half
+see-through, and the paint chip makes it solid again). **Double-click** the colour control's base
 or the camera's body to put it away: it goes back into its box, which closes.
 
 **1** clears the view. With something picked, the first press draws everything else as grey wire

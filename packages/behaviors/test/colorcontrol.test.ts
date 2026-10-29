@@ -98,6 +98,49 @@ describe('the colour control through colorbar.cpl and paint.cpl', () => {
     expect(cc.chip.parent).toBe(cc.base);
   });
 
+  it('the glass chip paints see-through; the paint chip makes it solid again (new)', () => {
+    const { rt, cube, cc, controls, frame, at, move } = setup();
+    // The glass chip leans beside the paint chip, a quarter as wide (x 374–386.5).
+    expect(rt.bbox(cc.glass)![0][0]).toBeCloseTo(374);
+    expect(rt.bbox(cc.glass)![1][0]).toBeCloseTo(386.5);
+    expect(cc.glass.opacity).toBe(0.5);
+    const drop = (x: number) => {
+      at(x, -18, 0);
+      controls.pressPick(false);
+      frame();
+      move(-200, 30);
+      move(215 - x, 10); // onto the cube, as the paint chip test goes
+      controls.releasePick();
+      frame();
+    };
+    // The bars colour both chips: drag red down to nothing.
+    at(215, 50, 0);
+    controls.pressPick(false);
+    frame();
+    move(0, -300);
+    controls.releasePick();
+    frame();
+    const cyan = [...cc.chip.color];
+    expect(cyan[0]).toBe(0);
+    expect(cc.glass.color).toEqual(cyan);
+    expect(cc.glass.opacity).toBe(0.5);
+    // Pressed near its left edge, beside the paint chip: still the glass.
+    drop(375.5);
+    expect(cube.color).toEqual(cyan);
+    expect(cube.opacity).toBe(0.5);
+    // The chip itself stays as it was; its copy is gone.
+    expect(cc.glass.parent).toBe(cc.base);
+    expect(rt.environment.root.children.filter((o) => rt.hasProp(o, 'Paint'))).toHaveLength(0);
+    // One step: undone, the cube is solid again; redone, see-through.
+    rt.undo();
+    expect(cube.opacity).toBeUndefined();
+    rt.redo();
+    expect(cube.opacity).toBe(0.5);
+    drop(345);
+    expect(cube.color).toEqual(cyan);
+    expect(cube.opacity).toBeUndefined();
+  });
+
   it('a bar drawn down to its least is still the bar’s to take, not the base’s (cutplane_web)', () => {
     const { rt, cc, controls, frame, at, move } = setup();
     at(215, 50, 0);

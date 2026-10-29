@@ -191,7 +191,13 @@ Like everything else, the tools stand in the room and are used through the plane
   on a base, and a white paint chip. Drag a bar's top up or down and what is picked takes the
   mixed colour as you go. Drag the chip and a copy comes away with the crosshair; carry it to a
   face or an object (move the plane with it) and let go to paint it there. A face painted on its
-  own keeps its colour when its object is recoloured. Drag the **base** to bring the whole
+  own keeps its colour when its object is recoloured. New here: the narrow **glass chip** beside
+  the paint chip paints the same way but leaves the thing half see-through (opacity 0.5). Such a
+  thing is shaded as glass, with more sheen where it is seen edge-on and a glint from above, and
+  draws over what is behind it. The paint chip makes it solid again; the bars recolour it and
+  leave it see-through. A thing's opacity is the whole object's: a face dropped on goes
+  see-through with its object. .cut files keep it in a new `Object Opacity:` line, and glTF
+  exports it as a blended material. Drag the **base** to bring the whole
   control along, up beside what you are colouring (move the plane while holding it to carry it
   forward).
 

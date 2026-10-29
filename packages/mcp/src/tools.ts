@@ -82,7 +82,9 @@ export const INSTRUCTIONS = [
     'handle, or the press takes and drags that instead.',
   'To paint, open the goodies box for the colour control and move it clear of the rotate ' +
     "tool's dial (a press there turns all that is picked). Picking sets the bars to the " +
-    "thing's colour; dragging a bar gives what is picked all three bars' colour. Pick first.",
+    "thing's colour; dragging a bar gives what is picked all three bars' colour. Pick first. " +
+    'The narrow chip beside the paint chip is glass: dragged onto a thing, it makes it that ' +
+    'colour half see-through; the paint chip makes it solid again.',
   'A primitive comes from the primitives box (locate prims, click it open, drag a stamp ' +
     "out); its cylinder's axis is the depth (z). The drill (on the tools' rail) presses on " +
     'an object and cuts its copy from all it overlaps when let go; let go in place, it cuts ' +
@@ -538,12 +540,15 @@ export function addTools(
       description:
         'Gives things a colour, every part of a group. Faces with colours of their own (a ' +
         "cut's walls take the cutter's) keep them, unless all_faces. face: only that face of " +
-        'one object ("+x"… the side it faces, or its index in inspect).',
+        'one object ("+x"… the side it faces, or its index in inspect). opacity: see-through ' +
+        "glass (0.5 is the colour control's glass chip; 1 makes it solid again); a window " +
+        'pane, a cover over a works. Left out, a thing keeps how see-through it was.',
       inputSchema: {
         objects,
         color: v3.describe('[r, g, b], 0..255.'),
         face: z.union([z.enum(['+x', '-x', '+y', '-y', '+z', '-z']), z.number().int()]).optional(),
         all_faces: z.boolean().optional(),
+        opacity: z.number().min(0).max(1).optional(),
         look: lookArg,
       },
     },

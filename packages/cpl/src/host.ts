@@ -80,8 +80,10 @@ export interface Host {
   setName(obj: Feature, name: string | null): void;
   label(obj: Feature, n: number): string | null;
   setLabel(obj: Feature, n: number, text: string | null): void;
-  color(f: Feature): [number, number, number];
-  setColor(f: Feature, rgb: Vec3): void;
+  /** r, g, b, and (new) how opaque, if the host says. */
+  color(f: Feature): number[];
+  /** A fourth number, if there, is how opaque (new). */
+  setColor(f: Feature, rgb: readonly number[]): void;
 
   // ---- selection (select.c) ----
 

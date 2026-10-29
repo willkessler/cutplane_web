@@ -324,6 +324,7 @@ async function loadCpl(): Promise<void> {
     'rotatexbar.cpl',
     'scalebbox.cpl',
     'goodies.cpl',
+    'colorbar.cpl',
   ]);
   await Promise.all(
     CPL_FILES.map(async (f) => {

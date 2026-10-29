@@ -185,6 +185,8 @@ function readObject(L: Lines, warn: (m: string) => void): { object: CutObject; p
   const bbox = L.maybe(/^Object Screenbboxtechnique:(.*)$/);
   if (bbox) object.screenBBoxTechnique = rest(bbox);
   if (L.maybe(/^Object Photo colours$/)) object.attrs.photo = true;
+  const opacity = L.maybe(/^Object Opacity:\s*(\S+)/);
+  if (opacity) object.opacity = Math.max(0, Math.min(1, Number(opacity[1])));
   const code = L.maybe(/^Object CPL private code:\s*(\d+)/);
   if (code) object.attrs.privateSource = L.code(n(code));
 

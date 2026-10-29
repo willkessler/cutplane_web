@@ -12,6 +12,19 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 28, 2026
 
+- **Glass: a see-through paint.** The colour control's paint chip has a narrow glass chip beside
+  it. Drag it onto a thing and the thing takes the chip's colour half see-through, with a sheen
+  where it is seen edge-on and a glint from the light above, so a pane reads as glass. The paint
+  chip makes it solid again. The bars colour both chips. Kept in .cut files, undone like any
+  paint, and exported to glTF as a blended, glossy material. `paint_objects` takes `opacity`.
+- **The TMB-1, as Also built it.** The sample bike now shows what sets it apart: no chain. The
+  pedals turn a generator, and the traction motor drives the rear wheel by a belt in the arm.
+  Both are seen through a smoked glass cover on the drive side. The battery pops in with its
+  purple fold-out handle. The frame is round, a step-through with no top tube, as are the seat
+  post, stem and fork legs. The saddle is a saddle, broad behind with a narrow nose, on rails.
+- **The EVA pod's and the Moonbus's windows are glass**, so the pod's cabin shows through its
+  port.
+
 - **A ring in the primitives box.** The box holds a flat ring now, a band square in section
   (a tyre's tread, a washer) with its sides whole faces, as well as the cube, cylinder, cone,
   sphere and pyramid. All six are a fifth smaller than before, so the stack stays in sight when
@@ -27,8 +40,8 @@ New in 2026: none of these were in the 1991 original.
   with the same names, so the box's new ring came back with the old torus's turn, edge on. A
   kept room now fits only one whose shapes are the same too; otherwise the room is built fresh.
 - **A new sample: the Also TMB-1.** The electric bike, built by an agent with the direct calls:
-  spoked wheels, the motor block with its battery cover, pedals and chain, the frame, fork, bars
-  and saddle. It's in the model menu.
+  spoked wheels, the motor block with its battery, pedals, the frame, fork, bars and saddle. It's
+  in the model menu.
 - **A torus of any thickness.** `add_primitive` takes `tube` for a torus: how thick its ring
   is, so a tyre or a rim comes out as one, where before it was always a fat donut with a small
   hole. And `clearance` no longer calls two parts that only touch (a pane resting on its window

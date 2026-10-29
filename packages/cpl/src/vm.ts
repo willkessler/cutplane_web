@@ -1543,7 +1543,9 @@ const OPS: Partial<Record<number, OpFn>> = {
     const { AS, AD } = vm;
     if (AS.type === W.Features && AD.type === W.Aux) {
       const f = first(AS);
-      if (f) vm.host.setColor(f, [AD.vec?.[0] ?? 0, AD.vec?.[1] ?? 0, AD.vec?.[2] ?? 0]);
+      const v = AD.vec ?? [];
+      // A fourth number (the glass chip's) is how opaque: new.
+      if (f) vm.host.setColor(f, [v[0] ?? 0, v[1] ?? 0, v[2] ?? 0, ...v.slice(3, 4)]);
     }
   },
 

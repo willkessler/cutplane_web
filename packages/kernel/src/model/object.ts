@@ -22,6 +22,8 @@ export interface CutObject {
   /** World → local, kept alongside `xform` as the original does. */
   invXform: Mat4;
   color: Rgb;
+  /** New: how much it hides what is behind it, 0..1; unset, all (a solid). The glass chip's 0.5. */
+  opacity?: number;
   attrs: FeatureAttrs;
   primitive?: PrimitiveInfo;
   selectTechnique: string;

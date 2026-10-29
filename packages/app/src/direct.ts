@@ -215,6 +215,7 @@ export class Direct {
       id: this.idOf(o),
       ...(o.name ? { name: o.name } : {}),
       color: [...o.color],
+      ...(o.opacity !== undefined ? { opacity: o.opacity } : {}),
       ...(b
         ? {
             box: b.map((p) => p.map(r1)),
@@ -458,7 +459,13 @@ export class Direct {
 
   paint(a: Args): Args {
     const os = this.resolve(a['objects']);
-    const rgb = vec(a['color'], 'color').map((c) => Math.max(0, Math.min(255, Math.round(c)))) as V3; // prettier-ignore
+    const rgb: number[] = vec(a['color'], 'color').map((c) => Math.max(0, Math.min(255, Math.round(c)))); // prettier-ignore
+    // How opaque (new): 0.5 is the glass chip's; 1 makes a see-through thing solid again.
+    const op = a['opacity'];
+    if (op !== undefined) {
+      if (typeof op !== 'number' || !(op >= 0 && op <= 1)) throw new Error('opacity: 0..1');
+      rgb.push(op);
+    }
     const side = a['face'];
     if (side !== undefined) {
       if (os.length !== 1) throw new Error('face: of one object');

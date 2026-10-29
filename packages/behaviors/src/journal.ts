@@ -12,6 +12,7 @@ export interface ObjectSnapshot {
   xform: Mat4;
   invXform: Mat4;
   color: Rgb;
+  opacity?: number;
   props: string[];
   name: string | null;
 }
@@ -34,6 +35,7 @@ export function snapshotObject(o: CutObject): ObjectSnapshot {
     xform: o.xform.slice(),
     invXform: o.invXform.slice(),
     color: [...o.color],
+    ...(o.opacity === undefined ? {} : { opacity: o.opacity }),
     props: [...o.attrs.props],
     name: o.name,
   };
@@ -80,6 +82,7 @@ export function restoreTree(root: CutObject, t: TreeSnapshot): void {
 const sameSnap = (a: ObjectSnapshot, b: ObjectSnapshot) =>
   a.xform.every((v, i) => v === b.xform[i]) &&
   a.color.every((v, i) => v === b.color[i]) &&
+  a.opacity === b.opacity &&
   a.name === b.name &&
   sameBrep(a.brep, b.brep);
 

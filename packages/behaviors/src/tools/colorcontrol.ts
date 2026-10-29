@@ -5,7 +5,9 @@ import type { Runtime, V3 } from '../runtime.ts';
 /**
  * The colour control (tools.c's create_color_control): a base (Goodies, so
  * goodies.cpl drags it), three bars (Colorbar: colorbar.cpl) whose top faces
- * are their Hotspots, and a white paint chip (Paint: paint.cpl). The C
+ * are their Hotspots, and a white paint chip (Paint: paint.cpl). New here: a
+ * glass chip beside it, a quarter as wide, paints the same colour half see-through
+ * (opacity 0.5); the paint chip makes a thing solid again. The C
  * routines it calls are here: control_color limits a bar's drag and works out
  * the colour, set_color_bars sets the bars to a picked thing's colour.
  *
@@ -19,10 +21,14 @@ const PK = 10; // Pkboxsize
 export const COLORBAR_HEIGHT = 100;
 export const MIN_COLORBAR_HEIGHT = 5;
 const CHIP_DEPTH = 5;
+/** New: between the paint chip and the glass chip. */
+const GLASS_GAP = 4;
 
 export interface ColorControl {
   base: CutObject;
   chip: CutObject;
+  /** New: the paint chip's see-through quarter (Glasschip). */
+  glass: CutObject;
   bars: [CutObject, CutObject, CutObject];
 }
 
@@ -52,6 +58,18 @@ export function createColorControl(rt: Runtime, corner: V3, width = 120): ColorC
     'Colorcontrol',
   );
   const tilt = mat4.rotationAbout([0, 0, 0], [1, 0, 0], (-45 * Math.PI) / 180);
+  // The glass chip comes first, and a little apart from the paint chip: a press takes the
+  // first thing with an edge within 12 of it, and the glass, a quarter as wide, would be the
+  // paint chip's nearly all over. So the paint chip gives up the 8 nearest the glass instead.
+  const glass = make(
+    createCube((height + PK) / 4, Math.hypot(depth, height), CHIP_DEPTH),
+    mat4.multiply(tilt, at(width + height + PK + GLASS_GAP, 0, depth)),
+    [255, 255, 255],
+    'Glasschip',
+  );
+  glass.opacity = 0.5;
+  rt.addProp(glass, 'Paint');
+  rt.adopt(base, glass, true);
   const chip = make(
     createCube(height + PK, Math.hypot(depth, height), CHIP_DEPTH),
     mat4.multiply(tilt, at(width, 0, depth)),
@@ -76,11 +94,11 @@ export function createColorControl(rt: Runtime, corner: V3, width = 120): ColorC
     return bar;
   }) as [CutObject, CutObject, CutObject];
   rt.addProp(base, 'Goodies');
-  for (const o of [base, chip, ...bars]) rt.addProp(o, 'Lockedgeometry');
-  return { base, chip, bars };
+  for (const o of [base, chip, glass, ...bars]) rt.addProp(o, 'Lockedgeometry');
+  return { base, chip, glass, bars };
 }
 
-/** The bars a base carries, in order (the children with no name: not the chip). */
+/** The bars a base carries, in order (the children with no name: not the chips). */
 function barsOf(base: CutObject): CutObject[] {
   return base.children.filter((c) => c.name === null);
 }

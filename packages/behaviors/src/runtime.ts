@@ -1576,25 +1576,39 @@ export class Runtime implements Host {
     this.version++;
   }
 
-  color(f: Feature): V3 {
+  /** The colour, and (new) after it how opaque the object is: 1 a solid, the glass chip's 0.5. */
+  color(f: Feature): number[] {
     if (isSub(f) && f.type === T.Fve) {
       const c = f.object.brep.faceColors.get(f.id);
-      return c ? [...c] : [...f.object.color];
+      return [...(c ?? f.object.color), f.object.opacity ?? 1];
     }
     const o = isObject(f) ? f : isSub(f) ? f.object : null;
-    return o ? [...o.color] : [0, 0, 0];
+    return o ? [...o.color, o.opacity ?? 1] : [0, 0, 0, 1];
   }
 
-  /** set_feature_color: an object takes the colour (its faces keep their own); a face alone. */
-  setColor(f: Feature, rgb: Vec3): void {
+  /**
+   * set_feature_color: an object takes the colour (its faces keep their own); a face alone.
+   * New: a fourth number is how opaque a thing being edited is (the glass chip's paint); the
+   * bars' colour has none, and leaves it. (The goodies keep theirs: the bulb painted with the
+   * glass chip is not see-through.)
+   */
+  setColor(f: Feature, rgb: readonly number[]): void {
     const c: V3 = [rgb[0] ?? 0, rgb[1] ?? 0, rgb[2] ?? 0];
+    const o = isSub(f) ? f.object : isObject(f) ? f : null;
+    const a = rgb[3];
+    const opacity =
+      o && a !== undefined && this.worldOf(o) === this.primary
+        ? a >= 1 ? undefined : Math.max(0, a) // prettier-ignore
+        : o?.opacity;
     if (isSub(f) && f.type === T.Fve) {
       if (this.worldOf(f.object) === this.primary) this.journal.touch(f.object);
       f.object.brep.faceColors.set(f.id, c);
+      setOpacity(f.object, opacity);
       this.changed(f.object);
     } else if (isObject(f)) {
       if (this.worldOf(f) === this.primary) this.journal.touch(f);
       f.color = c;
+      setOpacity(f, opacity);
       this.changed(f);
     }
   }
@@ -2129,6 +2143,8 @@ export class Runtime implements Host {
     o.xform = s.xform.slice();
     o.invXform = s.invXform.slice();
     o.color = [...s.color];
+    if (s.opacity === undefined) delete o.opacity;
+    else o.opacity = s.opacity;
     o.name = s.name;
     this.vm.props.forget(o);
     for (const h of this.features.known(o)) this.vm.props.forget(h);
@@ -2293,4 +2309,9 @@ function sameShape(a: Brep, b: Brep): boolean {
     const q = b.vertexPos(vb[i]!);
     return p[0] === q[0] && p[1] === q[1] && p[2] === q[2];
   });
+}
+
+function setOpacity(o: CutObject, opacity: number | undefined): void {
+  if (opacity === undefined) delete o.opacity;
+  else o.opacity = opacity;
 }

@@ -47,17 +47,18 @@ export async function writeGlb(
   const scene = doc.createScene(title);
   doc.getRoot().setDefaultScene(scene);
   const materials = new Map<string, Material>();
-  const material = (c: Rgb) => {
-    const k = c.join(',');
+  // A see-through object's (opacity under 1) blends, and is glossy as glass is.
+  const material = (c: Rgb, opacity = 1) => {
+    const k = `${c.join(',')},${opacity}`;
     let m = materials.get(k);
     if (!m) {
+      const hex = c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
       m = doc
-        .createMaterial(
-          `color_${c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`,
-        )
-        .setBaseColorFactor([toLinear(c[0]), toLinear(c[1]), toLinear(c[2]), 1])
+        .createMaterial(`color_${hex}${opacity < 1 ? `_${Math.round(opacity * 100)}` : ''}`)
+        .setBaseColorFactor([toLinear(c[0]), toLinear(c[1]), toLinear(c[2]), opacity])
         .setMetallicFactor(0)
-        .setRoughnessFactor(1);
+        .setRoughnessFactor(opacity < 1 ? 0.1 : 1);
+      if (opacity < 1) m.setAlphaMode('BLEND').setDoubleSided(true);
       materials.set(k, m);
     }
     return m;
@@ -108,7 +109,7 @@ export async function writeGlb(
             .setAttribute('POSITION', pos)
             .setAttribute('NORMAL', nrm)
             .setAttribute(FACE, face)
-            .setMaterial(material(g.c)),
+            .setMaterial(material(g.c, o.opacity)),
         );
       }
       node.setMesh(mesh);

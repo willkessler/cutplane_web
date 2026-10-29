@@ -18,9 +18,11 @@ lamps front and roof, the antenna, jets in cubbies at the corners and four landi
 too.
 
 Not from the film: `also-tmb1.cut`, the TMB-1 electric bike from Also, also built with the
-direct calls: spoked wheels with brake discs, the motor block (black motor half, grey battery
-cover with its purple button), cranks and pedals, chainring, chain and swingarm, the grey frame,
-a black-and-gold fork, bars and saddle. One group.
+direct calls: spoked wheels with brake discs and the drive as Also built it, pedal-by-wire, with
+no chain. The pedals turn a generator, and the traction motor (its purple ring) drives the rear
+wheel by a belt in the black arm; both are seen through a smoked glass cover. The white battery
+pops in with its purple fold-out handle. The frame is round and step-through, with a
+black-and-gold fork, bars and a saddle on rails. One group.
 
 The full archive (116 files, including scratch and test files) is kept out of the repo. To run the
 corpus tests against it, put it in `corpus/cut/` (git-ignored) or point `CUTPLANE_CORPUS` at it.

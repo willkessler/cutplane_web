@@ -80,6 +80,48 @@ function standInMaterial(): THREE.ShaderMaterial {
 }
 
 /**
+ * New: a see-through object (opacity under 1: the glass chip's paint), its faces
+ * shaded as the solid ones are and blended over what is behind them. Glass shows
+ * more of itself, and the room's light, where it is seen edge-on (Fresnel), and
+ * takes a highlight where it faces halfway between the eye and the light above:
+ * a pane reads as a pane, not only a tint. It writes no depth (what is behind it
+ * still draws), and lies a little behind section lines as solids do.
+ */
+function glassMaterial(opacity: number): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    uniforms: { opacity: { value: opacity } },
+    vertexColors: true,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: 1,
+    polygonOffsetUnits: 2,
+    vertexShader: `
+      varying vec3 at;
+      varying vec3 tint;
+      void main() {
+        tint = color;
+        at = (modelMatrix * vec4(position, 1.0)).xyz;
+        gl_Position = projectionMatrix * viewMatrix * vec4(at, 1.0);
+      }`,
+    fragmentShader: `
+      uniform float opacity;
+      varying vec3 at;
+      varying vec3 tint;
+      void main() {
+        vec3 n = normalize(cross(dFdx(at), dFdy(at)));
+        vec3 v = normalize(cameraPosition - at);
+        if (dot(n, v) < 0.0) n = -n;
+        float edge = pow(1.0 - max(dot(n, v), 0.0), 3.0);
+        float glint = pow(max(dot(n, normalize(v + normalize(vec3(-0.3, 1.0, 0.4)))), 0.0), 80.0);
+        vec3 c = mix(tint, vec3(1.0), 0.5 * edge) + 0.6 * glint;
+        gl_FragColor = vec4(min(c, 1.0), min(1.0, opacity + (1.0 - opacity) * 0.6 * edge + glint));
+      }`,
+  });
+}
+
+/**
  * A stand-in's section at depth `z`: where each of its triangles, as
  * its matrix now has them, crosses the plane (x y z pairs), straight from the
  * mesh, so a turn isn't held up placing and cutting the whole B-rep.
@@ -175,7 +217,7 @@ function wireMaterial(frontOnly: boolean): THREE.ShaderMaterial {
  * only told it changed (a pick, a release) is kept as drawn.
  */
 export function shapeKey(o: CutObject): string {
-  return `${o.brep.shapeFingerprint()}:${o.color.join()}:${o.attrs.props.includes('Noshadow')}`;
+  return `${o.brep.shapeFingerprint()}:${o.color.join()}:${o.opacity ?? 1}:${o.attrs.props.includes('Noshadow')}`;
 }
 
 /** How far `now` moves things from `then`, if that is all it does (no turn, no scaling). */
@@ -270,6 +312,13 @@ export class ModelView {
   });
   private readonly wireMaterials = { frontWire: wireMaterial(true), wire: wireMaterial(false) };
   private readonly standIn = standInMaterial();
+  /** See-through objects' materials, one an opacity. */
+  private readonly glass = new Map<number, THREE.ShaderMaterial>();
+  private glassOf(opacity: number): THREE.ShaderMaterial {
+    let g = this.glass.get(opacity);
+    if (!g) this.glass.set(opacity, (g = glassMaterial(opacity)));
+    return g;
+  }
   /** How each object is drawn: `styleOf`, else solid. */
   private styleOf: (o: CutObject) => DrawStyle = () => 'solid';
 
@@ -289,7 +338,13 @@ export class ModelView {
     const mesh = m.mesh;
     if (!mesh) return;
     mesh.visible = style !== 'hidden';
-    mesh.material = style === 'solid' || style === 'hidden' ? this.material : this.unseenMaterial;
+    const opacity = m.object.opacity ?? 1;
+    mesh.material =
+      style === 'solid' || style === 'hidden'
+        ? opacity < 1
+          ? this.glassOf(opacity)
+          : this.material
+        : this.unseenMaterial;
     if (style === 'frontWire' || style === 'wire') {
       if (!m.wire) {
         m.wire = new THREE.LineSegments(wireGeometry(m), this.wireMaterials[style]);

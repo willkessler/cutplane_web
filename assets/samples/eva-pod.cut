@@ -121519,6 +121519,7 @@ Visible
 Object Selectechnique:set_object_selectable
 Object Drawtechnique:normal_draw_technique
 Object Screenbboxtechnique:Normal
+Object Opacity:0.50
 
 Number of Shells:1
 Shell 1:
