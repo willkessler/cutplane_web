@@ -31,6 +31,8 @@ export interface DecalFrame {
   height: number;
   /** As TextDecal's: the capitals lean this far (degrees) from v, towards u. */
   lean?: number;
+  /** As TextDecal's: 'start', `at` is its left end, not its middle. */
+  align?: 'start';
 }
 
 function applyDir(m: Mat4, d: readonly number[]): V3 {
@@ -49,6 +51,7 @@ export function decalFrame(o: CutObject, d: TextDecal): DecalFrame {
   const vl = cross(unit([...d.normal]), unit([...d.along]));
   const f: DecalFrame = { at, u, v, n, height: d.height * Math.hypot(...applyDir(o.xform, vl)) };
   if (d.lean) f.lean = d.lean;
+  if (d.align) f.align = d.align;
   return f;
 }
 
@@ -70,6 +73,7 @@ export function decalIn(
     along: unit(applyDir(o.invXform, f.u)),
   };
   if (f.lean) d.lean = f.lean;
+  if (f.align) d.align = f.align;
   return d;
 }
 

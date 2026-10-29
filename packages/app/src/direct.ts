@@ -519,6 +519,8 @@ export class Direct {
     const { object: o, frame: f } = best;
     const lean = leanOf(a['lean'], f);
     if (lean) f.lean = lean;
+    if (a['align'] === 'start') f.align = 'start';
+    else if (a['align'] !== undefined && a['align'] !== 'middle') throw new Error('align: "middle" or "start"'); // prettier-ignore
     this.rt.journal.touch(o);
     o.decals = [...(o.decals ?? []), decalIn(o, f, text.trim(), color)];
     this.rt.changed(o);
@@ -534,6 +536,7 @@ export class Direct {
       reads: f.u.map(r3),
       up: f.v.map(r3),
       ...(f.lean ? { lean: f.lean } : {}),
+      ...(f.align ? { align: f.align } : {}),
       size: [r1(w), r1(f.height)],
     };
   }
@@ -897,7 +900,8 @@ export function placeOn(
 
 /**
  * New: the T chip's letterer (Runtime.letterer): let go (or a click) on lettering, that;
- * else new lettering on the nearest surface, an eighth of the thing's middle size high (6 to 40).
+ * else new lettering on the nearest surface, an eighth of the thing's middle size high (6 to 40),
+ * reading along the section there (see sectionAlong).
  */
 export function letterer(rt: Runtime): NonNullable<Runtime['letterer']> {
   return (objects, at, there) => {
@@ -909,7 +913,8 @@ export function letterer(rt: Runtime): NonNullable<Runtime['letterer']> {
         const dot = (a: readonly number[]) => r[0]! * a[0]! + r[1]! * a[1]! + r[2]! * a[2]!;
         const y = dot(f.v);
         const x = dot(f.u) - Math.tan(((f.lean ?? 0) * Math.PI) / 180) * y;
-        if (Math.abs(x) <= w / 2 && Math.abs(y) <= h / 2 && Math.abs(dot(f.n)) <= depth)
+        const x0 = f.align === 'start' ? 0 : -w / 2;
+        if (x >= x0 && x <= x0 + w && Math.abs(y) <= h / 2 && Math.abs(dot(f.n)) <= depth)
           return { object: o, index };
       }
     if (there) return null;
@@ -920,6 +925,23 @@ export function letterer(rt: Runtime): NonNullable<Runtime['letterer']> {
       return Math.max(6, Math.min(40, Math.round(s[1]! / 8)));
     };
     const solid = objects.filter((o) => o.brep.faces().length > 0);
-    return placeOn(rt, solid, at, size);
+    const first = placeOn(rt, solid, at, size);
+    if (!first) return null;
+    return placeOn(rt, [first.object], at, size, sectionAlong(first.frame.n)) ?? first;
   };
+}
+
+/**
+ * The way lettering let go on a surface reads: along the section line there (where the
+ * plane, square to z, cuts the surface), so the plane set beforehand says how it runs;
+ * left to right, or, where the section runs up and down, upwards. On a surface facing
+ * the plane (no section line to speak of), level, as one reads.
+ */
+export function sectionAlong(n: readonly number[]): V3 {
+  if (Math.abs(n[2]!) > 0.9) return [1, 0, 0];
+  // The section's way: square to the surface's normal and to the plane's (z).
+  const t: V3 = [n[1]!, -n[0]!, 0];
+  const l = Math.hypot(t[0], t[1]);
+  const flip = Math.abs(t[0]) > 0.2 * l ? t[0] < 0 : t[1] < 0;
+  return flip ? [-t[0] / l, -t[1] / l, 0] : [t[0] / l, t[1] / l, 0];
 }

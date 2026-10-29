@@ -11,6 +11,7 @@ import { isObject, isSub } from '../features.ts';
 import type { Runtime } from '../runtime.ts';
 import {
   TEXT_CRTNS,
+  charstreamOf,
   joinCharstream,
   leaveCharstream,
   readPlate,
@@ -21,9 +22,10 @@ import { registerPadTechniques } from './toolbar.ts';
 /**
  * New here: lettering by hand. The T chip (Letter: letter.cpl), beside the colour
  * bars, is dragged as the paint chip is; let go on a thing, it letters it there
- * ("TEXT", in the colour its T shows) and opens the lettering plate, where what it
- * says and how far it leans are typed (lettering.cpl: Return sets them, Esc leaves
- * them). Let go on lettering already there, or click on it, the plate opens for that.
+ * ("TEXT", in the colour its T shows, starting where it was let go) and opens the
+ * lettering plate, where what it says, its size and how far it leans are typed
+ * (lettering.cpl: Tab goes on to the next, Return sets them, Esc leaves them). Let go
+ * on lettering already there, or click on it, the plate opens for that.
  */
 
 /** What new lettering says until it's typed. */
@@ -62,16 +64,23 @@ function letteringSpec(): PlateSpec {
     code: '<none>',
     labels: [
       label('Lettering:', 25, 110),
+      label('Size:', 345, 110),
       label('Lean:', 475, 110),
-      label('Return sets it, Esc leaves it. Lean: degrees, or up', 25, 15, 0.8),
+      label('Tab: next. Return sets it, Esc leaves it. Lean: degrees, or up', 25, 15, 0.8),
     ],
-    inputs: [field('LetterText', 430, 25), field('LetterLean', 100, 475)],
+    inputs: [
+      field('LetterText', 300, 25),
+      field('LetterSize', 110, 345),
+      field('LetterLean', 100, 475),
+    ],
   };
 }
 
 interface Plate {
   plate: CutObject;
   text: CutObject;
+  /** The capitals' height, in the room. */
+  size: CutObject;
   lean: CutObject;
 }
 const plates = new WeakMap<Runtime, Plate>();
@@ -90,7 +99,12 @@ export function installLettering(rt: Runtime, source: (f: string) => string): Cu
   const plate = readPlate(rt, plane, spec, source);
   for (const o of subtree(plate)) rt.addProp(o, 'Lockedgeometry');
   const named = (n: string) => plate.children.find((c) => c.name === n)!;
-  plates.set(rt, { plate, text: named('LetterText'), lean: named('LetterLean') });
+  plates.set(rt, {
+    plate,
+    text: named('LetterText'),
+    size: named('LetterSize'),
+    lean: named('LetterLean'),
+  });
   rt.vm.resolveObjectRefs();
   return plate;
 }
@@ -128,17 +142,31 @@ function listen(rt: Runtime, field: CutObject, on: boolean): void {
   rt.version++;
 }
 
-/** The plate opened for `object`'s lettering `index`: its text and lean in the fields, the text taking keys. */
+const fieldsOf = (p: Plate) => [p.text, p.size, p.lean];
+
+/** The plate opened for `object`'s lettering `index`: its text, size and lean in the fields, the text taking keys. */
 export function openLettering(rt: Runtime, object: CutObject, index: number): void {
   const p = plates.get(rt);
   const d = object.decals?.[index];
   if (!p || !d) return;
   editing.set(rt, { object, index });
   rt.setLabel(p.text, 1, d.text);
+  rt.setLabel(p.size, 1, String(Math.round(decalFrame(object, d).height * 10) / 10));
   rt.setLabel(p.lean, 1, String(d.lean ?? 0));
   show(rt, p.plate, true);
-  listen(rt, p.lean, false);
+  for (const f of fieldsOf(p)) if (f !== p.text) listen(rt, f, false);
   listen(rt, p.text, true);
+}
+
+/** Tab: the next field (round to the first) takes the keys, the first typed replacing it. */
+export function nextLetteringField(rt: Runtime, from?: CutObject): void {
+  const p = plates.get(rt);
+  if (!p) return;
+  const fields = fieldsOf(p);
+  const at = fields.findIndex((f) => f === from || (!from && charstreamOf(rt).includes(f)));
+  const next = fields[(at + 1) % fields.length]!;
+  for (const f of fields) if (f !== next) listen(rt, f, false);
+  listen(rt, next, true);
 }
 
 /** The plate put away, the lettering as it is. */
@@ -146,14 +174,14 @@ export function closeLettering(rt: Runtime): void {
   const p = plates.get(rt);
   editing.delete(rt);
   if (!p) return;
-  listen(rt, p.text, false);
-  listen(rt, p.lean, false);
+  for (const f of fieldsOf(p)) listen(rt, f, false);
   show(rt, p.plate, false);
 }
 
 /**
  * What the plate's fields say, set on the lettering: its text (none, the lettering goes),
- * and its lean, in degrees, or "up" (standing straight up in the room). One undoable step.
+ * its size (the capitals' height in the room), and its lean, in degrees, or "up"
+ * (standing straight up in the room). One undoable step.
  */
 export function applyLettering(rt: Runtime): void {
   const p = plates.get(rt);
@@ -177,6 +205,8 @@ export function applyLettering(rt: Runtime): void {
         ? Math.max(-60, Math.min(60, n))
         : (d.lean ?? 0);
     const next = { ...d, text };
+    const size = Number((rt.label(p.size, 1) ?? '').trim());
+    if (Number.isFinite(size) && size > 0) next.height = (d.height * size) / decalFrame(object, d).height; // prettier-ignore
     if (lean) next.lean = lean;
     else delete next.lean;
     object.decals = object.decals!.map((x, i) => (i === index ? next : x));
@@ -205,7 +235,9 @@ export const LETTER_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
       if (!at.frame) return;
       const color = chip.decals?.[0]?.color ?? [20, 20, 20];
       rt.journal.touch(object);
-      object.decals = [...(object.decals ?? []), decalIn(object, at.frame, LETTER_TEXT, color)];
+      // It starts where it was let go, so it stays there as what it says changes.
+      const frame = { ...at.frame, align: 'start' as const };
+      object.decals = [...(object.decals ?? []), decalIn(object, frame, LETTER_TEXT, color)];
       index = object.decals.length - 1;
       rt.changed(object);
       rt.commit();
@@ -220,6 +252,10 @@ export const LETTER_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
     if (!chip || !t) return;
     chip.decals = [{ ...t, color: [c[0] ?? 0, c[1] ?? 0, c[2] ?? 0] }];
     rt.changed(chip);
+  },
+  /** (the field Tab was typed in) */
+  next_lettering(rt, vm) {
+    nextLetteringField(rt, objectOf(first(vm.pop())) ?? undefined);
   },
   apply_lettering(rt, vm) {
     vm.pop();

@@ -8,6 +8,7 @@ import {
   mat4,
   type CutObject,
 } from '@cutplane/kernel';
+import { sectionAlong } from '../direct.ts';
 import { decalFrame, decalIn, eigen3, placeDecal, projectDecal, uprightLean } from './decals.ts';
 import { triangulate } from './models.ts';
 
@@ -112,7 +113,7 @@ describe('decals (new): lettering laid on a surface', () => {
     expect(back.height).toBeCloseTo(8);
   });
 
-  it('leaning, is laid as a slanted box; upright stands its sides up in the room', () => {
+  it('leaning, is laid as a slanted box; upright stands its sides up in the room; from its start', () => {
     const box = createObject(createCube(200, 200, 200));
     const b = tris(box);
     const f = { ...placeDecal(b.pos, b.normals, [100, 100, 210], 10), lean: 45 };
@@ -122,6 +123,12 @@ describe('decals (new): lettering laid on a surface', () => {
     // Its top is 10 over (tan 45° × half its height), its bottom 10 back: as wide, slanted.
     expect(Math.max(...xs((y) => y > 109.99))).toBeCloseTo(135);
     expect(Math.min(...xs((y) => y < 90.01))).toBeCloseTo(65);
+    // Laid from its start: from `at` on the way it reads, not either side of it.
+    const s = projectDecal(b.pos, { ...f, lean: 0, align: 'start' as const }, 50, 20, 20);
+    const sx = s.pos.filter((_, i) => i % 3 === 0);
+    expect(Math.min(...sx)).toBeCloseTo(100);
+    expect(Math.max(...sx)).toBeCloseTo(150);
+    expect(Math.min(...s.uv.filter((_, i) => i % 2 === 0))).toBeCloseTo(0);
     // On a hull tilted 8° (reading along it), upright leans back by the tilt.
     const t = (8 * Math.PI) / 180;
     const u: [number, number, number] = [0, -Math.sin(t), Math.cos(t)];
@@ -130,5 +137,19 @@ describe('decals (new): lettering laid on a surface', () => {
     expect(uprightLean({ at: [0, 0, 0], u, v, n, height: 10 })).toBeCloseTo(-8, 1);
     // Lying flat, there's no up to stand to.
     expect(uprightLean({ at: [0, 0, 0], u: [1, 0, 0], v: [0, 0, -1], n: [0, 1, 0], height: 10 })).toBe(0); // prettier-ignore
+  });
+
+  it('let go by hand, reads along the section; facing the plane, level', () => {
+    const s = Math.SQRT1_2;
+    // A hull's flank, the plane cutting along it: reads left to right along the cut.
+    close(sectionAlong([0, s, s]), [1, 0, 0]);
+    close(sectionAlong([0, -s, s]), [1, 0, 0]);
+    // A side wall the plane cuts up and down: reads upwards.
+    close(sectionAlong([1, 0, 0]), [0, 1, 0]);
+    close(sectionAlong([-s, 0, s]), [0, 1, 0]);
+    // A slope: along it, rightwards.
+    close(sectionAlong([-s, s, 0]), [s, s, 0]);
+    // Facing the plane: level.
+    close(sectionAlong([0.1, 0, 0.99]), [1, 0, 0]);
   });
 });

@@ -64,7 +64,7 @@ describe('a see-through object (new)', () => {
 });
 
 describe('lettering on an object (new)', () => {
-  it('keeps its decals, what they say last, bars and all, and how they lean', async () => {
+  it('keeps its decals, what they say last, bars and all, how they lean, and where they start', async () => {
     const { createCube, createObject } = await import('@cutplane/kernel');
     const o = createObject(createCube(10, 10, 10), {
       decals: [
@@ -73,6 +73,9 @@ describe('lettering on an object (new)', () => {
         { text: 'Lean 5|2001', color: [9, 9, 9], height: 2, at: [5, 5, 10], normal: [0, 0, 1], along: [1, 0, 0], lean: -8.13 }, // prettier-ignore
         { text: 'Lean 5|unleaned', color: [9, 9, 9], height: 2, at: [5, 5, 10], normal: [0, 0, 1], along: [1, 0, 0] }, // prettier-ignore
         { text: 'Lean 5', color: [9, 9, 9], height: 2, at: [5, 5, 10], normal: [0, 0, 1], along: [1, 0, 0] }, // prettier-ignore
+        { text: 'NASA', color: [9, 9, 9], height: 2, at: [5, 5, 10], normal: [0, 0, 1], along: [1, 0, 0], align: 'start', lean: 4 }, // prettier-ignore
+        { text: 'Start|here', color: [9, 9, 9], height: 2, at: [5, 5, 10], normal: [0, 0, 1], along: [1, 0, 0] }, // prettier-ignore
+        { text: 'Start|Lean 3|x', color: [9, 9, 9], height: 2, at: [5, 5, 10], normal: [0, 0, 1], along: [1, 0, 0], align: 'start' }, // prettier-ignore
       ],
     });
     const text = writeCut({ title: 't', contains: 'World', name: null, roots: [o] });

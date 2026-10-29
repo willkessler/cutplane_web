@@ -88,6 +88,7 @@ export const CRTN_NAMES = [
   // cutplane_web: the T chip's lettering (letter.cpl), and its plate's fields (lettering.cpl).
   'letter_on',
   'letter_color',
+  'next_lettering',
   'apply_lettering',
   'close_lettering',
 ] as const;

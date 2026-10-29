@@ -99,12 +99,14 @@ describe('the T chip and the lettering plate (new)', () => {
     expect(d.text).toBe('TEXT');
     expect(d.color).toEqual(cc.letter.decals![0]!.color);
     expect(d.at).toEqual([100, 120, 200]); // the room's (0, 20, 100)
+    expect(d.align).toBe('start'); // it starts where it was let go
     // The copy is gone; the chip stays on the control.
     expect(cc.letter.parent).toBe(cc.base);
     expect(rt.environment.root.children.filter((o) => rt.hasProp(o, 'Letter'))).toHaveLength(0);
     // The plate is open on it, the text field taking keys: the first replaces it.
     expect(shown()).toBe(true);
     expect(rt.label(p.text, 1)).toBe('TEXT');
+    expect(rt.label(p.size, 1)).toBe('20');
     expect(rt.label(p.lean, 1)).toBe('0');
     expect(charstreamOf(rt)).toEqual([p.text]);
     type(['PAN AM', CR]);
@@ -133,6 +135,23 @@ describe('the T chip and the lettering plate (new)', () => {
     expect(cube.decals![0]!.lean).toBe(12);
     expect(cube.decals![0]!.text).toBe('ORION');
     expect(shown()).toBe(false);
+  });
+
+  it('Tab goes on from field to field (round to the first); the size is typed', () => {
+    const { rt, cube, p, drop, type, shown } = setup();
+    drop(0, 20);
+    const TAB = 0x09;
+    type([TAB]);
+    expect(charstreamOf(rt)).toEqual([p.size]);
+    type(['8', TAB]);
+    expect(charstreamOf(rt)).toEqual([p.lean]);
+    type([TAB]);
+    expect(charstreamOf(rt)).toEqual([p.text]);
+    type(['WING', CR]);
+    expect(shown()).toBe(false);
+    expect(cube.decals![0]!.text).toBe('WING');
+    expect(cube.decals![0]!.height).toBeCloseTo(8);
+    expect(cube.decals![0]!.lean).toBeUndefined();
   });
 
   it('Esc leaves it as it was; Return on nothing takes the lettering off', () => {

@@ -83,13 +83,16 @@ export function projectDecal(
   depth: number,
 ): { pos: number[]; uv: number[]; from: number[] } {
   const out = { pos: [] as number[], uv: [] as number[], from: [] as number[] };
-  const lim: [0 | 1 | 2, number][] = [
-    [0, -w / 2],
-    [0, w / 2],
-    [1, -h / 2],
-    [1, h / 2],
-    [2, -depth],
-    [2, depth],
+  // Laid from its start, it runs from `at` the way it reads; else either side of it.
+  const x0 = f.align === 'start' ? 0 : -w / 2;
+  // Each side of the box: the axis, the bound, and whether it's the least kept.
+  const lim: [0 | 1 | 2, number, boolean][] = [
+    [0, x0, true],
+    [0, x0 + w, false],
+    [1, -h / 2, true],
+    [1, h / 2, false],
+    [2, -depth, true],
+    [2, depth, false],
   ];
   // Leaning, the picture's up is v + k·u: a point x·u + y·v is at (x − k·y, y) in it.
   const k = Math.tan(((f.lean ?? 0) * Math.PI) / 180);
@@ -102,8 +105,8 @@ export function projectDecal(
       const y = dot(r, f.v);
       return [dot(r, f.u) - k * y, y, dot(r, f.n)];
     });
-    for (const [k, c] of lim) {
-      const keep = (q: V3) => (c < 0 ? q[k] >= c : q[k] <= c);
+    for (const [k, c, least] of lim) {
+      const keep = (q: V3) => (least ? q[k] >= c : q[k] <= c);
       const next: V3[] = [];
       for (let i = 0; i < poly.length; i++) {
         const a = poly[i]!;
@@ -122,7 +125,7 @@ export function projectDecal(
     for (let i = 1; i + 1 < poly.length; i++)
       for (const q of [poly[0]!, poly[i]!, poly[i + 1]!]) {
         out.pos.push(...world(q));
-        out.uv.push(q[0] / w + 0.5, q[1] / h + 0.5);
+        out.uv.push((q[0] - x0) / w, q[1] / h + 0.5);
       }
     for (let i = 1; i + 1 < poly.length; i++) out.from.push(t / 9);
   }

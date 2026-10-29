@@ -1310,6 +1310,7 @@ window.addEventListener('keydown', (e) => {
       ArrowRight: 0x06,
       Enter: 0x0d,
       Escape: 0x1b,
+      Tab: 0x09, // (not the browser's: it would take the keys away from the room)
     };
     const code = special[e.key] ?? (e.key.length === 1 ? e.key.charCodeAt(0) : undefined);
     if (code !== undefined) {

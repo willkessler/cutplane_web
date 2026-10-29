@@ -2,8 +2,8 @@
 ;		cutplane_web (new), after save.cpl
 ;
 ;	Return sets the lettering to what the plate's fields say and puts the
-;	plate away; Esc puts it away, the lettering as it was. Any other key
-;	goes on to the field (textinput.cpl).
+;	plate away; Esc puts it away, the lettering as it was; Tab goes on to
+;	the next field. Any other key goes on to the field (textinput.cpl).
 
 		OWNER	A:R1,Const:Motherobj		; Get textinput object
 _Check_messages	BNOMSGS	A:R1,A:_End_lettering&
@@ -21,9 +21,14 @@ _CheckCR	BNEQUAL	A:R3,Const:A0x0D,A:_CheckESC&
 		CRTN	Crtn:apply_lettering
 		JUMP	A:_End_lettering&
 
-_CheckESC	BNEQUAL	A:R3,Const:A0x1B,A:_Putbackmsg&
+_CheckESC	BNEQUAL	A:R3,Const:A0x1B,A:_CheckTAB&
 		PUSH	A:R1
 		CRTN	Crtn:close_lettering
+		JUMP	A:_End_lettering&
+
+_CheckTAB	BNEQUAL	A:R3,Const:A0x09,A:_Putbackmsg&
+		PUSH	A:R1
+		CRTN	Crtn:next_lettering
 		JUMP	A:_End_lettering&
 
 _Putbackmsg	MAKEMSG	Msg:Incomingchar		; give it to textinput

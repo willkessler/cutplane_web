@@ -22,6 +22,13 @@ New in 2026: none of these were in the 1991 original.
   line runs. The plate's Lean field takes either; `add_decal` and the new `edit_decal` take
   `lean`, and `edit_decal` changes what lettering says, its colour or height. The Orion III's PAN
   AMERICAN now stands upright beside its windows.
+- **Lettering starts where it's let go; a Size field; Tab.** The T chip's lettering starts where
+  the chip was let go, running on the way it reads, so a NASA on the Moonbus's flank goes where
+  it's put, not the middle of the side, and stays put as what it says changes (`add_decal` takes
+  `align: "start"` for the same). It reads along the section line where it was let go (the
+  plane, set beforehand, says which way it runs), or level on a face turned to the plane. The
+  plate has a Size field, the capitals' height, and Tab goes
+  from field to field instead of leaving the page.
 - **Lettering on things (decals).** `add_decal` lays text on a surface, as a decal is laid on:
   a livery's name, a brand, a number. It goes on the surface nearest the point given, facing out
   of it, and reads along that surface's axis (a hull's or a tube's length), or level on a flat or

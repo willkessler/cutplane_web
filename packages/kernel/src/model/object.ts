@@ -27,6 +27,8 @@ export interface TextDecal {
    * than 0 leans their tops the way it reads (as italics), less, back. Unset, square.
    */
   lean?: number;
+  /** 'start': `at` is where it starts (the left end of its line), not its middle. */
+  align?: 'start';
 }
 
 /** A decal's own copy (its vectors not shared). */

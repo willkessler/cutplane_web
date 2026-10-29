@@ -191,7 +191,9 @@ function readObject(L: Lines, warn: (m: string) => void): { object: CutObject; p
   for (let d = L.maybe(/^Object Decal:(.*)$/); d; d = L.maybe(/^Object Decal:(.*)$/)) {
     const [c, h, at, nor, along, ...text] = d[1]!.split('|');
     const v3 = (t = '') => floats(t).slice(0, 3) as [number, number, number];
-    // A lean, if any, before the text ("Lean 8.13|PAN AMERICAN").
+    // Laid from its start, and a lean, if any, before the text ("Start|Lean 8.13|PAN AMERICAN").
+    const start = text.length > 1 && text[0]!.trim() === 'Start';
+    if (start) text.shift();
     const lean = text.length > 1 ? /^Lean (-?[\d.]+)$/.exec(text[0]!.trim()) : null;
     if (lean) text.shift();
     const decal: TextDecal = {
@@ -203,6 +205,7 @@ function readObject(L: Lines, warn: (m: string) => void): { object: CutObject; p
       along: v3(along),
     };
     if (lean && Number(lean[1])) decal.lean = Number(lean[1]);
+    if (start) decal.align = 'start';
     (object.decals ??= []).push(decal);
   }
   const code = L.maybe(/^Object CPL private code:\s*(\d+)/);

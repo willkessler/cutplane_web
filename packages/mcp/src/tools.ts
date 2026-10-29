@@ -568,19 +568,21 @@ export function addTools(
         '(degrees, anticlockwise seen from outside; 180 reads the other way). lean: the ' +
         'capitals leaned from square to the line they stand on (degrees, + as italics), or ' +
         '"upright": straight up in the room, as a row of windows stepping up a slope stands. ' +
-        'It is laid onto ' +
+        'align: "start" puts its start (left end) at `at`, running on the way it reads, ' +
+        'rather than its middle; so it stays put as what it says changes. It is laid onto ' +
         'the faces turned towards it, across seams, and moves, turns and scales with the ' +
         'part. One typeface for now; write it as it should read (capitals for a livery). ' +
         'Returns the part it is on, where, the way out, the way it reads, up, and its size.',
       inputSchema: {
         object: ref,
         text: z.string(),
-        at: v3.describe('A point on or just off the surface where its middle goes.'),
+        at: v3.describe('A point on or just off the surface where its middle (or start) goes.'),
         height: z.number().positive(),
         color: v3.describe('[r, g, b], 0..255; dark grey left out.').optional(),
         along: v3.optional(),
         roll: z.number().optional(),
         lean: z.union([z.number(), z.literal('upright')]).optional(),
+        align: z.enum(['middle', 'start']).optional(),
         look: lookArg,
       },
     },

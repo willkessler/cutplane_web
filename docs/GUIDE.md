@@ -232,9 +232,13 @@ light bulb and the colour control (three bars, a paint chip and a glass chip: dr
 is picked takes the colour, or drag a chip onto a face to paint it; the glass chip leaves it half
 see-through, and the paint chip makes it solid again). The **T chip** on the colour control's
 left letters things: drag it onto a face and the face takes "TEXT" in the colour its T shows
-(the bars' colour), and a plate opens at the top of the plane. Type what it should say and press
-**Return** (**Esc** leaves it; an empty text takes it off). The Lean field takes degrees (as
-italics) or **up**, which stands the letters straight up however the line runs. To change
+(the bars' colour), starting where you let go, and a plate opens at the top of the plane. It
+reads along the section line there, where the plane cuts the surface, so set the plane first to
+say which way it runs (left to right, or upwards where the section runs up and down); on a face
+turned towards you, with no section line to follow, it reads level. Type what it should say and press **Return** (**Esc** leaves it; an
+empty text takes it off); **Tab** goes on to the next field. The Size field is the capitals'
+height in the room (smaller for a wing). The Lean field takes degrees (as italics) or **up**,
+which stands the letters straight up however the line runs. To change
 lettering later, put the plane through it and click on it. **Double-click** the colour control's base
 or the camera's body to put it away: it goes back into its box, which closes.
 
