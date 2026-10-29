@@ -1,4 +1,4 @@
-import type { Brep, CutObject, Mat4, Rgb } from '@cutplane/kernel';
+import { copyDecal, type Brep, type CutObject, type Mat4, type Rgb, type TextDecal } from '@cutplane/kernel';
 
 /**
  * Undo (new: the original had none). Everything a step changes in the world
@@ -13,6 +13,7 @@ export interface ObjectSnapshot {
   invXform: Mat4;
   color: Rgb;
   opacity?: number;
+  decals?: TextDecal[];
   props: string[];
   name: string | null;
 }
@@ -36,6 +37,7 @@ export function snapshotObject(o: CutObject): ObjectSnapshot {
     invXform: o.invXform.slice(),
     color: [...o.color],
     ...(o.opacity === undefined ? {} : { opacity: o.opacity }),
+    ...(o.decals?.length ? { decals: o.decals.map(copyDecal) } : {}),
     props: [...o.attrs.props],
     name: o.name,
   };
@@ -83,6 +85,7 @@ const sameSnap = (a: ObjectSnapshot, b: ObjectSnapshot) =>
   a.xform.every((v, i) => v === b.xform[i]) &&
   a.color.every((v, i) => v === b.color[i]) &&
   a.opacity === b.opacity &&
+  JSON.stringify(a.decals) === JSON.stringify(b.decals) &&
   a.name === b.name &&
   sameBrep(a.brep, b.brep);
 

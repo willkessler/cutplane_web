@@ -2235,6 +2235,8 @@ async function start(): Promise<void> {
         copy: () => d.copy(args),
         remove: () => d.remove(args),
         paint: () => d.paint(args),
+        decal: () => d.decal(args),
+        undecal: () => d.undecal(args),
         name: () => d.name(args),
         pick: () => d.pick(args),
         group: () => d.group(args, false),

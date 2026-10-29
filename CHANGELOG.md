@@ -10,6 +10,16 @@ has the detail on each.
 
 New in 2026: none of these were in the 1991 original.
 
+### October 29, 2026
+
+- **Lettering on things (decals).** `add_decal` lays text on a surface, as a decal is laid on:
+  a livery's name, a brand, a number. It goes on the surface nearest the point given, facing out
+  of it, and reads along that surface's axis (a hull's or a tube's length), or level on a flat or
+  ball-like face, upright. A direction to read along, or a turn, can be given instead. It is laid
+  on every face turned towards it, across seams, lit as the face under it is, and it moves,
+  turns and scales with its part. Kept in .cut files and undone like any change; `remove_decals`
+  takes it off. One typeface for now. The Orion III sample has PAN AMERICAN along both flanks.
+
 ### October 28, 2026
 
 - **Glass: a see-through paint.** The colour control's paint chip has a narrow glass chip beside

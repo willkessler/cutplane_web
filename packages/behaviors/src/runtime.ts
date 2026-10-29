@@ -18,6 +18,7 @@ import {
   ROOM,
   betterPick,
   computeSection,
+  copyDecal,
   createObject,
   deleteEdge,
   deleteFace,
@@ -2148,6 +2149,8 @@ export class Runtime implements Host {
     o.color = [...s.color];
     if (s.opacity === undefined) delete o.opacity;
     else o.opacity = s.opacity;
+    if (s.decals) o.decals = s.decals.map(copyDecal);
+    else delete o.decals;
     o.name = s.name;
     this.vm.props.forget(o);
     for (const h of this.features.known(o)) this.vm.props.forget(h);

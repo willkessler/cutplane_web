@@ -11,6 +11,7 @@ import {
 } from '@cutplane/kernel';
 import type { CutDocument } from '@cutplane/formats';
 import { CLASSIC, rgb, shadeFace, type PointLight } from '../viewer/palette.ts';
+import { decalFrame, decalSize, decalTexture, projectDecal } from './decals.ts';
 
 /** Objects the original would draw: Visible, not Killed, not a scale box or a group placeholder. */
 export function isDrawn(o: CutObject): boolean {
@@ -217,7 +218,7 @@ function wireMaterial(frontOnly: boolean): THREE.ShaderMaterial {
  * only told it changed (a pick, a release) is kept as drawn.
  */
 export function shapeKey(o: CutObject): string {
-  return `${o.brep.shapeFingerprint()}:${o.color.join()}:${o.opacity ?? 1}:${o.attrs.props.includes('Noshadow')}`;
+  return `${o.brep.shapeFingerprint()}:${o.color.join()}:${o.opacity ?? 1}:${o.attrs.props.includes('Noshadow')}:${o.decals ? JSON.stringify(o.decals) : ''}`;
 }
 
 /** How far `now` moves things from `then`, if that is all it does (no turn, no scaling). */
@@ -355,6 +356,7 @@ export class ModelView {
       m.wire.material = this.wireMaterials[style];
       m.wire.visible = true;
     } else if (m.wire) m.wire.visible = false;
+    for (const c of mesh.children) if (c.userData['decal']) c.visible = style === 'solid';
     if (m.shadow) m.shadow.visible = style === 'solid' && mesh.matrixAutoUpdate;
     const shade = this.posed.get(m.object);
     if (shade) shade.visible = style === 'solid';
@@ -516,6 +518,7 @@ export class ModelView {
   private drop(m: Model): void {
     for (const mesh of [m.mesh, m.shadow]) {
       if (!mesh) continue;
+      for (const c of mesh.children) if (c instanceof THREE.Mesh) c.geometry.dispose();
       this.object.remove(mesh);
       mesh.geometry.dispose();
     }
@@ -544,6 +547,7 @@ export class ModelView {
     m.mesh = new THREE.Mesh(geometry(pos, col), this.material);
     m.mesh.frustumCulled = false;
     this.object.add(m.mesh);
+    if (m.object.decals?.length) this.letter(m, pos, faces);
     if (!m.object.attrs.props.includes('Noshadow')) {
       const spos: number[] = [];
       const scol: number[] = [];
@@ -564,15 +568,67 @@ export class ModelView {
     this.applyStyle(m);
   }
 
-  /** A face's colour, lit as it lies in the room; `turn`: turned so (a fall). */
-  private shade(m: Model, f: number, turn?: THREE.Matrix4): [number, number, number] {
+  /** Decals' materials, one a text's picture. */
+  private readonly decalMaterials = new Map<THREE.Texture, THREE.MeshBasicMaterial>();
+
+  /**
+   * New: the object's lettering (TextDecal), each laid on the triangles it was just
+   * built of (`pos`, each one's face in `faces`), lit as the face under it is. They
+   * are the mesh's children, so they go where it goes till it is built again.
+   */
+  private letter(m: Model, pos: number[], faces: number[]): void {
+    for (const d of m.object.decals ?? []) {
+      const map = decalTexture(d.text);
+      if (!map) continue;
+      const f = decalFrame(m.object, d);
+      const { w, h, depth } = decalSize(f, d.text);
+      const p = projectDecal(pos, f, w, h, depth);
+      if (p.from.length === 0) continue;
+      const col: number[] = [];
+      const lit = new Map<number, [number, number, number]>();
+      for (const t of p.from) {
+        const face = faces[t]!;
+        let c = lit.get(face);
+        if (!c) lit.set(face, (c = this.shade(m, face, undefined, d.color)));
+        col.push(...c, ...c, ...c);
+      }
+      const g = geometry(p.pos, col);
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(p.uv, 2));
+      let mat = this.decalMaterials.get(map);
+      if (!mat)
+        this.decalMaterials.set(
+          map,
+          (mat = new THREE.MeshBasicMaterial({
+            map,
+            vertexColors: true,
+            transparent: true,
+            depthWrite: false,
+            alphaTest: 0.02,
+            side: THREE.DoubleSide,
+          })),
+        );
+      const mesh = new THREE.Mesh(g, mat);
+      mesh.frustumCulled = false;
+      mesh.renderOrder = 1;
+      mesh.userData['decal'] = true;
+      m.mesh!.add(mesh);
+    }
+  }
+
+  /** A face's colour (or `color` on it), lit as it lies in the room; `turn`: turned so (a fall). */
+  private shade(
+    m: Model,
+    f: number,
+    turn?: THREE.Matrix4,
+    color?: readonly [number, number, number],
+  ): [number, number, number] {
     const n = new THREE.Vector3(...m.world.faceNormal(f));
     let at = this.light ? new THREE.Vector3(...faceCenter(m, f)) : undefined;
     if (turn) {
       n.transformDirection(turn);
       at = at?.applyMatrix4(turn);
     }
-    const color = m.object.brep.faceColors.get(f) ?? m.object.color;
+    color ??= m.object.brep.faceColors.get(f) ?? m.object.color;
     return shadeFace(n.toArray(), color, at?.toArray(), this.light, m.object.attrs.photo);
   }
 

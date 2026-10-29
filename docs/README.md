@@ -717,6 +717,16 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
 - **Decals sit on their pads.** The original stood each pad's picture `Decalzoffset` (28) off
   the pad, which only ever showed head on. Here it stands 1 off, so with the room turned the
   pictures stay on their pads.
+- **Lettering on things (new).** The original's decals (`apply_front_decal`) were only ever
+  the pads' own pictures, fitted to the front of a box; attaching one to a face was left unfinished
+  (`#if 0` in `read_decal_file`, an empty `resolve_decals`). Here an object can carry lettering:
+  text drawn into a picture and projected along a direction onto the faces of the object turned
+  towards it, cut to the picture's box, so it runs across seams and round gentle curves. Each
+  decal is kept in the object's own coordinates (where it sits, the way out of the surface, the
+  way it reads, the capitals' height), so it goes where the object goes. Placed by `add_decal`,
+  it reads along the surface's axis where there is one (the direction its faces' normals don't
+  turn, the least eigenvector of Σ a·nnᵀ near the point), otherwise level, and upright. .cut
+  files keep each in an `Object Decal:` line. One typeface for now; glTF export leaves it out.
 - **Booleans and slicing go through manifold-3d.** The original's own boolean (`boolean.c`)
   handled only an object's first shell and had known bugs. Here both operands become triangles
   tagged by face, manifold-3d does the operation, and the result comes back as the original's

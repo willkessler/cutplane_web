@@ -28,7 +28,7 @@ export const INSTRUCTIONS = [
     'world (ids, boxes, middles, sizes); add_primitive puts in a box, cylinder, cone, ' +
     'sphere, pyramid, torus or flat ring at a size and place; move_objects, rotate_objects and ' +
     'scale_objects move, turn and scale things; copy_objects makes a row or ring of copies ' +
-    'in one call; paint_objects, name_object, delete_objects; boolean (union, subtract: ' +
+    'in one call; paint_objects, add_decal (lettering on a surface), name_object, delete_objects; boolean (union, subtract: ' +
     "the drill's cut, intersect), slice_objects (the saw at a depth), group_objects, " +
     'ungroup_object, arrange_objects (A, Shift-A); move_face pulls one face (to a ' +
     'coordinate, or by a distance), as a drag of it does. Each is one undo step, and the ' +
@@ -553,6 +553,45 @@ export function addTools(
       },
     },
     guard(({ look, ...a }) => direct('paint', a, look)),
+  );
+
+  register(
+    'add_decal',
+    {
+      title: 'Letter a thing',
+      description:
+        'Lays lettering on a surface, as a decal: a brand, a name, a number. It goes on the ' +
+        'surface nearest `at` (of whichever part of the thing is nearest), facing out of it, ' +
+        "and reads along the surface's axis there (a hull's or a tube's length) or, on a flat " +
+        "or round-all-ways face, level; upright. height: the capitals' height. along: a way " +
+        'for it to read instead ([x, y, z], laid onto the surface); roll: turned after ' +
+        '(degrees, anticlockwise seen from outside; 180 reads the other way). It is laid onto ' +
+        'the faces turned towards it, across seams, and moves, turns and scales with the ' +
+        'part. One typeface for now; write it as it should read (capitals for a livery). ' +
+        'Returns the part it is on, where, the way out, the way it reads, up, and its size.',
+      inputSchema: {
+        object: ref,
+        text: z.string(),
+        at: v3.describe('A point on or just off the surface where its middle goes.'),
+        height: z.number().positive(),
+        color: v3.describe('[r, g, b], 0..255; dark grey left out.').optional(),
+        along: v3.optional(),
+        roll: z.number().optional(),
+        look: lookArg,
+      },
+    },
+    guard(({ look, ...a }) => direct('decal', a, look)),
+  );
+
+  register(
+    'remove_decals',
+    {
+      title: 'Take lettering off',
+      description:
+        "Takes lettering off: all of a thing's (every part's), or one, by its index, of one part.",
+      inputSchema: { object: ref, index: z.number().int().min(0).optional(), look: lookArg },
+    },
+    guard(({ look, ...a }) => direct('undecal', a, look)),
   );
 
   register(

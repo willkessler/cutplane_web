@@ -89,6 +89,13 @@ function writeObject(w: (s: string) => void, o: CutObject, label: number, parent
   w(`Object Screenbboxtechnique:${o.screenBBoxTechnique}\n`);
   if (o.attrs.photo) w('Object Photo colours\n'); // new
   if (o.opacity !== undefined && o.opacity < 1) w(`Object Opacity:${fmtF(o.opacity, 2)}\n`); // new
+  // New: lettering on it, a line each, what it says last (one line: breaks become spaces).
+  for (const d of o.decals ?? []) {
+    const r = (c: number, k: number) => fmtF(Number(c.toFixed(k)) || 0, k);
+    const v = (p: readonly number[]) => p.map((c) => r(c, 4)).join(' ');
+    const text = d.text.replace(/\s*[\r\n]+\s*/g, ' ');
+    w(`Object Decal:${d.color.join(' ')}|${r(d.height, 4)}|${v(d.at)}|${v(d.normal)}|${v(d.along)}|${text}\n`); // prettier-ignore
+  }
   if (o.attrs.privateSource !== undefined) {
     w(`Object CPL private code:${codeLines(o.attrs.privateSource)} lines\n`);
     writeCode(w, o.attrs.privateSource);

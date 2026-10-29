@@ -9,6 +9,31 @@ export interface PrimitiveInfo {
 }
 
 /**
+ * New: lettering laid on an object's surface, as a decal is (the original's decals
+ * only ever showed on its own pads). All in the object's own coordinates, so it goes
+ * where the object goes: the point on the surface it is centred on, the way out of
+ * the surface there, and the way the text reads (across `normal`). `height` is the
+ * capitals' height.
+ */
+export interface TextDecal {
+  text: string;
+  color: Rgb;
+  height: number;
+  at: [number, number, number];
+  normal: [number, number, number];
+  along: [number, number, number];
+}
+
+/** A decal's own copy (its vectors not shared). */
+export const copyDecal = (d: TextDecal): TextDecal => ({
+  ...d,
+  color: [...d.color],
+  at: [...d.at],
+  normal: [...d.normal],
+  along: [...d.along],
+});
+
+/**
  * An object in a world: a Brep (in local coordinates) placed by `xform`,
  * with a name, colour, properties and children. Mirrors objtype in the
  * original's topology.h, minus the runtime-only fields.
@@ -24,6 +49,8 @@ export interface CutObject {
   color: Rgb;
   /** New: how much it hides what is behind it, 0..1; unset, all (a solid). The glass chip's 0.5. */
   opacity?: number;
+  /** New: lettering on it (see TextDecal); unset, none. */
+  decals?: TextDecal[];
   attrs: FeatureAttrs;
   primitive?: PrimitiveInfo;
   selectTechnique: string;
@@ -133,6 +160,7 @@ export function duplicateTree(o: CutObject): CutObject {
     children: [],
   };
   if (o.primitive) copy.primitive = { ...o.primitive };
+  if (o.decals) copy.decals = o.decals.map(copyDecal);
   for (const map of [copy.brep.vertexAttrs, copy.brep.edgeAttrs, copy.brep.faceAttrs])
     for (const a of map.values()) delete a.privateCode;
   for (const c of o.children) {

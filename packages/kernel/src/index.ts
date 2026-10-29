@@ -32,10 +32,11 @@ export {
   transformTree,
   duplicateTree,
   groupRoot,
+  copyDecal,
   DEFAULT_TECHNIQUES,
   OBJ_TYPE,
 } from './model/object.ts';
-export type { CutObject, PrimitiveInfo } from './model/object.ts';
+export type { CutObject, PrimitiveInfo, TextDecal } from './model/object.ts';
 
 export { computeSection, loopArea, WorldGeometry, ON_PLANE, FINE } from './section/section.ts';
 export type { ObjectSection, SectionLoop, SectionSegment } from './section/section.ts';

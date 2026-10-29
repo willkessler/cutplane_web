@@ -187,6 +187,18 @@ function readObject(L: Lines, warn: (m: string) => void): { object: CutObject; p
   if (L.maybe(/^Object Photo colours$/)) object.attrs.photo = true;
   const opacity = L.maybe(/^Object Opacity:\s*(\S+)/);
   if (opacity) object.opacity = Math.max(0, Math.min(1, Number(opacity[1])));
+  for (let d = L.maybe(/^Object Decal:(.*)$/); d; d = L.maybe(/^Object Decal:(.*)$/)) {
+    const [c, h, at, nor, along, ...text] = d[1]!.split('|');
+    const v3 = (t = '') => floats(t).slice(0, 3) as [number, number, number];
+    (object.decals ??= []).push({
+      text: text.join('|').trim(),
+      color: ints(c ?? '').slice(0, 3) as Rgb,
+      height: Number(h),
+      at: v3(at),
+      normal: v3(nor),
+      along: v3(along),
+    });
+  }
   const code = L.maybe(/^Object CPL private code:\s*(\d+)/);
   if (code) object.attrs.privateSource = L.code(n(code));
 

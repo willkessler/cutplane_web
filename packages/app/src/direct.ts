@@ -25,6 +25,8 @@ import {
   type V3,
 } from '@cutplane/behaviors';
 import { clearance, crossings, worldVolume } from './probe.ts';
+import { decalIn, decalSize, placeDecal, type DecalFrame } from './render/decals.ts';
+import { triangulate } from './render/models.ts';
 
 /**
  * New: an agent's direct calls (?mcp). Where the hand (mcp.ts) works the app as a person
@@ -216,6 +218,7 @@ export class Direct {
       ...(o.name ? { name: o.name } : {}),
       color: [...o.color],
       ...(o.opacity !== undefined ? { opacity: o.opacity } : {}),
+      ...(o.decals?.length ? { decals: o.decals.map((d) => d.text) } : {}),
       ...(b
         ? {
             box: b.map((p) => p.map(r1)),
@@ -483,6 +486,74 @@ export class Direct {
             this.rt.changed(x);
           }
         }
+    this.rt.commit();
+    this.h.settle();
+    return { objects: os.map((o) => this.info(o)) };
+  }
+
+  /**
+   * New: lettering laid on a thing (a decal): on the surface nearest `at` (of whichever
+   * part is nearest), facing out from it, reading along the surface's axis there (a
+   * hull's length) or level, upright; `along` a way to read instead, `roll` turned
+   * after (degrees, anticlockwise seen from outside).
+   */
+  decal(a: Args): Args {
+    const thing = this.one(a['object'], 'object');
+    const text = a['text'];
+    if (typeof text !== 'string' || !text.trim()) throw new Error('text: what it says');
+    const near = vec(a['at'], 'at');
+    const height = num(a['height']);
+    if (height === undefined || !(height > 0)) throw new Error("height: the capitals' height, more than 0"); // prettier-ignore
+    const color = a['color'] === undefined ? [20, 20, 20] : vec(a['color'], 'color').map((c) => Math.max(0, Math.min(255, Math.round(c)))); // prettier-ignore
+    const along = a['along'] === undefined ? undefined : vec(a['along'], 'along');
+    const roll = num(a['roll']) ?? 0;
+    let best: { o: CutObject; f: DecalFrame; d: number } | null = null;
+    for (const o of this.solids(thing)) {
+      const g = this.rt.world(o);
+      const pos: number[] = [];
+      const faces: number[] = [];
+      triangulate(o.brep, g, () => true, () => [0, 0, 0], pos, [], undefined, faces);
+      if (faces.length === 0) continue;
+      const f = placeDecal(pos, faces.flatMap((x) => g.faceNormal(x)), near, height, along, roll);
+      const d = Math.hypot(...f.at.map((c, k) => c - near[k]!));
+      if (!best || d < best.d) best = { o, f, d };
+    }
+    if (!best) throw new Error('object: nothing solid to put it on');
+    const { o, f } = best;
+    this.rt.journal.touch(o);
+    o.decals = [...(o.decals ?? []), decalIn(o, f, text.trim(), color)];
+    this.rt.changed(o);
+    this.rt.commit();
+    this.h.settle();
+    const r3 = (v: number) => Math.round(v * 1000) / 1000;
+    const { w } = decalSize(f, text.trim());
+    return {
+      object: this.idOf(o),
+      decal: o.decals.length - 1,
+      at: f.at.map(r1),
+      out: f.n.map(r3),
+      reads: f.u.map(r3),
+      up: f.v.map(r3),
+      size: [r1(w), r1(f.height)],
+    };
+  }
+
+  /** Takes lettering off: every decal on a thing's parts, or one (`index`) of one part's. */
+  undecal(a: Args): Args {
+    const thing = this.one(a['object'], 'object');
+    const index = num(a['index']);
+    const os = this.solids(thing).filter((o) => o.decals?.length);
+    if (os.length === 0) throw new Error('object: it has no lettering');
+    if (index !== undefined && (os.length !== 1 || os[0] !== thing))
+      throw new Error('index: of one part with lettering (name the part)');
+    for (const o of os) {
+      if (index !== undefined && !o.decals![index]) throw new Error(`index: 0..${o.decals!.length - 1}`); // prettier-ignore
+      this.rt.journal.touch(o);
+      const left = index === undefined ? [] : o.decals!.filter((_, i) => i !== index);
+      if (left.length) o.decals = left;
+      else delete o.decals;
+      this.rt.changed(o);
+    }
     this.rt.commit();
     this.h.settle();
     return { objects: os.map((o) => this.info(o)) };

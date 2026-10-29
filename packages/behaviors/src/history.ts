@@ -30,7 +30,7 @@ type SavedTree = [number, number, 0 | 1 | null][];
 const written = new WeakMap<ObjectSnapshot, string>();
 
 function cutOf(
-  o: Pick<CutObject, 'brep' | 'xform' | 'invXform' | 'color' | 'opacity' | 'name'> & {
+  o: Pick<CutObject, 'brep' | 'xform' | 'invXform' | 'color' | 'opacity' | 'decals' | 'name'> & {
     props: readonly string[];
   },
   extra?: Partial<CutObject>,
@@ -42,6 +42,7 @@ function cutOf(
     invXform: o.invXform,
     color: o.color,
     ...(o.opacity === undefined ? {} : { opacity: o.opacity }),
+    ...(o.decals?.length ? { decals: o.decals } : {}),
     attrs: { ...(extra?.attrs ?? {}), props: [...o.props] },
     children: [],
     parent: null,
@@ -135,7 +136,7 @@ export function saveHistory(
 // A ghost's text, written again only when it has changed.
 const ghosts = new WeakMap<CutObject, { key: string; text: string }>();
 function ghostText(o: CutObject): string {
-  const key = `${o.brep.fingerprint()}|${o.xform.join()}|${o.color.join()}|${o.opacity}|${o.name}|${JSON.stringify(o.attrs)}`;
+  const key = `${o.brep.fingerprint()}|${o.xform.join()}|${o.color.join()}|${o.opacity}|${JSON.stringify(o.decals)}|${o.name}|${JSON.stringify(o.attrs)}`;
   const had = ghosts.get(o);
   if (had?.key === key) return had.text;
   const text = cutOf({ ...o, props: o.attrs.props }, { attrs: o.attrs });
@@ -173,7 +174,7 @@ export function loadHistory(
     };
     const snap = ({ id, cut }: { id: number; cut: string }): ObjectSnapshot => {
       const r = readOne(cut);
-      return { object: obj(id), brep: r.brep, xform: r.xform, invXform: r.invXform, color: r.color, ...(r.opacity === undefined ? {} : { opacity: r.opacity }), props: r.attrs.props, name: r.name }; // prettier-ignore
+      return { object: obj(id), brep: r.brep, xform: r.xform, invXform: r.invXform, color: r.color, ...(r.opacity === undefined ? {} : { opacity: r.opacity }), ...(r.decals ? { decals: r.decals } : {}), props: r.attrs.props, name: r.name }; // prettier-ignore
     };
     const tree = (t: SavedTree): TreeSnapshot => ({
       entries: t.map(([o, p, l]) => ({

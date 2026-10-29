@@ -62,3 +62,19 @@ describe('a see-through object (new)', () => {
     expect(b!.opacity).toBeUndefined();
   });
 });
+
+describe('lettering on an object (new)', () => {
+  it('keeps its decals, what they say last, bars and all', async () => {
+    const { createCube, createObject } = await import('@cutplane/kernel');
+    const o = createObject(createCube(10, 10, 10), {
+      decals: [
+        { text: 'PAN AMERICAN', color: [20, 30, 40], height: 4.5, at: [1, 2.25, 3], normal: [0, 1, 0], along: [1, 0, 0] }, // prettier-ignore
+        { text: 'A|B  C', color: [0, 0, 0], height: 1, at: [0, 0, 5], normal: [0, 0, 1], along: [0.6, 0.8, 0] }, // prettier-ignore
+      ],
+    });
+    const text = writeCut({ title: 't', contains: 'World', name: null, roots: [o] });
+    const back = readCut(text).doc.roots[0]!;
+    expect(back.decals).toEqual(o.decals);
+    expect(writeCut(readCut(text).doc)).toBe(text);
+  });
+});
