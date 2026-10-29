@@ -17,5 +17,10 @@ band, the windscreen split by its strut, the wide cheeks beside it with the cock
 lamps front and roof, the antenna, jets in cubbies at the corners and four landing feet. One group
 too.
 
+Not from the film: `also-tmb1.cut`, the TMB-1 electric bike from Also, also built with the
+direct calls: spoked wheels with brake discs, the motor block (black motor half, grey battery
+cover with its purple button), cranks and pedals, chainring, chain and swingarm, the grey frame,
+a black-and-gold fork, bars and saddle. One group.
+
 The full archive (116 files, including scratch and test files) is kept out of the repo. To run the
 corpus tests against it, put it in `corpus/cut/` (git-ignored) or point `CUTPLANE_CORPUS` at it.

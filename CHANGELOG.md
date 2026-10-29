@@ -12,6 +12,13 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 28, 2026
 
+- **A new sample: the Also TMB-1.** The electric bike, built by an agent with the direct calls:
+  spoked wheels, the motor block with its battery cover, pedals and chain, the frame, fork, bars
+  and saddle. It's in the model menu.
+- **A torus of any thickness.** `add_primitive` takes `tube` for a torus: how thick its ring
+  is, so a tyre or a rim comes out as one, where before it was always a fat donut with a small
+  hole. And `clearance` no longer calls two parts that only touch (a pane resting on its window
+  floor, a block standing on another) an overlap.
 - **A new sample: the Moonbus.** The lunar transport from _2001_, built by an agent with the
   direct calls and checked with them as it went (each cut's volume, a ray into every window):
   the passenger windows down the roof flanks, the windscreen and the wide cockpit cheeks beside
