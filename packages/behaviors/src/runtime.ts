@@ -1022,7 +1022,10 @@ export class Runtime implements Host {
     let plan = this.drags.get(o);
     if (!plan) {
       this.drags.set(o, (plan = { start: new Map(), moved: new Map(), health: healthOf(b) }));
-      if (this.faceDrag === 'extrude') this.startExtrude(o, f, d, plan);
+      // Only what is being made is pulled out as a new block: a goodie's face (a colour
+      // bar's top, raised by colorbar.cpl) moves as it was built to.
+      if (this.faceDrag === 'extrude' && this.worldOf(o) === this.primary)
+        this.startExtrude(o, f, d, plan);
     }
     const key = (v: number) => `${this.idOf(o)}:${v}`;
     // (A lamina pulled by its other face, or an edge or corner of it, moves that face.)

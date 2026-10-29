@@ -49,6 +49,34 @@ describe('the colour control through colorbar.cpl and paint.cpl', () => {
     expect(cube.color[0]).not.toBe(0);
   });
 
+  it('with faces dragged as extrusions, a bar taken to nothing comes back up a bar (cutplane_web)', () => {
+    const { rt, cube, cc, controls, frame, at, move } = setup();
+    rt.faceDrag = 'extrude';
+    at(0, 0, 0);
+    controls.pressPick(false);
+    frame();
+    controls.releasePick();
+    frame();
+    const drag = (dy: number) => {
+      at(215, top(rt, cc.bars[0]) - 3, 0);
+      controls.pressPick(false);
+      frame();
+      move(0, dy);
+      controls.releasePick();
+      frame();
+    };
+    drag(-300);
+    expect(top(rt, cc.bars[0])).toBeCloseTo(-5);
+    // Up from the bottom: the top face rises, it isn't pulled out as a block on the bar.
+    drag(40);
+    expect(cc.bars[0].brep.numVertices).toBe(8);
+    expect(top(rt, cc.bars[0])).toBeCloseTo(35);
+    expect(cube.color[0]).toBe(Math.round((255 * 40) / 95));
+    // And it still works.
+    drag(-20);
+    expect(top(rt, cc.bars[0])).toBeCloseTo(15);
+  });
+
   it('a group picked takes the colour in every part (cutplane_web)', () => {
     const { rt, cube, controls, frame, at, move } = setup();
     // The cube with two parts under it, as G makes a group of picked things.
