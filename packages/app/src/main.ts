@@ -77,6 +77,7 @@ import { CameraSlide } from './render/cameraslide.ts';
 import { ScribbleView } from './render/scribbles.ts';
 import { DragGuides, carried, type LevelHold } from './world/guides.ts';
 import { LabelView } from './render/labels.ts';
+import { NoteView } from './render/notes.ts';
 import { PadView } from './render/pads.ts';
 import { Cutplane, createRoom, type PlaneStyle } from './render/room.ts';
 import { SectionLines } from './render/sectionlines.ts';
@@ -145,6 +146,8 @@ const envView = new ModelView();
 const envSection = new SectionLines();
 const padView = new PadView();
 const labelView = new LabelView();
+/** New: notes floating off things, open while the crosshair is over one. */
+const noteView = new NoteView();
 // The camera sees the world being made, in its room: not the plane, the tools or itself.
 const cameraSlide = new CameraSlide(() => [
   loading.object,
@@ -171,6 +174,7 @@ scene.add(
   cameraSlide.object,
   padView.object,
   labelView.object,
+  noteView.object,
   envView.object,
   envSection.object,
   toolView.object,
@@ -234,9 +238,10 @@ const CPL_FILES = [
   'lens.cpl',
   'save.cpl',
   'load.cpl',
-  // The T chip's, the sticker chip's and its lettering plate's fields' (new).
+  // The T chip's, the sticker chip's, the note chip's and its lettering plate's fields' (new).
   'letter.cpl',
   'sticker.cpl',
+  'note.cpl',
   'lettering.cpl',
   // The measure pad's, and its plates' and fields'.
   'measurepad.cpl',
@@ -339,6 +344,7 @@ async function loadCpl(): Promise<void> {
     'colorbar.cpl',
     'letter.cpl',
     'sticker.cpl',
+    'note.cpl',
     'lettering.cpl',
   ]);
   await Promise.all(
@@ -395,6 +401,7 @@ function makeWorld(): void {
   installLettering(rt, source);
   rt.letterer = letterer(rt);
   rt.chooseImage = chooseImage;
+  rt.noteUnder = () => noteView.hovered;
   restoreStickerPicture();
   keysPlate = keysPlateOf(installHelpPad(rt, keyLines(MAC)));
   markRoom(rt); // the room as built: what a session left is put back on it
@@ -1080,6 +1087,12 @@ function render(): void {
   control.planeAxis = deeperOnScreen(camera);
   plane.z = stage.z;
   crosshair.place(stage.x, stage.y, stage.z);
+  camera.updateMatrixWorld();
+  noteView.update(
+    models.models.filter((m) => display.step === 0 || models.shows(m.object)).map((m) => m.object),
+    camera,
+    [stage.x, stage.y, stage.z],
+  );
   loading.update(camera);
   const key = `${stage.z}|${control.yaw}|${control.pitch}`;
   if (envDirty || key !== lastKey) {
@@ -2167,6 +2180,7 @@ async function start(): Promise<void> {
         glass: () => box(cc.glass),
         letter: () => box(cc.letter),
         sticker: () => box(cc.sticker),
+        note: () => box(cc.note),
         lettering: () => box(letteringPlateOf(rt)?.plate),
         bars: () => cc.bars.map((b) => ({ center: box(b), top: rt.bbox(b)![1][1] })),
         picked: () => box(rt.pickedObjects()[0]),

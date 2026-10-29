@@ -246,7 +246,12 @@ its size, its lean). Click the sticker chip, or let it go on nothing, to choose 
 for it; or drop a picture file (png, jpeg, webp, gif, svg) straight onto the room: the chip
 takes it, and where the plane cuts a surface under the drop it's stuck on there (dropped on a
 sticker, it replaces that one's picture). Pictures are kept in the world's file, up to 512
-pixels a side. **Double-click** the colour control's base
+pixels a side. Left of that, the yellow **note chip** puts a note on a thing: let it go on a
+face and a tag floats out from it on a thin line, in the bars' colour, and the plate opens to
+say what it says (the Out field is how far it floats). A note isn't painted on: it's a remark
+about the design ("flange here is steel"), its tag always facing you. Folded, a tag shows only
+the start of what it says; put the crosshair over it and it opens out in full; click it to
+change it, or empty its text to take it off. **Double-click** the colour control's base
 or the camera's body to put it away: it goes back into its box, which closes.
 
 **1** clears the view. With something picked, the first press draws everything else as grey wire

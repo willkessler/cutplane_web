@@ -1,0 +1,69 @@
+;		CPL Note Property Codes: the note chip beside the sticker chip
+;		cutplane_web (new), after paint.cpl
+;
+;	The note chip is dragged as the T chip is (a copy of it goes with the
+;	crosshair); let go on a thing, it puts a note there: floating out from
+;	the surface where it was let go, in the bars' colour, and opens the
+;	lettering plate to say what it says. Let go on lettering already
+;	there, it opens the plate for that; on nothing, it does nothing.
+
+Note		DEFPROP
+
+Note		STARTPROP
+		BWIPED	AA:XOP*,A:_End_note&		; Is event still active?
+
+; =-=-=-=-=-=-=-=-= Message processing starts here. =-=-=-=-=-=-=-=-==-=-=-=-=-
+
+		OWNER	A:R1,Const:Motherobj		; Get the chip
+_Check_messages	BNOMSGS	A:R1,A:_Check_events&
+
+		UNQMSG	A:R2
+
+;		 Nothing it listens for: messages are let go.
+		JUMP	A:_Check_messages&
+
+
+; =-=-=-=-=-=-=-= Event handling code starts here =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+_Check_events	HASPROP	A:R1*,Prop:Active,A:R2,Const:Self ; Is it being carried?
+		BFALSE	A:R2,A:_Check_pick&
+
+;		 Event is a TRANSLATE of what is picked: it goes along.
+_Check_trans	BNEQUAL	AA:XOP*,Opcd:TRANS,A:_Check_release&
+		BNEQUAL	AA:XAS,Prop:Picked,A:_Check_release&
+		TRANS	A:R1*,Const:Quicktranslate,AA:XAD
+		WIPE	A:XOP*
+		JUMP	A:_End_note&
+
+;		 Let go: put a note on what is under the crosshair, then the copy goes.
+_Check_release	BNEQUAL	AA:XOP*,Opcd:RELEAS,A:_End_note&
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_note&
+
+		WORLD	Const:WPrimary_world
+		MOVE	Prop:Selectable*,A:R2
+		WORLD	Const:WEnvironment_world
+		PUSH	A:R2
+		PUSH	A:R1
+		CRTN	Crtn:note_on
+
+		UNPICK	A:R1*
+		REMPROP	A:R1*,Prop:Active
+		WTRANS	A:R1*,Const:WPrimary_world
+		CPDELETE	A:R1*
+		WIPE	A:XOP*
+		JUMP	A:_End_note&
+
+;		 A press on the chip takes a copy of it.
+_Check_pick	BNEQUAL	AA:XOP*,Opcd:PICK,A:_End_note&
+		BNEQUAL	AA:XAS,Prop:Selectable,A:_End_note&
+
+		HASPROP	A:R1*,Prop:Selectable,A:R2,Const:Self
+		BFALSE	A:R2,A:_End_note&
+
+		UNPICK	Prop:Picked*
+		DUP	A:R1*,A:R2
+		ADDPROP	A:R2*,Prop:Active
+		PICK	A:R2*
+		WIPE   	A:XOP*
+
+_End_note	RTS

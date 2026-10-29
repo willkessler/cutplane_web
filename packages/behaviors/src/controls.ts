@@ -100,8 +100,8 @@ export class Controls {
   }
 
   /**
-   * New here: a click (no drag) in the world on lettering opens the lettering plate for
-   * it; anywhere else in the world, the plate is put away. (The room's own things, the
+   * New here: a click (no drag) in the world on lettering, or on a note's tag, opens the
+   * lettering plate for it; anywhere else in the world, the plate is put away. (The room's own things, the
    * plate's fields among them, leave it as it is.)
    */
   private clickedLettering(): void {
@@ -110,7 +110,9 @@ export class Controls {
       const o = isObject(f) ? f : isSub(f) ? f.object : null;
       if (o) objects.add(o);
     }
-    const hit = objects.size ? this.rt.letterer?.([...objects], this.rt.cursor(), true) : null;
+    const hit =
+      this.rt.noteUnder?.() ??
+      (objects.size ? this.rt.letterer?.([...objects], this.rt.cursor(), true) : null);
     if (hit?.index !== undefined) openLettering(this.rt, hit.object, hit.index);
     else if (letteringOf(this.rt)) closeLettering(this.rt);
   }

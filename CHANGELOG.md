@@ -12,6 +12,13 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 29, 2026
 
+- **Notes.** A yellow note chip sits left of the sticker chip. Let it go on a thing and a note
+  floats out from the surface there on a leader line: a tag in the bars' colour, facing whoever
+  looks, for remarks about the design ("flange here is steel"). Folded, the tag shows the start
+  of what it says; with the crosshair over it, it opens out in full; a click on it opens the
+  lettering plate (Note, Size, and Out: how far it floats). Kept in `.cut` files as
+  `Object Note:` lines. `add_decal` takes `note` (the distance out), `edit_decal` changes it,
+  and `list_objects` says which decals are notes.
 - **Stickers.** A sticker chip sits left of the T chip, showing a picture. Drag it onto a thing
   and the picture is stuck on there (a decal, laid as lettering is), and the lettering plate
   opens for its name, size and lean. Click it, or let it go on nothing, to choose a picture

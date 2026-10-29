@@ -37,7 +37,7 @@ export {
   OBJ_TYPE,
 } from './model/object.ts';
 export type { CutObject, PrimitiveInfo, TextDecal } from './model/object.ts';
-export { decalFrame, decalIn, uprightLean, type DecalFrame } from './model/decal.ts';
+export { decalFrame, decalIn, notePoint, uprightLean, type DecalFrame } from './model/decal.ts';
 
 export { computeSection, loopArea, WorldGeometry, ON_PLANE, FINE } from './section/section.ts';
 export type { ObjectSection, SectionLoop, SectionSegment } from './section/section.ts';

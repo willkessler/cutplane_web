@@ -30,6 +30,7 @@ import {
   decalFrame,
   decalIn,
   decalSize,
+  notePoint,
   placeDecal,
   uprightLean,
   type DecalFrame,
@@ -227,6 +228,8 @@ export class Direct {
       color: [...o.color],
       ...(o.opacity !== undefined ? { opacity: o.opacity } : {}),
       ...(o.decals?.length ? { decals: o.decals.map((d) => d.text) } : {}),
+      // (Which of them are notes, floating off it, by index.)
+      ...(o.decals?.some((d) => d.note !== undefined) ? { notes: o.decals.flatMap((d, i) => (d.note !== undefined ? [i] : [])) } : {}), // prettier-ignore
       ...(b
         ? {
             box: b.map((p) => p.map(r1)),
@@ -524,6 +527,14 @@ export class Direct {
     if (lean) f.lean = lean;
     if (a['align'] === 'start') f.align = 'start';
     else if (a['align'] !== undefined && a['align'] !== 'middle') throw new Error('align: "middle" or "start"'); // prettier-ignore
+    const note = num(a['note']);
+    if (note !== undefined) {
+      if (!(note >= 0)) throw new Error('note: how far out it floats, 0 or more');
+      if (picture) throw new Error('note: a note says something; it is not a picture');
+      f.note = note;
+      delete f.lean;
+      delete f.align;
+    }
     this.rt.journal.touch(o);
     const d = decalIn(o, f, text.trim(), picture ? [255, 255, 255] : color);
     if (picture) Object.assign(d, { image: picture.image, aspect: picture.aspect });
@@ -542,11 +553,11 @@ export class Direct {
       up: f.v.map(r3),
       ...(f.lean ? { lean: f.lean } : {}),
       ...(f.align ? { align: f.align } : {}),
-      size: [r1(w), r1(f.height)],
+      ...(f.note !== undefined ? { note: notePoint(f).map(r1) } : { size: [r1(w), r1(f.height)] }),
     };
   }
 
-  /** New: lettering already on a part changed: what it says, its lean, colour or height. */
+  /** New: lettering already on a part changed: what it says, its lean, colour or height (a note's, how far out it floats). */
   editDecal(a: Args): Args {
     const o = this.one(a['object'], 'object');
     const index = num(a['index']) ?? 0;
@@ -562,6 +573,12 @@ export class Direct {
     if (height !== undefined) {
       if (!(height > 0)) throw new Error("height: the capitals' height, more than 0");
       next.height = (d.height * height) / decalFrame(o, d).height;
+    }
+    const out = num(a['note']);
+    if (out !== undefined) {
+      if (d.note === undefined) throw new Error('note: only a note floats out (this is lettering on the surface)'); // prettier-ignore
+      if (!(out >= 0)) throw new Error('note: how far out it floats, 0 or more');
+      next.note = out / decalFrame(o, { ...d, note: 1 }).note!;
     }
     if (a['lean'] !== undefined) {
       const lean = leanOf(a['lean'], { ...decalFrame(o, d), lean: 0 });
@@ -912,6 +929,7 @@ export function letterer(rt: Runtime): NonNullable<Runtime['letterer']> {
   return (objects, at, there) => {
     for (const o of objects)
       for (const [index, d] of (o.decals ?? []).entries()) {
+        if (d.note !== undefined) continue; // (off the surface: Runtime.noteUnder)
         const f = decalFrame(o, d);
         const { w, h, depth } = decalSize(f, d);
         const r = at.map((c, k) => c - f.at[k]!);

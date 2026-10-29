@@ -34,11 +34,19 @@ import { registerPadTechniques } from './toolbar.ts';
  * (a sticker: a TextDecal with an image), middle where it was let go, and opens the
  * same plate for it, its name where the lettering would be. Let go on nothing (or just
  * clicked), it asks the host for a picture to show (Runtime.chooseImage).
+ *
+ * The note chip (Note: note.cpl), left of that, puts a note there instead: what it says
+ * floating out from the surface on a tag (TextDecal's `note`), in the bars' colour; the
+ * same plate says what it says, its size, and how far out it floats. A click on a
+ * note's tag opens the plate for it (Runtime.noteUnder).
  */
 
 /** What new lettering says until it's typed. */
 export const LETTER_TEXT = 'TEXT';
 const MAX_Y = 383;
+
+const LETTERING_HINT = 'Tab: next. Return sets it (empty: takes it off). Esc leaves it. Lean: degrees, or up'; // prettier-ignore
+const NOTE_HINT = 'Tab: next. Return sets it (empty: takes it off). Esc leaves it. Out: how far it floats'; // prettier-ignore
 
 /** The lettering plate: what it says, and its lean, as fields; hidden until wanted. */
 function letteringSpec(): PlateSpec {
@@ -74,7 +82,7 @@ function letteringSpec(): PlateSpec {
       label('Lettering:', 25, 110),
       label('Size:', 345, 110),
       label('Lean:', 475, 110),
-      label('Tab: next. Return sets it (empty: takes it off). Esc leaves it. Lean: degrees, or up', 25, 15, 0.65), // prettier-ignore
+      label(LETTERING_HINT, 25, 15, 0.65),
     ],
     inputs: [
       field('LetterText', 300, 25),
@@ -102,6 +110,7 @@ export function installLettering(rt: Runtime, source: (f: string) => string): Cu
   // The T chip's code (the colour control was built before it was there to read).
   rt.vm.loadPropertyCode(source('letter.cpl'), 'letter.cpl', 'Letter');
   rt.vm.loadPropertyCode(source('sticker.cpl'), 'sticker.cpl', 'Sticker');
+  rt.vm.loadPropertyCode(source('note.cpl'), 'note.cpl', 'Note');
   const plane = rt.cutplane;
   const spec = letteringSpec();
   spec.offset = [120 - spec.size[0] / 2 - plane.xform[12]!, MAX_Y - 40 - spec.size[1] - plane.xform[13]!, 3]; // prettier-ignore
@@ -159,10 +168,16 @@ export function openLettering(rt: Runtime, object: CutObject, index: number): vo
   const d = object.decals?.[index];
   if (!p || !d) return;
   editing.set(rt, { object, index });
-  rt.setLabel(p.plate, 1, d.image ? 'Sticker:' : 'Lettering:');
+  const f = decalFrame(object, d);
+  const note = f.note !== undefined;
+  const tenth = (x: number) => String(Math.round(x * 10) / 10);
+  rt.setLabel(p.plate, 1, note ? 'Note:' : d.image ? 'Sticker:' : 'Lettering:');
+  // A note doesn't lean: how far out it floats is said there instead.
+  rt.setLabel(p.plate, 3, note ? 'Out:' : 'Lean:');
+  rt.setLabel(p.plate, 4, note ? NOTE_HINT : LETTERING_HINT);
   rt.setLabel(p.text, 1, d.text);
-  rt.setLabel(p.size, 1, String(Math.round(decalFrame(object, d).height * 10) / 10));
-  rt.setLabel(p.lean, 1, String(d.lean ?? 0));
+  rt.setLabel(p.size, 1, tenth(f.height));
+  rt.setLabel(p.lean, 1, note ? tenth(f.note!) : String(d.lean ?? 0));
   show(rt, p.plate, true);
   for (const f of fieldsOf(p)) if (f !== p.text) listen(rt, f, false);
   listen(rt, p.text, true);
@@ -207,6 +222,17 @@ export function applyLettering(rt: Runtime): void {
     const left = object.decals!.filter((_, i) => i !== index);
     if (left.length) object.decals = left;
     else delete object.decals;
+  } else if (d.note !== undefined) {
+    // A note: what it says, its size, and how far out it floats.
+    const next = { ...d, text };
+    const f = decalFrame(object, d);
+    const size = Number((rt.label(p.size, 1) ?? '').trim());
+    if (Number.isFinite(size) && size > 0) next.height = (d.height * size) / f.height;
+    const out = Number(said);
+    // (Said in the room; kept in the thing's own coordinates, as its height is.)
+    const per = decalFrame(object, { ...d, note: 1 }).note!;
+    if (said && Number.isFinite(out) && out >= 0 && per > 0) next.note = out / per;
+    object.decals = object.decals!.map((x, i) => (i === index ? next : x));
   } else {
     const n = Number(said);
     const lean = said.startsWith('u')
@@ -312,7 +338,27 @@ export function repicture(
   rt.commit();
 }
 
-/** The T chip's and the sticker chip's routines (letter.cpl, sticker.cpl, lettering.cpl). */
+/** A new note's capitals' height, and how far out it floats, in the room. */
+export const NOTE_HEIGHT = 8;
+export const NOTE_OUT = 40;
+
+/**
+ * A note on `object` floating out from `frame`'s point (in the bars' colour, saying
+ * "NOTE"), one undoable step, and the plate opened for it.
+ */
+export function noteOn(rt: Runtime, object: CutObject, frame: DecalFrame): void {
+  const color = barsColorFor(rt) ?? [255, 236, 140];
+  rt.journal.touch(object);
+  const f: DecalFrame = { ...frame, height: NOTE_HEIGHT, note: NOTE_OUT };
+  delete f.align;
+  delete f.lean;
+  object.decals = [...(object.decals ?? []), decalIn(object, f, 'NOTE', color)];
+  rt.changed(object);
+  rt.commit();
+  openLettering(rt, object, object.decals.length - 1);
+}
+
+/** The T chip's, the sticker chip's and the note chip's routines (letter.cpl, sticker.cpl, note.cpl, lettering.cpl). */
 export const LETTER_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>> = {
   /** (what is under the crosshair, the chip let go): letter it there, and open the plate. */
   letter_on(rt, vm) {
@@ -352,6 +398,17 @@ export const LETTER_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
     const d = chip.decals?.[0];
     if (at.frame && d?.image)
       stickOn(rt, at.object, at.frame, { image: d.image, aspect: d.aspect ?? 1, name: d.text });
+  },
+  /** (what is under the crosshair, the chip let go): a note floating off it there. */
+  note_on(rt, vm) {
+    const chip = objectOf(first(vm.pop()));
+    const under = vm.pop().list ?? [];
+    const objects = [...new Set(under.map(objectOf).filter((o): o is CutObject => !!o))];
+    if (!chip || objects.length === 0 || !rt.letterer) return;
+    const at = rt.letterer(objects, rt.cursor());
+    if (!at) return;
+    if (at.index !== undefined) return openLettering(rt, at.object, at.index);
+    if (at.frame) noteOn(rt, at.object, at.frame);
   },
   /** (chip, colour): the T shows the bars' colour, which is what it letters in. */
   letter_color(rt, vm) {

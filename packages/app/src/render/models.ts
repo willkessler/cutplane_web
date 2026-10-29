@@ -578,6 +578,8 @@ export class ModelView {
    */
   private letter(m: Model, pos: number[], faces: number[]): void {
     for (const d of m.object.decals ?? []) {
+      // (A note floats off the surface: NoteView draws it.)
+      if (d.note !== undefined) continue;
       const map = decalTexture(d);
       if (!map) continue;
       const f = decalFrame(m.object, d);

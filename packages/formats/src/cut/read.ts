@@ -188,12 +188,27 @@ function readObject(L: Lines, warn: (m: string) => void): { object: CutObject; p
   if (L.maybe(/^Object Photo colours$/)) object.attrs.photo = true;
   const opacity = L.maybe(/^Object Opacity:\s*(\S+)/);
   if (opacity) object.opacity = Math.max(0, Math.min(1, Number(opacity[1])));
-  const decalLine = /^Object (Decal|Sticker):(.*)$/;
+  const decalLine = /^Object (Decal|Sticker|Note):(.*)$/;
   for (let d = L.maybe(decalLine); d; d = L.maybe(decalLine)) {
     // A sticker: its aspect where lettering's colour is, its picture on the next line.
     const sticker = d[1] === 'Sticker';
     const [c, h, at, nor, along, ...text] = d[2]!.split('|');
+    // A note: how far out it floats, before what it says.
+    const out = d[1] === 'Note' ? Number(text.shift()) || 0 : undefined;
     const v3 = (t = '') => floats(t).slice(0, 3) as [number, number, number];
+    if (out !== undefined) {
+      const note: TextDecal = {
+        text: text.join('|').trim(),
+        color: ints(c ?? '').slice(0, 3) as Rgb,
+        height: Number(h),
+        at: v3(at),
+        normal: v3(nor),
+        along: v3(along),
+        note: out,
+      };
+      (object.decals ??= []).push(note);
+      continue;
+    }
     // Laid from its start, and a lean, if any, before the text ("Start|Lean 8.13|PAN AMERICAN").
     const start = text.length > 1 && text[0]!.trim() === 'Start';
     if (start) text.shift();

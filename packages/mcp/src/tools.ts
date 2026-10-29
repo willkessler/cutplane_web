@@ -572,7 +572,11 @@ export function addTools(
         'rather than its middle; so it stays put as what it says changes. image: a sticker ' +
         'instead of lettering, a picture (png, jpeg, webp, gif or svg) from a file this ' +
         'server can read, an http(s) URL or a data: URL, `height` high and as wide as it ' +
-        'runs; text, if given, its name. It is laid onto ' +
+        'runs; text, if given, its name. note: a note instead, floating this far out from ' +
+        'the surface at `at` (a leader line back to it), what it says on a tag in `color` ' +
+        'that faces whoever looks, `height` its capitals; it opens out in full with the ' +
+        'crosshair over it, and a click on it opens the plate to change it. For what is to ' +
+        'be said about the design ("flange here is steel"). Lettering is laid onto ' +
         'the faces turned towards it, across seams, and moves, turns and scales with the ' +
         'part. One typeface for now; write it as it should read (capitals for a livery). ' +
         'Returns the part it is on, where, the way out, the way it reads, up, and its size.',
@@ -587,6 +591,7 @@ export function addTools(
         lean: z.union([z.number(), z.literal('upright')]).optional(),
         align: z.enum(['middle', 'start']).optional(),
         image: z.string().optional(),
+        note: z.number().min(0).optional(),
         look: lookArg,
       },
     },
@@ -602,7 +607,8 @@ export function addTools(
       description:
         'Changes lettering already on a part (its index, as list_objects/add_decal give it; ' +
         "the first if left out): what it says, its colour, its capitals' height, or its lean " +
-        '(degrees, or "upright"; 0 square). Where it is and the way it reads stay.',
+        '(degrees, or "upright"; 0 square); a note\'s note: how far out it floats. Where it ' +
+        'is and the way it reads stay.',
       inputSchema: {
         object: ref,
         index: z.number().int().min(0).optional(),
@@ -610,6 +616,7 @@ export function addTools(
         color: v3.optional(),
         height: z.number().positive().optional(),
         lean: z.union([z.number(), z.literal('upright')]).optional(),
+        note: z.number().min(0).optional(),
         look: lookArg,
       },
     },
@@ -781,7 +788,7 @@ export function addTools(
       description:
         'The middle of a thing in the room, as one would see where it is: prims (the primitives ' +
         'box), goodies, stamps (the primitives in the box), picked, base, chip, glass, letter (the ' +
-        'T chip), sticker (the sticker chip), bars (the colour control), lettering (its plate, open), bulb, camera, toolpads, arrangepads, pads, arrangers, rails (which are open), ' +
+        'T chip), sticker (the sticker chip), note (the note chip), bars (the colour control), lettering (its plate, open), bulb, camera, toolpads, arrangepads, pads, arrangers, rails (which are open), ' +
         'inHand, measure, help.',
       inputSchema: { what: z.string() },
     },

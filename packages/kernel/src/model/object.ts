@@ -36,6 +36,12 @@ export interface TextDecal {
   image?: string;
   /** A sticker's width over its height. */
   aspect?: number;
+  /**
+   * A note: not laid on the surface but floating this far out from `at` along `normal`
+   * (a leader line back to it), its text on a tag that faces whoever looks; `along` goes
+   * unused. Something said about the design there ("flange here is steel").
+   */
+  note?: number;
 }
 
 /** A decal's own copy (its vectors not shared). */

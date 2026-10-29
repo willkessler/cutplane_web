@@ -90,11 +90,16 @@ function writeObject(w: (s: string) => void, o: CutObject, label: number, parent
   if (o.attrs.photo) w('Object Photo colours\n'); // new
   if (o.opacity !== undefined && o.opacity < 1) w(`Object Opacity:${fmtF(o.opacity, 2)}\n`); // new
   // New: lettering on it, a line each, what it says last (one line: breaks become spaces);
-  // stickers among it, two lines each.
+  // stickers among it, two lines each; notes, a line each.
   for (const d of o.decals ?? []) {
     const r = (c: number, k: number) => fmtF(Number(c.toFixed(k)) || 0, k);
     const v = (p: readonly number[]) => p.map((c) => r(c, 4)).join(' ');
     const text = d.text.replace(/\s*[\r\n]+\s*/g, ' ');
+    // A note: how far out it floats, then what it says.
+    if (d.note !== undefined) {
+      w(`Object Note:${d.color.join(' ')}|${r(d.height, 4)}|${v(d.at)}|${v(d.normal)}|${v(d.along)}|${r(d.note, 4)}|${text}\n`); // prettier-ignore
+      continue;
+    }
     // Laid from its start, and its lean, if any, before the text (a lean of 0 if the
     // text could be taken for either).
     const start = d.align === 'start' ? 'Start|' : '';

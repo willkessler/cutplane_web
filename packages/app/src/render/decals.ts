@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { DecalFrame, TextDecal } from '@cutplane/kernel';
 
-export { decalFrame, decalIn, uprightLean, type DecalFrame } from '@cutplane/kernel';
+export { decalFrame, decalIn, notePoint, uprightLean, type DecalFrame } from '@cutplane/kernel';
 
 /**
  * New: lettering on objects (TextDecal), as a decal is laid on: the text is

@@ -33,6 +33,8 @@ export interface DecalFrame {
   lean?: number;
   /** As TextDecal's: 'start', `at` is its left end, not its middle. */
   align?: 'start';
+  /** As TextDecal's: a note, floating this far out along n, in the room. */
+  note?: number;
 }
 
 function applyDir(m: Mat4, d: readonly number[]): V3 {
@@ -52,6 +54,7 @@ export function decalFrame(o: CutObject, d: TextDecal): DecalFrame {
   const f: DecalFrame = { at, u, v, n, height: d.height * Math.hypot(...applyDir(o.xform, vl)) };
   if (d.lean) f.lean = d.lean;
   if (d.align) f.align = d.align;
+  if (d.note !== undefined) f.note = d.note * Math.hypot(...applyDir(o.xform, unit([...d.normal])));
   return f;
 }
 
@@ -74,7 +77,14 @@ export function decalIn(
   };
   if (f.lean) d.lean = f.lean;
   if (f.align) d.align = f.align;
+  if (f.note !== undefined) d.note = f.note * Math.hypot(...applyDir(o.invXform, f.n));
   return d;
+}
+
+/** Where a note's tag floats in the room (its leader line runs from there back to `at`). */
+export function notePoint(f: DecalFrame): V3 {
+  const out = f.note ?? 0;
+  return [f.at[0] + f.n[0] * out, f.at[1] + f.n[1] * out, f.at[2] + f.n[2] * out];
 }
 
 /**

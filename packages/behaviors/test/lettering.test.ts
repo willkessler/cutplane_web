@@ -8,6 +8,8 @@ import {
   installLettering,
   letteringOf,
   letteringPlateOf,
+  NOTE_HEIGHT,
+  NOTE_OUT,
   setStickerPicture,
   stickerPictureOf,
 } from '../src/index.ts';
@@ -15,6 +17,7 @@ import { source, world } from './world.ts';
 
 const CR = 0x0d;
 const ESC = 0x1b;
+const TAB = 0x09;
 
 /**
  * The colour control and the lettering plate, with a letterer that letters the cube's
@@ -157,7 +160,6 @@ describe('the T chip and the lettering plate (new)', () => {
   it('Tab goes on from field to field (round to the first); the size is typed', () => {
     const { rt, cube, p, drop, type, shown } = setup();
     drop(0, 20);
-    const TAB = 0x09;
     type([TAB]);
     expect(charstreamOf(rt)).toEqual([p.size]);
     type(['8', TAB]);
@@ -238,5 +240,39 @@ describe('the T chip and the lettering plate (new)', () => {
     drop(-400, 300, 107);
     expect(asked).toBe(1);
     expect(cube.decals).toBeUndefined();
+  });
+
+  it('the note chip puts a note floating off it there; the plate says it, its size, how far out', () => {
+    const { rt, cube, cc, p, drop, type, controls, frame, at, shown } = setup();
+    const b = rt.bbox(cc.note)!;
+    expect(b[0][0]).toBeCloseTo(28);
+    expect(b[1][0]).toBeCloseTo(78);
+    drop(0, 20, 53);
+    expect(cube.decals).toHaveLength(1);
+    expect(cube.decals![0]).toMatchObject({ text: 'NOTE', height: NOTE_HEIGHT, note: NOTE_OUT });
+    expect(shown()).toBe(true);
+    expect(rt.label(p.plate, 1)).toBe('Note:');
+    expect(rt.label(p.plate, 3)).toBe('Out:');
+    expect(rt.label(p.lean, 1)).toBe(String(NOTE_OUT));
+    type(['Flange here is steel', TAB, '10', TAB, '60', CR]);
+    expect(cube.decals![0]).toMatchObject({ text: 'Flange here is steel', height: 10, note: 60 });
+    expect(cube.decals![0]!.lean).toBeUndefined();
+    // A click with the crosshair over its tag (wherever that is) opens the plate for it.
+    rt.noteUnder = () => ({ object: cube, index: 0 });
+    at(-400, 300, 0);
+    controls.pressPick(false);
+    frame();
+    controls.releasePick();
+    frame();
+    frame();
+    expect(shown()).toBe(true);
+    expect(letteringOf(rt)).toEqual({ object: cube, index: 0 });
+    expect(rt.label(p.text, 1)).toBe('Flange here is steel');
+    type([ESC]);
+    rt.noteUnder = () => null;
+    // Lettering's plate says Lean again.
+    drop(-60, -60);
+    expect(rt.label(p.plate, 1)).toBe('Lettering:');
+    expect(rt.label(p.plate, 3)).toBe('Lean:');
   });
 });

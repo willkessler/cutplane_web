@@ -10,7 +10,8 @@ import type { Runtime, V3 } from '../runtime.ts';
  * (opacity 0.5); the paint chip makes a thing solid again. And on the left, the
  * T chip (Letter: letter.cpl, tools/lettering.ts) letters a thing in the colour
  * its T shows, and left of that the sticker chip (Sticker: sticker.cpl) sticks
- * on the picture it shows. The C
+ * on the picture it shows, and left of that the note chip (Note: note.cpl) puts a
+ * note floating off a thing. The C
  * routines it calls are here: control_color limits a bar's drag and works out
  * the colour, set_color_bars sets the bars to a picked thing's colour.
  *
@@ -51,6 +52,8 @@ export interface ColorControl {
   letter: CutObject;
   /** New: the sticker chip, left of the T chip (Stickerchip): the picture on it is what it sticks on. */
   sticker: CutObject;
+  /** New: the note chip, left of the sticker chip (Notechip): notes floating off things. */
+  note: CutObject;
   bars: [CutObject, CutObject, CutObject];
 }
 
@@ -139,6 +142,25 @@ export function createColorControl(rt: Runtime, corner: V3, width = 120): ColorC
   ];
   rt.addProp(sticker, 'Sticker');
   rt.adopt(base, sticker, true);
+  // The note chip, left of that: a note's tag, saying so.
+  const note = make(
+    createCube(height + PK, Math.hypot(depth, height), CHIP_DEPTH),
+    mat4.multiply(tilt, at(-PK - 3 * (height + PK + GLASS_GAP), 0, depth)),
+    [255, 236, 140],
+    'Notechip',
+  );
+  note.decals = [
+    {
+      text: 'NOTE',
+      color: [40, 40, 45],
+      height: (height + PK) * 0.22,
+      at: [(height + PK) / 2, Math.hypot(depth, height) / 2, CHIP_DEPTH],
+      normal: [0, 0, 1],
+      along: [1, 0, 0],
+    },
+  ];
+  rt.addProp(note, 'Note');
+  rt.adopt(base, note, true);
   const colours: Rgb[] = [[255, 0, 0], [0, 255, 0], [0, 0, 255]]; // prettier-ignore
   const bars = [0, 1, 2].map((i) => {
     const bar = make(
@@ -155,8 +177,9 @@ export function createColorControl(rt: Runtime, corner: V3, width = 120): ColorC
     return bar;
   }) as [CutObject, CutObject, CutObject];
   rt.addProp(base, 'Goodies');
-  for (const o of [base, chip, glass, letter, sticker, ...bars]) rt.addProp(o, 'Lockedgeometry');
-  return { base, chip, glass, letter, sticker, bars };
+  for (const o of [base, chip, glass, letter, sticker, note, ...bars])
+    rt.addProp(o, 'Lockedgeometry');
+  return { base, chip, glass, letter, sticker, note, bars };
 }
 
 /** The bars a base carries, in order (the children with no name: not the chips). */

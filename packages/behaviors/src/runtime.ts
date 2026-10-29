@@ -304,6 +304,11 @@ export class Runtime implements Host {
    */
   chooseImage: (() => void) | null = null;
   /**
+   * New here: the note (a floating TextDecal) the crosshair is over, if any: a click
+   * opens the lettering plate for it. The host knows, as it draws them facing the eye.
+   */
+  noteUnder: (() => { object: CutObject; index: number } | null) | null = null;
+  /**
    * New here: what a boolean tool (the drill's cutter, what the union tool picked
    * up) carries out of the world. While it is carried, what it overlaps is what's
    * selectable in the world, so letting go acts on all of that, wherever the
