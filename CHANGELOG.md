@@ -12,6 +12,10 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 28, 2026
 
+- **A new sample: the Moonbus.** The lunar transport from _2001_, built by an agent with the
+  direct calls and checked with them as it went (each cut's volume, a ray into every window):
+  the passenger windows down the roof flanks, the windscreen and the wide cockpit cheeks beside
+  it, lamps, antenna, the jets in their cubbies and the four landing feet. It's in the model menu.
 - **The agent checks its work by number.** A boolean now says how much of each object it
   kept, and fails aloud where it did nothing, instead of reporting success. Two new calls:
   `ray` says what a line of sight meets (looking into a window: the glass, or the cabin behind

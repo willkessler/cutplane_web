@@ -11,7 +11,11 @@ docks at, built the same way and still in progress: two rings (one finished, one
 struts), their spokes, the hub and the docking bay. And `eva-pod.cut`, one of _Discovery_'s EVA
 pods, made with the direct calls: the hull with its window canted back, a ribbed oval funnel narrowing inward, flush with the shell, the side thruster cones with their dark
 panels and radial grooves, the grab-bar dimples for an astronaut outside, four grabbers, the headlamps, the emergency hatch Dave blows (an object of its own), and inside,
-the seat and control panel. It's one group; ungroup it to take it apart.
+the seat and control panel. It's one group; ungroup it to take it apart. And `moonbus.cut`, the
+lunar transport that carries Floyd to the monolith: five windows down each roof flank in a dark
+band, the windscreen split by its strut, the wide cheeks beside it with the cockpit's side windows,
+lamps front and roof, the antenna, jets in cubbies at the corners and four landing feet. One group
+too.
 
 The full archive (116 files, including scratch and test files) is kept out of the repo. To run the
 corpus tests against it, put it in `corpus/cut/` (git-ignored) or point `CUTPLANE_CORPUS` at it.
