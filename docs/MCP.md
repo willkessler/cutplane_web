@@ -45,7 +45,7 @@ crosshair still and works by the move (the magnifier) gets each step once.
 | `key`              | A key, with Shift, Ctrl, Alt or ⌘ (`"d"`, `"\\"`, `"Space"`, `"Escape"`…).                                                                                                                                                                                                         |
 | `wheel`            | The mouse wheel: each click pushes the plane 8 units, positive deeper.                                                                                                                                                                                                             |
 | `turn_view`        | A right-drag: yaw −90…90°, pitch 0…90°.                                                                                                                                                                                                                                            |
-| `look`             | A screenshot of the room (JPEG), and the state.                                                                                                                                                                                                                                    |
+| `look`             | A screenshot of the room (JPEG), and the state; `at` a point and `zoom` for a closer look.                                                                                                                                                                                         |
 | `state`            | Where the crosshair and plane are, what's under the crosshair and picked, what a press would take first (a room tool or goodie, a scale box's handle), tools in hand, the rotate tool's centre, bars and the part of it under the crosshair, counts, guides held, the hints shown. |
 | `locate`           | Where something in the room is (the primitives box, the colour control, the rails…), as one can see it.                                                                                                                                                                            |
 | `open`             | A world from the model menu (`new:cube`, `samples/discovery.cut`, `saved:<name>.cut`).                                                                                                                                                                                             |
@@ -71,23 +71,25 @@ moves into its scale box, so its place in the world's list is no guide). A call 
 something says the new ids. Names (`name_object`) work as well as ids, and `"picked"` takes
 what is picked.
 
-| Tool              | What it does                                                                                                                                          |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `list_objects`    | Every object at the top of the world: id, name, colour, box, middle, size, and a group's parts.                                                       |
-| `add_primitive`   | A box, cylinder, cone, sphere, pyramid or torus, made to a size [w, h, d] with its middle at a point; `axis` is the way a cylinder or cone runs.      |
-| `move_objects`    | Moved `by` [dx, dy, dz], or `to` a point (their middle there).                                                                                        |
-| `rotate_objects`  | Turned by degrees about an axis through a point (by default their middle).                                                                            |
-| `scale_objects`   | Scaled by a factor (or [fx, fy, fz]), or to a size (`null` where it stays), about a point.                                                            |
-| `copy_objects`    | `count` copies, each from the one before, scaled, turned (`rotate`) and moved (`by`): a row, or a ring about a centre, in one call.                   |
-| `delete_objects`  | Gone, a group with its parts.                                                                                                                         |
-| `paint_objects`   | A colour, in every part; one face of an object (`face: "+y"`); `all_faces` paints over a cut's walls too.                                             |
-| `name_object`     | A name, saved with it.                                                                                                                                |
-| `pick_objects`    | Picked whole, nothing else: for a key (D, `\`) or a tool used by hand afterwards.                                                                     |
-| `group_objects`   | Grouped as G groups them; `ungroup_object` takes a group apart.                                                                                       |
-| `arrange_objects` | Lined up as A does, or spaced out evenly (`spread`) as Shift-A does.                                                                                  |
-| `boolean`         | `union` fuses them; `subtract` cuts a tool out of each as the drill does (its walls the tool's colour); `intersect` keeps what each shares with it.   |
-| `slice_objects`   | Sliced through at depth z as `\` slices at the plane, the pieces left where they were (or `gap` apart).                                               |
-| `move_face`       | One face pulled as a drag of it pulls it: `to` a coordinate along the side it faces, or `by` a distance; `extrude` pulls a new block out of the face. |
+| Tool              | What it does                                                                                                                                                                                                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list_objects`    | Every object at the top of the world: id, name, colour, box, middle, size, and a group's parts.                                                                                                                                                                                 |
+| `add_primitive`   | A box, cylinder, cone, sphere, pyramid or torus, made to a size [w, h, d] with its middle at a point; `axis` is the way a cylinder or cone runs.                                                                                                                                |
+| `move_objects`    | Moved `by` [dx, dy, dz], or `to` a point (their middle there).                                                                                                                                                                                                                  |
+| `rotate_objects`  | Turned by degrees about an axis through a point (by default their middle).                                                                                                                                                                                                      |
+| `scale_objects`   | Scaled by a factor (or [fx, fy, fz]), or to a size (`null` where it stays), about a point.                                                                                                                                                                                      |
+| `copy_objects`    | `count` copies, each from the one before, scaled, turned (`rotate`) and moved (`by`): a row, or a ring about a centre, in one call.                                                                                                                                             |
+| `delete_objects`  | Gone, a group with its parts.                                                                                                                                                                                                                                                   |
+| `paint_objects`   | A colour, in every part; one face of an object (`face: "+y"`); `all_faces` paints over a cut's walls too.                                                                                                                                                                       |
+| `name_object`     | A name, saved with it.                                                                                                                                                                                                                                                          |
+| `pick_objects`    | Picked whole, nothing else: for a key (D, `\`) or a tool used by hand afterwards.                                                                                                                                                                                               |
+| `group_objects`   | Grouped as G groups them; `ungroup_object` takes a group apart.                                                                                                                                                                                                                 |
+| `arrange_objects` | Lined up as A does, or spaced out evenly (`spread`) as Shift-A does.                                                                                                                                                                                                            |
+| `boolean`         | `union` fuses them; `subtract` cuts a tool out of each as the drill does (its walls the tool's colour); `intersect` keeps what each shares with it. It says what each object kept of its volume, and fails, naming them, where the boolean did nothing (the tool is kept then). |
+| `slice_objects`   | Sliced through at depth z as `\` slices at the plane, the pieces left where they were (or `gap` apart).                                                                                                                                                                         |
+| `move_face`       | One face pulled as a drag of it pulls it: `to` a coordinate along the side it faces, or `by` a distance; `extrude` pulls a new block out of the face.                                                                                                                           |
+| `ray`             | What a line of sight meets, from a point along `dir` (or `to` a point): each face crossed, nearest first, its object, distance, point, normal, in or out.                                                                                                                       |
+| `clearance`       | How two solids sit: whether they overlap, one inside the other, and how close their surfaces come.                                                                                                                                                                              |
 
 The hand is still there for what these don't cover: the pencil, text, the magnet, the camera,
 and anything you want to show being done by hand.
@@ -102,6 +104,13 @@ The server tells an agent the same when it connects (its instructions, `INSTRUCT
 - **Hands off first.** Turn `hands_off` on before a run of work, or a mouse resting on the room
   steers the crosshair. It lapses after two minutes without a call, so after a long stretch of
   reading code, turn it on again.
+- **Let the calls say when something's wrong.** A boolean's `volume` says what each object
+  kept: a trim that leaves a part at 78% when it should only have shaved an edge took too
+  much (that is how the EVA pod's window glass lost its top unnoticed). `ray` checks by
+  number what a look would show: down the middle of a window it should meet the glass, and
+  near its edge, glass before anything behind it. `clearance` says whether a part sits inside
+  another or clear of it. And `look` takes `at` and `zoom` for a close look at a detail the
+  whole room shows only a few pixels of.
 - **Say what each step is for.** Every tool takes a `goal`, a few words on what the call is
   after ("the left side's grooves: turn the cutter to them"). The app shows it at the top of
   the room, under the hands-off banner, until the next one, so whoever watches can follow the

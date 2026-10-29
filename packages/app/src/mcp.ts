@@ -250,7 +250,8 @@ function operations(h: Hooks): Record<string, (a: Args) => unknown> {
     async look(a) {
       const ms = num(a['wait_ms']) ?? 0;
       if (ms) await wait(ms);
-      return { image: h.snapshot(num(a['width']) ?? 1024), state: state() };
+      const at = Array.isArray(a['at']) ? (a['at'] as [number, number, number]) : undefined;
+      return { image: h.snapshot(num(a['width']) ?? 1024, at, num(a['zoom'])), state: state() };
     },
     locate(a) {
       return h.locate(String(a['what']));

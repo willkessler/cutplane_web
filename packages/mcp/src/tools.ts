@@ -42,7 +42,11 @@ export const INSTRUCTIONS = [
     'turn the cutter to them"). It shows at the top of the room, so whoever watches can ' +
     'follow what you are after, not only what moved.',
   'Check by numbers, not by eye: inspect after each step, and save now and then. inspect ' +
-    'with all: true lists every object, long on a curved world; pick what you mean to check.',
+    'with all: true lists every object, long on a curved world; pick what you mean to check. ' +
+    "A boolean's volume says what each object kept: a trim that took a fifth of a part " +
+    'took too much. ray says what a line of sight meets (through a window: the glass, or ' +
+    'what is behind it); clearance, whether two things overlap or how far apart they are; ' +
+    'look with at and zoom looks closely at a detail.',
   'A press takes the nearest part: within about 12 of a face (a thin bar, a face lying near ' +
     'the plane) it takes that face, and a drag then moves the face, reshaping the object. To ' +
     'pick or move a whole object, use the grabber (on the arrange rail; open it with the ' +
@@ -190,6 +194,8 @@ export function addTools(
       inputSchema: {
         width: z.number().int().min(320).max(2048).optional().describe('Pixels wide (default 1024).'), // prettier-ignore
         wait_ms: z.number().int().min(0).max(10_000).optional().describe('Wait this long first (a fall, an animation).'), // prettier-ignore
+        at: z.tuple([z.number(), z.number(), z.number()]).optional().describe('A closer look: the camera aimed at this point, from the way it looks now (the person\'s view is left as it was).'), // prettier-ignore
+        zoom: z.number().min(1).max(16).optional().describe('With at: this many times nearer (default 1).'), // prettier-ignore
       },
     },
     guard(looked),
@@ -601,7 +607,10 @@ export function addTools(
         'union: the objects fused into one (the first keeps its id). subtract: the tool cut ' +
         "out of each object, as the drill cuts (the cut's walls take the tool's colour). " +
         'intersect: each keeps only what it shares with the tool. The tool goes unless ' +
-        'keep_tool. A group counts as its parts. Says what came of it (a cut in two is two).',
+        'keep_tool. A group counts as its parts. Says what came of it (a cut in two is two) ' +
+        'and volume: what each object took up before and after (kept, as a share), so a cut ' +
+        'that took more than meant shows. Where the boolean did nothing (a part not fused; ' +
+        'an object left as it was) it fails, saying which, and the tool is kept.',
       inputSchema: {
         op: z.enum(['union', 'subtract', 'intersect']),
         objects,
@@ -611,6 +620,41 @@ export function addTools(
       },
     },
     guard(({ look, ...a }) => direct('boolean', a, look)),
+  );
+
+  register(
+    'ray',
+    {
+      title: 'What a line of sight meets',
+      description:
+        'Casts a line from a point along dir (or toward to, and no further) and says each ' +
+        'face it crosses, nearest first: the object (id, name, of: the thing it is part of), ' +
+        "t (how far), at, n (the face's outward normal) and into (going into the solid, or " +
+        'out of it). To check by number what a look would show: what is seen through a ' +
+        'window, whether a part is covered, where a hole goes.',
+      inputSchema: {
+        from: v3,
+        dir: z.union([z.enum(['x', 'y', 'z', '-x', '-y', '-z']), v3]).optional(),
+        to: v3.optional(),
+        objects: objects.optional().describe('Only these (default: everything).'),
+        count: z.number().int().min(1).max(200).optional().describe('Hits at most (default 12).'), // prettier-ignore
+      },
+    },
+    guard((a) => direct('ray', a)),
+  );
+
+  register(
+    'clearance',
+    {
+      title: 'How two things sit',
+      description:
+        'Whether two solid objects share room (overlap: one cuts into the other, or holds ' +
+        'it), whether one lies wholly inside the other (a_inside_b, b_inside_a), and how close ' +
+        'their surfaces come (gap, corner to face; 0 when they overlap). To check a fit by ' +
+        'number: glass inside its frame, a part clear of another.',
+      inputSchema: { a: ref, b: ref },
+    },
+    guard((a) => direct('clearance', a)),
   );
 
   register(

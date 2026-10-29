@@ -12,6 +12,11 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 28, 2026
 
+- **The agent checks its work by number.** A boolean now says how much of each object it
+  kept, and fails aloud where it did nothing, instead of reporting success. Two new calls:
+  `ray` says what a line of sight meets (looking into a window: the glass, or the cabin behind
+  it), and `clearance` whether two parts overlap, one sits inside the other, or how far apart
+  they are. A look can aim at a point and zoom in on it.
 - **See what the agent is after.** Every MCP call can carry a goal, a few words on what the
   step is for, and the app shows it at the top of the room as the step is done. A run of
   direct calls (a sphere here, a cut there) is hard to follow on its own; with the goal shown,

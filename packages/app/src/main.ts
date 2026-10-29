@@ -1823,8 +1823,12 @@ declare global {
        * levelHold, planeStick), each set first as asked, as a person picks it.
        */
       settings(set?: Record<string, string>): Record<string, string>;
-      /** The room as the user sees it: a JPEG this many pixels wide, as a data URL. */
-      snapshot(width: number): string;
+      /**
+       * The room as the user sees it: a JPEG this many pixels wide, as a data URL. With
+       * `at`, a closer look (new, for an agent): the camera aimed at that point from the
+       * way it looks now, `zoom` times nearer (the person's own view is left as it was).
+       */
+      snapshot(width: number, at?: [number, number, number], zoom?: number): string;
       /** Every colour a drawn face has, as "r,g,b". */
       palette(): string[];
       openText(text: string): void;
@@ -2012,12 +2016,23 @@ async function start(): Promise<void> {
       await loadModel(src);
       settle();
     },
-    snapshot(width) {
+    snapshot(width, at, zoom = 1) {
       render();
+      if (at) {
+        // From the way the camera looks, nearer the point by the zoom (never inside the
+        // near plane), aimed at it; the next frame puts the camera back.
+        const from = camera.position.clone();
+        const dir = from.clone().normalize();
+        const dist = Math.max(from.length() / Math.max(zoom, 1), 250);
+        camera.position.set(at[0], at[1], at[2]).addScaledVector(dir, dist);
+        camera.lookAt(at[0], at[1], at[2]);
+        renderer.render(scene, camera);
+      }
       const out = document.createElement('canvas');
       out.width = Math.min(width, canvas.width);
       out.height = Math.round((out.width * canvas.height) / canvas.width);
       out.getContext('2d')!.drawImage(canvas, 0, 0, out.width, out.height);
+      if (at) render();
       return out.toDataURL('image/jpeg', 0.85);
     },
     palette() {
@@ -2220,6 +2235,8 @@ async function start(): Promise<void> {
         boolean: () => d.boolean(args),
         slice: () => d.slice(args),
         face: () => d.moveFace(args),
+        ray: () => d.ray(args),
+        clearance: () => d.clearance(args),
       };
       const f = calls[op];
       if (!f) throw new Error(`no such call: ${op}`);

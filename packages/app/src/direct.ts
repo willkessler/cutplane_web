@@ -22,6 +22,7 @@ import {
   type Runtime,
   type V3,
 } from '@cutplane/behaviors';
+import { clearance, crossings, worldVolume } from './probe.ts';
 
 /**
  * New: an agent's direct calls (?mcp). Where the hand (mcp.ts) works the app as a person
@@ -79,6 +80,25 @@ function axisOf(v: unknown): V3 {
   const l = Math.hypot(...a);
   if (l === 0) throw new Error('axis: not [0, 0, 0]');
   return a.map((c) => c / l) as V3;
+}
+
+/** Whether a ray from o along unit d meets the box [lo, hi] before max. */
+function rayMeetsBox(o: V3, d: V3, lo: V3, hi: V3, max: number): boolean {
+  let t0 = 0;
+  let t1 = max;
+  for (let k = 0; k < 3; k++) {
+    if (Math.abs(d[k]!) < 1e-12) {
+      if (o[k]! < lo[k]! - 1e-3 || o[k]! > hi[k]! + 1e-3) return false;
+      continue;
+    }
+    let p = (lo[k]! - o[k]!) / d[k]!;
+    let q = (hi[k]! - o[k]!) / d[k]!;
+    if (p > q) [p, q] = [q, p];
+    t0 = Math.max(t0, p - 1e-3);
+    t1 = Math.min(t1, q + 1e-3);
+    if (t0 > t1) return false;
+  }
+  return true;
 }
 
 export class Direct {
@@ -493,31 +513,66 @@ export class Direct {
   /**
    * The booleans: union fuses the objects into the first; subtract cuts the tool out of
    * each (the drill's cut, its walls the tool's colour), intersect keeps what each shares
-   * with it. The tool goes, unless kept.
+   * with it. The tool goes, unless kept. Says what each kept of its room (volume), so a
+   * cut that took more than it should shows; and fails, aloud, where the boolean did
+   * nothing (a part left out of a union; an object the cut left as it was, the tool kept).
    */
   boolean(a: Args): Args {
     const op = String(a['op']);
     const os = this.resolve(a['objects']).flatMap((o) => this.solids(o));
     this.unpickAll();
+    const vol = (o: CutObject) => worldVolume(this.rt.world(o));
+    const before = new Map(os.map((o) => [o, vol(o)]));
     let out: CutObject[];
+    const failed: CutObject[] = [];
+    const kept: Args[] = [];
+    let tool: CutObject | undefined;
     if (op === 'union') {
       if (os.length < 2) throw new Error('objects: two or more to union');
       out = [os[0]!];
       for (const b of os.slice(1)) {
         const r = booleanObjects(this.rt, out[0]!, b, BOOL_OP.Union);
         if (r.length > 0) out = r;
+        // (Fused, b is gone: still there, it was left out.)
+        if (r.length === 0 || this.alive(b)) failed.push(b);
       }
+      const sum = os.filter((o) => !failed.includes(o)).reduce((t, o) => t + before.get(o)!, 0);
+      // (More than one piece: some of them don't touch, and stay apart.)
+      kept.push({ before: r1(sum), after: r1(out.reduce((t, o) => t + vol(o), 0)), pieces: out.length }); // prettier-ignore
     } else if (op === 'subtract' || op === 'intersect') {
-      const tool = this.one(a['tool'], 'tool');
+      tool = this.one(a['tool'], 'tool');
       if (!isObject(tool) || tool.brep.numFaces === 0) throw new Error('tool: one solid object, not a group'); // prettier-ignore
       if (os.includes(tool)) throw new Error('tool: not among objects');
       const code = op === 'subtract' ? BOOL_OP.Subtraction : BOOL_OP.Intersection;
-      out = os.flatMap((o) => booleanObjects(this.rt, o, tool, code, true));
-      if (!a['keep_tool']) this.rt.killNow(tool);
+      out = [];
+      for (const o of os) {
+        const id = this.idOf(o);
+        const r = booleanObjects(this.rt, o, tool, code, true);
+        // Nothing back and the object still there as it was: the boolean failed.
+        if (r.length === 0 && this.alive(o)) failed.push(o);
+        out.push(...r);
+        const after = r.reduce((t, x) => t + vol(x), 0);
+        const was = before.get(o)!;
+        kept.push({ object: id, before: r1(was), after: r1(after), kept: was > 0 ? `${r1((100 * after) / was)}%` : undefined, pieces: r.length }); // prettier-ignore
+      }
+      if (!a['keep_tool'] && failed.length === 0) this.rt.killNow(tool);
     } else throw new Error('op: union, subtract or intersect');
     this.rt.commit();
     this.h.settle();
-    return { objects: out.map((o) => this.info(o)) };
+    if (failed.length) {
+      const ids = failed.map((o) => this.idOf(o)).join(', ');
+      throw new Error(
+        op === 'union'
+          ? `union: ${ids} did not fuse and stay as they were (the rest did, one undo step). Try turning one 0.5°.` // prettier-ignore
+          : `${op}: the boolean failed on ${ids}, left as it was; the tool is kept. Try turning the tool 0.5° and again.`, // prettier-ignore
+      );
+    }
+    return { objects: out.map((o) => this.info(o)), volume: kept };
+  }
+
+  /** Whether an object is in the world still (not used up by a boolean). */
+  private alive(o: CutObject): boolean {
+    return this.everything().includes(o);
   }
 
   /** The solid objects of a thing (a group's parts), each a boolean or a slice takes. */
@@ -547,6 +602,58 @@ export class Direct {
     this.h.settle();
     if (back.length === 0) throw new Error(`the plane at z ${z} cuts none of them`);
     return { back: back.map((o) => this.info(o)), front: front.map((o) => this.info(o)) };
+  }
+
+  /**
+   * What a line of sight meets: from a point, along a direction (or toward a point, and
+   * no further), each face it crosses, nearest first: the object, how far, where, and
+   * going in or coming out. Glass where it should be, or the cabin behind it.
+   */
+  ray(a: Args): Args {
+    const from = vec(a['from'], 'from');
+    let d: V3;
+    let max = Infinity;
+    if (a['to'] !== undefined) {
+      const to = vec(a['to'], 'to');
+      d = [to[0] - from[0], to[1] - from[1], to[2] - from[2]];
+      max = Math.hypot(...d);
+      if (max === 0) throw new Error('to: not the same point as from');
+      d = d.map((c) => c / max) as V3;
+    } else d = axisOf(a['dir'] ?? a['direction']);
+    const count = num(a['count']) ?? 12;
+    const only = a['objects'] === undefined ? null : new Set(this.resolve(a['objects']).flatMap((o) => this.solids(o))); // prettier-ignore
+    const hits: Args[] = [];
+    for (const o of this.everything()) {
+      if (o.brep.numFaces === 0 || (only && !only.has(o))) continue;
+      const b = this.rt.branchBox(o);
+      if (b && !rayMeetsBox(from, d, b[0], b[1], max)) continue;
+      const top = this.thingOf(o);
+      for (const c of crossings(this.rt.world(o), from, d, max))
+        hits.push({
+          id: this.idOf(o),
+          ...(o.name ? { name: o.name } : {}),
+          ...(top !== o ? { of: top.name ?? this.idOf(top) } : {}),
+          t: r1(c.t),
+          at: c.at.map(r1),
+          n: c.n.map((x) => Math.round(x * 1000) / 1000),
+          into: c.entering,
+        });
+    }
+    hits.sort((x, y) => (x['t'] as number) - (y['t'] as number));
+    return { hits: hits.slice(0, count), more: Math.max(0, hits.length - count) };
+  }
+
+  /**
+   * How two solids sit: whether they share room (one cutting into the other, or holding
+   * it), one wholly inside the other, and how close their surfaces come (corner to face).
+   */
+  clearance(a: Args): Args {
+    const x = this.one(a['a'], 'a');
+    const y = this.one(a['b'], 'b');
+    for (const [o, w] of [[x, 'a'], [y, 'b']] as const)
+      if (o.brep.numFaces === 0) throw new Error(`${w}: one solid object, not a group (name a part)`); // prettier-ignore
+    const c = clearance(this.rt.world(x), this.rt.world(y));
+    return { a: this.idOf(x), b: this.idOf(y), overlap: c.overlap, a_inside_b: c.aInB, b_inside_a: c.bInA, gap: r1(c.gap) }; // prettier-ignore
   }
 
   /** A face of `o`: its index (inspect's order), or the side it faces ("+y": its top). */
