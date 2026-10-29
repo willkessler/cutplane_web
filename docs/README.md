@@ -726,10 +726,13 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   way it reads, the capitals' height), so it goes where the object goes. Placed by `add_decal`,
   it reads along the surface's axis where there is one (the direction its faces' normals don't
   turn, the least eigenvector of Σ a·nnᵀ near the point), otherwise level, and upright. .cut
-  files keep each in an `Object Decal:` line (with `Lean n|` before the text if it leans: its
-  capitals sheared towards the way it reads; "up" works out the lean that stands them straight
-  up in the room). By hand, the colour control's T chip (`letter.cpl`, after `paint.cpl`) letters
-  what it is let go on and opens a lettering plate (a plate as `read_plate` makes them, its
+  files keep each in an `Object Decal:` line (with `Start|` before the text if it runs from its
+  point rather than either side of it, and `Lean n|` if it leans: its capitals sheared towards
+  the way it reads; "up" works out the lean that stands them straight up in the room). A sticker
+  is a decal with a picture in place of text (a data: URL, at most 512 a side), kept as an
+  `Object Sticker:` line (its aspect where the colour would be) and an `Object Sticker image:`
+  line; the sticker chip (`sticker.cpl`) sticks on the picture it shows. By hand, the colour control's T chip (`letter.cpl`, after `paint.cpl`) letters
+  what it is let go on, reading along the section there, and opens a lettering plate (a plate as `read_plate` makes them, its
   fields `textinput.cpl` with `lettering.cpl` as their private code); a click on lettering opens
   it again. One typeface for now; glTF export leaves it out.
 - **Booleans and slicing go through manifold-3d.** The original's own boolean (`boolean.c`)

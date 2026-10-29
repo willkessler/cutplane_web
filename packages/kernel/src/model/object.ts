@@ -29,6 +29,13 @@ export interface TextDecal {
   lean?: number;
   /** 'start': `at` is where it starts (the left end of its line), not its middle. */
   align?: 'start';
+  /**
+   * A sticker: a picture (a data: URL) laid on instead of lettering, `height` high and
+   * `aspect` times that wide; `text` is then its name, and `color` goes unused.
+   */
+  image?: string;
+  /** A sticker's width over its height. */
+  aspect?: number;
 }
 
 /** A decal's own copy (its vectors not shared). */

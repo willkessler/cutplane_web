@@ -188,8 +188,11 @@ function readObject(L: Lines, warn: (m: string) => void): { object: CutObject; p
   if (L.maybe(/^Object Photo colours$/)) object.attrs.photo = true;
   const opacity = L.maybe(/^Object Opacity:\s*(\S+)/);
   if (opacity) object.opacity = Math.max(0, Math.min(1, Number(opacity[1])));
-  for (let d = L.maybe(/^Object Decal:(.*)$/); d; d = L.maybe(/^Object Decal:(.*)$/)) {
-    const [c, h, at, nor, along, ...text] = d[1]!.split('|');
+  const decalLine = /^Object (Decal|Sticker):(.*)$/;
+  for (let d = L.maybe(decalLine); d; d = L.maybe(decalLine)) {
+    // A sticker: its aspect where lettering's colour is, its picture on the next line.
+    const sticker = d[1] === 'Sticker';
+    const [c, h, at, nor, along, ...text] = d[2]!.split('|');
     const v3 = (t = '') => floats(t).slice(0, 3) as [number, number, number];
     // Laid from its start, and a lean, if any, before the text ("Start|Lean 8.13|PAN AMERICAN").
     const start = text.length > 1 && text[0]!.trim() === 'Start';
@@ -206,6 +209,11 @@ function readObject(L: Lines, warn: (m: string) => void): { object: CutObject; p
     };
     if (lean && Number(lean[1])) decal.lean = Number(lean[1]);
     if (start) decal.align = 'start';
+    if (sticker) {
+      decal.color = [255, 255, 255];
+      decal.aspect = Number(c) || 1;
+      decal.image = L.expect(/^Object Sticker image:(.*)$/, 'Object Sticker image:')[1]!.trim();
+    }
     (object.decals ??= []).push(decal);
   }
   const code = L.maybe(/^Object CPL private code:\s*(\d+)/);

@@ -89,6 +89,7 @@ export const CRTN_NAMES = [
   'letter_on',
   'letter_color',
   'next_lettering',
+  'sticker_on',
   'apply_lettering',
   'close_lettering',
 ] as const;

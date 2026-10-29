@@ -1,5 +1,5 @@
-import { mkdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { extname, join } from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
@@ -569,13 +569,16 @@ export function addTools(
         'capitals leaned from square to the line they stand on (degrees, + as italics), or ' +
         '"upright": straight up in the room, as a row of windows stepping up a slope stands. ' +
         'align: "start" puts its start (left end) at `at`, running on the way it reads, ' +
-        'rather than its middle; so it stays put as what it says changes. It is laid onto ' +
+        'rather than its middle; so it stays put as what it says changes. image: a sticker ' +
+        'instead of lettering, a picture (png, jpeg, webp, gif or svg) from a file this ' +
+        'server can read, an http(s) URL or a data: URL, `height` high and as wide as it ' +
+        'runs; text, if given, its name. It is laid onto ' +
         'the faces turned towards it, across seams, and moves, turns and scales with the ' +
         'part. One typeface for now; write it as it should read (capitals for a livery). ' +
         'Returns the part it is on, where, the way out, the way it reads, up, and its size.',
       inputSchema: {
         object: ref,
-        text: z.string(),
+        text: z.string().optional(),
         at: v3.describe('A point on or just off the surface where its middle (or start) goes.'),
         height: z.number().positive(),
         color: v3.describe('[r, g, b], 0..255; dark grey left out.').optional(),
@@ -583,10 +586,13 @@ export function addTools(
         roll: z.number().optional(),
         lean: z.union([z.number(), z.literal('upright')]).optional(),
         align: z.enum(['middle', 'start']).optional(),
+        image: z.string().optional(),
         look: lookArg,
       },
     },
-    guard(({ look, ...a }) => direct('decal', a, look)),
+    guard(async ({ look, image, ...a }) =>
+      direct('decal', image === undefined ? a : { ...a, image: await pictureUrl(image) }, look),
+    ),
   );
 
   register(
@@ -775,7 +781,7 @@ export function addTools(
       description:
         'The middle of a thing in the room, as one would see where it is: prims (the primitives ' +
         'box), goodies, stamps (the primitives in the box), picked, base, chip, glass, letter (the ' +
-        'T chip), bars (the colour control), lettering (its plate, open), bulb, camera, toolpads, arrangepads, pads, arrangers, rails (which are open), ' +
+        'T chip), sticker (the sticker chip), bars (the colour control), lettering (its plate, open), bulb, camera, toolpads, arrangepads, pads, arrangers, rails (which are open), ' +
         'inHand, measure, help.',
       inputSchema: { what: z.string() },
     },
@@ -861,4 +867,33 @@ export function addTools(
       };
     }),
   );
+}
+
+const PICTURE_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+};
+
+/** New: a sticker's picture as a data: URL, from one, an http(s) URL, or a file here. */
+async function pictureUrl(from: string): Promise<string> {
+  if (from.startsWith('data:')) return from;
+  let bytes: Buffer;
+  let type: string | undefined;
+  if (/^https?:\/\//.test(from)) {
+    const r = await fetch(from);
+    if (!r.ok) throw new Error(`image: ${from} answered ${r.status}`);
+    bytes = Buffer.from(await r.arrayBuffer());
+    type = r.headers.get('content-type')?.split(';')[0];
+  } else {
+    bytes = await readFile(from).catch(() => {
+      throw new Error(`image: no file ${from} here (a path this server can read, or a URL)`);
+    });
+  }
+  type = type?.startsWith('image/') ? type : PICTURE_TYPES[extname(from.split('?')[0]!).toLowerCase()]; // prettier-ignore
+  if (!type) throw new Error('image: png, jpeg, webp, gif or svg');
+  return `data:${type};base64,${bytes.toString('base64')}`;
 }

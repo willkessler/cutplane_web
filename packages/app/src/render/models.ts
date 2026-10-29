@@ -578,10 +578,10 @@ export class ModelView {
    */
   private letter(m: Model, pos: number[], faces: number[]): void {
     for (const d of m.object.decals ?? []) {
-      const map = decalTexture(d.text);
+      const map = decalTexture(d);
       if (!map) continue;
       const f = decalFrame(m.object, d);
-      const { w, h, depth } = decalSize(f, d.text);
+      const { w, h, depth } = decalSize(f, d);
       const p = projectDecal(pos, f, w, h, depth);
       if (p.from.length === 0) continue;
       const col: number[] = [];
@@ -589,7 +589,8 @@ export class ModelView {
       for (const t of p.from) {
         const face = faces[t]!;
         let c = lit.get(face);
-        if (!c) lit.set(face, (c = this.shade(m, face, undefined, d.color)));
+        // (A sticker's picture has its own colours: lit as white is.)
+        if (!c) lit.set(face, (c = this.shade(m, face, undefined, d.image ? [255, 255, 255] : d.color))); // prettier-ignore
         col.push(...c, ...c, ...c);
       }
       const g = geometry(p.pos, col);

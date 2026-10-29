@@ -89,7 +89,8 @@ function writeObject(w: (s: string) => void, o: CutObject, label: number, parent
   w(`Object Screenbboxtechnique:${o.screenBBoxTechnique}\n`);
   if (o.attrs.photo) w('Object Photo colours\n'); // new
   if (o.opacity !== undefined && o.opacity < 1) w(`Object Opacity:${fmtF(o.opacity, 2)}\n`); // new
-  // New: lettering on it, a line each, what it says last (one line: breaks become spaces).
+  // New: lettering on it, a line each, what it says last (one line: breaks become spaces);
+  // stickers among it, two lines each.
   for (const d of o.decals ?? []) {
     const r = (c: number, k: number) => fmtF(Number(c.toFixed(k)) || 0, k);
     const v = (p: readonly number[]) => p.map((c) => r(c, 4)).join(' ');
@@ -99,7 +100,11 @@ function writeObject(w: (s: string) => void, o: CutObject, label: number, parent
     const start = d.align === 'start' ? 'Start|' : '';
     const lean =
       d.lean || /^\s*(Lean -?[\d.]+|Start)\s*\|/.test(text) ? `Lean ${r(d.lean ?? 0, 2)}|` : '';
-    w(`Object Decal:${d.color.join(' ')}|${r(d.height, 4)}|${v(d.at)}|${v(d.normal)}|${v(d.along)}|${start}${lean}${text}\n`); // prettier-ignore
+    const rest = `${r(d.height, 4)}|${v(d.at)}|${v(d.normal)}|${v(d.along)}|${start}${lean}${text}`;
+    // A sticker: its aspect in the colour's place, then its picture, a line of its own.
+    if (d.image)
+      w(`Object Sticker:${r(d.aspect ?? 1, 4)}|${rest}\nObject Sticker image:${d.image}\n`); // prettier-ignore
+    else w(`Object Decal:${d.color.join(' ')}|${rest}\n`);
   }
   if (o.attrs.privateSource !== undefined) {
     w(`Object CPL private code:${codeLines(o.attrs.privateSource)} lines\n`);

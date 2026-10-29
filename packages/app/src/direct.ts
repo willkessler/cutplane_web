@@ -24,6 +24,7 @@ import {
   type Runtime,
   type V3,
 } from '@cutplane/behaviors';
+import { readyPicture } from './pictures.ts';
 import { clearance, crossings, worldVolume } from './probe.ts';
 import {
   decalFrame,
@@ -502,11 +503,13 @@ export class Direct {
    * New: lettering laid on a thing (a decal): on the surface nearest `at` (of whichever
    * part is nearest), facing out from it, reading along the surface's axis there (a
    * hull's length) or level, upright; `along` a way to read instead, `roll` turned
-   * after (degrees, anticlockwise seen from outside).
+   * after (degrees, anticlockwise seen from outside). With `image` (a data: URL), a
+   * sticker: that picture, `text` its name.
    */
-  decal(a: Args): Args {
+  async decal(a: Args): Promise<Args> {
     const thing = this.one(a['object'], 'object');
-    const text = a['text'];
+    const picture = a['image'] === undefined ? undefined : await readyPicture(String(a['image']), typeof a['text'] === 'string' ? a['text'] : undefined); // prettier-ignore
+    const text = picture ? picture.name : a['text'];
     if (typeof text !== 'string' || !text.trim()) throw new Error('text: what it says');
     const near = vec(a['at'], 'at');
     const height = num(a['height']);
@@ -522,12 +525,14 @@ export class Direct {
     if (a['align'] === 'start') f.align = 'start';
     else if (a['align'] !== undefined && a['align'] !== 'middle') throw new Error('align: "middle" or "start"'); // prettier-ignore
     this.rt.journal.touch(o);
-    o.decals = [...(o.decals ?? []), decalIn(o, f, text.trim(), color)];
+    const d = decalIn(o, f, text.trim(), picture ? [255, 255, 255] : color);
+    if (picture) Object.assign(d, { image: picture.image, aspect: picture.aspect });
+    o.decals = [...(o.decals ?? []), d];
     this.rt.changed(o);
     this.rt.commit();
     this.h.settle();
     const r3 = (v: number) => Math.round(v * 1000) / 1000;
-    const { w } = decalSize(f, text.trim());
+    const { w } = decalSize(f, d);
     return {
       object: this.idOf(o),
       decal: o.decals.length - 1,
@@ -908,7 +913,7 @@ export function letterer(rt: Runtime): NonNullable<Runtime['letterer']> {
     for (const o of objects)
       for (const [index, d] of (o.decals ?? []).entries()) {
         const f = decalFrame(o, d);
-        const { w, h, depth } = decalSize(f, d.text);
+        const { w, h, depth } = decalSize(f, d);
         const r = at.map((c, k) => c - f.at[k]!);
         const dot = (a: readonly number[]) => r[0]! * a[0]! + r[1]! * a[1]! + r[2]! * a[2]!;
         const y = dot(f.v);

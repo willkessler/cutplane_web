@@ -12,6 +12,18 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 29, 2026
 
+- **Stickers.** A sticker chip sits left of the T chip, showing a picture. Drag it onto a thing
+  and the picture is stuck on there (a decal, laid as lettering is), and the lettering plate
+  opens for its name, size and lean. Click it, or let it go on nothing, to choose a picture
+  file; or drop a picture file on the room to stick it on where the plane cuts a surface under
+  the drop (or replace a sticker's picture there). Pictures are kept in the `.cut` file
+  (`Object Sticker:` lines), up to 512 pixels a side. `add_decal` takes `image`: a file the
+  MCP server can read, an http(s) URL, or a data: URL. The plate's hint now says that an
+  empty text takes lettering (or a sticker) off.
+- **Lettering in the bars' colour.** New lettering takes the colour the bars show, read off them
+  when the T chip is let go, and the T always shows it: after a picked thing's colour is put on
+  the bars, and after a reload, not only after a bar is dragged.
+
 - **The T chip: lettering by hand.** The colour control has a grey T chip on its left. Drag it
   onto a thing and the thing is lettered there, "TEXT" in the colour the bars show (the colour
   its T shows), and a lettering plate opens in the plane with the text ready to type over. Return

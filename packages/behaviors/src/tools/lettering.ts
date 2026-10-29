@@ -1,5 +1,6 @@
 import { P, first, type Feature, type VM } from '@cutplane/cpl';
 import {
+  type DecalFrame,
   decalFrame,
   decalIn,
   subtree,
@@ -17,6 +18,7 @@ import {
   readPlate,
   type PlateSpec,
 } from './plates.ts';
+import { barsColor, showOnLetterChip } from './colorcontrol.ts';
 import { registerPadTechniques } from './toolbar.ts';
 
 /**
@@ -24,8 +26,14 @@ import { registerPadTechniques } from './toolbar.ts';
  * bars, is dragged as the paint chip is; let go on a thing, it letters it there
  * ("TEXT", in the colour its T shows, starting where it was let go) and opens the
  * lettering plate, where what it says, its size and how far it leans are typed
- * (lettering.cpl: Tab goes on to the next, Return sets them, Esc leaves them). Let go
- * on lettering already there, or click on it, the plate opens for that.
+ * (lettering.cpl: Tab goes on to the next, Return sets them, Esc leaves them; nothing
+ * to say takes it off). Let go on lettering already there, or click on it, the plate
+ * opens for that.
+ *
+ * The sticker chip (Sticker: sticker.cpl), left of it, sticks on the picture it shows
+ * (a sticker: a TextDecal with an image), middle where it was let go, and opens the
+ * same plate for it, its name where the lettering would be. Let go on nothing (or just
+ * clicked), it asks the host for a picture to show (Runtime.chooseImage).
  */
 
 /** What new lettering says until it's typed. */
@@ -66,7 +74,7 @@ function letteringSpec(): PlateSpec {
       label('Lettering:', 25, 110),
       label('Size:', 345, 110),
       label('Lean:', 475, 110),
-      label('Tab: next. Return sets it, Esc leaves it. Lean: degrees, or up', 25, 15, 0.8),
+      label('Tab: next. Return sets it (empty: takes it off). Esc leaves it. Lean: degrees, or up', 25, 15, 0.65), // prettier-ignore
     ],
     inputs: [
       field('LetterText', 300, 25),
@@ -93,6 +101,7 @@ export function installLettering(rt: Runtime, source: (f: string) => string): Cu
   registerPadTechniques(rt);
   // The T chip's code (the colour control was built before it was there to read).
   rt.vm.loadPropertyCode(source('letter.cpl'), 'letter.cpl', 'Letter');
+  rt.vm.loadPropertyCode(source('sticker.cpl'), 'sticker.cpl', 'Sticker');
   const plane = rt.cutplane;
   const spec = letteringSpec();
   spec.offset = [120 - spec.size[0] / 2 - plane.xform[12]!, MAX_Y - 40 - spec.size[1] - plane.xform[13]!, 3]; // prettier-ignore
@@ -150,6 +159,7 @@ export function openLettering(rt: Runtime, object: CutObject, index: number): vo
   const d = object.decals?.[index];
   if (!p || !d) return;
   editing.set(rt, { object, index });
+  rt.setLabel(p.plate, 1, d.image ? 'Sticker:' : 'Lettering:');
   rt.setLabel(p.text, 1, d.text);
   rt.setLabel(p.size, 1, String(Math.round(decalFrame(object, d).height * 10) / 10));
   rt.setLabel(p.lean, 1, String(d.lean ?? 0));
@@ -219,7 +229,90 @@ export function applyLettering(rt: Runtime): void {
 const objectOf = (f: Feature | null | undefined): CutObject | null =>
   isObject(f) ? f : isSub(f) ? f.object : null;
 
-/** The T chip's routines (letter.cpl, lettering.cpl). */
+/**
+ * The colour the colour control's bars show, which new lettering takes (and the T shows):
+ * read off the bars, as a picked thing's colour put on them doesn't reach the T by message.
+ */
+export function barsColorFor(rt: Runtime): Rgb | null {
+  const home = [...subtree(rt.environment.root)].find(
+    (o) => o.name === 'Letterchip' && !rt.hasProp(o, 'Active'),
+  );
+  const rgb = home?.parent ? barsColor(rt, home.parent) : null;
+  if (home && rgb) showOnLetterChip(rt, home, rgb);
+  return rgb;
+}
+
+/** A picture to stick on: a data: URL, its width over its height, and its name. */
+export interface StickerPicture {
+  image: string;
+  aspect: number;
+  name: string;
+}
+
+/** The sticker chip on the colour control (not a copy of it being carried). */
+function stickerChip(rt: Runtime): CutObject | undefined {
+  return [...subtree(rt.environment.root)].find(
+    (o) => o.name === 'Stickerchip' && rt.hasProp(o, 'Sticker') && !rt.hasProp(o, 'Active'),
+  );
+}
+
+/** The picture the sticker chip shows, which is what it sticks on. */
+export function stickerPictureOf(rt: Runtime): StickerPicture | undefined {
+  const d = stickerChip(rt)?.decals?.[0];
+  return d?.image ? { image: d.image, aspect: d.aspect ?? 1, name: d.text } : undefined;
+}
+
+/** The sticker chip shows `picture` (the next one it sticks on). */
+export function setStickerPicture(rt: Runtime, picture: StickerPicture): void {
+  const chip = stickerChip(rt);
+  const d = chip?.decals?.[0];
+  if (!chip || !d) return;
+  chip.decals = [{ ...d, image: picture.image, aspect: picture.aspect, text: picture.name }];
+  rt.changed(chip);
+}
+
+/** How much bigger a sticker goes on than lettering would. */
+const STICKER_SCALE = 3;
+
+/**
+ * `picture` stuck on `object` at `frame` (its middle there; three times lettering's
+ * height), one undoable step, and the plate opened for it.
+ */
+export function stickOn(
+  rt: Runtime,
+  object: CutObject,
+  frame: DecalFrame,
+  picture: StickerPicture,
+): void {
+  rt.journal.touch(object);
+  const f = { ...frame, height: frame.height * STICKER_SCALE };
+  delete f.align;
+  const d = { ...decalIn(object, f, picture.name, [255, 255, 255]), image: picture.image, aspect: picture.aspect }; // prettier-ignore
+  object.decals = [...(object.decals ?? []), d];
+  rt.changed(object);
+  rt.commit();
+  openLettering(rt, object, object.decals.length - 1);
+}
+
+/** A sticker's picture changed to `picture` (and its name), one undoable step. */
+export function repicture(
+  rt: Runtime,
+  object: CutObject,
+  index: number,
+  picture: StickerPicture,
+): void {
+  // prettier-ignore
+  const d = object.decals?.[index];
+  if (!d?.image) return;
+  rt.journal.touch(object);
+  object.decals = object.decals!.map((x, i) =>
+    i === index ? { ...x, image: picture.image, aspect: picture.aspect, text: picture.name } : x,
+  );
+  rt.changed(object);
+  rt.commit();
+}
+
+/** The T chip's and the sticker chip's routines (letter.cpl, sticker.cpl, lettering.cpl). */
 export const LETTER_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>> = {
   /** (what is under the crosshair, the chip let go): letter it there, and open the plate. */
   letter_on(rt, vm) {
@@ -233,7 +326,7 @@ export const LETTER_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
     let index = at.index;
     if (index === undefined) {
       if (!at.frame) return;
-      const color = chip.decals?.[0]?.color ?? [20, 20, 20];
+      const color = barsColorFor(rt) ?? chip.decals?.[0]?.color ?? [20, 20, 20];
       rt.journal.touch(object);
       // It starts where it was let go, so it stays there as what it says changes.
       const frame = { ...at.frame, align: 'start' as const };
@@ -244,14 +337,27 @@ export const LETTER_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
     }
     openLettering(rt, object, index);
   },
+  /** (what is under the crosshair, the chip let go): stick its picture on there; on nothing, choose one. */
+  sticker_on(rt, vm) {
+    const chip = objectOf(first(vm.pop()));
+    const under = vm.pop().list ?? [];
+    const objects = [...new Set(under.map(objectOf).filter((o): o is CutObject => !!o))];
+    if (!chip) return;
+    const at = objects.length && rt.letterer ? rt.letterer(objects, rt.cursor()) : null;
+    if (!at) {
+      rt.chooseImage?.();
+      return;
+    }
+    if (at.index !== undefined) return openLettering(rt, at.object, at.index);
+    const d = chip.decals?.[0];
+    if (at.frame && d?.image)
+      stickOn(rt, at.object, at.frame, { image: d.image, aspect: d.aspect ?? 1, name: d.text });
+  },
   /** (chip, colour): the T shows the bars' colour, which is what it letters in. */
   letter_color(rt, vm) {
     const c = vm.pop().vec ?? [];
     const chip = objectOf(first(vm.pop()));
-    const t = chip?.decals?.[0];
-    if (!chip || !t) return;
-    chip.decals = [{ ...t, color: [c[0] ?? 0, c[1] ?? 0, c[2] ?? 0] }];
-    rt.changed(chip);
+    if (chip) showOnLetterChip(rt, chip, c);
   },
   /** (the field Tab was typed in) */
   next_lettering(rt, vm) {

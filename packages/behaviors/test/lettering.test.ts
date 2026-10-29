@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { P } from '@cutplane/cpl';
+import { P, featuresWord } from '@cutplane/cpl';
 import type { CutObject } from '@cutplane/kernel';
 import {
   COLOR_CRTNS,
@@ -8,6 +8,8 @@ import {
   installLettering,
   letteringOf,
   letteringPlateOf,
+  setStickerPicture,
+  stickerPictureOf,
 } from '../src/index.ts';
 import { source, world } from './world.ts';
 
@@ -56,13 +58,13 @@ function setup() {
         w.frame();
       }
   };
-  /** The T chip taken (it leans off the base's left end, x 136–186) and let go at (x, y). */
-  const drop = (x: number, y: number) => {
-    w.at(161, -18, 0);
+  /** The T chip (it leans off the base's left end, x 136–186), or the sticker chip, taken and let go at (x, y). */
+  const drop = (x: number, y: number, chip = 161) => {
+    w.at(chip, -18, 0);
     w.controls.pressPick(false);
     w.frame();
     w.move(-100, 10);
-    w.move(x - 61, y + 8);
+    w.move(x - chip + 100, y + 8);
     w.controls.releasePick();
     w.frame();
     w.frame();
@@ -88,6 +90,21 @@ describe('the T chip and the lettering plate (new)', () => {
     expect(cc.letter.decals![0]!.color).toEqual(cc.chip.color);
     expect(cc.letter.decals![0]!.color[0]).toBe(0);
     expect(cc.letter.color).toEqual([120, 120, 125]);
+  });
+
+  it('letters in the colour the bars show, and the T shows it, however the bars came to it', () => {
+    const { rt, cube, cc, drop } = setup();
+    // The bars set to a picked thing's colour (no bar dragged, no message to the T).
+    const T_ = cc.letter.decals![0]!.color;
+    cube.color = [200, 30, 60];
+    rt.vm.push(featuresWord(cube));
+    rt.vm.push(featuresWord(...cc.bars));
+    COLOR_CRTNS.set_color_bars!(rt, rt.vm);
+    expect(cc.letter.decals![0]!.color).not.toEqual(T_);
+    const shown = cc.letter.decals![0]!.color;
+    shown.forEach((c, i) => expect(Math.abs(c - cube.color[i]!)).toBeLessThanOrEqual(3));
+    drop(0, 20);
+    expect(cube.decals![0]!.color).toEqual(shown);
   });
 
   it('let go on a thing, letters it there and opens the plate; Return sets what it says', () => {
@@ -192,5 +209,34 @@ describe('the T chip and the lettering plate (new)', () => {
     click(-60, -60);
     expect(shown()).toBe(false);
     expect(cube.decals![0]!.text).toBe('ORION III');
+  });
+
+  it('the sticker chip sticks its picture on, its middle there; let go on nothing, asks for one', () => {
+    const { rt, cube, cc, p, drop, type, shown } = setup();
+    const b = rt.bbox(cc.sticker)!;
+    expect(b[0][0]).toBeCloseTo(82);
+    expect(b[1][0]).toBeCloseTo(132);
+    expect(stickerPictureOf(rt)?.image).toMatch(/^data:image\/svg/);
+    const globe = { image: 'data:image/png;base64,AAAA', aspect: 2, name: 'GLOBE' };
+    setStickerPicture(rt, globe);
+    expect(stickerPictureOf(rt)).toEqual(globe);
+    let asked = 0;
+    rt.chooseImage = () => asked++;
+    drop(0, 20, 107);
+    expect(cube.decals).toHaveLength(1);
+    const d = cube.decals![0]!;
+    expect(d).toMatchObject({ image: globe.image, aspect: 2, text: 'GLOBE', height: 60 });
+    expect(d.align).toBeUndefined();
+    expect(asked).toBe(0);
+    // The plate is open on it, its name where lettering's would be.
+    expect(shown()).toBe(true);
+    expect(rt.label(p.plate, 1)).toBe('Sticker:');
+    expect(rt.label(p.text, 1)).toBe('GLOBE');
+    type([0x08, CR]);
+    expect(cube.decals).toBeUndefined();
+    // Let go on nothing: asks for a picture, sticks nothing on.
+    drop(-400, 300, 107);
+    expect(asked).toBe(1);
+    expect(cube.decals).toBeUndefined();
   });
 });

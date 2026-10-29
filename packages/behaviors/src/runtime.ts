@@ -299,6 +299,11 @@ export class Runtime implements Host {
     | ((objects: CutObject[], at: V3, there?: boolean) => { object: CutObject; index?: number; frame?: DecalFrame } | null) // prettier-ignore
     | null = null;
   /**
+   * New here: the sticker chip, let go on nothing (or clicked), asks for a picture to
+   * show; the host asks the person for one (a file) and gives it the chip.
+   */
+  chooseImage: (() => void) | null = null;
+  /**
    * New here: what a boolean tool (the drill's cutter, what the union tool picked
    * up) carries out of the world. While it is carried, what it overlaps is what's
    * selectable in the world, so letting go acts on all of that, wherever the

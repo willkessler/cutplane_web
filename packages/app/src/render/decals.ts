@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { DecalFrame } from '@cutplane/kernel';
+import type { DecalFrame, TextDecal } from '@cutplane/kernel';
 
 export { decalFrame, decalIn, uprightLean, type DecalFrame } from '@cutplane/kernel';
 
@@ -132,25 +132,49 @@ export function projectDecal(
   return out;
 }
 
-/** The decal's box in the room: as wide and high as its picture, as deep as half its larger side. */
-export function decalSize(f: DecalFrame, text: string): { w: number; h: number; depth: number } {
-  const b = textBox(text);
+/** What a decal shows: lettering, or a sticker's picture. */
+type Shows = Pick<TextDecal, 'text' | 'image' | 'aspect'>;
+
+/**
+ * The decal's box in the room: as wide and high as its picture (a sticker's, `height`
+ * high), as deep as half its larger side.
+ */
+export function decalSize(f: DecalFrame, d: Shows): { w: number; h: number; depth: number } {
+  const b = d.image ? { width: d.aspect ?? 1, height: 1 } : textBox(d.text);
   const w = b.width * f.height;
   const h = b.height * f.height;
   return { w, h, depth: Math.max(h, 0.5 * Math.min(w, 4 * h)) };
 }
 
 const textures = new Map<string, THREE.CanvasTexture>();
+const pictures = new Map<string, THREE.Texture>();
 
-/** The text's picture as a texture (kept: one a text). */
-export function decalTexture(text: string): THREE.Texture | null {
-  let t = textures.get(text);
+/** The decal's picture as a texture: its text's, or a sticker's (kept: one a text, or a picture). */
+export function decalTexture(d: Shows): THREE.Texture | null {
+  if (d.image) return pictureTexture(d.image);
+  let t = textures.get(d.text);
   if (t) return t;
-  const c = textBox(text).canvas;
+  const c = textBox(d.text).canvas;
   if (!c) return null;
   t = new THREE.CanvasTexture(c);
   t.anisotropy = 8;
-  textures.set(text, t);
+  textures.set(d.text, t);
+  return t;
+}
+
+/** A sticker's picture (a data: URL) as a texture, drawn once it has loaded. */
+function pictureTexture(src: string): THREE.Texture | null {
+  let t = pictures.get(src);
+  if (t) return t;
+  if (typeof Image === 'undefined') return null;
+  const img = new Image();
+  t = new THREE.Texture(img);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  const tex = t;
+  img.onload = () => (tex.needsUpdate = true);
+  img.src = src;
+  pictures.set(src, t);
   return t;
 }
 

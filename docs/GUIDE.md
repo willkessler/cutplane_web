@@ -239,7 +239,14 @@ turned towards you, with no section line to follow, it reads level. Type what it
 empty text takes it off); **Tab** goes on to the next field. The Size field is the capitals'
 height in the room (smaller for a wing). The Lean field takes degrees (as italics) or **up**,
 which stands the letters straight up however the line runs. To change
-lettering later, put the plane through it and click on it. **Double-click** the colour control's base
+lettering later, put the plane through it and click on it; to take it off, empty its text and
+press Return. Left of the T chip, the **sticker chip** shows a picture: drag it onto a face and
+that picture is stuck on there, its middle where you let go, and the same plate opens (its name,
+its size, its lean). Click the sticker chip, or let it go on nothing, to choose a picture file
+for it; or drop a picture file (png, jpeg, webp, gif, svg) straight onto the room: the chip
+takes it, and where the plane cuts a surface under the drop it's stuck on there (dropped on a
+sticker, it replaces that one's picture). Pictures are kept in the world's file, up to 512
+pixels a side. **Double-click** the colour control's base
 or the camera's body to put it away: it goes back into its box, which closes.
 
 **1** clears the view. With something picked, the first press draws everything else as grey wire

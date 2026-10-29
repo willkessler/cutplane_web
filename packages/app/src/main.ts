@@ -26,8 +26,13 @@ import {
   installToolboxes,
   bulbLightOf,
   cameraViewOf,
+  barsColorFor,
   installLettering,
   letteringPlateOf,
+  openLettering,
+  repicture,
+  setStickerPicture,
+  stickOn,
   installStoragePad,
   installHelpPad,
   installHintPlates,
@@ -51,6 +56,7 @@ import {
 } from '@cutplane/behaviors';
 import { DEMO_SECONDS, demoPose } from './demo.ts';
 import { Direct, letterer } from './direct.ts';
+import { readyPicture, type Picture } from './pictures.ts';
 import {
   NOTHING_HELD,
   keyLines,
@@ -228,8 +234,9 @@ const CPL_FILES = [
   'lens.cpl',
   'save.cpl',
   'load.cpl',
-  // The T chip's and its lettering plate's fields' (new).
+  // The T chip's, the sticker chip's and its lettering plate's fields' (new).
   'letter.cpl',
+  'sticker.cpl',
   'lettering.cpl',
   // The measure pad's, and its plates' and fields'.
   'measurepad.cpl',
@@ -331,6 +338,7 @@ async function loadCpl(): Promise<void> {
     'goodies.cpl',
     'colorbar.cpl',
     'letter.cpl',
+    'sticker.cpl',
     'lettering.cpl',
   ]);
   await Promise.all(
@@ -386,6 +394,8 @@ function makeWorld(): void {
   installMeasurePad(rt, resource, source);
   installLettering(rt, source);
   rt.letterer = letterer(rt);
+  rt.chooseImage = chooseImage;
+  restoreStickerPicture();
   keysPlate = keysPlateOf(installHelpPad(rt, keyLines(MAC)));
   markRoom(rt); // the room as built: what a session left is put back on it
   // (After it: which one shows follows what is picked, nothing for a session to keep.)
@@ -1536,9 +1546,83 @@ window.addEventListener('drop', (e) => {
   e.preventDefault();
   dragDepth = 0;
   app.classList.remove('dropping');
-  // A folder dropped opens as all its files would.
-  void droppedFiles(e.dataTransfer).then(openFiles);
+  // A folder dropped opens as all its files would; a picture is a sticker (stickDropped).
+  const [x, y] = [e.clientX, e.clientY];
+  void droppedFiles(e.dataTransfer).then(async (files) => {
+    const picture = files.find(isPicture);
+    if (picture) await stickDropped(picture, x, y);
+    const rest = files.filter((f) => !isPicture(f));
+    if (rest.length || !picture) await openFiles(rest);
+  });
 });
+
+// ---- stickers (new) ----
+const isPicture = (f: File) =>
+  f.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(f.name);
+
+/** The sticker chip shows `p` (what it sticks on next), kept for the next visit too. */
+function showOnStickerChip(p: Picture): void {
+  setStickerPicture(rt, p);
+  store('sticker', JSON.stringify(p));
+  settle();
+}
+/** The picture the sticker chip showed last visit, put back on it. */
+function restoreStickerPicture(): void {
+  try {
+    const p = JSON.parse(stored('sticker') ?? 'null') as Picture | null;
+    if (p && typeof p.image === 'string' && p.image.startsWith('data:image/') && p.aspect > 0)
+      setStickerPicture(rt, p);
+  } catch {
+    /* none kept */
+  }
+}
+async function pictureFrom(file: File): Promise<Picture | null> {
+  try {
+    return await readyPicture(file);
+  } catch {
+    notify(`Cutplane can't read ${file.name} as a picture`, true);
+    return null;
+  }
+}
+const pictureInput = Object.assign(document.createElement('input'), {
+  type: 'file',
+  accept: 'image/*',
+});
+pictureInput.addEventListener('change', () => {
+  const file = pictureInput.files?.[0];
+  pictureInput.value = '';
+  if (file) void pictureFrom(file).then((p) => p && showOnStickerChip(p));
+});
+/** The sticker chip let go on nothing, or clicked: the person picks a picture file for it. */
+function chooseImage(): void {
+  if (handsOff || demo) return; // (no one to choose)
+  pictureInput.click();
+}
+/**
+ * A picture file dropped on the room: the sticker chip shows it, and where it was let go
+ * the plane cuts a thing's surface, it's stuck on there (on a sticker there, it takes
+ * that one's place).
+ */
+async function stickDropped(file: File, clientX: number, clientY: number): Promise<void> {
+  const p = await pictureFrom(file);
+  if (!p) return;
+  showOnStickerChip(p);
+  const hit = planeUnder(clientX, clientY);
+  if (!hit || !rt.letterer) return;
+  const at: V3 = [hit.x, hit.y, control.z];
+  const solids = [...subtree(rt.primary.root)].filter((o) => o.brep.faces().length > 0);
+  const there = rt.letterer(solids, at);
+  if (!there) return;
+  if (there.index !== undefined) {
+    if (!there.object.decals?.[there.index]?.image) return;
+    repicture(rt, there.object, there.index, p);
+    openLettering(rt, there.object, there.index);
+  } else if (there.frame && Math.hypot(...there.frame.at.map((c, k) => c - at[k]!)) < DROP_REACH)
+    stickOn(rt, there.object, there.frame, p);
+  settle();
+}
+/** How far from where a picture was dropped a surface may be for it to be stuck on. */
+const DROP_REACH = 20;
 
 // Export: the world's objects as glTF, OBJ or STL.
 const exportSelect = $<HTMLSelectElement>('export');
@@ -1929,6 +2013,7 @@ async function start(): Promise<void> {
       await loadModel((modelSelect.value = 'samples/discovery.cut'));
   }
   startSession();
+  barsColorFor(rt); // the T chip's T shows the colour the bars came back showing
 
   let lastT = 0;
   const renderFrame = (t: number) => {
@@ -2081,6 +2166,7 @@ async function start(): Promise<void> {
         chip: () => box(cc.chip),
         glass: () => box(cc.glass),
         letter: () => box(cc.letter),
+        sticker: () => box(cc.sticker),
         lettering: () => box(letteringPlateOf(rt)?.plate),
         bars: () => cc.bars.map((b) => ({ center: box(b), top: rt.bbox(b)![1][1] })),
         picked: () => box(rt.pickedObjects()[0]),

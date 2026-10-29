@@ -9,7 +9,8 @@ import type { Runtime, V3 } from '../runtime.ts';
  * glass chip beside it, a quarter as wide, paints the same colour half see-through
  * (opacity 0.5); the paint chip makes a thing solid again. And on the left, the
  * T chip (Letter: letter.cpl, tools/lettering.ts) letters a thing in the colour
- * its T shows. The C
+ * its T shows, and left of that the sticker chip (Sticker: sticker.cpl) sticks
+ * on the picture it shows. The C
  * routines it calls are here: control_color limits a bar's drag and works out
  * the colour, set_color_bars sets the bars to a picked thing's colour.
  *
@@ -26,6 +27,21 @@ const CHIP_DEPTH = 5;
 /** New: between the paint chip and the glass chip. */
 const GLASS_GAP = 4;
 
+/** New: the sticker chip's picture till one is chosen: a picture of a picture (sky, sun, hills). */
+export const STICKER_PICTURE = {
+  text: 'PICTURE',
+  aspect: 1,
+  image:
+    'data:image/svg+xml,' +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 64 64">' +
+        '<rect x="3" y="3" width="58" height="58" rx="4" fill="#bfe3ff" stroke="#fff" stroke-width="4"/>' + // prettier-ignore
+        '<circle cx="44" cy="20" r="7" fill="#ffd34d"/>' +
+        '<path d="M5 59 L24 30 L36 46 L44 38 L59 59 Z" fill="#3f8f4f"/>' +
+        '</svg>',
+    ),
+};
+
 export interface ColorControl {
   base: CutObject;
   chip: CutObject;
@@ -33,6 +49,8 @@ export interface ColorControl {
   glass: CutObject;
   /** New: the T chip, on the base's left (Letterchip): lettering in the colour of its T. */
   letter: CutObject;
+  /** New: the sticker chip, left of the T chip (Stickerchip): the picture on it is what it sticks on. */
+  sticker: CutObject;
   bars: [CutObject, CutObject, CutObject];
 }
 
@@ -102,6 +120,25 @@ export function createColorControl(rt: Runtime, corner: V3, width = 120): ColorC
   ];
   rt.addProp(letter, 'Letter');
   rt.adopt(base, letter, true);
+  // The sticker chip, left of it, shows its picture (a sticker on its face).
+  const sticker = make(
+    createCube(height + PK, Math.hypot(depth, height), CHIP_DEPTH),
+    mat4.multiply(tilt, at(-PK - 2 * (height + PK + GLASS_GAP), 0, depth)),
+    [120, 120, 125],
+    'Stickerchip',
+  );
+  sticker.decals = [
+    {
+      ...STICKER_PICTURE,
+      color: [255, 255, 255],
+      height: (height + PK) * 0.7,
+      at: [(height + PK) / 2, Math.hypot(depth, height) / 2, CHIP_DEPTH],
+      normal: [0, 0, 1],
+      along: [1, 0, 0],
+    },
+  ];
+  rt.addProp(sticker, 'Sticker');
+  rt.adopt(base, sticker, true);
   const colours: Rgb[] = [[255, 0, 0], [0, 255, 0], [0, 0, 255]]; // prettier-ignore
   const bars = [0, 1, 2].map((i) => {
     const bar = make(
@@ -118,8 +155,8 @@ export function createColorControl(rt: Runtime, corner: V3, width = 120): ColorC
     return bar;
   }) as [CutObject, CutObject, CutObject];
   rt.addProp(base, 'Goodies');
-  for (const o of [base, chip, glass, letter, ...bars]) rt.addProp(o, 'Lockedgeometry');
-  return { base, chip, glass, letter, bars };
+  for (const o of [base, chip, glass, letter, sticker, ...bars]) rt.addProp(o, 'Lockedgeometry');
+  return { base, chip, glass, letter, sticker, bars };
 }
 
 /** The bars a base carries, in order (the children with no name: not the chips). */
@@ -134,6 +171,25 @@ const channel = (h: number) =>
       Math.max(0, (255 * (h - MIN_COLORBAR_HEIGHT)) / (COLORBAR_HEIGHT - MIN_COLORBAR_HEIGHT)),
     ),
   );
+
+/** New: the colour a colour control's bars show, read off their heights. */
+export function barsColor(rt: Runtime, base: CutObject): Rgb | null {
+  const bars = barsOf(base);
+  if (bars.length !== 3) return null;
+  const rgb = bars.map((b) => {
+    const box = rt.bbox(b);
+    return box ? channel(box[1][1] - box[0][1]) : 0;
+  });
+  return [rgb[0]!, rgb[1]!, rgb[2]!];
+}
+
+/** New: the T chip's T shows `rgb` (what it letters in). */
+export function showOnLetterChip(rt: Runtime, chip: CutObject, rgb: readonly number[]): void {
+  const t = chip.decals?.[0];
+  if (!t || t.color.every((c, i) => c === rgb[i])) return;
+  chip.decals = [{ ...t, color: [rgb[0] ?? 0, rgb[1] ?? 0, rgb[2] ?? 0] }];
+  rt.changed(chip);
+}
 
 export const COLOR_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>> = {
   /** CPL_control_color: (colorbar, y-move) → (colour, limited y-move). */
@@ -170,10 +226,15 @@ export const COLOR_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>>
     if (!painted || !barsRec.list) return;
     const rgb = rt.color(painted);
     let i = 0;
+    let base: CutObject | null = null;
     for (const b of barsRec.list) {
       if (!b || b.type !== T.Obj || (b as CutObject).name !== null) continue;
       setBarHeight(rt, b as CutObject, rgb[i++] ?? 0);
+      base = (b as CutObject).parent;
     }
+    // New: the T chip shows what the bars now do.
+    const letter = base?.children.find((o) => o.name === 'Letterchip');
+    if (letter) showOnLetterChip(rt, letter, rgb);
   },
 };
 
