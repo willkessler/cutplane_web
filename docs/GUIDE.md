@@ -248,7 +248,7 @@ show (let go on nothing, it does nothing); or drop a picture file (png, jpeg, we
 takes it, and where the plane cuts a surface under the drop it's stuck on there (dropped on a
 sticker, it replaces that one's picture). Pictures are kept in the world's file, up to 512
 pixels a side. Left of that, the yellow **note chip** puts a note on a thing: let it go on a
-face and a tag floats out from it on a thin line, in the bars' colour, and the plate opens to
+face (or on lettering or a sticker there) and a tag floats out from it on a thin line, in the bars' colour, and the plate opens to
 say what it says (the Out field is how far it floats). A note isn't painted on: it's a remark
 about the design ("flange here is steel"), its tag always facing you. Folded, a tag shows only
 the start of what it says; put the crosshair over it and it opens out in full; click it to

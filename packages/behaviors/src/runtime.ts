@@ -292,11 +292,12 @@ export class Runtime implements Host {
   /**
    * New here: where the T chip, let go at `at` over `objects`, letters: lettering already
    * on one there (its index), or a new place (where on its surface, how big); `there`,
-   * only lettering already there (a click on it). The host works it out, as it has the
-   * surfaces' triangles; none, no lettering.
+   * only lettering already there (a click on it); 'new', only a new place, over whatever
+   * is there (a note). The host works it out, as it has the surfaces' triangles; none, no
+   * lettering.
    */
   letterer:
-    | ((objects: CutObject[], at: V3, there?: boolean) => { object: CutObject; index?: number; frame?: DecalFrame } | null) // prettier-ignore
+    | ((objects: CutObject[], at: V3, there?: boolean | 'new') => { object: CutObject; index?: number; frame?: DecalFrame } | null) // prettier-ignore
     | null = null;
   /**
    * New here: the sticker chip asks for a picture: the host asks the person for one (a

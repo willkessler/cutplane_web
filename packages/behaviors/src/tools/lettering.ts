@@ -417,10 +417,9 @@ export const LETTER_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
     const under = vm.pop().list ?? [];
     const objects = [...new Set(under.map(objectOf).filter((o): o is CutObject => !!o))];
     if (!chip || objects.length === 0 || !rt.letterer) return;
-    const at = rt.letterer(objects, rt.cursor());
-    if (!at) return;
-    if (at.index !== undefined) return openLettering(rt, at.object, at.index);
-    if (at.frame) noteOn(rt, at.object, at.frame);
+    // Over lettering or a sticker too: a note says something about what's there.
+    const at = rt.letterer(objects, rt.cursor(), 'new');
+    if (at?.frame) noteOn(rt, at.object, at.frame);
   },
   /** (chip, colour): the T shows the bars' colour, which is what it letters in. */
   letter_color(rt, vm) {

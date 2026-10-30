@@ -15,7 +15,9 @@ New in 2026: none of these were in the 1991 original.
 - **Lettering and stickers slide.** With the lettering plate open, press on the lettering (or
   sticker) and drag: it slides along the surface with the crosshair, one undoable step. The
   sticker chip let go on a thing asks for the picture there and then; let go on nothing, it
-  does nothing (a click on the chip still picks its picture).
+  does nothing (a click on the chip still picks its picture). The note chip let go on lettering
+  or a sticker puts a note there, rather than opening that one's plate (where a Size typed for
+  the note shrank the sticker instead).
 - **Notes.** A yellow note chip sits left of the sticker chip. Let it go on a thing and a note
   floats out from the surface there on a leader line: a tag in the bars' colour, facing whoever
   looks, for remarks about the design ("flange here is steel"). Folded, the tag shows the start

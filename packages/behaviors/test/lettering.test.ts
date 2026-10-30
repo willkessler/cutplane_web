@@ -32,8 +32,8 @@ function setup() {
     const o = objects[0]!;
     // (The cube's own coordinates are the room's plus 100.)
     const i = (o.decals ?? []).findIndex((d) => Math.hypot(d.at[0] - 100 - at[0], d.at[1] - 100 - at[1]) < 30); // prettier-ignore
-    if (i >= 0) return { object: o, index: i };
-    if (there) return null;
+    if (i >= 0 && there !== 'new') return { object: o, index: i };
+    if (there === true) return null;
     return {
       object: o,
       frame: { at: [at[0], at[1], 100], u: [1, 0, 0], v: [0, 1, 0], n: [0, 0, 1], height: 20 },
@@ -319,5 +319,19 @@ describe('the T chip and the lettering plate (new)', () => {
     drop(-60, -60);
     expect(rt.label(p.plate, 1)).toBe('Lettering:');
     expect(rt.label(p.plate, 3)).toBe('Lean:');
+  });
+
+  it('the note chip let go on lettering puts a note on it, leaving the lettering be', () => {
+    const { rt, cube, drop, type } = setup();
+    drop(0, 20);
+    type(['NASA', CR]);
+    const nasa = cube.decals![0]!;
+    drop(0, 20, 53);
+    expect(cube.decals).toHaveLength(2);
+    expect(cube.decals![1]).toMatchObject({ text: 'NOTE', note: NOTE_OUT });
+    expect(letteringOf(rt)).toEqual({ object: cube, index: 1 });
+    type([TAB, '10', CR]);
+    expect(cube.decals![0]).toBe(nasa);
+    expect(cube.decals![1]).toMatchObject({ text: 'NOTE', height: 10 });
   });
 });

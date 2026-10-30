@@ -927,20 +927,21 @@ export function placeOn(
  */
 export function letterer(rt: Runtime): NonNullable<Runtime['letterer']> {
   return (objects, at, there) => {
-    for (const o of objects)
-      for (const [index, d] of (o.decals ?? []).entries()) {
-        if (d.note !== undefined) continue; // (off the surface: Runtime.noteUnder)
-        const f = decalFrame(o, d);
-        const { w, h, depth } = decalSize(f, d);
-        const r = at.map((c, k) => c - f.at[k]!);
-        const dot = (a: readonly number[]) => r[0]! * a[0]! + r[1]! * a[1]! + r[2]! * a[2]!;
-        const y = dot(f.v);
-        const x = dot(f.u) - Math.tan(((f.lean ?? 0) * Math.PI) / 180) * y;
-        const x0 = f.align === 'start' ? 0 : -w / 2;
-        if (x >= x0 && x <= x0 + w && Math.abs(y) <= h / 2 && Math.abs(dot(f.n)) <= depth)
-          return { object: o, index };
-      }
-    if (there) return null;
+    if (there !== 'new')
+      for (const o of objects)
+        for (const [index, d] of (o.decals ?? []).entries()) {
+          if (d.note !== undefined) continue; // (off the surface: Runtime.noteUnder)
+          const f = decalFrame(o, d);
+          const { w, h, depth } = decalSize(f, d);
+          const r = at.map((c, k) => c - f.at[k]!);
+          const dot = (a: readonly number[]) => r[0]! * a[0]! + r[1]! * a[1]! + r[2]! * a[2]!;
+          const y = dot(f.v);
+          const x = dot(f.u) - Math.tan(((f.lean ?? 0) * Math.PI) / 180) * y;
+          const x0 = f.align === 'start' ? 0 : -w / 2;
+          if (x >= x0 && x <= x0 + w && Math.abs(y) <= h / 2 && Math.abs(dot(f.n)) <= depth)
+            return { object: o, index };
+        }
+    if (there === true) return null;
     const size = (o: CutObject) => {
       const b = rt.bbox(o);
       if (!b) return 20;

@@ -4,8 +4,8 @@
 ;	The note chip is dragged as the T chip is (a copy of it goes with the
 ;	crosshair); let go on a thing, it puts a note there: floating out from
 ;	the surface where it was let go, in the bars' colour, and opens the
-;	lettering plate to say what it says. Let go on lettering already
-;	there, it opens the plate for that; on nothing, it does nothing.
+;	lettering plate to say what it says. Let go on lettering or a sticker
+;	already there, it puts a note on that too; on nothing, it does nothing.
 
 Note		DEFPROP
 

@@ -58,7 +58,8 @@ export function highlightState(
     ghost = { models: parts, move: magnet.ghost };
   }
   // A tool or goodie under the crosshair takes it: its code eats the press (env runs first).
-  const envBusy = rt.selected(rt.environment).length > 0;
+  // Not a chip's copy being carried, though: it's let go on what's lit.
+  const envBusy = rt.selected(rt.environment).some((f) => !carriedChip(rt, f));
   if (!envBusy && !hover)
     for (const m of models) {
       const s = rt.selectableOf(m.object);
@@ -79,6 +80,15 @@ export function highlightState(
     }
   }
   return { hover, picked, marquee: marqueeOf(rt), ghost };
+}
+
+/** A copy of the T, sticker or note chip on its way to being let go on something. */
+function carriedChip(rt: Runtime, f: Feature): boolean {
+  return (
+    isObject(f) &&
+    rt.vm.props.has(f, P.Active) &&
+    ['Letter', 'Sticker', 'Note'].some((name) => rt.hasProp(f, name))
+  );
 }
 
 /** cursor.cpl's marquee: an environment object of two vertices, drawn as a box between them. */
