@@ -161,7 +161,8 @@ Like everything else, the tools stand in the room and are used through the plane
   and the centre can also be dragged and dropped onto a feature.
   - **Slide along a bar** to roll what is picked about the axis in the plane across the bar,
     through the centre: 1° per unit. The crosshair stays on the bar.
-  - **Off the end of a bar**, or from a **bauble**, the drag turns the dial: the crosshair rides
+  - **Off the end of a bar** (pushed on 40 units round the circle there), from a **bauble**, or
+    from **anywhere on the outer circle**, the drag turns the dial: the crosshair rides
     the circle and what is picked spins about the plane's normal (or about the piercing edge),
     the bars turning with it. It stops every 45° (the bars level, upright or diagonal), and holds
     there until pushed on 15 units round the circle.
@@ -776,6 +777,12 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
     it came to; afterwards the rest is picked again (`Controls.pickAgain`, through the
     `handed_over` C routine), but for whatever holds what it came to. So R on a face of one of
     several cubes picked turns them all about that face, and a group whole.
+  - **The outer circle dials**, wherever it's taken: what's picked turns from there by as much
+    as the crosshair goes round (the nearest bauble does the turning). `select.c` never made
+    the circle selectable, so only the baubles dialled.
+  - **A roll holds at the bar's end** until pushed 40 units on round the circle, then dials
+    (`END_HOLD`). The original handed the roll to the bauble once the crosshair came within a
+    bauble's size of it, so a roll a little off straight near the end spun the object about z.
   - **The dial stops every 45°**, not only at horizontal, and holds as the stop below does.
     `compute_snapped_rotangle` was meant to stop every 45°, but its rounding (`angle / 45 * 45`
     in floating point) gave back the angle itself, so only crossing the x axis stopped it. At a

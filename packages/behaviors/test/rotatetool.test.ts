@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { P, T } from '@cutplane/cpl';
 import { mat4 } from '@cutplane/kernel';
 import {
+  END_HOLD,
   PERP_HOLD,
   ROTATE_DOCK,
   ROTATE_RADIUS,
@@ -236,6 +237,63 @@ describe('the rotate tool through rotatecircle, rotatexbar and rotatebauble.cpl'
     expect(turned(w, 'z')).toBeCloseTo(90, 1);
     w.controls.releasePick();
     w.frame();
+  });
+
+  it('a roll that reaches the end of its bar holds there until pushed END_HOLD round, then dials (new)', () => {
+    const w = setup();
+    w.at(0, 0, 0);
+    w.tap();
+    w.at(-300, 0, 0);
+    w.r();
+    w.at(0, 0, 0);
+    w.tap();
+    w.at(-300 + 60, 0, 0); // on the horizontal bar
+    w.controls.pressPick(false);
+    w.frame();
+    w.move(35, 0);
+    w.move(35, 0); // to its end
+    expect(w.stage.x).toBeCloseTo(-300 + ROTATE_RADIUS);
+    const rolled = turned(w, 'y');
+    // A little sideways at the end (a hand isn't straight): still the roll, no dial.
+    for (let k = 0; k < END_HOLD / 10 - 1; k++) w.move(0, 10);
+    expect(turned(w, 'z')).toBeCloseTo(0, 5);
+    expect(turned(w, 'y')).toBeCloseTo(rolled, 5);
+    expect([w.stage.x, w.stage.y]).toEqual([-300 + ROTATE_RADIUS, 0]);
+    // Pushed on round the circle, it turns to the dial.
+    for (let k = 0; k < 4; k++) w.move(0, 10);
+    expect(Math.abs(turned(w, 'z'))).toBeGreaterThan(1);
+    expect(Math.hypot(w.stage.x + 300, w.stage.y)).toBeCloseTo(ROTATE_RADIUS);
+    w.controls.releasePick();
+    w.frame();
+  });
+
+  it('a press anywhere on the outer circle dials from there (new: only the baubles did)', () => {
+    const w = setup();
+    w.at(0, 0, 0);
+    w.tap();
+    w.at(-300, 0, 0);
+    w.r();
+    w.at(0, 0, 0);
+    w.tap();
+    // 30° round from the right bauble: on the circle, clear of the baubles and bars.
+    const a0 = Math.PI / 6;
+    w.at(-300 + ROTATE_RADIUS * Math.cos(a0), ROTATE_RADIUS * Math.sin(a0), 0);
+    w.controls.pressPick(false);
+    w.frame();
+    expect(turned(w, 'z')).toBeCloseTo(0, 5); // no jump to where it was taken
+    const step = (d: number) => {
+      const r = Math.hypot(w.stage.x + 300, w.stage.y);
+      w.move((-w.stage.y / r) * d, ((w.stage.x + 300) / r) * d);
+    };
+    for (let k = 0; k < 5; k++) step(4);
+    const a = Math.atan2(w.stage.y, w.stage.x + 300);
+    // Turned as far as the crosshair went round, the crosshair on the circle.
+    expect(turned(w, 'z')).toBeCloseTo(((a - a0) * 180) / Math.PI, 1);
+    expect(turned(w, 'z')).toBeGreaterThan(5);
+    expect(Math.hypot(w.stage.x + 300, w.stage.y)).toBeCloseTo(ROTATE_RADIUS);
+    w.controls.releasePick();
+    w.frame();
+    expect(w.rt.vm.props.features(w.rt.environment, P.Active)).toEqual([]);
   });
 
   it('a drag along a bar that runs onto its bauble in one move, and lets go there, lets go (cutplane_web)', () => {

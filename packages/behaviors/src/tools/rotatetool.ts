@@ -62,6 +62,12 @@ const TOLZNORM = 0.996;
  * browser's event rate). As firm as the plane's stick (PLANE_STICK).
  */
 export const PERP_HOLD = 15;
+/**
+ * How far a roll that has reached a bar's end must be pushed round the circle before it
+ * turns to the dial (new: the original handed on to the bauble the moment the crosshair
+ * reached it, so a roll pushed a little sideways at the end dialled about z unasked).
+ */
+export const END_HOLD = 40;
 /** The dial's stops: compute_snapped_rotangle's snapangle (45). */
 export const DIAL_STEP = 45;
 /**
@@ -91,6 +97,8 @@ interface ToolState {
   held: number | null;
   /** Push along the dial so far against one of its stops (new). */
   dialHeld: number | null;
+  /** Push round the circle so far with a roll at a bar's end (new): END_HOLD turns it to the dial. */
+  endPush: number;
 }
 const states = new WeakMap<Runtime, ToolState>();
 
@@ -174,6 +182,7 @@ export function createRotateTool(rt: Runtime): RotateTool {
     placePt: [0, 0, 0],
     held: null,
     dialHeld: null,
+    endPush: 0,
   });
   resetTool(rt, tool);
   rt.translate(inner, [ROTATE_DOCK[0], ROTATE_DOCK[1], rt.cursor()[2]]);
@@ -279,24 +288,31 @@ function innerSelectable(rt: Runtime, inner: CutObject): void {
   else rt.applySelectable(inner, NOTHING);
 }
 
-/** set_rotatexbar_selectable: a shown bauble within Baublesize, else the shown bar within Dragbaublesize. */
+/**
+ * set_rotatexbar_selectable: a shown bauble within Baublesize, else the shown bar within
+ * Dragbaublesize; else, on the outer circle (new), the nearest shown bauble, which dials
+ * from there. A bar being rolled offers its bauble only once pushed END_HOLD round.
+ */
 function xbarSelectable(rt: Runtime, bar: CutObject): void {
   const cur = rt.cursor();
   const [a, b] = ends(bar);
   const pa = pos(rt, bar, a);
   const pb = pos(rt, bar, b);
   const shown = (f: Sub) => rt.vm.props.has(f, P.Visible);
-  for (const [v, p] of [
-    [a, pa],
-    [b, pb],
-  ] as const) {
-    const h = rt.features.vertex(bar, v);
-    if (Math.hypot(...sub(cur, p)) <= BAUBLE_SIZE && shown(h)) {
-      rt.applySelectable(bar, { feature: h, kind: SelectKind.Vert, at: p });
-      return;
-    }
-  }
   const e = rt.features.edge(bar, bar.brep.edges()[0]!);
+  const st = states.get(rt);
+  const rolling = rt.vm.props.has(e, P.Active);
+  if (!rolling || (st && Math.abs(st.endPush) >= END_HOLD))
+    for (const [v, p] of [
+      [a, pa],
+      [b, pb],
+    ] as const) {
+      const h = rt.features.vertex(bar, v);
+      if (Math.hypot(...sub(cur, p)) <= BAUBLE_SIZE && shown(h)) {
+        rt.applySelectable(bar, { feature: h, kind: SelectKind.Vert, at: p });
+        return;
+      }
+    }
   const ab = sub(pb, pa);
   const l2 = dot(ab, ab);
   const t = l2 === 0 ? 0 : Math.min(1, Math.max(0, dot(sub(cur, pa), ab) / l2));
@@ -305,7 +321,33 @@ function xbarSelectable(rt: Runtime, bar: CutObject): void {
     rt.applySelectable(bar, { feature: e, kind: SelectKind.Edge, at: near });
     return;
   }
+  const h = st && ringBauble(rt, st.tool);
+  if (h && h.object === bar) {
+    rt.applySelectable(bar, { feature: h, kind: SelectKind.Vert, at: cur });
+    return;
+  }
   rt.applySelectable(bar, NOTHING);
+}
+
+/**
+ * With the crosshair on the outer circle (new), the shown bauble nearest it; not while a
+ * bar rolls (its end is on the circle: END_HOLD says when that turns to the dial).
+ */
+function ringBauble(rt: Runtime, t: RotateTool): Sub | null {
+  if (!rt.vm.props.has(t.inner, P.Visible)) return null;
+  for (const bar of [t.hbar, t.vbar])
+    if (rt.vm.props.has(rt.features.edge(bar, bar.brep.edges()[0]!), P.Active)) return null;
+  const cur = rt.cursor();
+  const d = sub(cur, centerOf(rt, t));
+  if (Math.abs(Math.hypot(d[0], d[1]) - ROTATE_RADIUS) > DRAG_BAUBLE_SIZE) return null;
+  let best: { h: Sub; l: number } | null = null;
+  for (const bar of [t.hbar, t.vbar])
+    for (const v of ends(bar)) {
+      const h = rt.features.vertex(bar, v);
+      const l = Math.hypot(...sub(cur, pos(rt, bar, v)));
+      if (rt.vm.props.has(h, P.Visible) && (!best || l < best.l)) best = { h, l };
+    }
+  return best?.h ?? null;
 }
 
 /**
@@ -367,8 +409,11 @@ function xbarRotation(rt: Runtime, bar: CutObject, trans: V3): XbarRot {
   const axis = cross(Z, xv);
   const along = dot(xv, trans);
   let t = scale(xv, along);
-  // Stop at the baubles.
+  // Stop at the baubles. Pushed on round the circle there, it turns to the dial at END_HOLD.
   const cursor = rt.cursor();
+  const end = [p1, p2].find((p) => Math.hypot(...sub(cursor, p)) < 0.5);
+  if (end && dot(trans, unit(sub(point, end))) < 1) st.endPush += dot(trans, cross(xv, Z));
+  else st.endPush = 0;
   const total = sub(p2, p1);
   const to = add(cursor, t);
   const c1 = sub(to, p1);
@@ -467,7 +512,10 @@ export const ROTATE_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
     const other = cross(xv, Z);
     const out_ = unit(sub(bp, center));
     const escaped = dot(t, out_);
+    const cursor = rt.cursor();
+    st.endPush = 0;
     if (
+      Math.hypot(...sub(cursor, bp)) <= BAUBLE_SIZE &&
       Math.abs(dot(t, other)) < Math.abs(dot(t, xv)) &&
       escaped < -BAUBLE_SIZE / 2 &&
       rt.vm.props.has(xbar, P.Visible)
@@ -479,31 +527,36 @@ export const ROTATE_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
       return;
     }
     // The dial. Not at the bar's stop (turning about z keeps the face across the plane).
+    // It turns from where the crosshair is on the circle, the bauble or anywhere round it
+    // (new: taken on the outer circle), the crosshair kept on the circle.
     st.held = null;
-    const cursor = rt.cursor();
     const n1 = unit(sub(bp, center));
+    const c1 = sub(cursor, center);
+    c1[2] = 0;
+    const g1 = Math.hypot(...c1) < 1e-9 ? n1 : unit(c1);
+    const pin = add(center, scale(g1, ROTATE_RADIUS));
     const to = add(cursor, t);
     const v2 = sub(to, center);
     v2[2] = 0;
     if (Math.hypot(...v2) < 1e-9) {
-      out(null, false, rotateWord(Z, center, 0), rotateWord(Z, center, 0), sub(bp, cursor));
+      out(null, false, rotateWord(Z, center, 0), rotateWord(Z, center, 0), sub(pin, cursor));
       return;
     }
     // Held at a stop: the bauble stays until pushed PERP_HOLD along the circle, either way.
     const a1 = Math.atan2(n1[1], n1[0]) * DEG;
     const offStop = (a: number) => Math.abs(a - Math.round(a / DIAL_STEP) * DIAL_STEP);
     if (st.dialHeld !== null) {
-      const push = dot(t, unit(cross(Z, n1)));
+      const push = dot(t, unit(cross(Z, g1)));
       if (offStop(a1) < STOP_TOL && Math.abs(st.dialHeld + push) < PERP_HOLD) {
         st.dialHeld += push;
         const none = rotateWord(Z, center, 0);
-        out(null, false, none, none, sub(bp, cursor));
+        out(null, false, none, none, sub(pin, cursor));
         return;
       }
       st.dialHeld = null;
     }
     let n2 = unit(v2);
-    let deg = Math.atan2(cross(n1, n2)[2], dot(n1, n2)) * DEG;
+    let deg = Math.atan2(cross(g1, n2)[2], dot(g1, n2)) * DEG;
     let paused = false;
     // compute_snapped_rotangle: a small turn that reaches an eighth of a turn (the bars
     // level, upright or diagonal) stops there, as the original meant: its rounding left
@@ -514,7 +567,8 @@ export const ROTATE_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
       // Reaching it counts (to the tolerance); starting on it doesn't.
       if ((a2 - stop) * Math.sign(deg) > -STOP_TOL && Math.abs(stop - a1) > STOP_TOL) {
         deg = stop - a1;
-        const r = stop / DEG;
+        // (Where the crosshair took the circle, turned as far as the bauble turns.)
+        const r = (stop - a1) / DEG + Math.atan2(g1[1], g1[0]);
         const c = Math.cos(r);
         const s = Math.sin(r);
         n2 = [Math.abs(c) < 1e-12 ? 0 : c, Math.abs(s) < 1e-12 ? 0 : s, 0];
@@ -551,6 +605,7 @@ export const ROTATE_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
     st.snapFace = null;
     st.held = null;
     st.dialHeld = null;
+    st.endPush = 0;
     st.otherAxis = null;
     const f = first(rec);
     if (!f) {

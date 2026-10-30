@@ -99,8 +99,9 @@ so the cube above has grown a box out of its right side. Push it back and the wa
 ## 4. Turning and resizing
 
 - **R** brings the **rotate tool** to the crosshair and picks what's there. Slide along one of its
-  bars to roll the object over, or turn its outer circle to spin it in the plane. R on its centre
-  puts it away.
+  bars to roll the object over, or take its outer circle anywhere (or a bauble at a bar's end) and
+  turn it to spin the object in the plane. A roll stops at the bar's end, and only turns to a
+  spin there once you push on round the circle a good way. R on its centre puts it away.
 - R on a face's **section line** lines the tool up with it. Roll it there and the face catches
   when it stands straight across the plane, holding until you push on: two objects stood up
   this way are parallel. Rolled to within 5° of lying in the plane, the face snaps into it.

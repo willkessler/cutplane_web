@@ -334,8 +334,9 @@ export function addTools(
         '\\ slice at the plane, R rotate tool (to the crosshair; R on its centre puts it away. A ' +
         'stroke along a bar rolls what is picked 1° a unit about the in-plane axis across the bar, ' +
         "through the tool's centre, not the object's: put the tool on the object's middle first. " +
-        "A roll ends at the bar's end; within 10 units of an end is the bauble, which dials " +
-        'about the plane normal instead), Z magnifier, H pan hand, P pencil, M ruler, V globe ' +
+        "A roll ends at the bar's end, and turns to the dial only when pushed 40 on round the " +
+        'circle there; a press on the outer circle, anywhere (a bauble, within 10 of an end, ' +
+        'too), dials about the plane normal instead), Z magnifier, H pan hand, P pencil, M ruler, V globe ' +
         '(gravity), Space plane to the walls and back, 0 face the room, 1 how the rest is drawn, ' +
         '? the keys plate, Esc put the tool away, Ctrl-Z undo, Shift-Ctrl-Z redo, Ctrl-A pick all.',
       inputSchema: {
