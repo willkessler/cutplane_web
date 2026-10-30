@@ -339,7 +339,7 @@ export function repicture(
 }
 
 /** A new note's capitals' height, and how far out it floats, in the room. */
-export const NOTE_HEIGHT = 8;
+export const NOTE_HEIGHT = 12;
 export const NOTE_OUT = 40;
 
 /**

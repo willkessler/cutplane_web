@@ -49,6 +49,7 @@ import {
   scaleBoxes as scaleBoxesIn,
   markRoom,
   restoreRoom,
+  closeLettering,
   snapshotRoom,
   type RoomSnapshot,
   type SavedHistory,
@@ -1810,6 +1811,8 @@ function startSession(): void {
   control.pitch = s.pitch;
   // The room as it was, crosshair and plane with it; else they get there by CPL, as when steered.
   if (s.room && restoreRoom(rt, s.room)) {
+    // The lettering plate is open only for lettering being changed, gone with the last visit.
+    closeLettering(rt);
     stage.x = control.x;
     stage.y = control.y;
     stage.z = control.z;

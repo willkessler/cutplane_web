@@ -36,6 +36,13 @@ describe('notes (new): floating off things, open with the crosshair over them', 
     const l = layTag({ object: o, index: 0 }, note([-0.8, -0.6, 0]), false, right, up);
     expect(l.x1).toBe(0);
     expect(l.y1).toBe(0);
+    // Where reaching left would take it out of the room (out of the crosshair's reach), it's slid back in.
+    const w = createObject(createCube(100, 100, 100), { xform: mat4.translation(-505, -50, -50) });
+    w.decals = [{ ...note([-1, 0, 0]), along: [0, 0, 1] }];
+    const r = layTag({ object: w, index: 0 }, w.decals[0]!, false, right, up);
+    expect(r.at[0]).toBe(-495);
+    expect(r.at[0] + r.x0).toBeCloseTo(-511);
+    expect(r.x1).toBeGreaterThan(0);
     // Open, it's bigger.
     const open = layTag({ object: o, index: 0 }, note([0, 0, 1], 'a '.repeat(30)), true, right, up);
     expect(open.lines.length).toBeGreaterThan(1);
@@ -53,7 +60,9 @@ describe('notes (new): floating off things, open with the crosshair over them', 
     const s = 1000 / (1000 - 140);
     const through = (x: number, y: number) => [x * s, y * s, 0];
     expect(tagUnder([t], eye, through(55, 55), right, up)).toBe(t);
-    expect(tagUnder([t], eye, through(45, 55), right, up)).toBeNull();
-    expect(tagUnder([t], eye, through(55, 45), right, up)).toBeNull();
+    // A little round it counts too (0.6 of its lettering's height); further off, not.
+    expect(tagUnder([t], eye, through(46, 55), right, up)).toBe(t);
+    expect(tagUnder([t], eye, through(42, 55), right, up)).toBeNull();
+    expect(tagUnder([t], eye, through(55, 42), right, up)).toBeNull();
   });
 });
