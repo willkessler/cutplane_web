@@ -14,7 +14,7 @@ import {
   messageWord,
 } from '@cutplane/cpl';
 import type { Feature } from '@cutplane/cpl';
-import type { CutObject } from '@cutplane/kernel';
+import { decalFrame, decalIn, type CutObject } from '@cutplane/kernel';
 import { isObject, isSub } from './features.ts';
 import type { Runtime, V3 } from './runtime.ts';
 import { alignPicked, distributePicked } from './align.ts';
@@ -53,6 +53,12 @@ export class Controls {
   private multiple = false;
   private dragOrigin: V3 | null = null;
   private alreadyValidDrag = false;
+  /**
+   * New: lettering (or a sticker) slid along its surface: pressed on with the lettering
+   * plate open for it, it goes with the crosshair, where it was taken hold of staying
+   * under it, instead of anything being picked.
+   */
+  private sliding: { object: CutObject; index: number; grip: [number, number]; moved: boolean } | null = null; // prettier-ignore
   private waitForGoodDrag = false;
   /** Something happened this frame. */
   private events = false;
@@ -80,6 +86,8 @@ export class Controls {
     // Selectables are found now, so the press acts on what is under the crosshair.
     this.rt.setSelectables();
     this.pressedRoom = this.vm.props.features(this.rt.environment, P.Selectable).length > 0;
+    this.sliding = this.pressedRoom ? null : this.slideFrom();
+    if (this.sliding) return this.setDragOrigin();
     this.vm.storeInstruction(opcodeWord(shift ? Op.MPICK : Op.PICK), propWord(P.Selectable, true));
     this.setDragOrigin();
   }
@@ -89,6 +97,13 @@ export class Controls {
     this.pickHeld = false;
     this.rt.pickHeld = false;
     this.events = true;
+    if (this.sliding) {
+      if (this.sliding.moved) this.rt.commit();
+      this.sliding = null;
+      this.dragOrigin = null;
+      this.alreadyValidDrag = false;
+      return;
+    }
     this.rt.setSelectables();
     if (!this.alreadyValidDrag && !this.pressedRoom) this.clickedLettering();
     this.vm.storeInstruction(
@@ -115,6 +130,36 @@ export class Controls {
       (objects.size ? this.rt.letterer?.([...objects], this.rt.cursor(), true) : null);
     if (hit?.index !== undefined) openLettering(this.rt, hit.object, hit.index);
     else if (letteringOf(this.rt)) closeLettering(this.rt);
+  }
+
+  /** The lettering the plate is open for, if the crosshair is on it: taken hold of to slide. */
+  private slideFrom(): Controls['sliding'] {
+    const open = letteringOf(this.rt);
+    const d = open?.object.decals?.[open.index];
+    if (!open || !d || d.note !== undefined || !this.rt.letterer) return null;
+    const at = this.rt.cursor();
+    const hit = this.rt.letterer([open.object], at, true);
+    if (hit?.object !== open.object || hit.index !== open.index) return null;
+    const f = decalFrame(open.object, d);
+    return { ...open, grip: [at[0] - f.at[0], at[1] - f.at[1]], moved: false };
+  }
+
+  /** The lettering slid: laid again on its thing's surface where the crosshair (less the grip) is. */
+  private slide(to: V3): void {
+    const s = this.sliding!;
+    const d = s.object.decals?.[s.index];
+    if (!d || !this.rt.letterer) return;
+    // Laid as if new (its own place not in the way), it keeps all but where it is and how it runs.
+    const others = s.object.decals!;
+    s.object.decals = others.filter((_, i) => i !== s.index);
+    const there = this.rt.letterer([s.object], [to[0] - s.grip[0], to[1] - s.grip[1], to[2]]);
+    s.object.decals = others;
+    if (!there?.frame || there.object !== s.object) return;
+    const laid = decalIn(s.object, there.frame, d.text, d.color);
+    if (!s.moved) this.rt.journal.touch(s.object);
+    s.moved = true;
+    others[s.index] = { ...d, at: laid.at, normal: laid.normal, along: laid.along };
+    this.rt.changed(s.object);
   }
 
   pressPlane(): void {
@@ -430,7 +475,9 @@ export class Controls {
     const c = this.rt.cursor();
     const real = actual(d);
     const projected: V3 = [c[0] + real[0], c[1] + real[1], c[2] + real[2]];
-    if (this.pickHeld && this.dragValid(projected)) {
+    if (this.sliding) {
+      if (this.dragValid(projected)) this.slide(projected);
+    } else if (this.pickHeld && this.dragValid(projected)) {
       // The first drag step catches up with the crosshair from where the press was.
       let drag = real;
       if (this.waitForGoodDrag) {

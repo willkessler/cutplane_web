@@ -299,10 +299,12 @@ export class Runtime implements Host {
     | ((objects: CutObject[], at: V3, there?: boolean) => { object: CutObject; index?: number; frame?: DecalFrame } | null) // prettier-ignore
     | null = null;
   /**
-   * New here: the sticker chip, let go on nothing (or clicked), asks for a picture to
-   * show; the host asks the person for one (a file) and gives it the chip.
+   * New here: the sticker chip asks for a picture: the host asks the person for one (a
+   * file) and gives it the chip, and `then` it, let go on a thing, to stick on there.
    */
-  chooseImage: (() => void) | null = null;
+  chooseImage:
+    ((then?: (picture: { image: string; aspect: number; name: string }) => void) => void) | null =
+    null;
   /**
    * New here: the note (a floating TextDecal) the crosshair is over, if any: a click
    * opens the lettering plate for it. The host knows, as it draws them facing the eye.

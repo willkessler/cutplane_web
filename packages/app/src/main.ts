@@ -32,6 +32,7 @@ import {
   openLettering,
   repicture,
   setStickerPicture,
+  stickerPictureOf,
   stickOn,
   installStoragePad,
   installHelpPad,
@@ -1251,7 +1252,11 @@ canvas.addEventListener('pointerdown', (e) => {
 });
 canvas.addEventListener('pointerup', (e) => {
   syncHeld(e);
-  if (e.button === 0) clickRelease();
+  if (e.button !== 0) return;
+  clickRelease();
+  // Seen to now, while the click is still the person's: a picture asked for on letting
+  // go (the sticker chip) may open the file chooser only then.
+  settle();
 });
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
@@ -1602,14 +1607,33 @@ const pictureInput = Object.assign(document.createElement('input'), {
   type: 'file',
   accept: 'image/*',
 });
+/** What's done with the picture picked, once it is (the sticker chip let go on a thing: stuck on there). */
+let picked: ((p: Picture) => void) | undefined;
 pictureInput.addEventListener('change', () => {
   const file = pictureInput.files?.[0];
+  const then = picked;
+  picked = undefined;
   pictureInput.value = '';
-  if (file) void pictureFrom(file).then((p) => p && showOnStickerChip(p));
+  if (file)
+    void pictureFrom(file).then((p) => {
+      if (!p) return;
+      showOnStickerChip(p);
+      then?.(p);
+      settle();
+    });
 });
-/** The sticker chip let go on nothing, or clicked: the person picks a picture file for it. */
-function chooseImage(): void {
-  if (handsOff || demo) return; // (no one to choose)
+pictureInput.addEventListener('cancel', () => (picked = undefined));
+/**
+ * The sticker chip let go on a thing (`then`: stick it on there), or on nothing, or
+ * clicked: the person picks a picture file for it. With no one to pick, the chip's own.
+ */
+function chooseImage(then?: (p: Picture) => void): void {
+  if (handsOff || demo) {
+    const p = stickerPictureOf(rt);
+    if (p && then) then(p);
+    return;
+  }
+  picked = then;
   pictureInput.click();
 }
 /**

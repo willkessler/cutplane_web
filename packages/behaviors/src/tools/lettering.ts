@@ -30,10 +30,12 @@ import { registerPadTechniques } from './toolbar.ts';
  * to say takes it off). Let go on lettering already there, or click on it, the plate
  * opens for that.
  *
- * The sticker chip (Sticker: sticker.cpl), left of it, sticks on the picture it shows
- * (a sticker: a TextDecal with an image), middle where it was let go, and opens the
- * same plate for it, its name where the lettering would be. Let go on nothing (or just
- * clicked), it asks the host for a picture to show (Runtime.chooseImage).
+ * The sticker chip (Sticker: sticker.cpl), left of it, let go on a thing, asks the host
+ * for a picture (Runtime.chooseImage) and sticks it on (a sticker: a TextDecal with an
+ * image), middle where it was let go, and opens the same plate for it, its name where
+ * the lettering would be. Just clicked, it asks for a picture to show (and stick on
+ * where no one can be asked). With the plate open, lettering or a sticker pressed on
+ * slides along its surface with the crosshair (Controls).
  *
  * The note chip (Note: note.cpl), left of that, puts a note there instead: what it says
  * floating out from the surface on a tag (TextDecal's `note`), in the bars' colour; the
@@ -391,13 +393,23 @@ export const LETTER_CRTNS: Partial<Record<string, (rt: Runtime, vm: VM) => void>
     if (!chip) return;
     const at = objects.length && rt.letterer ? rt.letterer(objects, rt.cursor()) : null;
     if (!at) {
-      rt.chooseImage?.();
+      // Only clicked (let go where it was taken): a picture for it to show. Let go on
+      // nothing else, nothing.
+      const home = stickerChip(rt);
+      const b = home && rt.bbox(home);
+      const c = rt.cursor();
+      if (b && [0, 1].every((k) => c[k]! >= b[0][k]! && c[k]! <= b[1][k]!)) rt.chooseImage?.();
       return;
     }
     if (at.index !== undefined) return openLettering(rt, at.object, at.index);
+    if (!at.frame) return;
+    const { object, frame } = at;
+    // Let go on a thing, the person picks the picture to stick on there; with no one to
+    // ask, it's the one the chip shows.
+    if (rt.chooseImage) return rt.chooseImage((p) => stickOn(rt, object, frame, p));
     const d = chip.decals?.[0];
-    if (at.frame && d?.image)
-      stickOn(rt, at.object, at.frame, { image: d.image, aspect: d.aspect ?? 1, name: d.text });
+    if (d?.image)
+      stickOn(rt, object, frame, { image: d.image, aspect: d.aspect ?? 1, name: d.text });
   },
   /** (what is under the crosshair, the chip let go): a note floating off it there. */
   note_on(rt, vm) {

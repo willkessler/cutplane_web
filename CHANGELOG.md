@@ -12,6 +12,10 @@ New in 2026: none of these were in the 1991 original.
 
 ### October 29, 2026
 
+- **Lettering and stickers slide.** With the lettering plate open, press on the lettering (or
+  sticker) and drag: it slides along the surface with the crosshair, one undoable step. The
+  sticker chip let go on a thing asks for the picture there and then; let go on nothing, it
+  does nothing (a click on the chip still picks its picture).
 - **Notes.** A yellow note chip sits left of the sticker chip. Let it go on a thing and a note
   floats out from the surface there on a leader line: a tag in the bars' colour, facing whoever
   looks, for remarks about the design ("flange here is steel"). Folded, the tag shows the start
@@ -20,7 +24,7 @@ New in 2026: none of these were in the 1991 original.
   `Object Note:` lines. `add_decal` takes `note` (the distance out), `edit_decal` changes it,
   and `list_objects` says which decals are notes.
 - **Stickers.** A sticker chip sits left of the T chip, showing a picture. Drag it onto a thing
-  and the picture is stuck on there (a decal, laid as lettering is), and the lettering plate
+  and pick a picture file, and it's stuck on there (a decal, laid as lettering is), and the lettering plate
   opens for its name, size and lean. Click it, or let it go on nothing, to choose a picture
   file; or drop a picture file on the room to stick it on where the plane cuts a surface under
   the drop (or replace a sticker's picture there). Pictures are kept in the `.cut` file

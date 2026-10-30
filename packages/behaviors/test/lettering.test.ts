@@ -213,8 +213,36 @@ describe('the T chip and the lettering plate (new)', () => {
     expect(cube.decals![0]!.text).toBe('ORION III');
   });
 
-  it('the sticker chip sticks its picture on, its middle there; let go on nothing, asks for one', () => {
-    const { rt, cube, cc, p, drop, type, shown } = setup();
+  it('with the plate open, lettering pressed on slides along its surface, one step; shut, the press picks', () => {
+    const { rt, cube, drop, type, controls, frame, at, move, shown } = setup();
+    drop(0, 20);
+    type(['ORION']);
+    expect(shown()).toBe(true);
+    at(5, 22, 0);
+    controls.pressPick(false);
+    frame();
+    move(40, -10);
+    controls.releasePick();
+    frame();
+    // Where it was taken hold of (5 in from its start) stays under the crosshair.
+    expect(cube.decals![0]!.at).toEqual([140, 110, 200]); // the room's (40, 10, 100)
+    expect(rt.picked()).toEqual([]);
+    expect(shown()).toBe(true);
+    rt.undo();
+    expect(cube.decals![0]!.at).toEqual([100, 120, 200]);
+    // Put away, a press on it picks the cube, as ever.
+    type([0x1b]);
+    at(5, 22, 0);
+    controls.pressPick(false);
+    frame();
+    controls.releasePick();
+    frame();
+    expect(rt.picked().length).toBeGreaterThan(0);
+    expect(cube.decals![0]!.at).toEqual([100, 120, 200]);
+  });
+
+  it('the sticker chip, let go on a thing, asks for a picture and sticks it on, its middle there; just clicked, asks for one for it', () => {
+    const { rt, cube, cc, p, drop, type, shown, controls, frame, at } = setup();
     const b = rt.bbox(cc.sticker)!;
     expect(b[0][0]).toBeCloseTo(82);
     expect(b[1][0]).toBeCloseTo(132);
@@ -222,24 +250,41 @@ describe('the T chip and the lettering plate (new)', () => {
     const globe = { image: 'data:image/png;base64,AAAA', aspect: 2, name: 'GLOBE' };
     setStickerPicture(rt, globe);
     expect(stickerPictureOf(rt)).toEqual(globe);
+    const moon = { image: 'data:image/png;base64,BBBB', aspect: 1.5, name: 'MOON' };
     let asked = 0;
-    rt.chooseImage = () => asked++;
+    rt.chooseImage = (then) => {
+      asked++;
+      then?.(moon);
+    };
     drop(0, 20, 107);
+    expect(asked).toBe(1);
     expect(cube.decals).toHaveLength(1);
     const d = cube.decals![0]!;
-    expect(d).toMatchObject({ image: globe.image, aspect: 2, text: 'GLOBE', height: 60 });
+    expect(d).toMatchObject({ image: moon.image, aspect: 1.5, text: 'MOON', height: 60 });
     expect(d.align).toBeUndefined();
-    expect(asked).toBe(0);
     // The plate is open on it, its name where lettering's would be.
     expect(shown()).toBe(true);
     expect(rt.label(p.plate, 1)).toBe('Sticker:');
-    expect(rt.label(p.text, 1)).toBe('GLOBE');
+    expect(rt.label(p.text, 1)).toBe('MOON');
     type([0x08, CR]);
     expect(cube.decals).toBeUndefined();
-    // Let go on nothing: asks for a picture, sticks nothing on.
+    // Let go on nothing: nothing.
     drop(-400, 300, 107);
     expect(asked).toBe(1);
     expect(cube.decals).toBeUndefined();
+    // Only clicked: asks for a picture for it.
+    at(125, -18, 0); // (on the chip, clear of the cube's edge)
+    controls.pressPick(false);
+    frame();
+    controls.releasePick();
+    frame();
+    frame();
+    expect(asked).toBe(2);
+    expect(cube.decals).toBeUndefined();
+    // No one to ask: the picture the chip shows.
+    rt.chooseImage = null;
+    drop(0, 20, 107);
+    expect(cube.decals![0]).toMatchObject({ image: globe.image, aspect: 2, text: 'GLOBE' });
   });
 
   it('the note chip puts a note floating off it there; the plate says it, its size, how far out', () => {

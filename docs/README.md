@@ -731,9 +731,10 @@ the papers. Where it differs, it's on purpose, and the differences are listed he
   the way it reads; "up" works out the lean that stands them straight up in the room). A sticker
   is a decal with a picture in place of text (a data: URL, at most 512 a side), kept as an
   `Object Sticker:` line (its aspect where the colour would be) and an `Object Sticker image:`
-  line; the sticker chip (`sticker.cpl`) sticks on the picture it shows. A note is a decal with
+  line; the sticker chip (`sticker.cpl`), let go on a thing, asks for a picture
+  (`Runtime.chooseImage`) and sticks that on. A note is a decal with
   `note` set: not laid on but floating that far out along its normal, drawn (`render/notes.ts`)
-  as a tag of Hershey lettering facing the camera, on a leader line, over everything; folded to
+  as a card of Hershey lettering turned to the camera, on a leader line, slid to stay in the room; folded to
   its start unless the line from the eye through the crosshair meets it. It is kept as an
   `Object Note:` line (colour, height, point, normal, along, distance out, text), and the note
   chip (`note.cpl`) makes one. By hand, the colour control's T chip (`letter.cpl`, after `paint.cpl`) letters

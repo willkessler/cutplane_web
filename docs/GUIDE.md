@@ -240,10 +240,11 @@ empty text takes it off); **Tab** goes on to the next field. The Size field is t
 height in the room (smaller for a wing). The Lean field takes degrees (as italics) or **up**,
 which stands the letters straight up however the line runs. To change
 lettering later, put the plane through it and click on it; to take it off, empty its text and
-press Return. Left of the T chip, the **sticker chip** shows a picture: drag it onto a face and
-that picture is stuck on there, its middle where you let go, and the same plate opens (its name,
-its size, its lean). Click the sticker chip, or let it go on nothing, to choose a picture file
-for it; or drop a picture file (png, jpeg, webp, gif, svg) straight onto the room: the chip
+press Return. With the plate open, press on the lettering and drag: it slides along the
+surface with the crosshair (Ctrl-Z puts it back). Left of the T chip, the **sticker chip** shows a picture: drag it onto a face and
+pick a picture file, and it's stuck on there, its middle where you let go, and the same plate
+opens (its name, its size, its lean). Click the sticker chip to choose a picture file for it to
+show (let go on nothing, it does nothing); or drop a picture file (png, jpeg, webp, gif, svg) straight onto the room: the chip
 takes it, and where the plane cuts a surface under the drop it's stuck on there (dropped on a
 sticker, it replaces that one's picture). Pictures are kept in the world's file, up to 512
 pixels a side. Left of that, the yellow **note chip** puts a note on a thing: let it go on a
